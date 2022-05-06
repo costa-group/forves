@@ -1,1 +1,2 @@
--Q . Coq_EVM
+-R . Coq_EVM
+lib/evmModel.v
