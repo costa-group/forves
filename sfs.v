@@ -5,6 +5,7 @@
    https://www.gnu.org/licenses/gpl-3.0.txt
 *)
 
+
 Require Import Coq.Lists.List.
 Require Import bbv.Word.
 Require Import Coq.Init.Nat. (* for <? *)
@@ -18,9 +19,50 @@ Require Import Coq_EVM.lib.evmModel.
 Require Import Coq_EVM.string_map.
 
 
+(***********
+  CONCRETE EVALUATION OF A PROGRAM WRT. A STACK
+ ***********)
+Definition infinite_gas : nat := 2048.
 
+Definition empty_execution_state (stack: list (EVMWord)) : ExecutionState :=
+  ExecutionStateMk stack 
+                   (M.empty EVMWord)
+                   (M.empty EVMWord)
+                   (M.empty (list (word 8)))
+                   0
+                   nil.
 
+Definition empty_callinfo : CallInfo := 
+CallInfoMk nil 
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           nil
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (natToWord WLen 0)
+           (M.empty EVMWord).
+           
 
+(* Add a STOP instruction at the end of the program so that evmModel does no generate a jump exception *) 
+Definition concrete_eval (program: list OpCode) (stack: list (EVMWord)) : option (list EVMWord) :=
+match actOpcode infinite_gas 0 (empty_execution_state stack) (app program (STOP::nil)) empty_callinfo with
+| inr (SuccessfulExecutionResultMk execStat) => Some (getStack_ES execStat)
+| inr (SuccessfulExecutionResultMkWithData execStat data) => None
+  (* SuccessfulExecutionResultMkWithData should not be returned in our EVM blocks because it is
+     generated with LOG, CREATE, CALL and CALLCODE instructions*)
+| inl _ => None
+end.
+  
+  
+Compute (concrete_eval (SimplePriceOpcodeMk ADD::nil) 
+         ((natToWord WLen 2)::(natToWord WLen 3)::(natToWord WLen 5)::nil)).
 
 
 
@@ -71,11 +113,9 @@ match (i1, i2) with
  | _ => false
 end.
 
-Compute (EVMoper_eqb (SimplePriceOpcodeMk (PUSH (natToWord 5 7) (natToWord WLen 200))) 
-                     (SimplePriceOpcodeMk POP)
-).
 
-(* Recursive function for syntactic equality *)
+
+(* Recursive function for exact syntactic equality *)
 Definition sfsval_eqb (sfs1 sfs2: sfs_val) : bool :=
 match (sfs1, sfs2) with
  | (SFSconst v1, SFSconst v2) => weqb v1 v2
@@ -88,8 +128,174 @@ end.
 
 
 
+
+
+(*
+(****************
+ SFS equivalence [need to be adapted]
+*****************)
+Definition sfs_eq_symbol (d: nat) (symb1 symb2 : string) (map1 map2 : sfs_map) : bool :=
+match (resolve_sfs_expr d (SFSname symb1) map1, resolve_sfs_expr d (SFSname symb2) map2) with
+ | (None, _) => false
+ | (_, None) => false
+ | (Some sfs1, Some sfs2) => sfsval_eqb sfs1 sfs2
+end.
+
+Fixpoint sfs_eq_list (d: nat) (in1 in2 : abstract_stack) (map1 map2 : sfs_map) : bool :=
+match in1 with 
+ | nil => match in2 with
+           | nil => true
+           | _::_ => false
+          end
+ | v1::r1 => match in2 with
+              | nil => false
+              | v2::r2 => andb (sfs_eq_symbol d v1 v2 map1 map2) (sfs_eq_list d r1 r2 map1 map2)
+             end
+end.
+
+Definition sfs_eqb (d: nat) (sfs1 sfs2 : sfs) : bool :=
+match (sfs1, sfs2) with
+ | (SFS in1 map1, SFS in2 map2) => sfs_eq_list d in1 in2 map1 map2
+end.
+
+
+(* Test: equivalent SFS *)
+Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
+Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil)).
+Compute (
+let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
+let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil) in 
+match (prog1, prog2) with
+ | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
+ | _ => None
+end).
+
+Compute (
+let sfs1 := SFS ("s2"::"s3"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk ADD) (SFSname "s0") (SFSname "s1"))::nil) in
+let sfs2 := SFS ("e0"::"s3"::"s4"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk SUB) (SFSname "s1")(SFSname "s2"))::nil) in
+sfs_eqb 1024 sfs1 sfs2
+).
+
+(* Test: not equivalent SFS *)
+Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
+Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil)).
+Compute (
+let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
+let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil) in 
+match (prog1, prog2) with
+ | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
+ | _ => None
+end).
+*)
+
+
+
+(***********************************
+ EVALUATION OF AN SFS FROM A CONCRETE STACK 
+ **********************************)
+Definition evaluate_concrete_element (oper: OpCode) (args: list EVMWord) 
+  : option EVMWord :=
+(* relies on actOpcode, the EVM model function for evaluating programs. Here I construct an 
+   ad-hoc program and stack and execute it inside an empty execution state and empty callinfo *)
+match (actOpcode 1000 0 (empty_execution_state args) (oper::STOP::nil) empty_callinfo) with
+ | inr (SuccessfulExecutionResultMk (ExecutionStateMk (e::_) _memory _storage _pc _contracts _)) => Some e
+ | _ => None
+end.
+
+
+(* Dummy natural variable "d" for decreasingness *)
+Fixpoint evaluate_sfs_from_map (d: nat) (concrete_stack: map EVMWord) (spec: sfs) (symbol: string)
+  : option EVMWord :=
+match d with
+ | 0 => None
+ | S d' => match lookup concrete_stack symbol with
+            | Some value => Some value
+            | None => match spec with 
+                       | SFS _ _ sfsm => match lookup sfsm symbol with
+                                        | Some (SFSconst v) => Some v
+                                        | Some (SFSbinop oper name1 name2) => 
+                                            match (evaluate_sfs_from_map d' concrete_stack spec name1,
+                                                   evaluate_sfs_from_map d' concrete_stack spec name2) with
+                                             | (Some v1, Some v2) => evaluate_concrete_element oper (v1::v2::nil)
+                                             | _ => None
+                                            end
+                                        | Some (SFSname name) => evaluate_sfs_from_map d' concrete_stack spec name
+                                        | None => None
+                                       end
+                      end
+           end
+end.
+
+
+Lemma eval_more_steps: forall (d: nat) (stack: map EVMWord) (absi abso: abstract_stack) 
+(sfs_map: sfs_map) (symbol: string) (val: EVMWord),
+evaluate_sfs_from_map d stack (SFS absi abso sfs_map) symbol = Some val
+-> evaluate_sfs_from_map (S d) stack (SFS absi abso sfs_map) symbol = Some val.
+Proof.
+intro d. induction d as [ | d' IH].
+ - intros stack absi abso sfs_map symbol val.
+   unfold evaluate_sfs_from_map. intro Hnonesome. discriminate.
+ - intros stack absi abso sfs_map symbol val.
+   remember (S d') as succdp eqn: Heqsuccdp. (* Defines succdp = S d', useful for unfolding *)
+   rewrite -> Heqsuccdp at 1.
+   unfold evaluate_sfs_from_map.
+   destruct (lookup stack symbol) as [v | ] eqn: eqlookupstackvalue; try trivial.
+   destruct (lookup sfs_map symbol) as [v | ] eqn: eqlookupmapvalue; try trivial.
+   destruct v as [value|name|op name1 name2] eqn: Hv.
+   + trivial.
+   + fold evaluate_sfs_from_map.
+     rewrite -> Heqsuccdp.
+     pose proof (IH stack absi abso sfs_map name val) as IHspec.
+     rewrite -> Heqsuccdp in IHspec.
+     assumption.
+   + fold evaluate_sfs_from_map.
+     destruct (evaluate_sfs_from_map d' stack (SFS absi abso sfs_map) name1) 
+       as [v1|] eqn: Hevalname1.
+     * destruct (evaluate_sfs_from_map d' stack (SFS absi abso sfs_map) name2) 
+          as [v2|] eqn: Hevalname2.
+       -- pose proof (IH stack absi abso sfs_map name1 v1) as IHspecname1.
+          apply IHspecname1 in Hevalname1.
+          rewrite -> Hevalname1.
+          pose proof (IH stack absi abso sfs_map name2 v2) as IHspecname2.
+          apply IHspecname2 in Hevalname2.
+          rewrite -> Hevalname2.
+          trivial.
+       -- intro Hfalse. discriminate.
+     * intro Hfalse. discriminate.
+Qed.
+
+
+
+Fixpoint evaluate_sfs_aux (d: nat) (abs: abstract_stack) (stack: map EVMWord) (sfsm: sfs_map): 
+                          option (list EVMWord) := 
+match abs with
+| nil => Some nil
+| symb::r => match (evaluate_sfs_from_map d stack (SFS nil nil sfsm) symb,
+                    evaluate_sfs_aux d r stack sfsm) with
+             | (Some vs, Some rr) => Some (vs::rr)
+             | _ => None
+             end
+end.
+
+Definition evaluate_sfs (d: nat) (csfs: sfs) (stack: list EVMWord) : option (list EVMWord) := 
+match csfs with
+| SFS absi abso smap => let stack := combine absi stack in
+                        evaluate_sfs_aux d abso stack smap
+end.
+
+Definition infinite_eval_steps : nat := 5000. (* This should be enough in SFS obtained in our blocks *)
+
+Compute (let csfs := SFS ("s0"::"s1"::"s2"::"s3"::nil) ("e1"::"s3"::nil) 
+                         (("e0", SFSbinop (SimplePriceOpcodeMk MUL) "s0" "s1")::
+                         (("e1", SFSbinop (SimplePriceOpcodeMk ADD) "e0" "s2")::nil))
+         in evaluate_sfs infinite_eval_steps csfs 
+           ((natToWord WLen 2)::(natToWord WLen 3)::(natToWord WLen 5)::(natToWord WLen 7)::nil)).
+
+
+
+
 (**********
- Generation of abstract stack names 
+ Generation of abstract stacks of a given size
  **********)
 
 Definition nat_to_ascii_digit (n: nat) : string := 
@@ -118,15 +324,20 @@ match n with
  | S m => ((append prefix (nat_to_string (S m)))::(create_abs_stack_name_rev m prefix)) 
 end.
 
+(* Creates an abstract stack of 'n' symbols with the given prefix *)
 Definition create_abs_stack_name (n: nat) (prefix: string): list string :=
 rev (create_abs_stack_name_rev (n-1) prefix).
 
 Compute (create_abs_stack_name 10 "s").
 
 
+
+
+
 (*****************
  Generation of SFS from EVM bytecode
- Get a parameter of fresh abstract stack names to be used
+ Get a parameter of fresh abstract stack names to be used <-- TODO, receive only the size and use
+  always sN for initial stack elements and eN for generated ones
  *****************)
 
 (* arg is a word of length 5 that represents the argument of the PUSH: PUSH 1 = PUSH 00000, PUSH 2 = PUSH 00001, etc. *)
@@ -225,168 +436,6 @@ Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
 Compute (abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10))::SimplePriceOpcodeMk POP::nil)).
 
 
-(*
-(****************
- SFS equivalence [not used]
-*****************)
-Definition sfs_eq_symbol (d: nat) (symb1 symb2 : string) (map1 map2 : sfs_map) : bool :=
-match (resolve_sfs_expr d (SFSname symb1) map1, resolve_sfs_expr d (SFSname symb2) map2) with
- | (None, _) => false
- | (_, None) => false
- | (Some sfs1, Some sfs2) => sfsval_eqb sfs1 sfs2
-end.
-
-Fixpoint sfs_eq_list (d: nat) (in1 in2 : abstract_stack) (map1 map2 : sfs_map) : bool :=
-match in1 with 
- | nil => match in2 with
-           | nil => true
-           | _::_ => false
-          end
- | v1::r1 => match in2 with
-              | nil => false
-              | v2::r2 => andb (sfs_eq_symbol d v1 v2 map1 map2) (sfs_eq_list d r1 r2 map1 map2)
-             end
-end.
-
-Definition sfs_eqb (d: nat) (sfs1 sfs2 : sfs) : bool :=
-match (sfs1, sfs2) with
- | (SFS in1 map1, SFS in2 map2) => sfs_eq_list d in1 in2 map1 map2
-end.
-
-
-(* Test: equivalent SFS *)
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil)).
-Compute (
-let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
-let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil) in 
-match (prog1, prog2) with
- | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
- | _ => None
-end).
-
-Compute (
-let sfs1 := SFS ("s2"::"s3"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk ADD) (SFSname "s0") (SFSname "s1"))::nil) in
-let sfs2 := SFS ("e0"::"s3"::"s4"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk SUB) (SFSname "s1")(SFSname "s2"))::nil) in
-sfs_eqb 1024 sfs1 sfs2
-).
-
-(* Test: not equivalent SFS *)
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil)).
-Compute (
-let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
-let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil) in 
-match (prog1, prog2) with
- | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
- | _ => None
-end).
-*)
-
-
-
-(*************
- Evaluation of a final stack position from concrete initial stack and a SFS 
-**************) 
-
-Definition empty_execution_state (stack: list (EVMWord)) : ExecutionState :=
-  ExecutionStateMk stack 
-                   (M.empty EVMWord)
-                   (M.empty EVMWord)
-                   (M.empty (list (word 8)))
-                   0
-                   nil.
-
-Definition empty_callinfo : CallInfo := 
-CallInfoMk nil 
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           nil
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (natToWord WLen 0)
-           (M.empty EVMWord).
-
-
-Definition evaluate_concrete_element (oper: OpCode) (args: list EVMWord) 
-  : option EVMWord :=
-(* relies on actOpcode, the EVM model function for evaluating programs. Here I construct an 
-   ad-hoc program and stack and execute it inside an empty execution state and empty callinfo *)
-match (actOpcode 1000 0 (empty_execution_state args) (oper::STOP::nil) empty_callinfo) with
- | inr (SuccessfulExecutionResultMk (ExecutionStateMk (e::_) _memory _storage _pc _contracts _)) => Some e
- | _ => None
-end.
-
-
-(* Dummy natural variable "d" for decreasingness *)
-Fixpoint evaluate_sfs_from_map (d: nat) (concrete_stack: map EVMWord) (spec: sfs) (symbol: string)
-  : option EVMWord :=
-match d with
- | 0 => None
- | S d' => match lookup concrete_stack symbol with
-            | Some value => Some value
-            | None => match spec with 
-                       | SFS _ _ sfsm => match lookup sfsm symbol with
-                                        | Some (SFSconst v) => Some v
-                                        | Some (SFSbinop oper name1 name2) => 
-                                            match (evaluate_sfs_from_map d' concrete_stack spec name1,
-                                                   evaluate_sfs_from_map d' concrete_stack spec name2) with
-                                             | (Some v1, Some v2) => evaluate_concrete_element oper (v1::v2::nil)
-                                             | _ => None
-                                            end
-                                        | Some (SFSname name) => evaluate_sfs_from_map d' concrete_stack spec name
-                                        | None => None
-                                       end
-                      end
-           end
-end.
-
-
-Lemma eval_more_steps: forall (d: nat) (stack: map EVMWord) (absi abso: abstract_stack) 
-(sfs_map: sfs_map) (symbol: string) (val: EVMWord),
-evaluate_sfs_from_map d stack (SFS absi abso sfs_map) symbol = Some val
--> evaluate_sfs_from_map (S d) stack (SFS absi abso sfs_map) symbol = Some val.
-Proof.
-intro d. induction d as [ | d' IH].
- - intros stack absi abso sfs_map symbol val.
-   unfold evaluate_sfs_from_map. intro Hnonesome. discriminate.
- - intros stack absi abso sfs_map symbol val.
-   remember (S d') as succdp eqn: Heqsuccdp. (* Defines succdp = S d', useful for unfolding *)
-   rewrite -> Heqsuccdp at 1.
-   unfold evaluate_sfs_from_map.
-   destruct (lookup stack symbol) as [v | ] eqn: eqlookupstackvalue; try trivial.
-   destruct (lookup sfs_map symbol) as [v | ] eqn: eqlookupmapvalue; try trivial.
-   destruct v as [value|name|op name1 name2] eqn: Hv.
-   + trivial.
-   + fold evaluate_sfs_from_map.
-     rewrite -> Heqsuccdp.
-     pose proof (IH stack absi abso sfs_map name val) as IHspec.
-     rewrite -> Heqsuccdp in IHspec.
-     assumption.
-   + fold evaluate_sfs_from_map.
-     destruct (evaluate_sfs_from_map d' stack (SFS absi abso sfs_map) name1) 
-       as [v1|] eqn: Hevalname1.
-     * destruct (evaluate_sfs_from_map d' stack (SFS absi abso sfs_map) name2) 
-          as [v2|] eqn: Hevalname2.
-       -- pose proof (IH stack absi abso sfs_map name1 v1) as IHspecname1.
-          apply IHspecname1 in Hevalname1.
-          rewrite -> Hevalname1.
-          pose proof (IH stack absi abso sfs_map name2 v2) as IHspecname2.
-          apply IHspecname2 in Hevalname2.
-          rewrite -> Hevalname2.
-          trivial.
-       -- intro Hfalse. discriminate.
-     * intro Hfalse. discriminate.
-Qed.
-
-
 
 Example push_4_3:
 match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 4))::
@@ -407,6 +456,9 @@ end = (Some (natToWord WLen 4),
        None).
 Proof.
  reflexivity. Qed.
+ 
+ 
+ 
 
 
 Definition safeWordToNat (w: option EVMWord) : option nat :=
@@ -548,6 +600,10 @@ match (osfs1, osfs2) with
  | _ => None
 end
 ).
+
+
+
+ 
 
 
 

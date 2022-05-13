@@ -21,17 +21,9 @@ Require Import Coq_EVM.sfs.
 
 
 
-
-
-
-
-
-
-
 (*************
   POINTS-TO symbol to constant in SFS map
  *************)
-
 
 (* Checks if the mapping of the 'label' in the 'smap' is the constant 'value' in one step *)
 Definition points_to_const (label: string) (smap: sfs_map) (value: EVMWord) : bool :=
