@@ -1,0 +1,7 @@
+# Intermediate and compiled Coq files
+*.glob
+*.vo
+*.vos
+*.vok
+*.aux
+*.lia.cache
