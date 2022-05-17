@@ -335,63 +335,64 @@ Compute (create_abs_stack_name 10 "s").
 
 
 (*****************
- Generation of SFS from EVM bytecode
- Get a parameter of fresh abstract stack names to be used <-- TODO, receive only the size and use
-  always sN for initial stack elements and eN for generated ones
- *****************)
+ Abstract evaluation: generation of SFS from EVM bytecode
+ Receive the size and use always sN for initial stack elements and eN for generated ones
+*****************)
 
-(* arg is a word of length 5 that represents the argument of the PUSH: PUSH 1 = PUSH 00000, PUSH 2 = PUSH 00001, etc. *)
-Definition abs_eval_push (arg: word 5) (word: EVMWord) (curr_sfs: sfs) (fresh_stack_names: list string)
-  : option (sfs * list string) :=
-match fresh_stack_names with
- | nil => None
- | next_stack_name::rest_stack_names => match curr_sfs with
-                                         | SFS absi abso sfs_map => let value := pushWordPass word (wordToNat arg + 1) in
-                                                                    Some (SFS absi (next_stack_name::abso) 
-                                                                              (update sfs_map next_stack_name (SFSconst value)), 
-                                                                          rest_stack_names)
-                                         end
+Definition prefix_abstract_stack : string := "s".
+Definition prefix_abstract_stack_eval : string := "e".
+ 
+
+(* arg is a word of length 5 that represents the argument of the PUSH: PUSH1 = PUSH 00000, PUSH2 = PUSH 00001, etc. *)
+Definition abs_eval_push (arg: word 5) (word: EVMWord) (curr_sfs: sfs) (fresh_stack_id: nat)
+  : option (sfs * nat) :=
+match curr_sfs with
+ | SFS absi abso sfs_map => let value := pushWordPass word (wordToNat arg + 1) in
+                            let stack_pos_name := append prefix_abstract_stack_eval (nat_to_string fresh_stack_id) in
+                            Some (SFS absi 
+                                      (stack_pos_name::abso) 
+                                      (update sfs_map stack_pos_name (SFSconst value)), 
+                                 fresh_stack_id + 1)
 end.
 
-Definition abs_eval_pop (curr_sfs: sfs) (fresh_stack_names: list string)
-  : option (sfs * list string) :=
+
+Definition abs_eval_pop (curr_sfs: sfs) (fresh_stack_id: nat)
+  : option (sfs * nat) :=
 match curr_sfs with
  | SFS absi abso sfs_map => match abso with
-                             | top::r => Some ((SFS absi r sfs_map), fresh_stack_names)
+                             | top::r => Some ((SFS absi r sfs_map), fresh_stack_id)
                              | nil => None
                             end
 end.
 
 (* General code for every simple binary operation in the stack *)
-Definition abs_eval_binary (oper: OpCode) (curr_sfs: sfs) (fresh_stack_names: list string)
-  : option (sfs * list string) :=
-match fresh_stack_names with
- | nil => None
- | next_stack_name::rest_stack_names =>
-     match curr_sfs with
-      | SFS absi abso sfs_map =>
-          match abso with
-           | s0::s1::rstack => Some (SFS absi (next_stack_name::rstack) 
-                                         (update sfs_map next_stack_name (SFSbinop oper s0 s1)),
-                                     rest_stack_names)
-           | _ => None
-          end
-     end
+Definition abs_eval_binary (oper: OpCode) (curr_sfs: sfs) (fresh_stack_id: nat)
+  : option (sfs * nat) :=
+match curr_sfs with
+| SFS absi abso sfs_map => match abso with
+                           | s0::s1::rstack => 
+                               let stack_pos_name := append "e" (nat_to_string fresh_stack_id) in 
+                               Some (SFS absi 
+                                         (stack_pos_name::rstack) 
+                                         (update sfs_map stack_pos_name (SFSbinop oper s0 s1)),
+                                     fresh_stack_id + 1)
+                           | _ => None
+                           end
 end.
 
-Compute abs_eval_binary (SimplePriceOpcodeMk ADD) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) ("nueva pos"::"otra mas"::nil).
-Compute abs_eval_binary (SimplePriceOpcodeMk SUB) (SFS ("s0"::"s1"::"s2"::nil) ("s0"::"s1"::"s2"::nil) empty_map) ("nueva pos"::"name2"::nil).
+Compute abs_eval_binary (SimplePriceOpcodeMk ADD) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) 0.
+Compute abs_eval_binary (SimplePriceOpcodeMk SUB) (SFS ("s0"::"s1"::"s2"::nil) ("s0"::"s1"::"s2"::nil) empty_map) 3.
 
 
 (* Function to evaluate an operation in a SFS *)
-Definition abs_eval_op (oper: OpCode) (curr_sfs: sfs) (fresh_stack_names: list string)
-  : option (sfs * list string) :=
+Definition abs_eval_op (oper: OpCode) (curr_sfs: sfs) (fresh_stack_id: nat)
+  : option (sfs * nat) :=
 match oper with
-  | SimplePriceOpcodeMk ADD => abs_eval_binary (SimplePriceOpcodeMk ADD) curr_sfs fresh_stack_names
-  | SimplePriceOpcodeMk MUL => abs_eval_binary (SimplePriceOpcodeMk MUL) curr_sfs fresh_stack_names
-  | SimplePriceOpcodeMk SUB => abs_eval_binary oper curr_sfs fresh_stack_names
-  | SimplePriceOpcodeMk (PUSH arg word) => abs_eval_push arg word curr_sfs fresh_stack_names
-  | SimplePriceOpcodeMk POP => abs_eval_pop curr_sfs fresh_stack_names
+  | SimplePriceOpcodeMk ADD => abs_eval_binary (SimplePriceOpcodeMk ADD) curr_sfs fresh_stack_id
+  | SimplePriceOpcodeMk MUL => abs_eval_binary (SimplePriceOpcodeMk MUL) curr_sfs fresh_stack_id
+  | SimplePriceOpcodeMk SUB => abs_eval_binary oper curr_sfs fresh_stack_id
+  | SimplePriceOpcodeMk (PUSH arg word) => abs_eval_push arg word curr_sfs fresh_stack_id
+  | SimplePriceOpcodeMk POP => abs_eval_pop curr_sfs fresh_stack_id
  (* All binary instructions are evaluated the same
   | DIV	          => 5
   | SDIV	        => 5
@@ -405,43 +406,42 @@ match oper with
 end.
 
 Check (abs_eval_op).
-Compute abs_eval_op (SimplePriceOpcodeMk ADD) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) ("nueva pos"::"otra mas"::nil).
-Compute abs_eval_op (SimplePriceOpcodeMk SUB) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) ("nueva pos"::"otra mas"::nil).
+Compute abs_eval_op (SimplePriceOpcodeMk ADD) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) 5.
+Compute abs_eval_op (SimplePriceOpcodeMk SUB) (SFS ("s0"::"s1"::nil) ("s0"::"s1"::nil) empty_map) 0.
 
 
-Fixpoint abstract_eval_aux (program: list OpCode) (curr_sfs: sfs) (fresh_stack_names: list string)
-  : option (sfs * list string) :=
+Fixpoint abstract_eval_aux (program: list OpCode) (curr_sfs: sfs) (fresh_stack_id: nat)
+  : option (sfs * nat) :=
 match program with 
-  | nil => Some (curr_sfs, fresh_stack_names)
-  | oper::rprog => match abs_eval_op oper curr_sfs fresh_stack_names with
+  | nil => Some (curr_sfs, fresh_stack_id)
+  | oper::rprog => match abs_eval_op oper curr_sfs fresh_stack_id with
                     | None => None
-                    | Some (new_sfs, new_stack_names) => abstract_eval_aux rprog new_sfs new_stack_names
+                    | Some (new_sfs, new_fresh_stack_id) => abstract_eval_aux rprog new_sfs new_fresh_stack_id
                    end
 end.
 
-Definition abstract_eval (program: list OpCode)
+Definition abstract_eval (stack_size: nat) (program: list OpCode)
   : option sfs :=
-let ins := create_abs_stack_name 10 "s" in (* The 10 is fixed... *)
-let outs := create_abs_stack_name StackLen "e" in (* generates 'StackLen' names*)
-match abstract_eval_aux program (SFS ins ins empty_map) outs with
+let ins := create_abs_stack_name stack_size prefix_abstract_stack in
+match abstract_eval_aux program (SFS ins ins empty_map) 0 with (* fresh stack positions starting from 0 *)
  | None => None
  | Some (final_sfs, _) => Some final_sfs
 end.
 
 
-Check abstract_eval (SimplePriceOpcodeMk ADD::nil).
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk MUL::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10))::SimplePriceOpcodeMk POP::nil)).
+Check abstract_eval 3 (SimplePriceOpcodeMk ADD::nil).
+Compute (abstract_eval 3 (SimplePriceOpcodeMk ADD::nil)).
+Compute (abstract_eval 5 (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk MUL::nil)).
+Compute (abstract_eval 2 (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
+Compute (abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10))::SimplePriceOpcodeMk POP::nil)).
 
 
 
 Example push_4_3:
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 4))::
-                     SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 3))::
-                     SimplePriceOpcodeMk ADD::
-                     nil) with
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 4))::
+                       SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 3))::
+                       SimplePriceOpcodeMk ADD::
+                       nil) with
  | Some csfs => (*Some csfs*)
                 (evaluate_sfs_from_map 1024 empty_map csfs "e0",
                  evaluate_sfs_from_map 1024 empty_map csfs "e1",
@@ -489,41 +489,50 @@ Compute (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::
 (* Combining the abstract evaluation of a program and the concrete evaluation of a final stack position *)
 Example ex1: 
 let program := (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk MUL::nil) in
-let stack   := (("s0", natToWord WLen 2)::("s1", natToWord WLen 5)::("s2", natToWord WLen 3)::
-                ("s3", natToWord WLen 6)::nil) in
-let sfso := abstract_eval program in
+let stack   := (natToWord WLen 2)::(natToWord WLen 5)::(natToWord WLen 3)::(natToWord WLen 6)::nil in
+let sfso := abstract_eval 3 program in
+let stack_map := combine (create_abs_stack_name 4 "s") stack in
 match sfso with
  | None => None
- | Some sfs => match (safeWordToNat (evaluate_sfs_from_map StackLen stack sfs "e1")) with
+ | Some sfs => match (safeWordToNat (evaluate_sfs_from_map StackLen stack_map sfs "e1")) with
                 | None => None
                 | Some v => Some v
                end
 end = Some 21.
 Proof.
+
 reflexivity. Qed.
 
-(* Two SFS specifications are the same if given a concrete stack, they evaluate their
-   abstract symbols to the same EVM values (EVMWord) *)
-Fixpoint sfs_equiv_concrete_values_aux (concrete_stack: map EVMWord) 
+(* Two SFS specifications are the same if given a concrete stack, they evaluate their final abstract
+   stacks to the same EVM values (EVMWord)
+   I need to split the 3 arguments of SFS so that Coq detects the decreasing one
+*)
+Fixpoint sfs_equiv_concrete_values_aux (stack_map1 stack_map2: map EVMWord) 
   (absi1 absi2 abso1 abso2: abstract_stack) (sfsmap1 sfsmap2: sfs_map) : bool :=
 match (abso1, abso2) with
   | (nil, nil) => true  
   | (symb1::r1, symb2::r2) => 
-      let v1 := evaluate_sfs_from_map 1024 concrete_stack (SFS absi1 abso1 sfsmap1) symb1 in
-      let v2 := evaluate_sfs_from_map 1024 concrete_stack (SFS absi2 abso2 sfsmap2) symb2 in
+      let v1 := evaluate_sfs_from_map 1024 stack_map1 (SFS absi1 abso1 sfsmap1) symb1 in
+      let v2 := evaluate_sfs_from_map 1024 stack_map2 (SFS absi2 abso2 sfsmap2) symb2 in
       match (v1, v2) with
-       | (Some w1, Some w2) => andb (weqb w1 w2) (sfs_equiv_concrete_values_aux concrete_stack absi1 r1 absi2 r2 sfsmap1 sfsmap2)
+       | (Some w1, Some w2) => andb (weqb w1 w2) (sfs_equiv_concrete_values_aux stack_map1 stack_map2 absi1 r1 absi2 r2 sfsmap1 sfsmap2)
        | _ => false
       end
   | _ => false
 end.
 
+Locate eqb.
 
 (* Two SFS are equivalent for a concrete stack if both have the same length and each SFS maps every
    stack position to the same concrete value (wrt. the concrete stack) *)
-Definition sfs_equiv_concrete_values (concrete_stack: map EVMWord) (spec1 spec2: sfs) : bool :=
+Definition sfs_equiv_concrete_values (concrete_stack: list EVMWord) (spec1 spec2: sfs) : bool :=
 match (spec1, spec2) with
- | (SFS absi1 abso1 sfsmap1, SFS absi2 abso2 sfsmap2) => sfs_equiv_concrete_values_aux concrete_stack absi1 absi2 abso1 abso2 sfsmap1 sfsmap2
+ | (SFS absi1 abso1 sfsmap1, SFS absi2 abso2 sfsmap2) => 
+      let stack_map1 := combine absi1 concrete_stack in
+      let stack_map2 := combine absi2 concrete_stack in
+      andb (Nat.eqb (List.length concrete_stack) (List.length absi1))
+           (andb ((Nat.eqb (List.length concrete_stack) (List.length absi2)) )
+           (sfs_equiv_concrete_values_aux stack_map1 stack_map2 absi1 absi2 abso1 abso2 sfsmap1 sfsmap2))
 end.
 Check sfs_equiv_concrete_values.
 
@@ -536,18 +545,19 @@ match n with
 end.
 
 (* Generates a full stack (mapping) from s_n to WZero *)
-Definition full_emtpy_stack : map EVMWord :=
+Definition full_empty_stack_map : map EVMWord :=
  let len := StackLen in
- List.combine (create_abs_stack_name len "s") (empty_concrete_stack len).
+ List.combine (create_abs_stack_name len prefix_abstract_stack) (empty_concrete_stack len).
  
 
+(* TODO: fix definitions, this should return Some true*)
 Compute (
-let init_stack := full_emtpy_stack in
-let osfs1 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
+let init_stack := empty_concrete_stack 0 in
+let osfs1 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 0)))::
                            SimplePriceOpcodeMk ADD::
                            nil) in
-let osfs2 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
+let osfs2 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
                            nil) in
 match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
