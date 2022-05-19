@@ -320,13 +320,13 @@ nat_to_string_aux n 50.
 
 Fixpoint create_abs_stack_name_rev (n: nat) (prefix: string): list string :=
 match n with
- | 0 => (append prefix (nat_to_string 0))::nil
- | S m => ((append prefix (nat_to_string (S m)))::(create_abs_stack_name_rev m prefix)) 
+ | 0 => nil
+ | S m => ((append prefix (nat_to_string m))::(create_abs_stack_name_rev m prefix)) 
 end.
 
 (* Creates an abstract stack of 'n' symbols with the given prefix *)
 Definition create_abs_stack_name (n: nat) (prefix: string): list string :=
-rev (create_abs_stack_name_rev (n-1) prefix).
+rev (create_abs_stack_name_rev n prefix).
 
 Compute (create_abs_stack_name 10 "s").
 
@@ -456,9 +456,7 @@ end = (Some (natToWord WLen 4),
        None).
 Proof.
  reflexivity. Qed.
- 
- 
- 
+
 
 
 Definition safeWordToNat (w: option EVMWord) : option nat :=
@@ -468,22 +466,33 @@ match w with
 end.
 
 
-Compute (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::nil in 
+Example map_s1:
+         (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::nil in 
          let spec := SFS nil nil (("e0", SFSbinop (SimplePriceOpcodeMk ADD) "s0" "s1")::nil) in 
-         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "s1")).
-Compute (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::nil in 
+         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "s1")) = Some 5.
+Proof. reflexivity. Qed.
+
+Example map_e0:
+         (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::nil in 
          let spec := SFS nil nil (("e0", SFSbinop (SimplePriceOpcodeMk ADD) "s0" "s1")::nil) in 
-         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e0")).
-Compute (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::("s2", (natToWord WLen 2))::nil in 
+         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e0")) = Some 11.
+Proof. reflexivity. Qed.
+
+Example map_e1:
+         (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::("s2", (natToWord WLen 2))::nil in 
          let spec := SFS nil nil (("e0", SFSbinop (SimplePriceOpcodeMk ADD) "s0" "s1")::
                               ("e1", SFSbinop (SimplePriceOpcodeMk MUL) "e0" "s2")::nil) in 
-         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e1")).
-Compute (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::
+         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e1")) = Some 22.
+Proof. reflexivity. Qed.
+
+Example map_e2:
+         (let init_map := ("s0", natToWord WLen 6)::("s1", (natToWord WLen 5))::
                          ("s2", (natToWord WLen 2))::("s3", (natToWord WLen 2))::nil in 
          let spec := SFS nil nil (("e0", SFSbinop (SimplePriceOpcodeMk ADD) ("s0") ("s1"))::
                               ("e1", SFSbinop (SimplePriceOpcodeMk MUL) ("e0") ("s2"))::
                               ("e2", SFSbinop (SimplePriceOpcodeMk SUB) ("e1") ("s3"))::nil) in 
-         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e2")).
+         safeWordToNat (evaluate_sfs_from_map StackLen init_map spec "e2")) = Some 20.
+Proof. reflexivity. Qed.
 
 
 (* Combining the abstract evaluation of a program and the concrete evaluation of a final stack position *)
@@ -499,9 +508,7 @@ match sfso with
                 | Some v => Some v
                end
 end = Some 21.
-Proof.
-
-reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* Two SFS specifications are the same if given a concrete stack, they evaluate their final abstract
    stacks to the same EVM values (EVMWord)
@@ -515,7 +522,8 @@ match (abso1, abso2) with
       let v1 := evaluate_sfs_from_map 1024 stack_map1 (SFS absi1 abso1 sfsmap1) symb1 in
       let v2 := evaluate_sfs_from_map 1024 stack_map2 (SFS absi2 abso2 sfsmap2) symb2 in
       match (v1, v2) with
-       | (Some w1, Some w2) => andb (weqb w1 w2) (sfs_equiv_concrete_values_aux stack_map1 stack_map2 absi1 r1 absi2 r2 sfsmap1 sfsmap2)
+       | (Some w1, Some w2) => (weqb w1 w2) && 
+                               (sfs_equiv_concrete_values_aux stack_map1 stack_map2 absi1 absi2 r1 r2 sfsmap1 sfsmap2)
        | _ => false
       end
   | _ => false
@@ -551,7 +559,7 @@ Definition full_empty_stack_map : map EVMWord :=
  
 
 (* TODO: fix definitions, this should return Some true*)
-Compute (
+Example push_add:
 let init_stack := empty_concrete_stack 0 in
 let osfs1 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 0)))::
@@ -562,16 +570,20 @@ let osfs2 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToW
 match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
  | _ => None
-end
-).
+end = Some true.
+Proof. reflexivity. Qed.
 
-Compute (
-let init_stack := full_emtpy_stack in
-let osfs1 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
+Example stack_0: create_abs_stack_name 0 prefix_abstract_stack = nil.
+Proof. reflexivity. Qed.
+
+
+Example push_equiv:
+let init_stack := nil in
+let osfs1 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
                            SimplePriceOpcodeMk ADD::
                            nil) in
-let osfs2 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
+let osfs2 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
                            SimplePriceOpcodeMk ADD::
@@ -580,40 +592,96 @@ let osfs2 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWor
 match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
  | _ => None
-end
-).
+end = Some true.
+Proof. reflexivity. Qed.
 
-Compute (
-let init_stack := full_emtpy_stack in
-let osfs1 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
+Example push_equiv2:
+let init_stack := nil in
+let osfs1 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 5)))::
                            SimplePriceOpcodeMk ADD::
                            nil) in
-let osfs2 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
+let osfs2 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
                            nil) in
 match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
  | _ => None
-end
-).
+end = Some true.
+Proof. reflexivity. Qed.
 
-Compute (
-let init_stack := full_emtpy_stack in
-let osfs1 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
+Example push_equiv_false:
+let init_stack := nil in
+let osfs1 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 10)))::
                            (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 4)))::
                            SimplePriceOpcodeMk ADD::
                            nil) in
-let osfs2 := abstract_eval ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
+let osfs2 := abstract_eval 0 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15)))::
                            nil) in
 match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
  | _ => None
-end
-).
+end = Some false.
+Proof. reflexivity. Qed.
 
 
+Compute (abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 2)))::
+                           (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 8)))::
+                           SimplePriceOpcodeMk MUL::
+                           nil)).
+Compute (abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 16)))::
+                           nil)).
 
- 
+
+Compute (List.length (natToWord WLen 7 :: natToWord WLen 19 :: nil)). 
+Compute ((Datatypes.length (create_abs_stack_name 2 prefix_abstract_stack))).
+
+
+Example push_equiv3:
+let init_stack := (natToWord WLen 7)::(natToWord WLen 19)::nil in
+let osfs1 := abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 2)))::
+                           (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 8)))::
+                           SimplePriceOpcodeMk MUL::
+                           nil) in
+let osfs2 := abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 16)))::
+                           nil) in
+match (osfs1, osfs2) with
+ | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
+ | _ => None
+end = Some true.
+Proof. reflexivity. 
+Qed.
+
+Example push_equiv_false2:
+let init_stack := (natToWord WLen 7)::(natToWord WLen 19)::nil in
+let osfs1 := abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 2)))::
+                           (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 8)))::
+                           SimplePriceOpcodeMk MUL::
+                           nil) in
+let osfs2 := abstract_eval 2 ((SimplePriceOpcodeMk POP)::(SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 16)))::
+                           nil) in
+match (osfs1, osfs2) with
+ | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
+ | _ => None
+end = Some false.
+Proof. reflexivity. Qed.
+
+Example push_equiv4:
+let init_stack := (natToWord WLen 7)::(natToWord WLen 19)::nil in
+let osfs1 := abstract_eval 2 ((SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 3)))::
+                           (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 4)))::
+                           SimplePriceOpcodeMk MUL::
+                           nil) in
+let osfs2 := abstract_eval 2 ((SimplePriceOpcodeMk POP)::
+                              (SimplePriceOpcodeMk POP)::
+                              (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 19)))::
+                              (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 7)))::
+                              (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 12)))::
+                              nil) in
+match (osfs1, osfs2) with
+ | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
+ | _ => None
+end = Some true.
+Proof. reflexivity. Qed. 
 
 
 
