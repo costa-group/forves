@@ -32,19 +32,33 @@ match lookup smap label with
  | _ => false
 end.
 
-Compute (
-abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
-               SimplePriceOpcodeMk ADD::
-               nil)).
 
-Compute (
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
+Example pointso_ex1: 
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                      SimplePriceOpcodeMk ADD::
                      nil) with
  | Some (SFS absi abso sfsmap) => Some (points_to_const "e0" sfsmap WZero)
  | _ => None
-end
-).
+end = Some true.
+Proof. reflexivity. Qed.
+
+Example pointso_ex2:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 55 ))::
+                     SimplePriceOpcodeMk ADD::
+                     nil) with
+ | Some (SFS absi abso sfsmap) => Some (points_to_const "e0" sfsmap WZero)
+ | _ => None
+end = Some false.
+Proof. reflexivity. Qed.
+
+Example pointso_ex3:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 55 ))::
+                     SimplePriceOpcodeMk ADD::
+                     nil) with
+ | Some (SFS absi abso sfsmap) => Some (points_to_const "e1" sfsmap WZero)
+ | _ => None
+end = Some false.
+Proof. reflexivity. Qed.
 
 
 Lemma points_to_then_eval: forall (d:nat) (symb: string) (absi abso: abstract_stack)
@@ -132,17 +146,24 @@ match s with
      end
 end.
 
-Compute (
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
-                     SimplePriceOpcodeMk ADD::
-                     nil) with
- | Some (SFS absi abso smap) => optimize_add_zero (SFS absi abso smap) "e1"
- | _ => None
-end
-).
+(* TODO: fix example *)
+Example opt_addzero1:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
+                               SimplePriceOpcodeMk ADD::
+                               nil) with
+| Some sfsini => match optimize_add_zero sfsini "e1" with
+                 | Some sfs => Some sfs
+                 | None => None
+                 end
+| None => None
+end = 
+Some (SFS ("s0"::nil) ("e1"::nil) 
+          (("e1", SFSname "s0")::("e0", SFSconst WZero)::nil)).
+Proof. Abort.
 
+(* TODO: fix example *)
 Compute (
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
+match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                      SimplePriceOpcodeMk ADD::
                      nil) with
@@ -562,8 +583,9 @@ match s with
      end
 end.
 
+(* TODO: fix example *)
 Compute (
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
+match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                      SimplePriceOpcodeMk MUL::
                      nil) with
  | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e1"
@@ -571,8 +593,9 @@ match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
 end
 ).
 
+(* TODO: fix example *)
 Compute (
-match abstract_eval (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
+match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                      SimplePriceOpcodeMk MUL::
                      nil) with
