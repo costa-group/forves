@@ -146,7 +146,6 @@ match s with
      end
 end.
 
-(* TODO: fix example *)
 Example opt_addzero1:
 match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                                SimplePriceOpcodeMk ADD::
@@ -158,19 +157,35 @@ match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
 | None => None
 end = 
 Some (SFS ("s0"::nil) ("e1"::nil) 
-          (("e1", SFSname "s0")::("e0", SFSconst WZero)::nil)).
-Proof. Abort.
+          (("e1", SFSname "s0"):: (* updated mapping from optimize_add_zero *)
+           ("e1", SFSbinop (SimplePriceOpcodeMk ADD) "e0" "s0"):: (* old one *)
+           ("e0", SFSconst WZero)::nil)).
+Proof. reflexivity. Qed.
 
-(* TODO: fix example *)
-Compute (
-match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
-                     SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
+Example opt_addzero2: 
+match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
+                     SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
                      SimplePriceOpcodeMk ADD::
                      nil) with
  | Some (SFS absi abso smap) => optimize_add_zero (SFS absi abso smap) "e2"
  | _ => None
-end
-).
+end = 
+Some (SFS nil ("e2"::nil)
+          (("e2", SFSname "e1"):: (* updated mapping from optimize_add_zero *)
+           ("e2", SFSbinop (SimplePriceOpcodeMk ADD) "e1" "e0"):: (* old one *)
+           ("e1", SFSconst (natToWord WLen 15))::
+           ("e0", SFSconst WZero)::nil)).
+Proof. reflexivity. Qed.
+
+Example opt_addzero3: 
+match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
+                     SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
+                     SimplePriceOpcodeMk ADD::
+                     nil) with
+ | Some (SFS absi abso smap) => optimize_add_zero (SFS absi abso smap) "e1"
+ | _ => None
+end = None. (* e1 points to 15 *)
+Proof. reflexivity. Qed.
 
 
 Lemma optimize_add_zero_same_abs: forall (symb: string)
@@ -565,7 +580,7 @@ Qed.
 
 (************
   OPTIMIZATION X*1 -> X
-  TODO
+  TODO: proofs
  ************)
 
 Definition WOne: EVMWord  := natToWord WLen 1.
@@ -583,24 +598,50 @@ match s with
      end
 end.
 
-(* TODO: fix example *)
-Compute (
+Example ex_mul1:
 match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
+                     SimplePriceOpcodeMk MUL::
+                     nil) with
+ | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e0"
+ | _ => None
+end = None. (* e0 is just WOne*)
+Proof. reflexivity. Qed.
+
+Example ex_mul2:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                      SimplePriceOpcodeMk MUL::
                      nil) with
  | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e1"
  | _ => None
-end
-).
+end = 
+Some (SFS ("s0"::nil) ("e1"::nil)
+          (("e1", SFSname "s0")::
+           ("e1", SFSbinop (SimplePriceOpcodeMk MUL) "e0" "s0")::
+           ("e0", SFSconst WOne)::nil)).
+Proof. reflexivity. Qed.
 
-(* TODO: fix example *)
-Compute (
-match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
-                     SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
-                     SimplePriceOpcodeMk MUL::
-                     nil) with
+Example ex_mul3:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
+                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 7))::
+                      SimplePriceOpcodeMk MUL::
+                      nil) with
  | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e2"
  | _ => None
-end
-).
+end = 
+Some (SFS ("s0"::nil) ("e2"::"s0"::nil)
+          (("e2", SFSname "e1")::
+           ("e2", SFSbinop (SimplePriceOpcodeMk MUL) "e1" "e0")::
+           ("e1", SFSconst (natToWord WLen 7))::
+           ("e0", SFSconst WOne)::nil)).
+Proof. reflexivity. Qed.
+
+Example ex_mul4:
+match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 2))::
+                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 7))::
+                      SimplePriceOpcodeMk MUL::
+                      nil) with
+ | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e2"
+ | _ => None
+end = None. (* the multiplication in e2 is 7 * 2 *)
+Proof. reflexivity. Qed.
 

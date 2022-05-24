@@ -6,6 +6,8 @@ A fully automated and formally verified tool to verify the semantic equivalence 
 
 ## Compilation
 
+This project is developed using the Coq Platform version `coq-platform.2022.01.0~8.13~2022.01` with compiler `ocaml-base-compiler.4.10.2` and also requires the package [`coq-bbv` version 1.2](http://coq.io/opam/coq-bbv.1.2.html). It can be compiled with the following commands:
+
     $ coq_makefile -f _CoqProject -o Makefile
     $ make
 

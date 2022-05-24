@@ -250,13 +250,31 @@ Qed.
    need to define keys as OrderedType and I don't know how to do that *)
 Definition map (T : Type) : Type := list (string * T).
 Definition empty_map {A : Type} : map A := nil.
+
 Definition update {A : Type} (m : map A) (x : string) (v : A): map A :=
   (x,v) :: m.
+
 Fixpoint lookup {A : Type} (m : map A) (x : string) : option A :=
 match m with
   | nil => None
   | (y,v)::tail => if x =? y then Some v else (lookup tail x)
 end.
+
+(* Removes all mappings from key to a value, even if there are several *)
+Fixpoint remove {A : Type} (m: map A) (key: string) : map A :=
+match m with
+| nil => nil
+| ((h,v)::t) => if (h =? key) then ((remove t key)) else (h,v)::(remove t key)
+end.
+
+Example remove_ex1: remove (("a",1)::("a",2)::("a",3)::nil) "a" = nil.
+Proof. reflexivity. Qed.
+Example remove_ex2: remove (("a",1)::("b",2)::("a",3)::nil) "a" = ("b",2)::nil.
+Proof. reflexivity. Qed.
+Example remove_ex3: remove (("a",1)::("b",2)::("a",3)::nil) "key" = 
+(("a",1)::("b",2)::("a",3)::nil).
+Proof. reflexivity. Qed.
+
 
 
 Fixpoint domain {A: Type} (m: map A) : list string :=

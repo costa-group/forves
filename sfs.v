@@ -48,23 +48,39 @@ CallInfoMk nil
            (natToWord WLen 0)
            (natToWord WLen 0)
            (M.empty EVMWord).
-           
 
-(* Add a STOP instruction at the end of the program so that evmModel does no generate a jump exception *) 
-Definition concrete_eval (program: list OpCode) (stack: list (EVMWord)) : option (list EVMWord) :=
-match actOpcode infinite_gas 0 (empty_execution_state stack) (app program (STOP::nil)) empty_callinfo with
+
+(* Evaluation of a program given a concrete stack.
+   Add a STOP instruction at the end of the program so that evmModel does no generate a jump exception *) 
+Definition concrete_eval (gas: nat) (program: list OpCode) (stack: list (EVMWord)) : option (list EVMWord) :=
+match actOpcode gas 0 (empty_execution_state stack) (app program (STOP::nil)) empty_callinfo with
 | inr (SuccessfulExecutionResultMk execStat) => Some (getStack_ES execStat)
 | inr (SuccessfulExecutionResultMkWithData execStat data) => None
   (* SuccessfulExecutionResultMkWithData should not be returned in our EVM blocks because it is
-     generated with LOG, CREATE, CALL and CALLCODE instructions*)
+     generated with LOG, CREATE, CALL and CALLCODE instructions *)
 | inl _ => None
 end.
-  
-  
-Compute (concrete_eval (SimplePriceOpcodeMk ADD::nil) 
-         ((natToWord WLen 2)::(natToWord WLen 3)::(natToWord WLen 5)::nil)).
 
+Example concrete_eval_ex1:
+concrete_eval infinite_gas
+              (SimplePriceOpcodeMk ADD::nil) 
+              ((natToWord WLen 2)::(natToWord WLen 3)::(natToWord WLen 8)::nil)
+= Some (((natToWord WLen 5)::(natToWord WLen 8)::nil)).
+Proof. reflexivity. Qed.
 
+Example concrete_eval_ex2:
+concrete_eval infinite_gas 
+              (SimplePriceOpcodeMk ADD::nil) 
+              ((natToWord WLen 2)::nil)
+= None (* stack underflow*).
+Proof. reflexivity. Qed.
+
+Example concrete_eval_ex3:
+concrete_eval infinite_gas
+              (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::nil) 
+              (repeat WZero StackLen)
+= None (* stack overflow *).
+Proof. reflexivity. Qed.
 
 
 (**********
@@ -83,6 +99,7 @@ Definition sfs_map := map sfs_val.
 
 Inductive sfs : Type := 
   SFS (absi: abstract_stack) (abso: abstract_stack) (sfsmap: sfs_map).
+
 
 (* Initial stack and SFS map contains disjoint symbols *)
 Definition disjoint_stack_sfs (stack: map EVMWord) (csfs: sfs) : Prop :=
@@ -115,79 +132,81 @@ end.
 
 
 
-(* Recursive function for exact syntactic equality *)
+(****
+ SFS syntactic equivalence [TODO: no renamings for now] 
+ ***)
 Definition sfsval_eqb (sfs1 sfs2: sfs_val) : bool :=
 match (sfs1, sfs2) with
  | (SFSconst v1, SFSconst v2) => weqb v1 v2
  | (SFSname name1, SFSname name2) => name1 =? name2
  | (SFSbinop op1 arg11 arg12, SFSbinop op2 arg21 arg22) => 
-      andb (EVMoper_eqb op1 op2) 
-           (andb (arg11 =? arg21) (arg12 =? arg22))
+      (EVMoper_eqb op1 op2) && (arg11 =? arg21) && (arg12 =? arg22)
  | _ => false
 end.
 
-
-
-
-
-(*
-(****************
- SFS equivalence [need to be adapted]
-*****************)
-Definition sfs_eq_symbol (d: nat) (symb1 symb2 : string) (map1 map2 : sfs_map) : bool :=
-match (resolve_sfs_expr d (SFSname symb1) map1, resolve_sfs_expr d (SFSname symb2) map2) with
- | (None, _) => false
- | (_, None) => false
- | (Some sfs1, Some sfs2) => sfsval_eqb sfs1 sfs2
+Fixpoint str_list_eq (a b: list string) : bool :=
+match (a,b) with
+| (nil, nil) => true
+| (h1::t1, h2::t2) => (h1 =? h2) && (str_list_eq t1 t2)
+| _ => false
 end.
 
-Fixpoint sfs_eq_list (d: nat) (in1 in2 : abstract_stack) (map1 map2 : sfs_map) : bool :=
-match in1 with 
- | nil => match in2 with
-           | nil => true
-           | _::_ => false
-          end
- | v1::r1 => match in2 with
-              | nil => false
-              | v2::r2 => andb (sfs_eq_symbol d v1 v2 map1 map2) (sfs_eq_list d r1 r2 map1 map2)
-             end
+Definition eq_lookup_key (key: string) (a b: sfs_map) : bool :=
+match (lookup a key, lookup b key) with
+| (None, None) => true (* looking for an sN symbol *)
+| (Some sfsv1, Some sfsv2) => sfsval_eqb sfsv1 sfsv2
+| _  => false
 end.
 
-Definition sfs_eqb (d: nat) (sfs1 sfs2 : sfs) : bool :=
+Fixpoint sfs_map_eq (abs_stack: list string) (a b: sfs_map) : bool :=
+match abs_stack with
+| nil => true
+| (k::t) => (eq_lookup_key k a b) && (sfs_map_eq t a b)
+end.
+
+(* Two SFS are syntactically equivalent if both have exactly the same input and output abstract stacks 
+   and for every sumbol in their output abstract stacks, their mapping map them to the same SFS value
+   (or None, for sN symbols) *)
+Definition sfs_syn_eqb (sfs1 sfs2 : sfs) : bool :=
 match (sfs1, sfs2) with
- | (SFS in1 map1, SFS in2 map2) => sfs_eq_list d in1 in2 map1 map2
+ | (SFS in1 out1 map1, SFS in2 out2 map2) => 
+      (str_list_eq in1 in2) && (str_list_eq out1 out2) && (sfs_map_eq out1 map1 map2)
 end.
 
-
-(* Test: equivalent SFS *)
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil)).
-Compute (
-let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
-let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk POP::nil) in 
-match (prog1, prog2) with
- | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
- | _ => None
-end).
-
-Compute (
-let sfs1 := SFS ("s2"::"s3"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk ADD) (SFSname "s0") (SFSname "s1"))::nil) in
-let sfs2 := SFS ("e0"::"s3"::"s4"::nil) (("e0",SFSbinop (SimplePriceOpcodeMk SUB) (SFSname "s1")(SFSname "s2"))::nil) in
-sfs_eqb 1024 sfs1 sfs2
-).
-
-(* Test: not equivalent SFS *)
-Compute (abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil)).
-Compute (abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil)).
-Compute (
-let prog1 := abstract_eval (SimplePriceOpcodeMk ADD::SimplePriceOpcodeMk POP::nil) in 
-let prog2 := abstract_eval (SimplePriceOpcodeMk POP::SimplePriceOpcodeMk SUB::nil) in 
-match (prog1, prog2) with
- | (Some sfs1, Some sfs2) => Some (sfs_eqb 1024 sfs1 sfs2)
- | _ => None
-end).
-*)
-
+(* Tests *)
+Example sfs_syn_eqb_ex1:
+let sfs1 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::nil) in
+sfs_syn_eqb sfs1 sfs1 = true.
+Proof. reflexivity. Qed.
+Example sfs_syn_eqb_ex2:
+let sfs1 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::nil) in
+let sfs2 := SFS ("s0"::nil) ("e1"::"s0"::nil) (("e1",SFSconst WZero)::nil) in
+sfs_syn_eqb sfs1 sfs2 = false.
+Proof. reflexivity. Qed.
+Example sfs_syn_eqb_ex3:
+let sfs1 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::nil) in
+let sfs2 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::("e0",SFSname "s0")::nil) in
+            (* old mappings do not care *)
+sfs_syn_eqb sfs1 sfs2 = true.
+Proof. reflexivity. Qed.
+Example sfs_syn_eqb_ex4:
+let sfs1 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::nil) in
+let sfs2 := SFS ("s0"::nil) ("e0"::nil) (("e0",SFSconst WZero)::nil) in
+            (* difference in out *)
+sfs_syn_eqb sfs1 sfs2 = false.
+Proof. reflexivity. Qed.
+Example sfs_syn_eqb_ex5:
+let sfs1 := SFS ("s0"::nil) ("e0"::nil) (("e0",SFSconst WZero)::nil) in
+let sfs2 := SFS ("s1"::nil) ("e0"::nil) (("e0",SFSconst WZero)::nil) in
+            (* difference in 'in' *)
+sfs_syn_eqb sfs1 sfs2 = false.
+Proof. reflexivity. Qed.
+Example sfs_syn_eqb_ex6:
+let sfs1 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSconst WZero)::nil) in
+let sfs2 := SFS ("s0"::nil) ("e0"::"s0"::nil) (("e0",SFSname "s0")::nil) in
+            (* difference in mapping e0 *)
+sfs_syn_eqb sfs1 sfs2 = false.
+Proof. reflexivity. Qed.
 
 
 (***********************************
@@ -277,6 +296,8 @@ match abs with
              end
 end.
 
+(* Evaluation of an SFS given a concrete stack and a depth 'd' to follow SFS mapping 
+   TODO: could we replace 'd' by a big enough constant? *)
 Definition evaluate_sfs (d: nat) (csfs: sfs) (stack: list EVMWord) : option (list EVMWord) := 
 match csfs with
 | SFS absi abso smap => let stack := combine absi stack in
@@ -290,6 +311,24 @@ Compute (let csfs := SFS ("s0"::"s1"::"s2"::"s3"::nil) ("e1"::"s3"::nil)
                          (("e1", SFSbinop (SimplePriceOpcodeMk ADD) "e0" "s2")::nil))
          in evaluate_sfs infinite_eval_steps csfs 
            ((natToWord WLen 2)::(natToWord WLen 3)::(natToWord WLen 5)::(natToWord WLen 7)::nil)).
+
+
+(********
+ General SFS equivalence [TODO: I don't know if what I'm doing with the number of steps 'd' is correct]
+ ********)
+Definition sfs_eq (sfs1 sfs2: sfs): Prop := 
+forall (d:nat) (ini_stack stack1 stack2: list EVMWord), 
+evaluate_sfs d sfs1 ini_stack = Some stack1 ->
+evaluate_sfs d sfs1 ini_stack = Some stack2 ->
+stack1 = stack2.
+
+
+
+(* Syntactic equivalence implies equality under evaluation *)
+Lemma sfs_syn_eq_then_eq: forall (sfs1 sfs2: sfs),
+sfs_syn_eqb sfs1 sfs2 = true -> sfs_eq sfs1 sfs2.
+Proof.
+Admitted.
 
 
 
@@ -388,6 +427,7 @@ Compute abs_eval_binary (SimplePriceOpcodeMk SUB) (SFS ("s0"::"s1"::"s2"::nil) (
 Definition abs_eval_op (oper: OpCode) (curr_sfs: sfs) (fresh_stack_id: nat)
   : option (sfs * nat) :=
 match oper with
+  | STOP => Some (curr_sfs, fresh_stack_id)
   | SimplePriceOpcodeMk ADD => abs_eval_binary (SimplePriceOpcodeMk ADD) curr_sfs fresh_stack_id
   | SimplePriceOpcodeMk MUL => abs_eval_binary (SimplePriceOpcodeMk MUL) curr_sfs fresh_stack_id
   | SimplePriceOpcodeMk SUB => abs_eval_binary oper curr_sfs fresh_stack_id
@@ -420,6 +460,8 @@ match program with
                    end
 end.
 
+(* Abstract evaluation:
+   From a stack size and a program generates an SFS *)
 Definition abstract_eval (stack_size: nat) (program: list OpCode)
   : option sfs :=
 let ins := create_abs_stack_name stack_size prefix_abstract_stack in
@@ -681,7 +723,70 @@ match (osfs1, osfs2) with
  | (Some sfs1, Some sfs2) => Some (sfs_equiv_concrete_values init_stack sfs1 sfs2)
  | _ => None
 end = Some true.
-Proof. reflexivity. Qed. 
+Proof. reflexivity. Qed.
+
+
+
+Lemma abstract_eval_correct: forall (gas n d: nat) (prog: list OpCode) (stacki stackco stackao: list EVMWord)
+      (absi abso: abstract_stack) (sfsm: sfs_map),
+abstract_eval n prog = Some (SFS absi abso sfsm) ->
+List.length stacki = n ->
+concrete_eval gas prog stacki = Some stackco ->
+evaluate_sfs d (SFS absi abso sfsm) stacki = Some stackao ->
+stackco = stackao.
+(* We cannot have the general result "concrete_eval prog stacki = evaluate_sfs d (SFS absi abso sfsm) stacki"
+   because the concrete evaluation depends on the gas, whereas evaluating an SFS depends only on the depth 'd'
+*)
+Proof.
+Admitted.
+
+
+
+
+(******* 
+ Equality of programs
+*********)
+
+(* The block has the supported instructions *)
+Fixpoint valid_block (prog: list OpCode) : bool :=
+match prog with
+| nil => true
+| (ins::t) => match ins with 
+              | STOP => valid_block t
+              | SimplePriceOpcodeMk ADD => valid_block t
+              | SimplePriceOpcodeMk MUL => valid_block t
+              | SimplePriceOpcodeMk SUB => valid_block t
+              | SimplePriceOpcodeMk (PUSH _ _) => valid_block t
+              | SimplePriceOpcodeMk POP => valid_block t
+              | _ => true
+              end
+end.
+
+
+(* TODO: apply all the optimizations passed as a list argument 
+   How can we define a list of functions SFS -> SFS such that they are sound (preserve the evaluation
+   of every symbol)?
+*)
+Definition eqblock (n: nat) (prog1 prog2: list OpCode) : bool :=
+match (abstract_eval n prog1, abstract_eval n prog2) with
+| (Some sfs1, Some sfs2 ) => sfs_syn_eqb sfs1 sfs2
+| _ => false
+end.
+
+Theorem eqblock_then_eq_eval: forall (gas n: nat) (prog1 prog2: list OpCode) (stack stack1 stack2: list EVMWord),
+eqblock n prog1 prog2 = true ->
+List.length stack = n ->
+concrete_eval gas prog1 stack = Some stack1 ->
+concrete_eval gas prog2 stack = Some stack2 ->
+stack1 = stack2.
+Proof.
+Admitted.
+(* We cannot have the general result "concrete_eval gas prog1 stack = concrete_eval gas prog2 stack"
+   because both programs can have a different minimum gas, so one can return None (out-of-gas) and the
+   other program can terminate sucessfuly. *)
+
+
+Print Assumptions eqblock_then_eq_eval.
 
 
 
