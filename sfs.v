@@ -768,8 +768,11 @@ end.
    of every symbol)?
 *)
 Definition eqblock (n: nat) (prog1 prog2: list OpCode) : bool :=
-match (abstract_eval n prog1, abstract_eval n prog2) with
-| (Some sfs1, Some sfs2 ) => sfs_syn_eqb sfs1 sfs2
+match (valid_block prog1, valid_block prog2) with
+| (true, true) => match (abstract_eval n prog1, abstract_eval n prog2) with
+                  | (Some sfs1, Some sfs2 ) => sfs_syn_eqb sfs1 sfs2
+                  | _ => false
+                  end
 | _ => false
 end.
 
