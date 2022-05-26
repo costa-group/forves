@@ -319,7 +319,7 @@ Compute (let csfs := SFS ("s0"::"s1"::"s2"::"s3"::nil) ("e1"::"s3"::nil)
 Definition sfs_eq (sfs1 sfs2: sfs): Prop := 
 forall (d:nat) (ini_stack stack1 stack2: list EVMWord), 
 evaluate_sfs d sfs1 ini_stack = Some stack1 ->
-evaluate_sfs d sfs1 ini_stack = Some stack2 ->
+evaluate_sfs d sfs2 ini_stack = Some stack2 ->
 stack1 = stack2.
 
 
@@ -739,6 +739,9 @@ stackco = stackao.
 *)
 Proof.
 Admitted.
+(* TODO Enrique: insert a value of 'd' such that guarantees evaluation of SFS inside the SFS. 
+   (as it has no cycles, the length of the mapping should be one valid value for that)
+*)
 
 
 
@@ -775,12 +778,19 @@ match (valid_block prog1, valid_block prog2) with
                   end
 | _ => false
 end.
+(* TODO: add an extra argument for the list of optimization
+         optimization = SFS -> SFS
+         apply_optimization(SFS, list_of_optimization)
+         optimization generates an SFS that is equivalent
+         lemma: if you apply a list of optimization and all of them preserves the evaluation, then the final 
+                SFS is equivalent
+*)
 
-Theorem eqblock_then_eq_eval: forall (gas n: nat) (prog1 prog2: list OpCode) (stack stack1 stack2: list EVMWord),
+Theorem eqblock_then_eq_eval: forall (gas1 gas2 n: nat) (prog1 prog2: list OpCode) (stack stack1 stack2: list EVMWord),
 eqblock n prog1 prog2 = true ->
 List.length stack = n ->
-concrete_eval gas prog1 stack = Some stack1 ->
-concrete_eval gas prog2 stack = Some stack2 ->
+concrete_eval gas1 prog1 stack = Some stack1 ->
+concrete_eval gas2 prog2 stack = Some stack2 ->
 stack1 = stack2.
 Proof.
 Admitted.

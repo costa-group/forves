@@ -134,7 +134,7 @@ Qed.
  **************)
 
 (* ADD(X, 0) -> X and ADD(0, X) -> X *)
-Definition optimize_add_zero (s: sfs) (var: string) : option sfs :=
+Definition optimize_add_zero (var: string) (s: sfs) : option sfs :=
 match s with
  | SFS absi abso smap => 
      match lookup smap var with
@@ -150,7 +150,7 @@ Example opt_addzero1:
 match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                                SimplePriceOpcodeMk ADD::
                                nil) with
-| Some sfsini => match optimize_add_zero sfsini "e1" with
+| Some sfsini => match optimize_add_zero "e1" sfsini with
                  | Some sfs => Some sfs
                  | None => None
                  end
@@ -167,7 +167,7 @@ match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
                      SimplePriceOpcodeMk ADD::
                      nil) with
- | Some (SFS absi abso smap) => optimize_add_zero (SFS absi abso smap) "e2"
+ | Some (SFS absi abso smap) => optimize_add_zero "e2" (SFS absi abso smap)
  | _ => None
 end = 
 Some (SFS nil ("e2"::nil)
@@ -182,7 +182,7 @@ match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WZero)::
                      SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 15))::
                      SimplePriceOpcodeMk ADD::
                      nil) with
- | Some (SFS absi abso smap) => optimize_add_zero (SFS absi abso smap) "e1"
+ | Some (SFS absi abso smap) => optimize_add_zero "e1" (SFS absi abso smap)
  | _ => None
 end = None. (* e1 points to 15 *)
 Proof. reflexivity. Qed.
@@ -190,7 +190,7 @@ Proof. reflexivity. Qed.
 
 Lemma optimize_add_zero_same_abs: forall (symb: string)
       (absi abso opt_absi opt_abso: abstract_stack) (ini_sfs_map opt_sfs_map: sfs_map), 
-optimize_add_zero (SFS absi abso ini_sfs_map) symb = Some (SFS opt_absi opt_abso opt_sfs_map) ->
+optimize_add_zero symb (SFS absi abso ini_sfs_map) = Some (SFS opt_absi opt_abso opt_sfs_map) ->
 absi = opt_absi /\ abso = opt_abso.
 Proof.
 intros symb absi abso opt_absi opt_abso ini_sfs_map opt_sfs_map.
@@ -217,7 +217,7 @@ Lemma optimize_add_zero_symb_same_value_init:
  forall (d: nat) (concrete_stack: map EVMWord) (ini_sfs opt_sfs: sfs) (symb: string)
  (c: EVMWord),
  lookup concrete_stack symb = Some c
- -> optimize_add_zero ini_sfs symb = Some opt_sfs
+ -> optimize_add_zero symb ini_sfs = Some opt_sfs
  -> evaluate_sfs_from_map d concrete_stack ini_sfs symb =
     evaluate_sfs_from_map d concrete_stack opt_sfs symb.
 Proof.
@@ -253,7 +253,7 @@ Proof.
    to a some addition name1 + name2 in the SFS *)
 Lemma opt_add_zero_then_binopADD: forall (absi abso opt_absi opt_abso: abstract_stack) 
    (ini_sfs_map opt_sfs_map: sfs_map) (symb: string),
-optimize_add_zero (SFS absi abso ini_sfs_map) symb = Some (SFS opt_absi opt_abso opt_sfs_map) ->
+optimize_add_zero symb (SFS absi abso ini_sfs_map) = Some (SFS opt_absi opt_abso opt_sfs_map) ->
 exists (name1 name2: string), lookup ini_sfs_map symb = Some (SFSbinop 
   (SimplePriceOpcodeMk ADD) name1 name2).
 Proof.
@@ -276,7 +276,7 @@ Qed.
    is just the original one but replacing 'symb' *)
 Lemma opt_add_zero_only_affects_symbol: forall (absi abso opt_absi opt_abso: abstract_stack) 
    (ini_sfs_map opt_sfs_map: sfs_map) (symb: string),
-optimize_add_zero (SFS absi abso ini_sfs_map) symb = Some (SFS opt_absi opt_abso opt_sfs_map) ->
+optimize_add_zero symb (SFS absi abso ini_sfs_map) = Some (SFS opt_absi opt_abso opt_sfs_map) ->
 exists (sfsexpr: sfs_val), opt_sfs_map = update ini_sfs_map symb sfsexpr.
 Proof.
 intros absi abso opt_absi opt_abso ini_sfs_map opt_sfs_map symb.
@@ -304,7 +304,7 @@ Qed.
 Lemma opt_add_zero_then_pointsto: forall (absi abso opt_absi opt_abso: abstract_stack) 
       (ini_sfs_map opt_sfs_map: sfs_map)
       (symb name1 name2: string),
-optimize_add_zero (SFS absi abso ini_sfs_map) symb = Some (SFS opt_absi opt_abso opt_sfs_map) ->
+optimize_add_zero symb (SFS absi abso ini_sfs_map) = Some (SFS opt_absi opt_abso opt_sfs_map) ->
 lookup ini_sfs_map symb = 
   Some (SFSbinop (SimplePriceOpcodeMk ADD) name1 name2) ->
 (points_to_const name1 ini_sfs_map WZero = true /\
@@ -348,7 +348,7 @@ Lemma optimize_add_zero_same_but_symb:
  forall (symb symb2: string)
  (absi abso opt_absi opt_abso: abstract_stack) (ini_sfs_map opt_sfs_map: sfs_map), 
  symb =? symb2 = false
- -> optimize_add_zero (SFS absi abso ini_sfs_map) symb = Some (SFS opt_absi opt_abso opt_sfs_map) 
+ -> optimize_add_zero symb (SFS absi abso ini_sfs_map) = Some (SFS opt_absi opt_abso opt_sfs_map) 
  -> lookup ini_sfs_map symb2 = lookup opt_sfs_map symb2.
 Proof.
  intros symb symb2 absi abso opt_absi opt_abso ini_sfs_map opt_sfs_map HSymb Hopt.
@@ -408,7 +408,7 @@ Theorem optimize_add_zero_correct: forall (d: nat)
         (concrete_stack: map EVMWord) (ini_sfs opt_sfs: sfs) 
         (symbol_opt symbol: string),
 disjoint_stack_sfs concrete_stack ini_sfs ->
-optimize_add_zero ini_sfs symbol_opt = Some opt_sfs ->
+optimize_add_zero symbol_opt ini_sfs = Some opt_sfs ->
 evaluate_sfs_from_map d concrete_stack ini_sfs symbol = 
 evaluate_sfs_from_map d concrete_stack opt_sfs symbol.
 Proof.
@@ -586,7 +586,7 @@ Qed.
 Definition WOne: EVMWord  := natToWord WLen 1.
 
 (* MUL(X, 1) -> X and MUL(1, X) -> X *)
-Definition optimize_mul_one (s: sfs) (var: string) : option sfs :=
+Definition optimize_mul_one (var: string) (s: sfs) : option sfs :=
 match s with
  | SFS absi abso smap => 
      match lookup smap var with
@@ -602,7 +602,7 @@ Example ex_mul1:
 match abstract_eval 0 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                      SimplePriceOpcodeMk MUL::
                      nil) with
- | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e0"
+ | Some (SFS absi abso smap) => optimize_mul_one "e0" (SFS absi abso smap)
  | _ => None
 end = None. (* e0 is just WOne*)
 Proof. reflexivity. Qed.
@@ -611,7 +611,7 @@ Example ex_mul2:
 match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                      SimplePriceOpcodeMk MUL::
                      nil) with
- | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e1"
+ | Some (SFS absi abso smap) => optimize_mul_one "e1" (SFS absi abso smap)
  | _ => None
 end = 
 Some (SFS ("s0"::nil) ("e1"::nil)
@@ -625,7 +625,7 @@ match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) WOne)::
                       SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 7))::
                       SimplePriceOpcodeMk MUL::
                       nil) with
- | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e2"
+ | Some (SFS absi abso smap) => optimize_mul_one "e2" (SFS absi abso smap)
  | _ => None
 end = 
 Some (SFS ("s0"::nil) ("e2"::"s0"::nil)
@@ -640,8 +640,19 @@ match abstract_eval 1 (SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen
                       SimplePriceOpcodeMk (PUSH (natToWord 5 0) (natToWord WLen 7))::
                       SimplePriceOpcodeMk MUL::
                       nil) with
- | Some (SFS absi abso smap) => optimize_mul_one (SFS absi abso smap) "e2"
+ | Some (SFS absi abso smap) => optimize_mul_one "e2" (SFS absi abso smap)
  | _ => None
 end = None. (* the multiplication in e2 is 7 * 2 *)
 Proof. reflexivity. Qed.
 
+
+
+Theorem optimize_mul_one_correct: forall (d: nat) 
+        (concrete_stack: map EVMWord) (ini_sfs opt_sfs: sfs) 
+        (symbol_opt symbol: string),
+disjoint_stack_sfs concrete_stack ini_sfs ->
+optimize_mul_one symbol_opt ini_sfs = Some opt_sfs ->
+evaluate_sfs_from_map d concrete_stack ini_sfs symbol = 
+evaluate_sfs_from_map d concrete_stack opt_sfs symbol.
+Proof.
+Admitted.
