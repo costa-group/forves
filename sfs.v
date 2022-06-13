@@ -726,6 +726,128 @@ end = Some true.
 Proof. reflexivity. Qed.
 
 
+Lemma evaluate_sfs_symbol_in: forall (d: nat) (absi abso: abstract_stack)
+      (stack_ini: list EVMWord) (smap: sfs_map) (symb: string) (val: EVMWord),
+evaluate_sfs_from_map d (combine absi stack_ini) (SFS absi abso smap) symb = Some val ->
+In symb absi \/ In symb (domain smap).
+Proof. 
+Admitted.
+
+
+Lemma evaluate_sfs_new_symbol: forall (d: nat) (absi: abstract_stack) 
+      (stack_ini: list EVMWord) (smap: sfs_map) (symb nsymb: string) (val: EVMWord)
+      (sfs_value: sfs_val),
+evaluate_sfs_from_map d (combine absi stack_ini) (SFS nil nil smap) symb = Some val ->
+~ In nsymb absi ->
+~ In nsymb (domain smap) ->
+evaluate_sfs_from_map d (combine absi stack_ini)
+  (SFS nil nil (update smap nsymb sfs_value)) symb = Some val.
+Proof.
+Admitted.
+
+
+
+
+
+(* The change produced by ADD instruction in the abstract evaluator *)
+(* TODO: generalize to any arithmetic binary operator *)
+Lemma abs_eval_add: forall (absi abso absi' abso': abstract_stack) 
+     (smap smap': sfs_map) (idx idx': nat),
+abs_eval_op (SimplePriceOpcodeMk ADD) (SFS absi abso smap) idx = Some ((SFS absi' abso' smap'), idx') ->
+exists (symb1 symb2 nsymb: string) (rstack: list string), 
+  absi = absi' /\
+  abso = symb1::symb2::rstack /\
+  abso' = nsymb::rstack /\
+  smap' = update smap nsymb (SFSbinop (SimplePriceOpcodeMk ADD) symb1 symb2) /\
+  ~ In nsymb absi /\
+  ~ In nsymb (domain smap).
+Proof.
+intros absi abso absi' abso' smap smap' idx idx'.
+simpl. destruct abso as [ | symb1 t1] eqn: eq_abso.
+- intros Hnonesome. discriminate.
+- destruct t1 as [ | symb2 rstack] eqn: eq_t1.
+  + intros Hnonesome. discriminate.
+  + intro Habs_eval. injection Habs_eval.
+    intros Hidx Hsmap Habso Habsi.
+    exists symb1.
+    exists symb2.
+    exists (String "e" (nat_to_string idx)).
+    exists rstack.
+    Admitted. (* abs_eval_op must fail if the new symbol is not disjoint! *)
+    (*auto.*) (* All the conjunction components are assumptions *)
+    (*Qed.*)
+
+
+Lemma eval_sfs_add: forall (d: nat) (absi absi' abso abso': abstract_stack) (smap smap': sfs_map)
+      (stack_ini rstack: list EVMWord)
+      (v1 v2: EVMWord) (idx idx': nat),
+evaluate_sfs d (SFS absi abso smap) stack_ini = Some (v1::v2::rstack) ->
+abs_eval_op (SimplePriceOpcodeMk ADD) (SFS absi abso smap) idx = 
+   Some ((SFS absi' abso' smap'), idx') ->
+evaluate_sfs (S d) (SFS absi' abso' smap') stack_ini = Some (wplus v1 v2::rstack).
+Proof.
+intros d absi absi' abso abso' smap smap' stack_ini rstack v1 v2 idx idx'.
+unfold evaluate_sfs at 1. 
+unfold evaluate_sfs_aux. destruct abso as [ | s1 r1] eqn: eq_abso.
+- intros HSome. injection HSome. intros Hnilvalue. discriminate.
+- destruct (evaluate_sfs_from_map d (combine absi stack_ini) (SFS nil nil smap) s1) as
+    [val1 | ] eqn: eq_eval_s1.
+  + destruct r1 as [ | s2 r2] eqn: eq_r1.
+    * intros HSome. injection HSome. intros Hnilvalue. discriminate.
+    * destruct (evaluate_sfs_from_map d (combine absi stack_ini) 
+      (SFS nil nil smap) s2) as [val2 | ] eqn: eq_eval_s2.
+      -- fold evaluate_sfs_aux. 
+         destruct (evaluate_sfs_aux d r2 (combine absi stack_ini) smap) as [r3 | ] eqn: eq_r3.
+         ++ intros Hsomestack. injection Hsomestack. intros Hrstack Hv2 Hv1.
+            intros Habsealadd.
+            pose proof (abs_eval_add absi (s1 :: s2 :: r2) absi' abso' smap smap' idx idx'
+            Habsealadd) as lemma_absealadd.
+            destruct lemma_absealadd as [symb1 lemma_absealadd2].
+            destruct lemma_absealadd2 as [symb2 lemma_absealadd3].
+            destruct lemma_absealadd3 as [nsymb lemma_absealadd4].
+            destruct lemma_absealadd4 as [r2' lemma_absealadd5].
+            destruct lemma_absealadd5 as [Habsi [Habso [Habso' [Hsmap [Hnsymbabsi Hnsymsmap]]]]].
+            rewrite -> Habso'. rewrite -> Hsmap. rewrite <- Habsi.
+            injection Habso. intros Hr2' Hsymb2 Hsymb1.
+            rewrite <- Hr2'. rewrite <- Hsymb2. rewrite <- Hsymb1.
+            unfold evaluate_sfs. unfold evaluate_sfs_aux.
+            unfold evaluate_sfs_from_map.
+            pose proof (@not_in_domain_then_combine EVMWord nsymb absi stack_ini
+              Hnsymbabsi) as Hlookupcombine.
+            rewrite -> Hlookupcombine.
+            pose proof (@update_lookup sfs_val smap nsymb
+              (SFSbinop (SimplePriceOpcodeMk ADD) s1 s2)) as Hlookupupdt.
+            rewrite -> Hlookupupdt.
+            fold evaluate_sfs_from_map.
+            pose proof (evaluate_sfs_new_symbol d absi stack_ini smap s1 nsymb val1
+             (SFSbinop (SimplePriceOpcodeMk ADD) s1 s2) eq_eval_s1 Hnsymbabsi 
+             Hnsymsmap) as Hevals1updt.
+             rewrite -> Hevals1updt.
+            pose proof (evaluate_sfs_new_symbol d absi stack_ini smap s2 nsymb val2
+             (SFSbinop (SimplePriceOpcodeMk ADD) s1 s2) eq_eval_s2 Hnsymbabsi 
+             Hnsymsmap) as Hevals2updt.
+             rewrite -> Hevals2updt.
+             simpl.
+             fold evaluate_sfs_aux.
+             (* TODO: lemma stating that evaluating r2 is the same with the 
+                      updated smap, and eval (S d) *)
+Admitted.
+
+
+
+Lemma ADD_concrete_abs: forall (gas n d idx idx': nat) (stack_ini stack_0 stack_1c stack_1a: list EVMWord) 
+      (es: ExecutionState) (sfs_0 sfs_1: sfs),
+opcodeProgramStateChange ADD (empty_execution_state stack_0) empty_callinfo 0 0 nil = inr es ->
+getStack_ES es = stack_1c ->
+evaluate_sfs d sfs_0 stack_ini = Some stack_0 ->
+abs_eval_op (SimplePriceOpcodeMk ADD) sfs_0 idx = Some (sfs_1, idx') ->
+evaluate_sfs d sfs_1 stack_ini = Some stack_1a ->
+stack_1c = stack_1a.
+Proof.
+Admitted.
+(* We can use Theorem addActionPureSuccess from evmModel stating the changes in the stack *)
+
+
 
 Lemma abstract_eval_correct: forall (gas n d: nat) (prog: list OpCode) (stacki stackco stackao: list EVMWord)
       (absi abso: abstract_stack) (sfsm: sfs_map),
@@ -761,7 +883,7 @@ match prog with
               | SimplePriceOpcodeMk SUB => valid_block t
               | SimplePriceOpcodeMk (PUSH _ _) => valid_block t
               | SimplePriceOpcodeMk POP => valid_block t
-              | _ => true
+              | _ => false
               end
 end.
 

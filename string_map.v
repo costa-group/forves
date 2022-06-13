@@ -381,3 +381,11 @@ induction m as [ | pair tail].
     assumption.
 Qed.
 
+
+Lemma not_in_domain_then_combine: forall {A: Type} (key: string) (keys: list string)
+      (values: list A),
+~In key keys -> lookup (combine keys values) key = None.
+Proof.
+Admitted.
+
+
