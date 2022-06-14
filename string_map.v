@@ -19,6 +19,16 @@ Open Scope string_scope.
 *)
 
 
+Lemma str_diff_sym: forall (s1 s2: string), s1 <> s2 -> s2 <> s1.
+Proof.
+intros s1 s2 Hs1s2.
+apply eqb_neq.
+apply eqb_neq in Hs1s2.
+rewrite -> eqb_sym.
+assumption.
+Qed.
+
+
 (******************
   LISTS OF STRINGS 
  ******************)
@@ -96,6 +106,32 @@ intros e l. split.
          discriminate.
       ++ contradiction.
 Qed.
+
+
+Lemma not_in_cons_twice: forall [A : Type] (x a b : A) (l : list A),
+  ~ In x (a :: b :: l) <-> x <> a /\ x <> b /\ ~ In x l.
+Proof.
+intros A x a b l. split. intros H1.
+- pose proof (not_in_cons x a (b::l)) as Hnotin1.
+  destruct Hnotin1 as [Hnotin1r Hnotin1l].
+  apply Hnotin1r in H1. destruct H1 as [Hxdiffa Hxnotinbl].
+  pose proof (not_in_cons x b l) as Hnotin2.
+  destruct Hnotin2 as [Hnotin2r Hnotin12].
+  apply Hnotin2r in Hxnotinbl. destruct Hxnotinbl as [Hxdiffb Hxnotinl].
+  split; try assumption.
+  split; try assumption.
+- intros H1. assert (H1copy := H1).
+  destruct H1 as [Hxdiffa Hxnotinbl].
+  pose proof (not_in_cons x b l) as Hnotin1.
+  destruct Hnotin1 as [Hnotin1r Hnotin1l].
+  apply Hnotin1l in Hxnotinbl. 
+  pose proof (not_in_cons x a (b::l)) as Hnotin2.
+  destruct Hnotin2 as [Hnotin2r Hnotin12].
+  assert (Hxnotiabl := conj Hxdiffa Hxnotinbl).
+  apply Hnotin12 in Hxnotiabl. 
+  assumption.
+Qed.
+
 
 (* In is decidable: In e l /\ ~ In e l
    Useful to apply some lemma from library Coq.Logic.Decidable *)
@@ -387,5 +423,10 @@ Lemma not_in_domain_then_combine: forall {A: Type} (key: string) (keys: list str
 ~In key keys -> lookup (combine keys values) key = None.
 Proof.
 Admitted.
+
+
+
+
+
 
 
