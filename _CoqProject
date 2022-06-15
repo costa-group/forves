@@ -1,6 +1,7 @@
 -R . Coq_EVM
 lib/evmModel.v
 string_map.v
+interpreter.v
 sfs.v
 optimizations.v
 
