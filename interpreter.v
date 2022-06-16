@@ -27,7 +27,7 @@ Import ListNotations.
 
 Module Interpreter.
 
-Definition WLen: nat := 256. 
+Definition WLen: nat := 1024. 
 Definition EVMWord:= word WLen.
 Definition StackLen := 1024.
 
@@ -181,12 +181,20 @@ Definition swap (k : nat) (es : execution_state) : option execution_state :=
 let sk := get_stack_es es in
 if ((k =? 0) || (16 <? k)) then None
 else match (nth_error sk k, sk) with
-     | (Some v, h::t) => let stack' := [v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn k sk) in
+     | (Some v, h::t) => let stack' := [v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn (k+1) sk) in
                          Some (set_stack_es es stack') 
      | _  => None
      end.
 
-Compute (swap 1 (ExState [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap)).
+(* MY ATTEMPT DOESN'T WORK EITHER!! *)
+Definition swap_nat (k : nat) (sk : list nat) : list nat :=
+if ((k =? 0) || (16 <? k)) then []
+else match (nth_error sk k, sk) with
+     | (Some v, h::t) => [v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn (k+1) sk)
+     | _  => []
+     end.
+
+Compute (ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap).
 
 
 Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) (sk: tstack) : option execution_state :=
