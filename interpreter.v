@@ -169,12 +169,6 @@ if List.length(sk) <? StackLen then
   end
 else None.
 
-(* THIS DOESN'T SEEM TO WORK FINE *)
-(* This operation does not changes stack size, so it cannot fail *)
-(*Definition swap__ {T : Type} (k : nat) (sk : list T) : (list T) :=
-  ((rev (firstn k sk)) ++ (skipn k sk)).
-*)
-
 
 Definition swap (k : nat) (es : execution_state) : option execution_state :=
 let sk := get_stack_es es in
@@ -186,7 +180,82 @@ else match (nth_error sk k, sk) with
      end.
 
 
-Compute (swap 1 (ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap)).
+Example test_swap0:
+let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
+swap 0 state0 = None.
+Proof. 
+reflexivity.
+Qed.
+
+Example test_swap1:
+let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
+let state1 := ExState [(natToWord WLen 2);(natToWord WLen 1);(natToWord WLen 3)] empty_nmap empty_nmap in 
+swap 1 state0 = Some state1.
+Proof. 
+reflexivity.
+Qed.
+
+Example test_swap2:
+let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
+let state1 := ExState [(natToWord WLen 3);(natToWord WLen 2);(natToWord WLen 1)] empty_nmap empty_nmap in 
+swap 2 state0 = Some state1.
+Proof. 
+reflexivity.
+Qed.
+
+Example test_swap_longer:
+let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
+swap 3 state0 = None.
+Proof. 
+reflexivity.
+Qed.
+
+Example test_swap_17:
+let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
+swap 17 state0 = None.
+Proof. 
+reflexivity.
+Qed.
+
+Example test_swap_16:
+let state0 := ExState [(natToWord WLen 1);
+                       (natToWord WLen 2);
+                       (natToWord WLen 3);
+                       (natToWord WLen 4);
+                       (natToWord WLen 5);
+                       (natToWord WLen 6);
+                       (natToWord WLen 7);
+                       (natToWord WLen 8);
+                       (natToWord WLen 9);
+                       (natToWord WLen 10);
+                       (natToWord WLen 11);
+                       (natToWord WLen 12);
+                       (natToWord WLen 13);
+                       (natToWord WLen 14);
+                       (natToWord WLen 15);
+                       (natToWord WLen 16);
+                       (natToWord WLen 17)] empty_nmap empty_nmap in
+let state1 := ExState [(natToWord WLen 17);
+                       (natToWord WLen 2);
+                       (natToWord WLen 3);
+                       (natToWord WLen 4);
+                       (natToWord WLen 5);
+                       (natToWord WLen 6);
+                       (natToWord WLen 7);
+                       (natToWord WLen 8);
+                       (natToWord WLen 9);
+                       (natToWord WLen 10);
+                       (natToWord WLen 11);
+                       (natToWord WLen 12);
+                       (natToWord WLen 13);
+                       (natToWord WLen 14);
+                       (natToWord WLen 15);
+                       (natToWord WLen 16);
+                       (natToWord WLen 1)] empty_nmap empty_nmap in
+swap 16 state0 = Some state1.
+Proof. 
+reflexivity.
+Qed.
 
 
 Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) (sk: tstack) : option execution_state :=
