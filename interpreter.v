@@ -325,7 +325,7 @@ Inductive Entry :=
 Definition SFSMap := list Entry.  
  
 Inductive SFS := 
- | SFSc (maxid : nat) (instk : list nat) (currstk: AbsStk) (map: SFSMap).
+ | SFSc (maxid : nat) (instk_size : nat) (currstk: AbsStk) (map: SFSMap).
  
 
 Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
@@ -338,9 +338,8 @@ rev (gen_initial_stack_inv size f).
 
  
 Definition empty_sfs (size: nat) : SFS :=
-let ini_stack := gen_initial_stack size id in
 let curr_stack := gen_initial_stack size pinStk in
-SFSc 0 ini_stack curr_stack nil.
+SFSc 0 size curr_stack nil.
 
 Compute empty_sfs 5.
 
@@ -355,13 +354,13 @@ match sfs with
  | SFSc maxid is cs map => SFSc idx is cs map
 end.
 
-Definition get_instk_sfs (sfs: SFS) : list nat :=
+Definition get_instk_size_sfs (sfs: SFS) : nat :=
 match sfs with
  | SFSc maxid is cs map => is
 end.
-Definition set_instk_sfs (sfs: SFS) (instk: list nat): SFS :=
+Definition set_instk_size_sfs (sfs: SFS) (instk_size: nat): SFS :=
 match sfs with
- | SFSc maxid is cs map => SFSc maxid instk cs map
+ | SFSc maxid is cs map => SFSc maxid instk_size cs map
 end.
 
 Definition get_currstk_sfs (sfs: SFS) : AbsStk :=
