@@ -1,28 +1,10 @@
-(*Require Import List.
-Import ListNotations.
-Require Import Bool.
-Require Import Arith.
-Require Import Coq.Classes.RelationClasses.
-
-Require Import Nat.
-Notation "m '=?n' n" := (m =? n) (* nat equality *)
-  (at level 100).
-
-Require Export Coq.Strings.String.
-Require Export Coq.Strings.Ascii.
-Open Scope string_scope.
-Notation "s '=?s' t" := (s =? t) (* string equality *)
-  (at level 100).*)
-  
-Require Export Coq.Strings.String.
-Require Export Coq.Strings.Ascii.
 Require Import Arith.
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
+Require Import Coq_EVM.lib.evmModel.
 Import ListNotations.
-(*Open Scope string_scope.*)
 
 
 Module Interpreter.
@@ -149,40 +131,64 @@ match es with
 end.
 
 (* stack manipulation operators *)
-Definition push (v : EVMWord) (es : execution_state) : option execution_state :=
-let sk := get_stack_es es in
-if List.length(sk) <? StackLen then Some (set_stack_es es (v :: sk)) else None.
 
-Definition pop (es : execution_state): option execution_state :=
-let sk := get_stack_es es in
+(* Polymorphic versions for manipulating the stack *)
+Definition push {T : Type} (v : T) (sk : list T) : option (list T) :=
+if List.length(sk) <? StackLen then Some (v :: sk) else None.
+
+Definition pop {T : Type} (sk: list T): option (list T) :=
 match sk with
- | x::sk' => Some (set_stack_es es sk')
+ | x::sk' => Some sk'
  | _ => None
 end.
 
-Definition dup (k : nat) (es : execution_state) : option execution_state  :=
-let sk := get_stack_es es in
-if List.length(sk) <? StackLen then 
-  match nth_error sk k with
+Definition dup {T: Type} (k : nat) (sk: list T) : option (list T) :=
+if ((k =? 0) || (16 <? k) || (StackLen <=? List.length(sk))) then None
+else match nth_error sk k with
   | None => None
-  | Some x => Some (set_stack_es es (x::sk))
-  end
-else None.
+  | Some x => Some (x::sk)
+  end.
 
-
-Definition swap (k : nat) (es : execution_state) : option execution_state :=
-let sk := get_stack_es es in
+Definition swap {T: Type} (k : nat) (sk: list T) : option (list T) :=
 if ((k =? 0) || (16 <? k)) then None
 else match (nth_error sk k, sk) with
-     | (Some v, h::t) => let stack' := [v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn (k+1) sk) in
-                         Some (set_stack_es es stack') 
+     | (Some v, h::t) => Some ([v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn (k+1) sk))
      | _  => None
      end.
+
+(* version operating on execution states *)
+Definition push_c (v : EVMWord) (es : execution_state) : option execution_state :=
+let sk := get_stack_es es in
+match push v sk with
+| None => None
+| Some sk' => Some (set_stack_es es sk')
+end.
+
+Definition pop_c (es : execution_state): option execution_state :=
+let sk := get_stack_es es in
+match pop sk with
+ | None => None
+ | Some sk' => Some (set_stack_es es sk')
+end.
+
+Definition dup_c (k : nat) (es : execution_state) : option execution_state  :=
+let sk := get_stack_es es in
+match dup k sk with
+ | None => None
+ | Some sk' => Some (set_stack_es es sk')
+end.
+
+Definition swap_c (k : nat) (es : execution_state) : option execution_state :=
+let sk := get_stack_es es in
+match swap k sk with
+ | None => None
+ | Some sk' => Some (set_stack_es es sk')
+end.
 
 
 Example test_swap0:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap 0 state0 = None.
+swap_c 0 state0 = None.
 Proof. 
 reflexivity.
 Qed.
@@ -190,7 +196,7 @@ Qed.
 Example test_swap1:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
 let state1 := ExState [(natToWord WLen 2);(natToWord WLen 1);(natToWord WLen 3)] empty_nmap empty_nmap in 
-swap 1 state0 = Some state1.
+swap_c 1 state0 = Some state1.
 Proof. 
 reflexivity.
 Qed.
@@ -198,21 +204,21 @@ Qed.
 Example test_swap2:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
 let state1 := ExState [(natToWord WLen 3);(natToWord WLen 2);(natToWord WLen 1)] empty_nmap empty_nmap in 
-swap 2 state0 = Some state1.
+swap_c 2 state0 = Some state1.
 Proof. 
 reflexivity.
 Qed.
 
 Example test_swap_longer:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap 3 state0 = None.
+swap_c 3 state0 = None.
 Proof. 
 reflexivity.
 Qed.
 
 Example test_swap_17:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap 17 state0 = None.
+swap_c 17 state0 = None.
 Proof. 
 reflexivity.
 Qed.
@@ -252,7 +258,7 @@ let state1 := ExState [(natToWord WLen 17);
                        (natToWord WLen 15);
                        (natToWord WLen 16);
                        (natToWord WLen 1)] empty_nmap empty_nmap in
-swap 16 state0 = Some state1.
+swap_c 16 state0 = Some state1.
 Proof. 
 reflexivity.
 Qed.
@@ -269,10 +275,10 @@ end.
 Definition concr_intpreter_instr (inst : instr) (es: execution_state)
   (ops : map gen_instr operator) : option execution_state :=
 match inst with
-  | PUSH size v => push v es
-  | POP => pop es
-  | DUP k => dup k es
-  | SWAP k => swap k es
+  | PUSH size v => push_c v es
+  | POP => pop_c es
+  | DUP k => dup_c k es
+  | SWAP k => swap_c k es
   | Opcode label =>
       let insk := get_stack_es es in
       match (ops label) with
@@ -298,3 +304,83 @@ Compute (concr_interpreter
         opmap).
 
 End Interpreter.  
+
+
+
+Module SFS.
+
+Inductive Param :=
+ | pinStk (var: nat)
+ | tmpVar (id: nat)
+ | value (val : EVMWord).
+Definition AbsStk := list Param.
+
+Inductive SFSval :=
+ | val (val : EVMWord)
+ | inStk (var : nat)
+ | oper (opcode: OpCode) (args: list Param).
+
+Inductive Entry :=
+ | Pair (key :nat) (val : SFSval).
+Definition SFSMap := list Entry.  
+ 
+Inductive SFS := 
+ | SFSc (maxid : nat) (instk : list nat) (currstk: AbsStk) (map: SFSMap).
+ 
+
+Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
+match size with
+ | 0 => nil
+ | S n => (f n)::(gen_initial_stack_inv n f)
+end.
+Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
+rev (gen_initial_stack_inv size f).
+
+ 
+Definition empty_sfs (size: nat) : SFS :=
+let ini_stack := gen_initial_stack size id in
+let curr_stack := gen_initial_stack size pinStk in
+SFSc 0 ini_stack curr_stack nil.
+
+Compute empty_sfs 5.
+
+
+(* Getters/Setters for SFS *)
+Definition get_maxid_sfs (sfs: SFS) : nat :=
+match sfs with
+ | SFSc maxid is cs map => maxid
+end.
+Definition set_maxid_sfs (sfs: SFS) (idx: nat): SFS :=
+match sfs with
+ | SFSc maxid is cs map => SFSc idx is cs map
+end.
+
+Definition get_instk_sfs (sfs: SFS) : list nat :=
+match sfs with
+ | SFSc maxid is cs map => is
+end.
+Definition set_instk_sfs (sfs: SFS) (instk: list nat): SFS :=
+match sfs with
+ | SFSc maxid is cs map => SFSc maxid instk cs map
+end.
+
+Definition get_currstk_sfs (sfs: SFS) : AbsStk :=
+match sfs with
+ | SFSc maxid is cs map => cs
+end.
+Definition set_currstk_sfs (sfs: SFS) (currstk: AbsStk): SFS :=
+match sfs with
+ | SFSc maxid is cs map => SFSc maxid is currstk map
+end.
+
+Definition get_map_sfs (sfs: SFS) : SFSMap :=
+match sfs with
+ | SFSc maxid is cs map => map
+end.
+Definition set_map_sfs (sfs: SFS) (newmap: SFSMap): SFS :=
+match sfs with
+ | SFSc maxid is cs map => SFSc maxid is cs newmap
+end.
+
+End SFS.
+
