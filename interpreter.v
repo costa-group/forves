@@ -308,6 +308,7 @@ End Interpreter.
 
 
 Module SFS.
+Include Interpreter.
 
 Inductive Param :=
  | pinStk (var: nat)
@@ -318,7 +319,9 @@ Definition AbsStk := list Param.
 Inductive SFSval :=
  | val (val : EVMWord)
  | inStk (var : nat)
- | oper (opcode: OpCode) (args: list Param).
+ | oper (opcode: gen_instr) (args: list SFSval).
+
+Definition SymStk := list SFSval.
 
 Inductive Entry :=
  | Pair (key :nat) (val : SFSval).
@@ -381,5 +384,188 @@ match sfs with
  | SFSc maxid is cs map => SFSc maxid is cs newmap
 end.
 
+
+
+(** [symbolic_exec_aux] takes:
+   
+      - s: [SymStk]: A [list SFSval] representing the initial stack
+        containing only symbolic references
+
+      - prog: [list instrs]: EVM program.
+
+      - ops: map gen_insts operator: A map telling us info about 
+        how to compute arithmetic operations.
+
+    and returns [option SymStk]*)
+Fixpoint symbolic_exec' (s: SymStk) (prog: list instr) 
+  (ops: map gen_instr operator): option SymStk :=                             
+  match prog with
+  | nil => Some s
+  | instr::prog' => 
+      match instr with
+      | PUSH size w => 
+          match push (val w) s with
+          | None => None
+          | Some s' => symbolic_exec' s' prog' ops
+          end
+      | POP => 
+          match pop s with
+          | None => None
+          | Some s' => symbolic_exec' s' prog' ops
+          end
+      | DUP pos =>
+          match dup pos s with
+          | None => None
+          | Some s' => symbolic_exec' s' prog' ops
+          end
+      | SWAP pos =>
+          match swap pos s with
+          | None => None
+          | Some s' => symbolic_exec' s' prog' ops
+          end
+      | Opcode label =>
+          match (ops label) with
+          | None => None
+          | Some (Op comm nb_args f) => 
+              symbolic_exec' ((oper label (firstn nb_args s))::(skipn nb_args s)) prog' ops
+          end
+      end
+  end.
+
+Definition symbolic_exec (n: nat) (prog: list instr)
+  (ops: map gen_instr operator): option SymStk :=
+  let s  := gen_initial_stack n inStk in
+  symbolic_exec' s prog ops.
+
+
+
+(* Symbolic Execution Tests *)
+
+Example prog_00  := [
+  PUSH 1 (natToWord WLen 5); 
+  PUSH 1 (natToWord WLen 7); 
+  PUSH 1 (natToWord WLen 7); 
+  Opcode ADD;
+  POP
+].
+
+Example stack_00 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
+Example opmap_00 : map gen_instr operator :=
+ADD |->i Op true 2 add;
+MUL |->i Op true 2 mul;
+NOT |->i Op false 1 not. 
+
+
+Compute let s := symbolic_exec 1 prog_00 opmap_00 in
+      match s with
+      | None => nil
+      | Some s' => s'
+      end.
+
+(** [eval_sfs']
+    Takes an [SFSval] and converts it to an [EVMWord]
+    [oper] cases are unfolded recursively and
+    [inStk] cases are checked using a concrete stack [list EVMWord]
+
+*)
+Fixpoint eval_sfs' (s: list EVMWord) (e: SFSval) 
+  (ops: map gen_instr operator) : option EVMWord :=
+  (* SFSval matching *)
+  match e with
+  | val v => Some v
+  | inStk id => nth_error (rev s) id
+  | oper opcode args => 
+      match ops opcode with
+      | None => None
+      | Some  (Op comm nb_args f) =>
+          (* We consider operations of 1 and 2 parameters *)
+          match args with
+          | nil => None
+          | a::nil => 
+              let v := eval_sfs' s a ops in
+              match v with
+              | Some v' => f [v']
+              | None => None
+              end
+          | a1::a2::nil => 
+              let v1 := eval_sfs' s a1 ops in
+              let v2 := eval_sfs' s a2 ops in
+              match v1, v2 with
+              | Some v1', Some v2' => f [v1'; v2']
+              | _, _ => None
+              end
+          | _ => None
+          end
+      end
+  end.
+
+
+Fixpoint eval_sfs (s: list EVMWord) (args: SymStk) 
+(ops: map gen_instr operator) : option (list EVMWord) :=
+match args with
+| nil => Some nil
+| arg::args' => 
+    match (eval_sfs' s arg ops), (eval_sfs s args' ops) with
+    | Some a, Some ans => Some (a::ans)
+    | _, _ => None
+    end
+end.
+               
+
+Fixpoint evm_to_nat (l: list EVMWord) : list nat :=
+  match l with
+  | nil => nil
+  | h::t => (wordToNat h)::(evm_to_nat t)
+  end.
+
+
+(* Eval SFS Tests *)
+
+Example sfs_00 := [oper ADD [val (natToWord WLen 1); val (natToWord WLen 2)]].
+Example sfs_01 := [oper MUL [val (natToWord WLen 2); val (natToWord WLen 1)]].
+Example sfs_02 := [val (natToWord WLen 2); val (natToWord WLen 1)].
+Example sfs_03 := [
+  oper ADD [
+    oper ADD [
+      val (natToWord WLen 1); 
+      val (natToWord WLen 2)
+      ];
+    val (natToWord WLen 1) 
+    ];
+  val (natToWord WLen 2);
+  val (natToWord WLen 2); 
+  val (natToWord WLen 1)
+].
+Example eval_sfs_00 := match (eval_sfs stack_00 sfs_03 opmap_00) with
+                          | None => nil
+                          | Some s => s
+                          end.
+Compute evm_to_nat eval_sfs_00.
+
+
+Example prog_01  := [
+  PUSH 1 (natToWord WLen 5);
+  PUSH 1 (natToWord WLen 5);
+  Opcode ADD
+].
+
+Example stack_01 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
+
+Example sym_exe_01 := match symbolic_exec 1 prog_01 opmap_00 with
+                      | None => nil
+                      | Some s => s
+                      end.
+Example eval_sfs_01 := match eval_sfs stack_01 sym_exe_01 opmap_00 with
+                       | None => nil
+                       | Some s => s
+                       end.
+Compute sym_exe_01.
+Compute evm_to_nat eval_sfs_01.
+
+
 End SFS.
+
+
+
+
 
