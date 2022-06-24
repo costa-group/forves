@@ -397,8 +397,14 @@ end.
         how to compute arithmetic operations.
 
     and returns [option SymStk]*)
+
+(* ENRIQUE's COMMENTS:
+   - the SymStk is not flattened, that's why you don't need the map in the SFS or the idx to create
+     fresh variables
+   - I think that handling OpCode should fail (return None) in 'firstn' if there are not enough values
+     in the stack. 'firstn' simply takes 'n' elements or the whole list if the size is smaller *)    
 Fixpoint symbolic_exec' (s: SymStk) (prog: list instr) 
-  (ops: map gen_instr operator): option SymStk :=                             
+  (ops: map gen_instr operator): option SymStk :=
   match prog with
   | nil => Some s
   | instr::prog' => 
@@ -451,6 +457,7 @@ Example prog_00  := [
 
 Example stack_00 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
 Example opmap_00 : map gen_instr operator :=
+(* ENRIQUE: is not the same as the opmap before? *)
 ADD |->i Op true 2 add;
 MUL |->i Op true 2 mul;
 NOT |->i Op false 1 not. 
@@ -479,6 +486,9 @@ Fixpoint eval_sfs' (s: list EVMWord) (e: SFSval)
       | None => None
       | Some  (Op comm nb_args f) =>
           (* We consider operations of 1 and 2 parameters *)
+          (* ENRIQUE: we could define a mutually recursive function for SFSval and [SFSval] and avoid
+             deplicity of code for 1 and 2 parameters, but it can make proving harder in the sense you'll
+             see a bigger Fixpoint term *)
           match args with
           | nil => None
           | a::nil => 
@@ -499,7 +509,9 @@ Fixpoint eval_sfs' (s: list EVMWord) (e: SFSval)
       end
   end.
 
-
+(*ENRIQUE: the SymStk can be generated from a stack of 'n' elements and eval_sfs will succeed for 
+  stacks bigger than 'n'. Similarly, it can succeed even for smaller stacks if the initial values
+  are not used. Having the complete SFS we can check the size is exactly the same or fail otherwise *)
 Fixpoint eval_sfs (s: list EVMWord) (args: SymStk) 
 (ops: map gen_instr operator) : option (list EVMWord) :=
 match args with
@@ -560,7 +572,9 @@ Example eval_sfs_01 := match eval_sfs stack_01 sym_exe_01 opmap_00 with
                        | Some s => s
                        end.
 Compute sym_exe_01.
-Compute evm_to_nat eval_sfs_01.
+Compute evm_to_nat eval_sfs_01. (* ENRIQUE: the SymStk considered only one element in the initial stack,
+                                   but the evaluation provides 3. I'd prefer if evaluation only succeeds
+                                   if provided a concrete stack of the same size *)
 
 
 End SFS.
