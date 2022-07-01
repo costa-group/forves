@@ -1,4 +1,5 @@
 Require Import Arith.
+
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
@@ -310,27 +311,157 @@ End Interpreter.
 Module SFS.
 Include Interpreter.
 
-Inductive Param :=
- | pinStk (var: nat)
- | tmpVar (id: nat)
- | value (val : EVMWord).
-Definition AbsStk := list Param.
 
-Inductive SFSval :=
- | val (val : EVMWord)
- | inStk (var : nat)
- | oper (opcode: gen_instr) (args: list SFSval).
+(** Source: Integrating the EVM super-optimizer gasol into real-world compilers
+    Link: https://eprints.ucm.es/id/eprint/67430/1/tfm_alejandro_hernandez_definitivo.pdf
 
-Definition SymStk := list SFSval.
+    * STACK FUNCTIONAL SPECIFICATION (SFS) *
+    
+    Let B be a block and S0 its initial stack of size n that contains at
+    each position i ∈ {0,..., n−1} a symbolic variable s_i that 
+    represents the element stored at position i. 
+    The stack functional specification of B is the output stack S of size m 
+    that contains at each position j ∈ {0, ... , m−1} the element located 
+    at position j in the stack after executing the EVM instructions of B. 
+    Each element can be either 
+      
+      (1) a non-negative integer value, 
+      (2) a variable si ∈ S0, or 
+      (3) a symbolic expression composed by a functor OP with k parameters 
+      a_1,..., a_k such that each a_i can be either of type (1), (2) or (3).
 
-Inductive Entry :=
- | Pair (key :nat) (val : SFSval).
-Definition SFSMap := list Entry.  
+    The latter corresponds to an EVM instruction OP that operates on the stack 
+    (other than SWAPk, PUSHk, DUPk, and POP) using k stack elements 
+    s_i,..., s_i+k.
+
+    Then, a SFS := 〈S0, S〉is composed of:
+      
+      1. S0: Initial stack of size n that contains at each position 
+        i ∈ {0, ..., n−1} a symbolic variable s_i that represents 
+        the element stored at position i.
+
+      2. S: Output stack of size m that contains at each position 
+        j ∈ {0,..., m−1}  the element located at position j in the stack after 
+        executing the EVM instructions of B. Values are of the form 
+        (1), (2) and (3).
+
+
+    * ABSTRACT STACK FUNCTIONAL SPECIFICATION (ASFS) *
+    
+    The motivation of this definition is based on avoiding composite elements 
+    when representing the stack evolution in the Max-SMT problem
+    
+    Hence, for each non-basic opcode in a basic-block and each application 
+    of that opcode to certain operands, a new stack variable is introduced. 
+    These stack variables are denoted as __fresh stack__ variables, so that 
+    a distinction can be made between them and the __initial stack variables__.
+
+    Every fresh stack variable represents the application of an opcode 
+    that consumes certain parameters. We need to keep track of the parameters 
+    associated to each fresh stack variable, so an operator map is introduced 
+    to link both. This map may contain recursive definitions when different 
+    composite elements are chained, but no infinite recursive definitions can 
+    be introduced due to its construction. All elements become shallow 
+    as a result of this process.
+
+    Then, ans ASFS := 〈S0, S, M〉 is composed of:
+    
+      1. S0 initial stack: a list of stack variables s_0, ..., s_n with 
+      no repeated elements.
+      
+      2. S final stack: a list that contains a series of either 
+      stack variables or numerical values from 0 to 2^256 − 1.
+
+      3. M uninterpreted operation map: a minimal map that links every 
+      fresh new variable to its corresponding parameter
+ *)
+
+
+Inductive basic_val : Type :=
+  | Val (val: EVMWord)
+  | Var (var: nat).
+
+Inductive sfs_val : Type :=
+  | SFSVal (val : EVMWord)
+  | SFSVar (var : nat)
+  | SFSOp  (opcode : gen_instr) (args : list sfs_val).
+
+Inductive asfs_val : Type :=
+  | ASFSVal (val : EVMWord)
+  | ASFSVar (var : nat)
+  | ASFSFreshVar (var: nat).
+
+Definition opm := map gen_instr operator.
+Definition prog := list instr.
+
+(** JOSEBA:
+    How should we define the initial given stack? As:
+    - 1. A stack of values (EVMWord)
+    - 2. A stack of variables (nat)
+    - 3. A stack of both (basic_val)
+    I called them [concrete_stack], [symbolic_stack] and [basic_stack]
+    respectively. I defined all of them in order to make the tests easier,
+    but we should adress the issue of deciding which should we use in 
+    the next meeting*)
+Definition concrete_stack := list EVMWord.
+Definition symbolic_stack := list nat.
+Definition basic_stack := list basic_val.
+Definition sfs_stack   := list sfs_val.
+Definition asfs_stack  := list asfs_val.
+Definition asfs_map    := list (nat*sfs_val).
+
+(** SFS := 〈S0, S〉 *)
+Inductive sfs : Type :=
+  | SFSc (s0: basic_stack) (s: sfs_stack).
+
+(** ASFS := 〈S0, S, M〉 *)
+Inductive asfs : Type :=
+  | ASFSc (s0: basic_stack) (s: asfs_stack) (m: asfs_map).
+
+
+(* Some Useful tranformations *)
+
+Definition basic_to_sfs' (a: basic_val) : sfs_val :=
+  match a with
+  | Val v => SFSVal v
+  | Var v => SFSVar v
+  end.
+
+Fixpoint basic_to_sfs (l: basic_stack) : sfs_stack :=
+  match l with
+  | nil => nil
+  | h::l' => (basic_to_sfs' h)::(basic_to_sfs l')
+  end.
+
+
+(** JOSEBA'S COMMENT:
+    
+    I redefined [SFS] 
+
+      Inductive SFS := 
+        | SFSc (maxid : nat) (instk_size : nat) (currstk: AbsStk) (map: SFSMap).
+
+    as [sfs]
+
+      Inductive sfs : Type :=
+        | SFSc (s0: basic_stack) (s: sfs_stack).
+
+    and made it contain just the necessary information according to 
+    Alejandro's definition.
+    
+    If we need to include additional informatin like the instruction block
+    B, the maximun id from the initial [basic_stack], etc. we should
+    create an addtional type containing all these new info.
+    Let's say, something like:
+
+      Inductive sfs_info : Type :=
+        | SFSI (B: prog) (s: sfs) (maxid: nat) ...
+
+*)
+
+
+
  
-Inductive SFS := 
- | SFSc (maxid : nat) (instk_size : nat) (currstk: AbsStk) (map: SFSMap).
- 
-
 Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
 match size with
  | 0 => nil
@@ -339,50 +470,58 @@ end.
 Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
 rev (gen_initial_stack_inv size f).
 
- 
+(** 
 Definition empty_sfs (size: nat) : SFS :=
 let curr_stack := gen_initial_stack size pinStk in
 SFSc 0 size curr_stack nil.
 
 Compute empty_sfs 5.
+*)
 
 
-(* Getters/Setters for SFS *)
-Definition get_maxid_sfs (sfs: SFS) : nat :=
-match sfs with
- | SFSc maxid is cs map => maxid
-end.
-Definition set_maxid_sfs (sfs: SFS) (idx: nat): SFS :=
-match sfs with
- | SFSc maxid is cs map => SFSc idx is cs map
-end.
 
-Definition get_instk_size_sfs (sfs: SFS) : nat :=
-match sfs with
- | SFSc maxid is cs map => is
-end.
-Definition set_instk_size_sfs (sfs: SFS) (instk_size: nat): SFS :=
-match sfs with
- | SFSc maxid is cs map => SFSc maxid instk_size cs map
-end.
+(** JOSEBA:
+    I commented these previous SFS definition getters and setters in order
+    to not break the code until we decide what information should [sfs]
+    and [asfs] types contain.*)
 
-Definition get_currstk_sfs (sfs: SFS) : AbsStk :=
-match sfs with
- | SFSc maxid is cs map => cs
-end.
-Definition set_currstk_sfs (sfs: SFS) (currstk: AbsStk): SFS :=
-match sfs with
- | SFSc maxid is cs map => SFSc maxid is currstk map
-end.
 
-Definition get_map_sfs (sfs: SFS) : SFSMap :=
-match sfs with
- | SFSc maxid is cs map => map
-end.
-Definition set_map_sfs (sfs: SFS) (newmap: SFSMap): SFS :=
-match sfs with
- | SFSc maxid is cs map => SFSc maxid is cs newmap
-end.
+
+(* Definition get_maxid_sfs (sfs: SFS) : nat :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => maxid*)
+(* end.*)
+(* Definition set_maxid_sfs (sfs: SFS) (idx: nat): SFS :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => SFSc idx is cs map*)
+(* end.*)
+
+(* Definition get_instk_size_sfs (sfs: SFS) : nat :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => is*)
+(* end.*)
+(* Definition set_instk_size_sfs (sfs: SFS) (instk_size: nat): SFS :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => SFSc maxid instk_size cs map*)
+(* end.*)
+
+(* Definition get_currstk_sfs (sfs: SFS) : AbsStk :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => cs*)
+(* end.*)
+(* Definition set_currstk_sfs (sfs: SFS) (currstk: AbsStk): SFS :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => SFSc maxid is currstk map*)
+(* end.*)
+
+(* Definition get_map_sfs (sfs: SFS) : SFSMap :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => map*)
+(* end.*)
+(* Definition set_map_sfs (sfs: SFS) (newmap: SFSMap): SFS :=*)
+(* match sfs with*)
+(*  | SFSc maxid is cs map => SFSc maxid is cs newmap*)
+(* end.*)
 
 
 
@@ -399,55 +538,54 @@ end.
     and returns [option SymStk]*)
 
 (* ENRIQUE's COMMENTS:
-   - the SymStk is not flattened, that's why you don't need the map in the SFS or the idx to create
-     fresh variables
-   - I think that handling OpCode should fail (return None) in 'firstn' if there are not enough values
-     in the stack. 'firstn' simply takes 'n' elements or the whole list if the size is smaller *)    
-Fixpoint symbolic_exec' (s: SymStk) (prog: list instr) 
-  (ops: map gen_instr operator): option SymStk :=
-  match prog with
-  | nil => Some s
-  | instr::prog' => 
-      match instr with
-      | PUSH size w => 
-          match push (val w) s with
-          | None => None
-          | Some s' => symbolic_exec' s' prog' ops
-          end
-      | POP => 
-          match pop s with
-          | None => None
-          | Some s' => symbolic_exec' s' prog' ops
-          end
-      | DUP pos =>
-          match dup pos s with
-          | None => None
-          | Some s' => symbolic_exec' s' prog' ops
-          end
-      | SWAP pos =>
-          match swap pos s with
-          | None => None
-          | Some s' => symbolic_exec' s' prog' ops
-          end
-      | Opcode label =>
-          match (ops label) with
-          | None => None
-          | Some (Op comm nb_args f) => 
-              symbolic_exec' ((oper label (firstn nb_args s))::(skipn nb_args s)) prog' ops
-          end
+   - the SymStk is not flattened, that's why you don't need the map in 
+   the SFS or the idx to create fresh variables
+   - I think that handling OpCode should fail (return None) in 'firstn' if 
+   there are not enough values in the stack. 'firstn' simply takes 'n' 
+   elements or the whole list if the size is smaller *)
+
+Fixpoint symbolic_exec' (s: sfs_stack) (ins: instr) (ops: opm): option sfs_stack:=
+  match ins with
+  | PUSH size w => push (SFSVal w) s
+  | POP => pop s
+  | DUP pos => dup pos s
+  | SWAP pos => swap pos s
+  | Opcode label =>
+      match (ops label) with
+      | None => None
+      | Some (Op comm nb_args f) => 
+          Some ((SFSOp label (firstn nb_args s))::(skipn nb_args s))
       end
   end.
 
-Definition symbolic_exec (n: nat) (prog: list instr)
-  (ops: map gen_instr operator): option SymStk :=
-  let s  := gen_initial_stack n inStk in
-  symbolic_exec' s prog ops.
+Fixpoint symbolic_exec (s0: sfs_stack) (p: prog) (ops: opm): option sfs_stack :=
+  match p with
+  | nil => Some s0
+  | ins::p' => 
+      match symbolic_exec' s0 ins ops with
+      | None => None
+      | Some s0' => symbolic_exec s0' p' ops
+      end
+  end.
+
 
 
 
 (* Symbolic Execution Tests *)
 
-Example prog_00  := [
+
+Example cs : concrete_stack := [ 
+  natToWord WLen 8;
+  natToWord WLen 2;
+  natToWord WLen 3
+  ].
+
+Example bs_0 : basic_stack := [
+  Val (natToWord WLen 8); 
+  Val (natToWord WLen 2); 
+  Val (natToWord WLen 3)].
+
+Example p_0 : prog := [
   PUSH 1 (natToWord WLen 5); 
   PUSH 1 (natToWord WLen 7); 
   PUSH 1 (natToWord WLen 7); 
@@ -455,51 +593,42 @@ Example prog_00  := [
   POP
 ].
 
-Example stack_00 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
-Example opmap_00 : map gen_instr operator :=
-(* ENRIQUE: is not the same as the opmap before? *)
-ADD |->i Op true 2 add;
-MUL |->i Op true 2 mul;
-NOT |->i Op false 1 not. 
-
-
-Compute let s := symbolic_exec 1 prog_00 opmap_00 in
-      match s with
-      | None => nil
-      | Some s' => s'
-      end.
+Compute let s0 := basic_to_sfs bs_0 in
+        let s := symbolic_exec s0 p_0 opmap in
+        match s with
+        | None => nil
+        | Some s' => s'
+        end.
+  
 
 (** [eval_sfs']
     Takes an [SFSval] and converts it to an [EVMWord]
     [oper] cases are unfolded recursively and
-    [inStk] cases are checked using a concrete stack [list EVMWord]
-
-*)
-Fixpoint eval_sfs' (s: list EVMWord) (e: SFSval) 
-  (ops: map gen_instr operator) : option EVMWord :=
-  (* SFSval matching *)
+    [inStk] cases are checked using a concrete stack [list EVMWord]*)
+Fixpoint eval_sfs' (c: list EVMWord) (e: sfs_val) (ops: opm) : option EVMWord :=
   match e with
-  | val v => Some v
-  | inStk id => nth_error (rev s) id
-  | oper opcode args => 
+  | SFSVal v => Some v
+  | SFSVar id => nth_error (rev c) id
+  | SFSOp opcode args => 
       match ops opcode with
       | None => None
       | Some  (Op comm nb_args f) =>
           (* We consider operations of 1 and 2 parameters *)
-          (* ENRIQUE: we could define a mutually recursive function for SFSval and [SFSval] and avoid
-             deplicity of code for 1 and 2 parameters, but it can make proving harder in the sense you'll
+          (* ENRIQUE: we could define a mutually recursive function 
+             for SFSval and [SFSval] and avoid deplicity of code for 1 and 2 
+             parameters, but it can make proving harder in the sense you'll
              see a bigger Fixpoint term *)
           match args with
           | nil => None
           | a::nil => 
-              let v := eval_sfs' s a ops in
+              let v := eval_sfs' c a ops in
               match v with
               | Some v' => f [v']
               | None => None
               end
           | a1::a2::nil => 
-              let v1 := eval_sfs' s a1 ops in
-              let v2 := eval_sfs' s a2 ops in
+              let v1 := eval_sfs' c a1 ops in
+              let v2 := eval_sfs' c a2 ops in
               match v1, v2 with
               | Some v1', Some v2' => f [v1'; v2']
               | _, _ => None
@@ -509,15 +638,16 @@ Fixpoint eval_sfs' (s: list EVMWord) (e: SFSval)
       end
   end.
 
-(*ENRIQUE: the SymStk can be generated from a stack of 'n' elements and eval_sfs will succeed for 
-  stacks bigger than 'n'. Similarly, it can succeed even for smaller stacks if the initial values
-  are not used. Having the complete SFS we can check the size is exactly the same or fail otherwise *)
-Fixpoint eval_sfs (s: list EVMWord) (args: SymStk) 
-(ops: map gen_instr operator) : option (list EVMWord) :=
-match args with
+(** ENRIQUE: the SymStk can be generated from a stack of 'n' elements and 
+    eval_sfs will succeed for stacks bigger than 'n'. Similarly, it can succeed 
+    even for smaller stacks if the initial values are not used. 
+    Having the complete SFS we can check the size is exactly the same 
+    or fail otherwise *)
+Fixpoint eval_sfs (c: list EVMWord) (s: sfs_stack) (ops: opm) : option (list EVMWord) :=
+match s with
 | nil => Some nil
-| arg::args' => 
-    match (eval_sfs' s arg ops), (eval_sfs s args' ops) with
+| e::s' => 
+    match (eval_sfs' c e ops), (eval_sfs c s' ops) with
     | Some a, Some ans => Some (a::ans)
     | _, _ => None
     end
@@ -533,48 +663,57 @@ Fixpoint evm_to_nat (l: list EVMWord) : list nat :=
 
 (* Eval SFS Tests *)
 
-Example sfs_00 := [oper ADD [val (natToWord WLen 1); val (natToWord WLen 2)]].
-Example sfs_01 := [oper MUL [val (natToWord WLen 2); val (natToWord WLen 1)]].
-Example sfs_02 := [val (natToWord WLen 2); val (natToWord WLen 1)].
-Example sfs_03 := [
-  oper ADD [
-    oper ADD [
-      val (natToWord WLen 1); 
-      val (natToWord WLen 2)
+Example ss_0 := [SFSOp ADD [SFSVal (natToWord WLen 1); SFSVal (natToWord WLen 2)]].
+Example ss_1 := [SFSOp MUL [SFSVal (natToWord WLen 2); SFSVal (natToWord WLen 1)]].
+Example ss_2 := [SFSVal (natToWord WLen 2); SFSVal (natToWord WLen 1)].
+Example ss_3 := [
+  SFSOp ADD [
+    SFSOp ADD [
+      SFSVal (natToWord WLen 1); 
+      SFSVal (natToWord WLen 2)
       ];
-    val (natToWord WLen 1) 
+    SFSVal (natToWord WLen 1) 
     ];
-  val (natToWord WLen 2);
-  val (natToWord WLen 2); 
-  val (natToWord WLen 1)
+  SFSVal (natToWord WLen 2);
+  SFSVal (natToWord WLen 2); 
+  SFSVal (natToWord WLen 1)
 ].
-Example eval_sfs_00 := match (eval_sfs stack_00 sfs_03 opmap_00) with
-                          | None => nil
-                          | Some s => s
-                          end.
-Compute evm_to_nat eval_sfs_00.
+
+Example eval_sfs_0 := 
+  match (eval_sfs cs ss_3 opmap) with
+  | None => nil
+  | Some s => s
+  end.
+
+Compute evm_to_nat eval_sfs_0.
 
 
-Example prog_01  := [
+Example p_1  := [
   PUSH 1 (natToWord WLen 5);
   PUSH 1 (natToWord WLen 5);
   Opcode ADD
 ].
 
-Example stack_01 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
+Example cs_1 := [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)].
 
-Example sym_exe_01 := match symbolic_exec 1 prog_01 opmap_00 with
-                      | None => nil
-                      | Some s => s
-                      end.
-Example eval_sfs_01 := match eval_sfs stack_01 sym_exe_01 opmap_00 with
-                       | None => nil
-                       | Some s => s
-                       end.
-Compute sym_exe_01.
-Compute evm_to_nat eval_sfs_01. (* ENRIQUE: the SymStk considered only one element in the initial stack,
-                                   but the evaluation provides 3. I'd prefer if evaluation only succeeds
-                                   if provided a concrete stack of the same size *)
+Example sym_exe_1 :=
+  let s0 := basic_to_sfs bs_0 in
+  let s := symbolic_exec s0 p_1 opmap in
+  match s with
+  | None => nil
+  | Some s' => s'
+  end.
+
+Example eval_sfs_1 := 
+  match eval_sfs cs_1 sym_exe_1 opmap with
+  | None => nil
+  | Some s => s
+  end.
+Compute sym_exe_1.
+Compute evm_to_nat eval_sfs_1. 
+(** ENRIQUE: the SymStk considered only one element in the initial stack,
+    but the evaluation provides 3. I'd prefer if evaluation only succeeds
+    if provided a concrete stack of the same size *)
 
 
 End SFS.
