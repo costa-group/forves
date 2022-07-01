@@ -5,3 +5,5 @@
 *.vok
 *.aux
 *.lia.cache
+Makefile
+Makefile.conf
