@@ -392,10 +392,11 @@ Include Interpreter.
 
 Inductive asfs_stack_val : Type :=
   | Val (val: EVMWord)
-  | Var (var: nat)
+  | InStackVar (var: nat)
   | FreshVar (var: nat).
 
 Inductive asfs_map_val : Type :=
+  | ASFSBasicVal (val: asfs_stack_val)
   | ASFSOp  (opcode : gen_instr) (args : list asfs_stack_val).
 
 Definition opm := map gen_instr operator.
@@ -570,6 +571,111 @@ Compute empty_sfs 5.
 (* Compute let s0 := basic_to_sfs bs_0 in *)
 (*         symbolic_exec s0 p_0 opmap. *)
   
+
+(* ENRIQUE:
+   Explictitly unfolded the code for evaluating lists of ASFSOp arguments in order to avoid mutually
+   recursive functions (one for one asfs_stack_val, the other for lists of asfs_stack_val) whose 
+   definition would require Program Fixpoint with a lexicographically decreasing (map size, list size)
+   that impose well-founded proof obligations and that complicates other proofs 
+   [I dont't know how to simplify or rewrite a call to a Program Fixpoint] 
+   Moreover, "Program Fixpoint" in mutually recursive definitions does not seem to be supported, although
+   the Coq documentation says the opposite.
+   *)
+Fixpoint eval_asfs2_elem (c: list EVMWord) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) : option EVMWord :=
+match elem with 
+| Val v => Some v
+| InStackVar idx => nth_error c idx
+| FreshVar idx => 
+     match m with 
+     | nil => None
+     | (k,v)::rm => if k =? idx then
+                      match v with 
+                      | ASFSBasicVal basicv => eval_asfs2_elem c basicv rm ops
+                      | ASFSOp op args => 
+                           match ops op with
+                           | None => None
+                           | Some (Op comm_flat nargs func) => 
+                               if (List.length args =? nargs) then 
+                                 match args with
+                                 | nil => None (* Operator without operands. Can this happen?  *)
+                                 | [a1] => match eval_asfs2_elem c a1 rm ops with
+                                           | Some v1 => func [v1]
+                                           | None => None
+                                           end
+                                 | [a1;a2] => match eval_asfs2_elem c a1 rm ops, 
+                                                    eval_asfs2_elem c a2 rm ops with
+                                           | Some v1, Some v2 => func [v1; v2]
+                                           | _, _ => None
+                                           end
+                                 | [a1;a2;a3] => match eval_asfs2_elem c a1 rm ops, 
+                                                       eval_asfs2_elem c a2 rm ops,
+                                                       eval_asfs2_elem c a3 rm ops with
+                                           | Some v1, Some v2, Some v3 => func [v1; v2; v3]
+                                           | _, _, _ => None
+                                           end
+                                 | _ => None (* There are not operators for 4 or more arguments in our set of instructions *)
+                                 end
+                               else None
+                           end
+                      end
+                    else eval_asfs2_elem c elem rm ops
+     end
+end.
+
+Fixpoint eval_asfs2 (c: list EVMWord) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
+match s with 
+| nil => Some []
+| elem::rs => let elem_oval := eval_asfs2_elem c elem m ops in
+              let rs_oval := eval_asfs2 c rs m ops in
+              match (elem_oval, rs_oval) with 
+              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+              | _ => None
+              end
+end.
+
+Definition eval_asfs (c: list EVMWord) (s: asfs) (ops: opm) : option (list EVMWord) :=
+match s with
+| ASFSc height maxid curr_stack amap => eval_asfs2 c curr_stack amap ops
+end.
+
+
+Example test_eval_asfs_1:
+let asfs := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let stack := [(natToWord WLen 5); (natToWord WLen 7)] in
+eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 12)].
+Proof.
+reflexivity. Qed.
+Example test_eval_asfs_2:
+let asfs := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let stack := [(natToWord WLen 8); (natToWord WLen 3)] in
+eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 11)].
+Proof.
+reflexivity. Qed.
+Example test_eval_asfs_3:
+let asfs := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let stack := [(natToWord WLen 2); (natToWord WLen 0)] in
+eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 2)].
+Proof.
+reflexivity. Qed.
+Example test_eval_asfs_4:
+let asfs := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let stack := [(natToWord WLen 0); (natToWord WLen 7)] in
+eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
+Proof. reflexivity. Qed.
+  
+
 
 End SFS.
 
