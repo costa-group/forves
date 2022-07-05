@@ -390,21 +390,20 @@ Include Interpreter.
       fresh new variable to its corresponding parameter
  *)
 
-Inductive basic_val : Type :=
+Inductive asfs_stack_val : Type :=
   | Val (val: EVMWord)
   | Var (var: nat)
   | FreshVar (var: nat).
 
-Inductive asfs_val : Type :=
-  | ASFSVal (val : basic_val)
-  | SFSOp  (opcode : gen_instr) (args : list basic_val).
+Inductive asfs_map_val : Type :=
+  | ASFSOp  (opcode : gen_instr) (args : list asfs_stack_val).
 
 Definition opm := map gen_instr operator.
 Definition prog := list instr.
 
 Definition concrete_stack := list EVMWord.
-Definition asfs_stack  := list basic_val.
-Definition asfs_map    := list (nat*asfs_val).
+Definition asfs_stack  := list asfs_stack_val.
+Definition asfs_map    := list (nat*asfs_map_val).
 
 (** ASFS := 〈S0, S, M〉 *)
 (** ASFS := 〈h, max, S, M〉 *)
