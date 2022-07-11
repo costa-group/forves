@@ -1,102 +1,14 @@
 Require Import Arith.
-
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
 Require Import Coq_EVM.lib.evmModel.
+Require Import Coq_EVM.datatypes.
+Import EVM_Def Concrete Abstract.
 Import ListNotations.
 
-
 Module Interpreter.
-
-Definition WLen: nat := 1024. 
-Definition EVMWord:= word WLen.
-Definition StackLen := 1024.
-
-(* General opcodes that operate on stack elements and return one value on top of stack*)
-Inductive gen_instr :=
-  | ADD
-  | MUL
-  | NOT.
-  
-Definition eq_gen_instr (a b: gen_instr) : bool :=
-match (a, b) with
- | (ADD, ADD) => true
- | (MUL, MUL) => true
- | (NOT, NOT) => true 
- | _ => false
-end.
-Notation "m '=?i' n" := (eq_gen_instr m n) (at level 100).
-
-(* PUSH, POP, DUP and SWAP are hardcoded, and the other opcodes are operators *)
-Inductive instr :=
-  | PUSH (size: nat) (w: EVMWord)
-  | POP 
-  | DUP (pos: nat)
-  | SWAP (pos: nat)
-  | Opcode (label: gen_instr).
-
-(* function that evaluates a list of EVMWord, they are related to gen_instr *)
-Inductive operator :=
-  | Op (comm: bool) (nb_args : nat) (func : list EVMWord -> option EVMWord).
-  
-Definition add (args: list EVMWord) : option EVMWord :=
-match args with
- | [a; b] => Some (wplus a b)
- | _ => None
- end.
- 
-Definition mul (args: list EVMWord) : option EVMWord :=
-match args with
- | [a; b] => Some (wmult a b)
- | _ => None
- end.
- 
-Definition not (args: list EVMWord) : option EVMWord :=
-match args with
- | [a] => Some (wnot a)
- | _ => None
- end.
-
-
-(* Definition of maps *)
-(* The maps here link an opcode (gen_instr) to an operator *)
-
-Definition map (K V : Type) : Type := K -> option V.
-
-Definition empty_imap {A : Type} : map gen_instr A := (fun _ => None).
-Definition updatei {A : Type} (m : map gen_instr A) (x : gen_instr) (v : A) :=
-  fun x' => if x =?i x' then Some v else m x'.
-Notation "x '|->i' v ';' m" := (updatei m x v)
-  (at level 100, v at next level, right associativity).
-Notation "x '|->i' v" := (updatei empty_imap x v)
-  (at level 100).
-  
-Example opmap : map gen_instr operator :=
-ADD |->i Op true 2 add;
-MUL |->i Op true 2 mul;
-NOT |->i Op false 1 not.
-
-Definition empty_nmap {A : Type} : map nat A := (fun _ => None).
-Definition updaten {A : Type} (m : map nat A) (x : nat) (v : A) :=
-  fun x' => if x =? x' then Some v else m x'.
-Notation "x '|->n' v ';' m" := (updaten m x v)
-  (at level 100, v at next level, right associativity).
-Notation "x '|->n' v" := (updaten empty_nmap x v)
-  (at level 100).
-  
-
-Compute (
-3 |->n ADD;
-4 |->n MUL;
-5 |->n NOT).
-
-
-(* Execution states *)
-Definition tstack := list EVMWord.
-Definition tmemory := map nat EVMWord.
-Definition tstorage := map nat EVMWord.
 
 Inductive execution_state :=
  | ExState (stack: tstack) (memory: tmemory) (storage: tstorage).
@@ -311,107 +223,6 @@ End Interpreter.
 Module SFS.
 Include Interpreter.
 
-
-(** Source: Integrating the EVM super-optimizer gasol into real-world compilers
-    Link: https://eprints.ucm.es/id/eprint/67430/1/tfm_alejandro_hernandez_definitivo.pdf
-
-    * STACK FUNCTIONAL SPECIFICATION (SFS) *
-    
-    Let B be a block and S0 its initial stack of size n that contains at
-    each position i ∈ {0,..., n−1} a symbolic variable s_i that 
-    represents the element stored at position i. 
-    The stack functional specification of B is the output stack S of size m 
-    that contains at each position j ∈ {0, ... , m−1} the element located 
-    at position j in the stack after executing the EVM instructions of B. 
-    Each element can be either 
-      
-      (1) a non-negative integer value, 
-      (2) a variable si ∈ S0, or 
-      (3) a symbolic expression composed by a functor OP with k parameters 
-      a_1,..., a_k such that each a_i can be either of type (1), (2) or (3).
-
-    The latter corresponds to an EVM instruction OP that operates on the stack 
-    (other than SWAPk, PUSHk, DUPk, and POP) using k stack elements 
-    s_i,..., s_i+k.
-
-    Then, a SFS := 〈S0, S〉is composed of:
-      
-      1. S0: Initial stack of size n that contains at each position 
-        i ∈ {0, ..., n−1} a symbolic variable s_i that represents 
-        the element stored at position i.
-
-      2. S: Output stack of size m that contains at each position 
-        j ∈ {0,..., m−1}  the element located at position j in the stack after 
-        executing the EVM instructions of B. Values are of the form 
-        (1), (2) and (3).
-
-
-    Implementation:
-
-      Inductive sfs_val : Type :=
-        | SFSVal (val : EVMWord)
-        | SFSVar (var : nat)
-        | SFSOp  (opcode : gen_instr) (args : list sfs_val).
-
-      Definition sfs_stack   := list sfs_val.
-      
-      Inductive sfs : Type :=
-        | SFSc (s0: basic_stack) (s: sfs_stack).
-
-
-
-    * ABSTRACT STACK FUNCTIONAL SPECIFICATION (ASFS) *
-    
-    The motivation of this definition is based on avoiding composite elements 
-    when representing the stack evolution in the Max-SMT problem
-    
-    Hence, for each non-basic opcode in a basic-block and each application 
-    of that opcode to certain operands, a new stack variable is introduced. 
-    These stack variables are denoted as __fresh stack__ variables, so that 
-    a distinction can be made between them and the __initial stack variables__.
-
-    Every fresh stack variable represents the application of an opcode 
-    that consumes certain parameters. We need to keep track of the parameters 
-    associated to each fresh stack variable, so an operator map is introduced 
-    to link both. This map may contain recursive definitions when different 
-    composite elements are chained, but no infinite recursive definitions can 
-    be introduced due to its construction. All elements become shallow 
-    as a result of this process.
-
-    Then, an ASFS := 〈S0, S, M〉 is composed of:
-    
-      1. S0 initial stack: a list of stack variables s_0, ..., s_n with 
-      no repeated elements.
-      
-      2. S final stack: a list that contains a series of either 
-      stack variables or numerical values from 0 to 2^256 − 1.
-
-      3. M uninterpreted operation map: a minimal map that links every 
-      fresh new variable to its corresponding parameter
- *)
-
-Inductive asfs_stack_val : Type :=
-  | Val (val: EVMWord)
-  | InStackVar (var: nat)
-  | FreshVar (var: nat).
-
-Inductive asfs_map_val : Type :=
-  | ASFSBasicVal (val: asfs_stack_val)
-  | ASFSOp  (opcode : gen_instr) (args : list asfs_stack_val).
-
-Definition opm := map gen_instr operator.
-Definition prog := list instr.
-
-Definition concrete_stack := list EVMWord.
-Definition in_stack := list (EVMWord+nat). (* Stack containing EVMWords, or ids *)
-Definition asfs_stack  := list asfs_stack_val.
-Definition asfs_map    := list (nat*asfs_map_val).
-
-(** ASFS := 〈S0, S, M〉 *)
-(** ASFS := 〈h, max, S, M〉 *)
-Inductive asfs : Type :=
-  | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
-
  
 Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
 match size with
@@ -481,19 +292,10 @@ Compute empty_sfs 5.
    elements or the whole list if the size is smaller *)
 
 
-Fixpoint id_to_asfs (s: list nat) : asfs_stack :=
+Fixpoint in_to_asfs (s: list nat) : asfs_stack :=
   match s with
   | nil => nil
-  | var::s' => (InStackVar var)::(id_to_asfs s')
-  end.
-
-Fixpoint in_to_asfs (s: in_stack) : asfs_stack :=
-  match s with
-  | nil => nil
-  | h::s' => match h with
-             | inl v  => (Val v)::(in_to_asfs s')
-             | inr id => (InStackVar id)::(in_to_asfs s')
-             end
+  | var::s' => (InStackVar var)::(in_to_asfs s')
   end.
 
 Fixpoint concrete_to_asfs (s: list EVMWord) : asfs_stack :=
@@ -529,7 +331,7 @@ Fixpoint subset {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
   end.
 
 (* Set equality *)
-Fixpoint permutation {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool := 
+Definition permutation {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool := 
   (subset eqa l1 l2) && (subset eqa l2 l1).
 
 (* Check equality element by element. Order matters *)
@@ -603,10 +405,10 @@ Fixpoint asfs_map_contains (ops: opm) (m: asfs_map) (a: asfs_map_val): option bo
       end
   end.
 
-Fixpoint asfs_map_add (m: asfs_map) (id: nat) (a: asfs_map_val) : asfs_map :=
+Definition asfs_map_add (m: asfs_map) (id: nat) (a: asfs_map_val) : asfs_map :=
   (id, a)::m.
 
-Fixpoint symbolic_exec' (ops: opm) (maxid: nat) (s: asfs_stack) (m: asfs_map) 
+Definition symbolic_exec' (ops: opm) (maxid: nat) (s: asfs_stack) (m: asfs_map) 
   (ins: instr) : nat*(option asfs_stack)*asfs_map :=
   match ins with
   | PUSH size w  => (maxid, push (Val w) s, m)
