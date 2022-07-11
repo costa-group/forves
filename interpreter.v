@@ -720,7 +720,7 @@ match elem with
                            | Some (Op comm_flat nargs func) => 
                                if (List.length args =? nargs) then 
                                  match args with
-                                 | nil => None (* Operator without operands. Can this happen?  *)
+                                 | nil => func [] (* Operator without operands, call with empty list *)
                                  | [a1] => match eval_asfs2_elem c a1 rm ops with
                                            | Some v1 => func [v1]
                                            | None => None
@@ -730,13 +730,7 @@ match elem with
                                            | Some v1, Some v2 => func [v1; v2]
                                            | _, _ => None
                                            end
-                                 | [a1;a2;a3] => match eval_asfs2_elem c a1 rm ops, 
-                                                       eval_asfs2_elem c a2 rm ops,
-                                                       eval_asfs2_elem c a3 rm ops with
-                                           | Some v1, Some v2, Some v3 => func [v1; v2; v3]
-                                           | _, _, _ => None
-                                           end
-                                 | _ => None (* There are not operators for 4 or more arguments in our set of instructions *)
+                                 | _ => None (* We do not consider operators with 3 or more arguments in our set of instructions *)
                                  end
                                else None
                            end
@@ -758,7 +752,11 @@ end.
 
 Definition eval_asfs (c: list EVMWord) (s: asfs) (ops: opm) : option (list EVMWord) :=
 match s with
-| ASFSc height maxid curr_stack amap => eval_asfs2 c curr_stack amap ops
+| ASFSc height maxid curr_stack amap => 
+    if List.length c =? height then
+      eval_asfs2 c curr_stack amap ops
+    else
+      None (* evalution cannot succeed if the given stack has a different size to the expected one *)
 end.
 
 
@@ -797,8 +795,106 @@ let asfs := ASFSc 2 2 [FreshVar 2]
 let stack := [(natToWord WLen 0); (natToWord WLen 7)] in
 eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
-  
 
+
+Require Import Program.Wf.
+(* Overkill: 22 obligations remaining!!! *)
+Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
+  {measure (List.length m1 + List.length m2)} : bool :=
+match e1, e2 with 
+| Val v1, Val v2 => weqb v1 v2
+| InStackVar i1, InStackVar i2 => i1 =? i2
+| FreshVar i1, FreshVar i2 => 
+    match m1, m2 with 
+    | (idx1, mv1)::rm1, (idx2, mv2)::rm2 => 
+        if (idx1 =? i1) && (idx2 =? i2) then
+          match mv1, mv2 with 
+          | ASFSBasicVal av1, ASFSBasicVal av2 => asfs_eq_stack_elem av1 av2 rm1 rm2
+          | ASFSOp opcode1 args1, ASFSOp opcode2 args2 => 
+              if eq_gen_instr opcode1 opcode2 then 
+                match args1, args2 with 
+                | [], [] => true
+                | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2
+                | [a1;a2], [b1;b2] => (asfs_eq_stack_elem a1 b1 rm1 rm2) &&
+                                      (asfs_eq_stack_elem a2 b2 rm1 rm2)
+                | _, _  => false
+                end
+              else false
+          | _, _ => false
+          end
+        else if idx1 =? i1 then
+          asfs_eq_stack_elem e1 e2 m1 rm2
+        else if idx2 =? i2 then
+          asfs_eq_stack_elem e1 e2 rm1 m2
+        else false
+    | _, _ => false
+    end
+|_, _ => false
+end.
+Admit Obligations.
+
+(* 
+Alternative definition for asfs_eq_stack_elem:
+1) Generate *nested* AST representation (asfs_val_nest) by replacing fresh variables:
+    - Value
+    - InStackVar nat
+    - Op opcode [asfs_val_nest]
+2) Compare both ASTs now without the map, so there is a clear syntactically 
+   decreasing argument
+*)
+
+
+
+
+
+Fixpoint asfs_eq_stack (s1 s2: asfs_stack) (m1 m2: asfs_map) : bool :=
+match s1, s2 with 
+| nil, nil => true
+| e1::r1, e2::r2 => (asfs_eq_stack_elem e1 e2 m1 m2) && (asfs_eq_stack r1 r2 m1 m2)
+| _, _ => false
+end.
+
+
+Definition asfs_eq (a1 a2: asfs) : bool :=
+match a1, a2 with
+| ASFSc height1 maxid1 curr_stack1 amap1, ASFSc height2 maxid2 curr_stack2 amap2 => 
+    let eq_size := height1 =? height2 in
+    let eq_stack := asfs_eq_stack curr_stack1 curr_stack2 amap1 amap2 in
+    eq_size && eq_stack
+end.
+
+Example test_eval_asfs_eq_1:
+let asfs := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+asfs_eq asfs asfs = true.
+Proof.
+reflexivity. Qed.
+Example test_eval_asfs_eq_2:
+let asfs1 := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let asfs2 := ASFSc 3 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+asfs_eq asfs1 asfs2 = false.
+Proof.
+reflexivity. Qed.
+Example test_eval_asfs_eq_3:
+let asfs1 := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
+let asfs2 := ASFSc 2 2 [FreshVar 2] 
+            [(2, ASFSOp NOT [FreshVar 1]);
+             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
+             (0, ASFSOp ADD [InStackVar 1; InStackVar 0])] in
+asfs_eq asfs1 asfs2 = false.
+Proof.
+reflexivity. Qed.
 
 End SFS.
 
