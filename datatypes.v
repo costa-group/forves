@@ -108,8 +108,6 @@ Definition tstack := list EVMWord.
 Definition tmemory := map nat EVMWord.
 Definition tstorage := map nat EVMWord.
 
-
-
 End Concrete.
 Import Concrete.
 
@@ -218,6 +216,5 @@ Definition asfs_map    := list (nat*asfs_map_val).
 (** ASFS := 〈h, max, S, M〉 *)
 Inductive asfs : Type :=
   | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
-
 
 End Abstract.
