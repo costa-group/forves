@@ -571,6 +571,33 @@ eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
 
 
+
+(*
+
+
+\forall opcode:instr, instk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
+
+  length instk = height,
+  eval_asfs instk in_sfs opm = Some instk,
+  conc_exec' opcode instk ops = Some out_stk,
+  sym_exec' opcode in_sfs ops = Some out_asfs 
+  
+  -> 
+  
+  eval_asfs instk out_sfs opm = Some out_stk
+
+
+
+\forall p:prog, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
+
+  length instk = height,
+  conc_exec p instk ops = Some out_stk,
+  sym_exec height p ops = Some out_asfs 
+  -> 
+  eval_asfs instk out_asfs opm = Some out_stk
+
+*)
+
 Require Import Program.Wf.
 (* Overkill: 22 obligations remaining!!! *)
 Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
