@@ -571,16 +571,29 @@ eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
 
 
-
-Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk out_stk: concrete_stack) (ops:opm)
-          (height: nat) (in_es out_es: execution_state) (in_asfs out_asfs: asfs),
+(* One step of execution with one instruction *)
+Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
+          (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
 length in_stk = height -> (* Do we really need it for this proof? *)
-eval_asfs in_stk in_asfs ops = Some in_stk -> (* I guess we need 3 stacks: initial, current (before executing the instruction),
-                                                   and final (after executing the instruction) *)
-get_stack_es in_es = in_stk ->
-concr_intpreter_instr instruction in_es ops = Some out_es ->
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+get_stack_es curr_es = curr_stk ->
+concr_intpreter_instr instruction curr_es ops = Some out_es ->
 get_stack_es out_es = out_stk ->
-symbolic_exec'' instruction in_asfs ops = Some out_asfs ->
+symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
+eval_asfs in_stk out_asfs ops = Some out_stk.
+Proof.
+Admitted.
+
+
+
+(* A complete program*)
+Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
+          (height: nat) (in_es out_es: execution_state) (out_asfs out_asfs: asfs),
+length in_stk = height ->
+get_stack_es in_es = in_stk ->
+concr_interpreter p in_es ops = Some out_es ->
+get_stack_es out_es = out_stk ->
+symbolic_exec p height ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
 Admitted.
@@ -588,17 +601,16 @@ Admitted.
 (*
 
 
-\forall opcode:instr, instk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
+\forall opcode:instr, instk:list EVMword, currstk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
 
   length instk = height,
-  eval_asfs instk in_sfs opm = Some instk,
-  conc_exec' opcode instk ops = Some out_stk,
-  sym_exec' opcode in_sfs ops = Some out_asfs 
-  
-  -> 
-  
+  eval_asfs instk in_sfs opm = Some currstk,
+  conc_exec' opcode curr ops = Some out_stk,
+  sym_exec' opcode in_sfs ops = Some out_asfs
+ 
+  ->
+ 
   eval_asfs instk out_sfs opm = Some out_stk
-
 
 
 \forall p:prog, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
