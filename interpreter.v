@@ -572,6 +572,19 @@ Proof. reflexivity. Qed.
 
 
 
+Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk out_stk: concrete_stack) (ops:opm)
+          (height: nat) (in_es out_es: execution_state) (in_asfs out_asfs: asfs),
+length in_stk = height -> (* Do we really need it for this proof? *)
+eval_asfs in_stk in_asfs ops = Some in_stk -> (* I guess we need 3 stacks: initial, current (before executing the instruction),
+                                                   and final (after executing the instruction) *)
+get_stack_es in_es = in_stk ->
+concr_intpreter_instr instruction in_es ops = Some out_es ->
+get_stack_es out_es = out_stk ->
+symbolic_exec'' instruction in_asfs ops = Some out_asfs ->
+eval_asfs in_stk out_asfs ops = Some out_stk.
+Proof.
+Admitted.
+
 (*
 
 
