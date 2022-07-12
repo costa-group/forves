@@ -186,7 +186,7 @@ end.
 
 (* Concrete interpreter *)
 Definition concr_intpreter_instr (inst : instr) (es: execution_state)
-  (ops : map gen_instr operator) : option execution_state :=
+  (ops : opm) : option execution_state :=
 match inst with
   | PUSH size v => push_c v es
   | POP => pop_c es
@@ -200,8 +200,8 @@ match inst with
       end
   end.
 
-Fixpoint concr_interpreter (insts : list instr) (es : execution_state)
-  (ops : map gen_instr operator) : option execution_state :=
+Fixpoint concr_interpreter (insts : prog) (es : execution_state)
+  (ops : opm) : option execution_state :=
   match insts with
   | [] => Some es
   | inst::insts' =>
@@ -219,99 +219,10 @@ Compute (concr_interpreter
 End Interpreter.  
 
 
-
 Module SFS.
 Include Interpreter.
 
- 
-Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
-match size with
- | 0 => nil
- | S n => (f n)::(gen_initial_stack_inv n f)
-end.
-
-Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
-  rev (gen_initial_stack_inv size f).
-
-(** 
-Definition empty_sfs (size: nat) : SFS :=
-let curr_stack := gen_initial_stack size pinStk in
-SFSc 0 size curr_stack nil.
-
-Compute empty_sfs 5.
-*)
-
-(** JOSEBA:
-    I commented these previous SFS definition getters and setters in order
-    to not break the code until we decide what information should [sfs]
-    and [asfs] types contain.*)
-
-
-(* Definition get_maxid_sfs (sfs: SFS) : nat :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => maxid*)
-(* end.*)
-(* Definition set_maxid_sfs (sfs: SFS) (idx: nat): SFS :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => SFSc idx is cs map*)
-(* end.*)
-
-(* Definition get_instk_size_sfs (sfs: SFS) : nat :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => is*)
-(* end.*)
-(* Definition set_instk_size_sfs (sfs: SFS) (instk_size: nat): SFS :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => SFSc maxid instk_size cs map*)
-(* end.*)
-
-(* Definition get_currstk_sfs (sfs: SFS) : AbsStk :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => cs*)
-(* end.*)
-(* Definition set_currstk_sfs (sfs: SFS) (currstk: AbsStk): SFS :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => SFSc maxid is currstk map*)
-(* end.*)
-
-(* Definition get_map_sfs (sfs: SFS) : SFSMap :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => map*)
-(* end.*)
-(* Definition set_map_sfs (sfs: SFS) (newmap: SFSMap): SFS :=*)
-(* match sfs with*)
-(*  | SFSc maxid is cs map => SFSc maxid is cs newmap*)
-(* end.*)
-
-
-(* ENRIQUE's COMMENTS:
-   - the SymStk is not flattened, that's why you don't need the map in 
-   the SFS or the idx to create fresh variables
-   - I think that handling OpCode should fail (return None) in 'firstn' if 
-   there are not enough values in the stack. 'firstn' simply takes 'n' 
-   elements or the whole list if the size is smaller *)
-
-
-Fixpoint in_to_asfs (s: list nat) : asfs_stack :=
-  match s with
-  | nil => nil
-  | var::s' => (InStackVar var)::(in_to_asfs s')
-  end.
-
-Fixpoint concrete_to_asfs (s: list EVMWord) : asfs_stack :=
-  match s with
-  | nil => nil
-  | val::s' => (Val val)::(concrete_to_asfs s')
-  end.
-
-Definition asfs_stack_val_eq (a b: asfs_stack_val) : bool :=
-  match a, b with
-  | Val v1, Val v2 => weqb v1 v2
-  | InStackVar v1, InStackVar v2 => Nat.eqb v1 v2
-  | FreshVar v1, FreshVar v2 => Nat.eqb v1 v2
-  | _, _ => false
-  end.
-
+(** ** List Manipulation Functions *)
 Fixpoint remove {A: Type} (eqa: A -> A -> bool) (l: list A) (a: A) : list A :=
   match l with
   | nil => nil
@@ -330,6 +241,8 @@ Fixpoint subset {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
   | h::t => if member eqa l2 h then subset eqa t (remove eqa l2 h) else false
   end.
 
+Compute subset Nat.eqb [1; 3; 2; 3] [1; 2; 3].
+
 (* Set equality *)
 Definition permutation {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool := 
   (subset eqa l1 l2) && (subset eqa l2 l1).
@@ -342,44 +255,92 @@ Fixpoint list_eq {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
   | _, _ => false
   end.
 
-Fixpoint firstn_error {A: Type} (n:nat) (l:list A) : option (list A) :=
-  match n, l with
-  | 0 , _ => Some nil
-  | S n, nil => None
-  | S n, h::t => 
-      match firstn_error n t with
-      | None => None
-      | Some t' => Some (h::t')
-      end
-  end.
+Fixpoint firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
+  if n <=? length l then Some (firstn n l) else None.
 
-Fixpoint skipn_error {A: Type} (n:nat) (l:list A) : option (list A) :=
-  match n, l with
-  | 0 , _ => Some l
-  | S n, nil => None
-  | S n, h::t => skipn_error n t
-  end.
+Fixpoint skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
+  if n <=? length l then Some (skipn n l) else None.
 
+Compute firstn 0 [1;2;3;4;5].
+Compute firstn 1 [1;2;3;4;5].
+Compute firstn 6 [1;2;3;4;5].
 
-Compute firstn_error 2 [1;2;3;4;5].
-Compute skipn_error 6 [1;2;3;4;5].
+Compute firstn_e 0 [1;2;3;4;5].
+Compute firstn_e 1 [1;2;3;4;5].
+Compute firstn_e 6 [1;2;3;4;5].
 
+Compute skipn 0 [1;2;3;4;5].
+Compute skipn 1 [1;2;3;4;5].
+Compute skipn 6 [1;2;3;4;5].
+
+Compute skipn_e 0 [1;2;3;4;5].
+Compute skipn_e 1 [1;2;3;4;5].
+Compute skipn_e 6 [1;2;3;4;5].
 
 Compute list_eq Nat.eqb [1;2;3] [1;2;3;4].
 Compute permutation Nat.eqb [1;3;2] [3;1;4].
+
+
+(** ** Getter and Setter *)
+Definition get_height_asfs (a: asfs) : nat        := match a with ASFSc h _ _ _ => h end.
+Definition get_maxid_asfs  (a: asfs) : nat        := match a with ASFSc _ i _ _ => i end.
+Definition get_stack_asfs  (a: asfs) : asfs_stack := match a with ASFSc _ _ s _ => s end.
+Definition get_map_asfs    (a: asfs) : asfs_map   := match a with ASFSc _ _ _ m => m end.
+
+Definition set_height_asfs (a: asfs) (h': nat) : asfs := 
+  match a with ASFSc h maxid s m => ASFSc h' maxid  s  m end.
+Definition set_maxid_asfs (a: asfs) (maxid': nat) : asfs := 
+  match a with ASFSc h maxid s m => ASFSc h  maxid' s  m end.
+Definition set_stack_asfs (a: asfs) (s': asfs_stack) : asfs := 
+  match a with ASFSc h maxid s m => ASFSc h  maxid  s' m end.
+Definition set_map_asfs (a: asfs) (m': asfs_map) : asfs := 
+  match a with ASFSc h maxid s m => ASFSc h  maxid  s  m' end.
+
+
+(** ** Stack Manipulation and Creation *)
+Definition in_to_asfs' (v: nat) : asfs_stack_val := InStackVar v.
+Definition in_to_asfs  (s: in_stack) : asfs_stack := List.map in_to_asfs' s.
+
+Definition concrete_to_asfs' (v: EVMWord) : asfs_stack_val := Val v.
+Definition concrete_to_asfs  (s: list EVMWord) : asfs_stack := List.map concrete_to_asfs' s.
+
+Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
+  match size with
+  | 0 => nil
+  | S n => (f n)::(gen_initial_stack_inv n f)
+  end.
+
+Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
+  rev (gen_initial_stack_inv size f).
+
+Definition empty_asfs (size: nat) : asfs :=
+  let s := gen_initial_stack size in_to_asfs' in
+  ASFSc size 0 s nil.
+
+Definition asfs_stack_val_eq (a b: asfs_stack_val) : bool :=
+  match a, b with
+  | Val v1, Val v2 => weqb v1 v2
+  | InStackVar v1, InStackVar v2 => Nat.eqb v1 v2
+  | FreshVar v1, FreshVar v2 => Nat.eqb v1 v2
+  | _, _ => false
+  end.
 
 Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : option bool :=
   match a, b with
   | ASFSBasicVal v1,  ASFSBasicVal v2  => Some (asfs_stack_val_eq v1 v2)
   | ASFSOp op1 args1, ASFSOp op2 args2 => 
-      if eq_gen_instr op1 op2 then
-      match ops op1 with
-      | None => None
-      | Some (Op comm nargs f) =>
-          if comm then Some (permutation asfs_stack_val_eq args1 args2) else 
-          Some (list_eq asfs_stack_val_eq args1 args2)
-      end
-      else Some false
+      match eq_gen_instr op1 op2 with
+      | true => 
+          match ops op1 with
+          | None => None
+          | Some (Op comm nargs f) => 
+              match comm with
+              | true  => Some (permutation asfs_stack_val_eq args1 args2)
+              | false => Some (list_eq asfs_stack_val_eq args1 args2)
+              end
+          end
+      | false => Some false 
+      end 
   | _, _ => Some false
   end.
 
@@ -408,54 +369,68 @@ Fixpoint asfs_map_contains (ops: opm) (m: asfs_map) (a: asfs_map_val): option bo
 Definition asfs_map_add (m: asfs_map) (id: nat) (a: asfs_map_val) : asfs_map :=
   (id, a)::m.
 
-Definition symbolic_exec' (ops: opm) (maxid: nat) (s: asfs_stack) (m: asfs_map) 
-  (ins: instr) : nat*(option asfs_stack)*asfs_map :=
+Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
+  let m   : asfs_map    := get_map_asfs a in
+  let s   : asfs_stack  := get_stack_asfs a in
+  let vin : option bool := asfs_map_contains ops m v in
+  let vid : option nat  := asfs_map_get_id   ops m v in
+  let mid : nat         := get_maxid_asfs a in
+  match vin, vid with
+
+    (* Value is in map, there is id *)
+    (* (vid', s', m) *)
+    | Some vin', Some vid' => 
+        match push (FreshVar vid') s with None => None | Some s' =>
+            Some (set_stack_asfs a s') end
+
+    (* Value is not in map *)
+    (* (maxid+1, s', m') *)
+    | Some vin', None => 
+        let m' : asfs_map := asfs_map_add m (mid+1) v in 
+        match push (FreshVar (mid+1)) s with None => None | Some s' => 
+            let a' : asfs := set_maxid_asfs a (mid+1) in
+            Some (set_map_asfs a' m') end
+  
+    (* Owise *)
+    | _, _ => None
+  end.
+  
+
+
+Definition symbolic_exec'' (ins: instr) (a: asfs) (ops: opm) : option asfs :=
+  let s : asfs_stack := get_stack_asfs a in
   match ins with
-  | PUSH size w  => (maxid, push (Val w) s, m)
-  | POP          => (maxid, pop s, m)
-  | DUP pos      => (maxid, dup pos s, m)
-  | SWAP pos     => (maxid, swap pos s, m)
+  | PUSH size w => match push (Val w) s with None => None | Some s' => Some (set_stack_asfs a s') end
+  | POP      => match pop s      with None => None | Some s' => Some (set_stack_asfs a s') end
+  | DUP pos  => match dup pos s  with None => None | Some s' => Some (set_stack_asfs a s') end
+  | SWAP pos => match swap pos s with None => None | Some s' => Some (set_stack_asfs a s') end
   | Opcode label =>
       match (ops label) with
-      | None => (maxid, None, m)
-      | Some (Op comm nargs f) =>
-          let val : asfs_map_val := ASFSOp label (firstn nargs s) in
-          let vin : option bool  := asfs_map_contains ops m val in
-          let vid : option nat   := asfs_map_get_id   ops m val in
-          match vin, vid with
-          (* Value is in map, there is id *)
-          | Some vin', Some vid' => 
-              let s' : option asfs_stack := push (FreshVar vid') (skipn nargs s) in
-              (vid', s', m)
-           (* Value is not in map *)
-          | Some vin', None => 
-              let m' : asfs_map := asfs_map_add m (maxid+1) val in 
-              let s' : option asfs_stack := push (FreshVar (maxid+1)) (skipn nargs s) in
-              (maxid+1, s', m')
-          (* Owise *)
-          | _, _ => (maxid, None, m)
+      | None => None
+      | Some (Op comm nargs f) => 
+          match firstn_e nargs s, skipn_e nargs s with
+          | Some s1, Some s2 => 
+              let val : asfs_map_val := ASFSOp label s1 in
+              let a'  : asfs         := set_stack_asfs a s2 in
+              add_val_asfs ops a' val
+          | _, _ => None
           end
       end
   end.
 
-Fixpoint symbolic_exec (ops: opm) (maxid: nat) (s: asfs_stack) (m: asfs_map) 
-  (p: prog) : nat*(option asfs_stack)*asfs_map :=
+Fixpoint symbolic_exec' (p: prog) (a: asfs) (ops: opm) : option asfs :=
   match p with
-  | nil => (maxid, Some s, m)
+  | nil => Some a
   | ins::p' =>
-      match symbolic_exec' ops maxid s m ins with
-      | (maxid', None   , m') => (maxid', None, m')
-      | (maxid', Some s', m') => symbolic_exec ops maxid' s' m' p'
+      match symbolic_exec'' ins a ops with
+      | None => None
+      | Some a' => symbolic_exec' p' a' ops
       end
   end.
 
-Definition symbolic_execution (ops: opm) (maxid: nat) (s: in_stack) (p: prog) : 
-  option asfs :=
-  let s0 : asfs_stack := in_to_asfs s in 
-  match symbolic_exec ops maxid s0 [] p with
-  | (maxid', None, m') => None
-  | (maxid', Some s', m') => Some (ASFSc (length s) maxid' s' m')
-  end.
+Definition symbolic_exec (p: prog) (height: nat) (ops: opm) : option asfs :=
+  let a : asfs := empty_asfs height in 
+  symbolic_exec' p a ops.
 
 (* Symbolic Execution Tests *)
 
@@ -473,10 +448,9 @@ Example p_0 : prog := [
   POP
 ].
 
-Example  se_0 := let s0 := concrete_to_asfs cs_0 in symbolic_exec opmap 3 s0 [] p_0.
-Compute fst (fst se_0).
-Compute snd (fst se_0). 
-Compute snd se_0. 
+Example  a_0 := match symbolic_exec p_0 3 opmap with None => empty_asfs 0 | Some a' => a' end.
+Compute get_stack_asfs a_0.
+Compute get_map_asfs a_0. 
 
 Example cs_1 : concrete_stack := [ 
   natToWord WLen 1;
@@ -490,11 +464,9 @@ Example p_1 : prog := [
   Opcode ADD
 ].
 
-
-Example  se_1 := let s0 := concrete_to_asfs cs_1 in symbolic_exec opmap 3 s0 [] p_1.
-Compute fst (fst se_1).
-Compute snd (fst se_1). 
-Compute snd se_1. 
+Example  a_1 := match symbolic_exec p_1 2 opmap with None => empty_asfs 0 | Some a' => a' end.
+Compute get_stack_asfs a_1.
+Compute get_map_asfs a_1. 
 
 
 (* ENRIQUE:
