@@ -255,10 +255,10 @@ Fixpoint list_eq {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
   | _, _ => false
   end.
 
-Fixpoint firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
+Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
   if n <=? length l then Some (firstn n l) else None.
 
-Fixpoint skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
+Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
   if n <=? length l then Some (skipn n l) else None.
 
 Compute firstn 0 [1;2;3;4;5].
@@ -478,7 +478,7 @@ Compute get_map_asfs a_1.
    Moreover, "Program Fixpoint" in mutually recursive definitions does not seem to be supported, although
    the Coq documentation says the opposite.
    *)
-Fixpoint eval_asfs2_elem (c: list EVMWord) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) : option EVMWord :=
+Fixpoint eval_asfs2_elem (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) : option EVMWord :=
 match elem with 
 | Val v => Some v
 | InStackVar idx => nth_error c idx
@@ -513,7 +513,7 @@ match elem with
      end
 end.
 
-Fixpoint eval_asfs2 (c: list EVMWord) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
+Fixpoint eval_asfs2 (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
 match s with 
 | nil => Some []
 | elem::rs => let elem_oval := eval_asfs2_elem c elem m ops in
@@ -524,7 +524,7 @@ match s with
               end
 end.
 
-Definition eval_asfs (c: list EVMWord) (s: asfs) (ops: opm) : option (list EVMWord) :=
+Definition eval_asfs (c: concrete_stack) (s: asfs) (ops: opm) : option (list EVMWord) :=
 match s with
 | ASFSc height maxid curr_stack amap => 
     if List.length c =? height then
