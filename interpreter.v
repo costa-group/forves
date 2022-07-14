@@ -571,6 +571,44 @@ eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
 
 
+Lemma concr_abs_stack_same_length: forall (in_stk curr_stk: concrete_stack) (curr_asfs: asfs)
+        (ops: opm) (curr_es: execution_state),
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+get_stack_es curr_es = curr_stk ->
+length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs).
+Proof.
+Admitted.
+
+Lemma set_get_stack_es: forall (es: execution_state) (stk: concrete_stack),
+get_stack_es (set_stack_es es stk) = stk.
+Proof.
+intros es stk. unfold set_stack_es. destruct es.
+reflexivity.
+Qed.
+
+Lemma eval_eq_stack_len: forall (in_stk out_stk: concrete_stack) (height hc maxid: nat) (abs: asfs_stack)
+  (map: asfs_map) (ops: opm),
+length in_stk = height -> 
+eval_asfs in_stk (ASFSc hc maxid abs map) ops = Some out_stk ->
+height = hc.
+Proof.
+Admitted.
+
+Lemma eval_const_val: forall (stk: concrete_stack) (w: EVMWord) (map: asfs_map) (ops: opm),
+eval_asfs2_elem stk (Val w) map ops = Some w.
+Proof.
+intros stk w map ops.
+Admitted.
+
+
+Lemma height_stack_eval: forall (in_stk curr_stk: concrete_stack) (h mx: nat) 
+      (abs: asfs_stack) (map: asfs_map) (ops: opm),
+eval_asfs in_stk (ASFSc h mx abs map) ops = Some curr_stk ->
+length abs = length curr_stk.
+Proof.
+Admitted.
+
+
 (* One step of execution with one instruction *)
 Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
@@ -582,13 +620,102 @@ get_stack_es out_es = out_stk ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
+intros instruction in_stk curr_stk out_stk ops height curr_es out_es curr_asfs out_asfs
+  HLen Hevalcurr Hes_curr Hconcr Hes_out Hsymbexec.
+destruct instruction eqn: eq_instr.
+- (* PUSH *)
+  unfold concr_intpreter_instr in Hconcr.
+  unfold symbolic_exec'' in Hsymbexec.
+  unfold push_c in Hconcr.
+  destruct (push w (get_stack_es curr_es)) as [sk'|] eqn: eq_push_w; try discriminate.
+  destruct (push (Val w) (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_push_asfs; try discriminate.
+  unfold push in eq_push_w.
+  unfold push in eq_push_asfs.
+  pose proof (concr_abs_stack_same_length in_stk curr_stk curr_asfs ops curr_es
+    Hevalcurr Hes_curr) as H_eq_length_stacks.
+  rewrite <- H_eq_length_stacks in eq_push_asfs.
+  destruct (length (get_stack_es curr_es) <? StackLen) eqn: eq_length_stack_concr; try discriminate.
+  injection eq_push_w. injection eq_push_asfs.
+  intros eq_s' eq_sk'. symmetry in eq_s'. symmetry in eq_sk'.
+  injection Hconcr. intro eq_out_es. symmetry in eq_out_es.
+  rewrite -> eq_out_es in Hes_out.
+  pose proof (set_get_stack_es curr_es sk') as eq_set_get_es.
+  rewrite -> eq_set_get_es in Hes_out.
+  rewrite <- Hes_out. rewrite -> eq_sk'.
+  injection Hsymbexec. intro eq_out_asfs. symmetry in eq_out_asfs.
+  rewrite -> eq_out_asfs. rewrite -> eq_s'.
+  destruct curr_asfs as [hc maxc curr_abs curr_map] eqn: eq_curr_map.
+  simpl. rewrite -> HLen.
+  unfold eval_asfs.
+  destruct (set_stack_asfs curr_asfs (Val w :: get_stack_asfs curr_asfs)).
+  pose proof (eval_eq_stack_len in_stk curr_stk height hc maxc curr_abs curr_map ops
+    HLen Hevalcurr) as eq_height_hc.
+  rewrite -> eq_height_hc. rewrite Nat.eqb_refl.
+  rewrite -> eval_const_val.
+  simpl in Hevalcurr. rewrite -> HLen in Hevalcurr. rewrite -> eq_height_hc in Hevalcurr.
+  rewrite Nat.eqb_refl in Hevalcurr. rewrite -> Hevalcurr.
+  rewrite -> Hes_curr. reflexivity.
+- (* POP *)
+  unfold concr_intpreter_instr in Hconcr.
+  unfold symbolic_exec'' in Hsymbexec.
+  unfold pop_c in Hconcr.
+  destruct (pop (get_stack_es curr_es)) as [sk'|] eqn: eq_pop_w; try discriminate.
+  destruct (pop (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_pop_asfs; try discriminate.
+  unfold pop in eq_pop_w.
+  unfold pop in eq_pop_asfs.
+  injection Hconcr. intros eq_out_es. symmetry in eq_out_es.
+  rewrite -> eq_out_es in Hes_out.
+  rewrite -> set_get_stack_es in Hes_out.
+  injection Hsymbexec. intros eq_out_asfs. symmetry in eq_out_asfs. rewrite -> eq_out_asfs.
+  rewrite -> Hes_curr in eq_pop_w.
+  destruct curr_stk eqn: eq_curr_stk; try discriminate.
+  unfold eval_asfs in Hevalcurr.
+  destruct curr_asfs as [h mx curr_stack curr_map] eqn: eq_curr_asfs.
+  rewrite -> HLen in Hevalcurr.
+  destruct (height =? h) eqn: eq_height_h; try discriminate.
+  simpl in eq_pop_asfs.
+  destruct curr_stack as [| poped t] eqn: eq_curr_stack; try discriminate.
+  simpl. rewrite -> HLen.
+  rewrite -> eq_height_h.
+  unfold eval_asfs2 in Hevalcurr.
+  destruct (eval_asfs2_elem in_stk poped curr_map ops) eqn: eq_eval_asfs2_elem; try discriminate.
+  fold eval_asfs2 in Hevalcurr.
+  injection eq_pop_asfs. intros eq_t_s'. rewrite <- eq_t_s'.
+  destruct (eval_asfs2 in_stk t curr_map ops) eqn: eval_asfs2_t; try discriminate.
+  injection Hevalcurr. intros eq_l_c _.
+  rewrite -> eq_l_c. rewrite <- Hes_out. 
+  injection eq_pop_w. intros eq_c_sk'. rewrite <- eq_c_sk'.
+  reflexivity.
+- (* DUP *)
+  admit.
+- (* SWAP *)
+  admit.
+- (* Opcode *)
+  destruct label eqn: eq_label.
+  + (* ADD, but probably all the cases should be proved the same *) 
+    simpl in Hconcr. destruct (ops ADD) as [oper|] eqn: eq_ops_ADD; try discriminate.
+    destruct oper as [comm_flag nb_args func] eqn: eq_oper.
+    simpl in Hsymbexec. rewrite -> eq_ops_ADD in Hsymbexec.
+    
+    (* important: use firstn_e also in the concrete execution, although func should fail
+         in those cases. This way we use the same function in symbolic execution 
+         
+       make more similar concrete and symbolic. Instead of build_es_opt_stack use explicit 
+         matching and a funcion add_val_concrete to relate 'add_val_concrete' with 'add_val_asfs'.
+         Basically, eval_asfs (add_val_asfs ...) = get_stack_es (add_val_concrete ...) *)
+    admit.
+  + (* MUL *)
+    admit.
+  + (* NOT *) 
+    admit.  
 Admitted.
+
 
 
 
 (* A complete program*)
 Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
-          (height: nat) (in_es out_es: execution_state) (out_asfs out_asfs: asfs),
+          (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
 length in_stk = height ->
 get_stack_es in_es = in_stk ->
 concr_interpreter p in_es ops = Some out_es ->
