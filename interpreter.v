@@ -699,8 +699,62 @@ rewrite -> eq_skip_l2 in eq_first_skip.
 symmetry. assumption.
 Qed.
 
+Lemma firstn_e_length: forall (T: Type) (n: nat) (l l2: list T),
+firstn_e n l = Some l2 ->
+length l2 = n.
+Proof.
+Admitted.
 
-Search (skipn_e).
+
+Lemma eval_asfs2_compositional: forall (in_stk curr_stk args insk': concrete_stack) 
+  (stkc s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
+eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
+stkc = s1 ++ s2 ->
+curr_stk = args ++ insk' ->
+length s1 = length args ->
+eval_asfs2 in_stk s1 mapc ops = Some args /\ eval_asfs2 in_stk s2 mapc ops = Some insk'.
+Proof.
+Admitted.
+
+Fixpoint fresh_var_not_in_map (idx: nat) (map: asfs_map) : bool :=
+match map with 
+| nil => true
+| (k,v)::t => if k =? idx then false else fresh_var_not_in_map idx t
+end.
+
+Definition valid_asfs (sfs: asfs) : bool :=
+match sfs with 
+| ASFSc height maxid s m => fresh_var_not_in_map maxid m
+end.
+
+(* ++++++++++++++This is the important one+++++++++++++ *)
+Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: concrete_stack) (s: asfs_stack) (map: asfs_map)
+  (ops: opm) (n: nat) (val: asfs_map_val),
+eval_asfs2 in_stk s map ops = Some curr_stk ->
+fresh_var_not_in_map n map = true ->
+eval_asfs2 in_stk s ((n, val)::map) ops = Some curr_stk.
+Proof.
+Admitted.
+
+
+(* This function should check that all the operands in ops have nbargs <= 2*)
+(* I GUESS WE NEED TO CHANGE THE TYPE OF opm TO SOMETHING CONSTRUCTED (V.G. LISTS) *)
+Definition is_coherent_ops_nbargs (ops: opm) : bool :=
+true.
+
+Lemma coherent_ops_nbargs_lt3: forall (ops: opm) (instr: gen_instr) (comm:bool) (nb_args: nat)
+  (func: list EVMWord -> option EVMWord),
+is_coherent_ops_nbargs ops = true ->
+ops instr = Some (Op comm nb_args func) ->
+nb_args < 3.
+Proof.
+Admitted.
+
+Lemma length_gt3: forall (T: Type) (a1 a2 a3: T) (l: list T),
+~ (length (a1::a2::a3::l)) < 3.
+Proof.
+Admitted.
+
 
 (* Main lemma that relates curr_asfs to out_asfs in the case of executing an operator. 
    It relates their asfs_stacks and the results of their evaluation *)
@@ -709,6 +763,8 @@ Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: gen_instr) (comm_flag:
   (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
   (mapc mapo: asfs_map),
 
+is_coherent_ops_nbargs ops = true ->
+valid_asfs curr_asfs = true ->
 get_stack_es curr_es = curr_stk ->
 ops OpCode = Some (Op comm_flag nb_args func) ->
 firstn_e nb_args (get_stack_es curr_es) = Some args ->
@@ -728,8 +784,9 @@ out_asfs = ASFSc heo maxo stko mapo ->
    eval_asfs2 in_stk s2 mapo ops = Some insk'.
 Proof.
 intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in_stk curr_stk v
-  curr_asfs out_asfs stkc stko s1 s2 mapc mapo Hcurrstk Hops Hfirstn_curr_es Hskipn_curr_es Hfunc
-  Hcurr_asfs Heval_curr Hfirstn_curr_asfs Hskipn_curr_asfs Haddval Hout_asfs.
+  curr_asfs out_asfs stkc stko s1 s2 mapc mapo Hops_coherent Hvalid_asfs Hcurrstk Hops Hfirstn_curr_es 
+  Hskipn_curr_es Hfunc Hcurr_asfs Heval_curr Hfirstn_curr_asfs Hskipn_curr_asfs Haddval Hout_asfs.
+  assert (Hfirstn_curr_asfs' := Hfirstn_curr_asfs).
   unfold firstn_e in Hfirstn_curr_asfs.
   destruct (nb_args <=? length (get_stack_asfs curr_asfs)) eqn: eq_nbargs_curr_asfs; 
     try discriminate.
@@ -774,20 +831,71 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
       intros Hmapo Hstko Hmaxo Hheo. 
       rewrite <- Hstko. rewrite -> eq_stack_push. simpl.
       rewrite -> Hcurr_asfs. simpl. reflexivity.
-      -- split. 
-         ++ rewrite -> Hcurrstk in Hfirstn_curr_es. rewrite -> Hcurrstk in Hskipn_curr_es.
-            pose proof (firstn_skipn_e EVMWord nb_args curr_stk args insk' Hfirstn_curr_es
-              Hskipn_curr_es) as eq_curr_stk_args_insk'.
-              admit. 
-         ++ rewrite -> Hout_asfs in eq_out_asfs. injection eq_out_asfs.
-            intros Hmapo Hstko Hmaxo Hheo. 
-            simpl. admit.
-Admitted.
+      -- pose proof (firstn_skipn_e EVMWord nb_args (get_stack_es curr_es) args insk'
+           Hfirstn_curr_es Hskipn_curr_es) as eq_curr_stk.
+         rewrite -> Hcurrstk in eq_curr_stk.
+         symmetry in eq_first_skip.
+         pose proof (firstn_e_length EVMWord nb_args (get_stack_es curr_es) args
+           Hfirstn_curr_es) as eq_length_args.
+         pose proof (firstn_e_length asfs_stack_val nb_args (get_stack_asfs curr_asfs) s1
+           Hfirstn_curr_asfs') as eq_length_s1.
+         rewrite <- eq_length_args in eq_length_s1.
+         pose proof (eval_asfs2_compositional in_stk curr_stk args insk' stkc s1 s2
+           mapc ops Heval_curr eq_first_skip eq_curr_stk eq_length_s1) 
+           as [Heval_asfs2_s1 Heval_asfs2_s2].
+         rewrite -> Hout_asfs in eq_out_asfs.
+         symmetry in eq_out_asfs.
+         injection eq_out_asfs. intros Hmapo Hstko Hmaxo Hheo.
+         unfold valid_asfs in Hvalid_asfs. rewrite -> Hcurr_asfs in Hvalid_asfs.
+         split. 
+         ++ simpl. rewrite -> Hmapo. simpl. rewrite -> Nat.eqb_refl.
+            rewrite -> Hops. rewrite -> eq_length_args in eq_length_s1.
+            rewrite -> eq_length_s1. rewrite -> Nat.eqb_refl.
+            destruct s1 as [|a1 t1] eqn: eq_s1.
+            ** simpl in eq_length_s1. rewrite <- eq_length_s1 in eq_length_args.
+               apply length_zero_iff_nil in eq_length_args.
+               rewrite -> eq_length_args in Hfunc.
+               assumption.
+            ** destruct t1 as [|a2 t2] eqn: eq_t1.
+            --- simpl in Heval_asfs2_s1. 
+                destruct (eval_asfs2_elem in_stk a1 mapc ops) as [elem_val1|] eqn: eq_eval_a1;
+                  try discriminate.
+                injection Heval_asfs2_s1. intros eq_args_elem_val.
+                rewrite <- eq_args_elem_val in Hfunc.
+                assumption.
+            --- destruct t2 as [|a3 l3] eqn: eq_t2.
+               +++ destruct (eval_asfs2_elem in_stk a1 mapc ops) as [elem_val1|] eqn: eq_eval_a1.
+                   *** destruct (eval_asfs2_elem in_stk a2 mapc ops) as [elem_val2|] eqn: eq_eval_a2.
+                       ---- unfold eval_asfs2 in Heval_asfs2_s1.
+                            rewrite -> eq_eval_a1 in Heval_asfs2_s1.
+                            rewrite -> eq_eval_a2 in Heval_asfs2_s1. 
+                            injection Heval_asfs2_s1. intros eq_args_a1_a2.
+                            rewrite <- eq_args_a1_a2 in Hfunc.
+                            assumption.
+                       ---- unfold eval_asfs2 in Heval_asfs2_s1.
+                            rewrite -> eq_eval_a1 in Heval_asfs2_s1.
+                            rewrite -> eq_eval_a2 in Heval_asfs2_s1.
+                            discriminate.
+                   *** unfold eval_asfs2 in Heval_asfs2_s1.
+                       rewrite -> eq_eval_a1 in Heval_asfs2_s1.
+                       discriminate.
+               +++ pose proof (coherent_ops_nbargs_lt3 ops OpCode comm_flag nb_args
+                     func Hops_coherent Hops) as eq_nbargs_lt3. 
+                   pose proof (length_gt3 asfs_stack_val a1 a2 a3 l3) as eq_nbargs_ge3.
+                   rewrite -> eq_length_s1 in eq_nbargs_ge3. 
+                   contradiction.
+         ++ rewrite -> Hmapo.
+            pose proof (eval_asfs2_extended_map in_stk insk' s2 mapc ops maxc (ASFSOp OpCode s1)
+              Heval_asfs2_s2 Hvalid_asfs) as eq_eval_asfs2_s2_mapo.
+            assumption.
+Qed.
 
 
 (* One step of execution with one instruction *)
 Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
+is_coherent_ops_nbargs ops = true ->
+valid_asfs curr_asfs = true ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -797,7 +905,7 @@ symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
 intros instruction in_stk curr_stk out_stk ops height curr_es out_es curr_asfs out_asfs
-  HLen Hevalcurr Hes_curr Hconcr Hes_out Hsymbexec.
+  Hcoherent_ops Hvalid_asfs HLen Hevalcurr Hes_curr Hconcr Hes_out Hsymbexec.
 destruct instruction eqn: eq_instr.
 - (* PUSH *)
   unfold concr_intpreter_instr in Hconcr.
@@ -899,9 +1007,10 @@ destruct instruction eqn: eq_instr.
     rewrite <- eq_curr_asfs in eq_skipn_asfs.
     rewrite <- eq_curr_asfs in Hsymbexec.
     rewrite <- eq_out_asfs in Hsymbexec.
+    rewrite <- eq_curr_asfs in Hvalid_asfs.
     pose proof (opcode_exec_asfs_update ops label comm_flag nb_args hec maxc heo maxo
       func curr_es args insk' in_stk curr_stk v curr_asfs out_asfs stkc stko s1 s2
-      mapc mapo Hes_curr eq_ops_label eq_firstn_stk eq_skipn_stk eq_func_args eq_curr_asfs
+      mapc mapo Hcoherent_ops Hvalid_asfs Hes_curr eq_ops_label eq_firstn_stk eq_skipn_stk eq_func_args eq_curr_asfs
       Hevalcurr eq_firstn_asfs eq_skipn_asfs Hsymbexec eq_out_asfs) 
       as [eq_stkc [eq_hec_heo [top_elem [eq_stko [eq_eval_top_elem eq_eval_s2]]]]].
     unfold eval_asfs. rewrite <- eq_hec_heo. rewrite -> eq_len_in_stk.
