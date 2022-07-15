@@ -8,6 +8,30 @@ Require Import Coq_EVM.datatypes.
 Import EVM_Def Concrete Abstract.
 Import ListNotations.
 
+
+Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
+  if n <=? length l then Some (firstn n l) else None.
+
+Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
+  if n <=? length l then Some (skipn n l) else None.
+
+Compute firstn 0 [1;2;3;4;5].
+Compute firstn 1 [1;2;3;4;5].
+Compute firstn 6 [1;2;3;4;5].
+
+Compute firstn_e 0 [1;2;3;4;5].
+Compute firstn_e 1 [1;2;3;4;5].
+Compute firstn_e 6 [1;2;3;4;5].
+
+Compute skipn 0 [1;2;3;4;5].
+Compute skipn 1 [1;2;3;4;5].
+Compute skipn 6 [1;2;3;4;5].
+
+Compute skipn_e 0 [1;2;3;4;5].
+Compute skipn_e 1 [1;2;3;4;5].
+Compute skipn_e 6 [1;2;3;4;5].
+
+
 Module Interpreter.
 
 Inductive execution_state :=
@@ -195,7 +219,17 @@ match inst with
   | Opcode label =>
       let insk := get_stack_es es in
       match (ops label) with
-      | Some (Op comm nb_args func) => build_es_opt_stack es (func (firstn nb_args insk)) (skipn nb_args insk)
+      | Some (Op comm nb_args func) => 
+          match firstn_e nb_args insk with
+          | Some args => match skipn_e nb_args insk with 
+                         | Some insk' => match func args with 
+                                         | Some v => Some (set_stack_es es (v :: insk'))
+                                         | None => None
+                                         end 
+                         | None => None
+                         end
+          | None => None
+          end
       | None => None
       end
   end.
@@ -255,28 +289,6 @@ Fixpoint list_eq {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
   | _, _ => false
   end.
 
-Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
-  if n <=? length l then Some (firstn n l) else None.
-
-Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
-  if n <=? length l then Some (skipn n l) else None.
-
-Compute firstn 0 [1;2;3;4;5].
-Compute firstn 1 [1;2;3;4;5].
-Compute firstn 6 [1;2;3;4;5].
-
-Compute firstn_e 0 [1;2;3;4;5].
-Compute firstn_e 1 [1;2;3;4;5].
-Compute firstn_e 6 [1;2;3;4;5].
-
-Compute skipn 0 [1;2;3;4;5].
-Compute skipn 1 [1;2;3;4;5].
-Compute skipn 6 [1;2;3;4;5].
-
-Compute skipn_e 0 [1;2;3;4;5].
-Compute skipn_e 1 [1;2;3;4;5].
-Compute skipn_e 6 [1;2;3;4;5].
-
 Compute list_eq Nat.eqb [1;2;3] [1;2;3;4].
 Compute permutation Nat.eqb [1;3;2] [3;1;4].
 
@@ -317,6 +329,7 @@ Definition empty_asfs (size: nat) : asfs :=
   let s := gen_initial_stack size in_to_asfs' in
   ASFSc size 0 s nil.
 
+(*
 Definition asfs_stack_val_eq (a b: asfs_stack_val) : bool :=
   match a, b with
   | Val v1, Val v2 => weqb v1 v2
@@ -354,21 +367,50 @@ Fixpoint asfs_map_get_id (ops: opm) (m: asfs_map) (a: asfs_map_val): option nat 
       | Some true => Some (fst h)
       end
   end.
+  
+(* simplified version of Joseba's code *)
+Fixpoint asfs_stack_val_list_eq (a b: list asfs_stack_val) : bool :=
+  match a, b with
+  | nil, nil => true
+  | h1::t1, h2::t2 => asfs_stack_val_eq h1 h2 && asfs_stack_val_list_eq t1 t2
+  | _, _ => false
+  end.
 
-Fixpoint asfs_map_contains (ops: opm) (m: asfs_map) (a: asfs_map_val): option bool :=
+Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : bool :=
+  match a, b with
+  | ASFSBasicVal v1,  ASFSBasicVal v2  => asfs_stack_val_eq v1 v2
+  | ASFSOp op1 args1, ASFSOp op2 args2 => 
+      eq_gen_instr op1 op2 && asfs_stack_val_list_eq args1 args2
+  | _, _ => false
+  end.
+
+Fixpoint asfs_map_get_id (ops: opm) (m: asfs_map) (a: asfs_map_val): option nat :=
   match m with
-  | nil => Some false
+  | nil => None
   | h::m' => 
       match asfs_map_val_eq ops a (snd h) with
+      | false => asfs_map_get_id ops m' a
+      | true => Some (fst h)
+      end
+  end.
+
+(* We can use asfs_map_get_id for detecting if it is contained or not *)
+(*Fixpoint asfs_map_contains (ops: opm) (m: asfs_map) (a: asfs_map_val): option bool :=
+  match m with
+  | nil => Some false
+  | (k,v)::m' => 
+      match asfs_map_val_eq ops a v with
       | None => None
       | Some false => asfs_map_contains ops m' a
       | Some true => Some true
       end
-  end.
+  end.*)
+*)
 
 Definition asfs_map_add (m: asfs_map) (id: nat) (a: asfs_map_val) : asfs_map :=
   (id, a)::m.
-
+  
+(*
 Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
   let m   : asfs_map    := get_map_asfs a in
   let s   : asfs_stack  := get_stack_asfs a in
@@ -394,7 +436,19 @@ Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
     (* Owise *)
     | _, _ => None
   end.
-  
+*)  
+
+(* simplification: always insert pair in asfs_map *)
+Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
+  let m   : asfs_map    := get_map_asfs a in
+  let s   : asfs_stack  := get_stack_asfs a in
+  let mid : nat         := get_maxid_asfs a in
+  let m' : asfs_map     := asfs_map_add m mid v in 
+  match push (FreshVar mid) s with 
+  | None => None 
+  | Some s' => Some (set_stack_asfs (set_map_asfs (set_maxid_asfs a (mid+1)) m') s')
+  end.
+(**)
 
 
 Definition symbolic_exec'' (ins: instr) (a: asfs) (ops: opm) : option asfs :=
@@ -608,11 +662,96 @@ length abs = length curr_stk.
 Proof.
 Admitted.
 
+Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+firstn_e n l1 = Some res1 ->
+length l1 = length l2 ->
+exists (res2: list T2), firstn_e n l2 = Some res2.
+Proof.
+intros T1 T2 n l1 res1 l2 HeqLen.
+Admitted.
+
+Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+skipn_e n l1 = Some res1 ->
+length l1 = length l2 ->
+exists (res2: list T2), skipn_e n l2 = Some res2.
+Proof.
+intros T1 T2 n l1 res1 l2 HeqLen.
+Admitted.
+
+Lemma push_succeed: forall (T: Type) (e: T) (l1 l2: list T),
+push e l1 = Some l2 -> l2 = e::l1.
+Admitted.
+
+
+
+(* Main lemma that relates curr_asfs to out_asfs in the case of executing an operator. 
+   It relates their asfs_stacks and the results of their evaluation *)
+Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: gen_instr) (comm_flag: bool)
+  (nb_args hec maxc heo maxo: nat) (func: list EVMWord -> option EVMWord) (curr_es: execution_state)
+  (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
+  (mapc mapo: asfs_map),
+
+ops OpCode = Some (Op comm_flag nb_args func) ->
+firstn_e nb_args (get_stack_es curr_es) = Some args ->
+skipn_e nb_args (get_stack_es curr_es) = Some insk' ->
+func args = Some v ->
+curr_asfs = ASFSc hec maxc stkc mapc ->
+eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
+firstn_e nb_args (get_stack_asfs curr_asfs) = Some s1 ->
+skipn_e nb_args (get_stack_asfs curr_asfs) = Some s2 ->
+add_val_asfs ops (set_stack_asfs curr_asfs s2) (ASFSOp OpCode s1) = Some out_asfs ->
+out_asfs = ASFSc heo maxo stko mapo ->
+ stkc = s1 ++ s2 /\
+ hec = heo /\
+ exists (e: asfs_stack_val), 
+   stko = e :: s2 /\
+   eval_asfs2_elem in_stk e mapo ops = Some v /\
+   eval_asfs2 in_stk s2 mapo ops = Some insk'.
+Proof.
+intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in_stk curr_stk v
+  curr_asfs out_asfs stkc stko s1 s2 mapc mapo Hops Hfirstn_curr_es Hskipn_curr_es Hfunc
+  Hcurr_asfs Heval_curr Hfirstn_curr_asfs Hskipn_curr_asfs Haddval Hout_asfs.
+split.
+- unfold firstn_e in Hfirstn_curr_asfs.
+  destruct (nb_args <=? length (get_stack_asfs curr_asfs)) eqn: eq_nbargs_curr_asfs; 
+    try discriminate.
+  unfold skipn_e in Hskipn_curr_asfs. rewrite -> eq_nbargs_curr_asfs in Hskipn_curr_asfs.
+  injection Hfirstn_curr_asfs. injection Hskipn_curr_asfs.
+  intros Hskipn_s2 Hfirstn_s1.
+  pose proof (@firstn_skipn asfs_stack_val nb_args (get_stack_asfs curr_asfs)) as eq_first_skip.
+  rewrite -> Hfirstn_s1 in eq_first_skip. rewrite -> Hskipn_s2 in eq_first_skip.
+  rewrite -> eq_first_skip. rewrite -> Hcurr_asfs. reflexivity.
+- split.
+  + unfold add_val_asfs in Haddval.
+    destruct (push
+              (FreshVar
+                 (get_maxid_asfs (set_stack_asfs curr_asfs s2)))
+              (get_stack_asfs (set_stack_asfs curr_asfs s2))) eqn: eq_push_asfs_stack;
+      try discriminate.
+    injection Haddval. intros eq_out_asfs. unfold asfs_map_add in eq_out_asfs.
+    rewrite -> Hcurr_asfs in Haddval. simpl in Haddval.
+    injection Haddval. intros eq_out_asfs2. rewrite -> Hout_asfs in eq_out_asfs2.
+    injection eq_out_asfs2. intros eq_mapo eq_s2 eq_maxo eq_hec_heo.
+    assumption.
+  + unfold add_val_asfs in Haddval.
+    destruct (push
+              (FreshVar
+                 (get_maxid_asfs (set_stack_asfs curr_asfs s2)))
+              (get_stack_asfs (set_stack_asfs curr_asfs s2))) eqn: eq_push_asfs_stack;
+      try discriminate.
+    injection Haddval. intros eq_out_asfs. unfold asfs_map_add in eq_out_asfs.
+    rewrite -> Hcurr_asfs in Haddval. simpl in Haddval.
+    unfold asfs_map_add in Haddval.
+    exist 
+    injection Haddval. intros eq_out_asfs2. rewrite -> Hout_asfs in eq_out_asfs2.
+    injection eq_out_asfs2. intros eq_mapo eq_s2 eq_maxo eq_hec_heo.
+Admitted.
+
 
 (* One step of execution with one instruction *)
 Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
-length in_stk = height -> (* Do we really need it for this proof? *)
+length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
 concr_intpreter_instr instruction curr_es ops = Some out_es ->
@@ -690,24 +829,49 @@ destruct instruction eqn: eq_instr.
   admit.
 - (* SWAP *)
   admit.
-- (* Opcode *)
-  destruct label eqn: eq_label.
-  + (* ADD, but probably all the cases should be proved the same *) 
-    simpl in Hconcr. destruct (ops ADD) as [oper|] eqn: eq_ops_ADD; try discriminate.
+- (* OpCode *)
+    simpl in Hconcr. destruct (ops label) as [oper|] eqn: eq_ops_label; try discriminate.
     destruct oper as [comm_flag nb_args func] eqn: eq_oper.
-    simpl in Hsymbexec. rewrite -> eq_ops_ADD in Hsymbexec.
-    
-    (* important: use firstn_e also in the concrete execution, although func should fail
-         in those cases. This way we use the same function in symbolic execution 
-         
-       make more similar concrete and symbolic. Instead of build_es_opt_stack use explicit 
-         matching and a funcion add_val_concrete to relate 'add_val_concrete' with 'add_val_asfs'.
-         Basically, eval_asfs (add_val_asfs ...) = get_stack_es (add_val_concrete ...) *)
-    admit.
-  + (* MUL *)
-    admit.
-  + (* NOT *) 
-    admit.  
+    simpl in Hsymbexec. rewrite -> eq_ops_label in Hsymbexec.
+    unfold build_es_opt_stack in Hconcr.
+    destruct (firstn_e nb_args (get_stack_es curr_es)) as [args|] eqn: eq_firstn_stk;
+      try discriminate.
+    destruct (skipn_e nb_args (get_stack_es curr_es)) as [insk'|] eqn: eq_skipn_stk;
+      try discriminate.
+    destruct (func args) as [v|] eqn: eq_func_args; try discriminate.
+    injection Hconcr. intro eq_out_es. symmetry in eq_out_es.
+    rewrite -> eq_out_es in Hes_out.
+    rewrite -> set_get_stack_es in Hes_out. rewrite <- Hes_out.
+    pose proof (concr_abs_stack_same_length in_stk curr_stk curr_asfs ops curr_es
+      Hevalcurr Hes_curr) as eq_length_stk_es_stk_curr_asf.
+    pose proof (same_length_firstn_e EVMWord asfs_stack_val nb_args (get_stack_es curr_es) 
+      args (get_stack_asfs curr_asfs) eq_firstn_stk eq_length_stk_es_stk_curr_asf)
+      as Hfirstn_asfs_ok.
+    destruct Hfirstn_asfs_ok as [s1 eq_firstn_asfs].
+    rewrite -> eq_firstn_asfs in Hsymbexec.
+    pose proof (same_length_skip_e EVMWord asfs_stack_val nb_args (get_stack_es curr_es)
+      insk' (get_stack_asfs curr_asfs) eq_skipn_stk eq_length_stk_es_stk_curr_asf)
+      as Hskipn_asfs_ok.
+    destruct Hskipn_asfs_ok as [s2 eq_skipn_asfs].
+    rewrite -> eq_skipn_asfs in Hsymbexec.
+    destruct curr_asfs as [hec maxc stkc mapc] eqn: eq_curr_asfs.
+    destruct out_asfs as [heo maxo stko mapo] eqn: eq_out_asfs.
+    unfold eval_asfs in Hevalcurr.
+    destruct (length in_stk =? hec) eqn: eq_len_in_stk; try discriminate.
+    rewrite <- eq_curr_asfs in eq_firstn_asfs.
+    rewrite <- eq_curr_asfs in eq_skipn_asfs.
+    rewrite <- eq_curr_asfs in Hsymbexec.
+    rewrite <- eq_out_asfs in Hsymbexec.
+    pose proof (opcode_exec_asfs_update ops label comm_flag nb_args hec maxc heo maxo
+      func curr_es args insk' in_stk curr_stk v curr_asfs out_asfs stkc stko s1 s2
+      mapc mapo eq_ops_label eq_firstn_stk eq_skipn_stk eq_func_args eq_curr_asfs
+      Hevalcurr eq_firstn_asfs eq_skipn_asfs Hsymbexec eq_out_asfs) 
+      as [eq_stkc [eq_hec_heo [top_elem [eq_stko [eq_eval_top_elem eq_eval_s2]]]]].
+    unfold eval_asfs. rewrite <- eq_hec_heo. rewrite -> eq_len_in_stk.
+    rewrite -> eq_stko. unfold eval_asfs2.
+    rewrite -> eq_eval_top_elem. fold eval_asfs2.
+    rewrite -> eq_eval_s2.
+    reflexivity.
 Admitted.
 
 
