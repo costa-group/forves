@@ -751,6 +751,37 @@ eval_asfs2 in_stk s1 mapc ops = Some args /\ eval_asfs2 in_stk s2 mapc ops = Som
 Proof.
 Admitted.
 
+Lemma eval_asfs2_compositional_r: forall (in_stk curr_s1 curr_s2: concrete_stack) 
+  (s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
+eval_asfs2 in_stk s1 mapc ops = Some curr_s1 ->
+eval_asfs2 in_stk s2 mapc ops = Some curr_s2 ->
+eval_asfs2 in_stk (s1++s2) mapc ops = Some (curr_s1 ++ curr_s2).
+Proof.
+intros in_stk curr_s1.
+revert in_stk.
+induction curr_s1 as [ | h t] eqn: eq_curr_s1.
+- admit.
+- intros in_stk curr_s2 s1 s2 mapc ops Heval_h_t Heval_s2.
+  unfold eval_asfs2 in Heval_h_t. unfold apply_f_list_asfs_stack_val in Heval_h_t. simpl in Heval_h_t.
+  admit.
+Admitted.
+
+Lemma eval_asfs2_compositional4: forall (in_stk curr_stk v1 v2 v3 v4: concrete_stack) 
+  (stkc s1 s2 s3 s4: asfs_stack) (mapc: asfs_map) (ops: opm),
+eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
+stkc = s1 ++ s2 ++ s3 ++ s4 ->
+curr_stk = v1 ++ v2 ++ v3 ++ v4 ->
+length s1 = length v1 ->
+length s2 = length v2 ->
+length s3 = length v3 ->
+eval_asfs2 in_stk s1 mapc ops = Some v1
+/\ eval_asfs2 in_stk s2 mapc ops = Some v2
+/\ eval_asfs2 in_stk s3 mapc ops = Some v3
+/\ eval_asfs2 in_stk s4 mapc ops = Some v4.
+Proof.
+(* Using eval_asfs2_compositional twice *)
+Admitted.
+
 Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : bool :=
 match map with 
 | nil => true
@@ -876,6 +907,54 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
 Qed.
 
 
+Lemma eval_asfs2_position: forall (in_stk curr_stk: concrete_stack) (hc maxc pos: nat)
+  (sc: asfs_stack) (mc: asfs_map) (ops: opm) (a: asfs_stack_val) (x: EVMWord),
+eval_asfs in_stk (ASFSc hc maxc sc mc) ops = Some curr_stk ->
+nth_error sc pos = Some a ->
+nth_error curr_stk pos = Some x -> 
+eval_asfs2_elem in_stk a mc ops = Some x.
+Proof.
+Admitted.
+
+Lemma list_composition_for_swap: forall {T:Type} (k: nat) (h a: T) (t: list T),
+k =? 0 = false -> 
+nth_error (h::t) k = Some a ->
+h::t = [h] ++ (firstn (k-1) t) ++ [a] ++ (skipn (k+1) (h::t)).
+Proof.
+Admitted.
+
+Lemma length_unitary_lists: forall {T1 T2: Type} (e1: T1) (e2: T2),
+length [e1] = length [e2].
+Proof. reflexivity. Qed.
+
+Lemma length_firstn_lists: forall {T1 T2: Type} (l1: list T1) (l2: list T2) (k: nat),
+length l1 = length l2 ->
+length (firstn k l1) = length (firstn k l2).
+Proof.
+intros T1 T2 l1 l2 k Hlen1_len2.
+pose proof (firstn_length k l1) as eqn_len_firstn_l1.
+pose proof (firstn_length k l2) as eqn_len_firstn_l2.
+rewrite -> Hlen1_len2 in eqn_len_firstn_l1.
+rewrite -> eqn_len_firstn_l1.
+rewrite -> eqn_len_firstn_l2.
+reflexivity.
+Qed.
+
+
+Lemma length_skipn_lists: forall {T: Type} (l1 l2: list T) (k: nat),
+length l1 = length l2 ->
+length (skipn k l1) = length (skipn k l2).
+Proof.
+intros T l1 l2 k Hlen1_len2.
+pose proof (skipn_length k l1) as eqn_len_skipn_l1.
+pose proof (skipn_length k l2) as eqn_len_skipn_l2.
+rewrite -> Hlen1_len2 in eqn_len_skipn_l1.
+rewrite -> eqn_len_skipn_l1.
+rewrite -> eqn_len_skipn_l2.
+reflexivity.
+Qed.
+
+
 (* One step of execution with one instruction *)
 Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
@@ -959,9 +1038,123 @@ destruct instruction eqn: eq_instr.
   injection eq_pop_w. intros eq_c_sk'. rewrite <- eq_c_sk'.
   reflexivity.
 - (* DUP *)
-  admit.
+  unfold concr_intpreter_instr in Hconcr.
+  unfold dup_c in Hconcr. rewrite -> Hes_curr in Hconcr.
+  destruct (dup pos curr_stk) as [sk'|] eqn: eq_dup_pos_curr_stk; try discriminate.
+  injection Hconcr. intros eq_out_es. symmetry in eq_out_es.
+  rewrite -> eq_out_es in Hes_out.
+  rewrite -> set_get_stack_es in Hes_out. rewrite <- Hes_out.
+  unfold symbolic_exec'' in Hsymbexec.
+  destruct curr_asfs as [hc maxc sc mc] eqn: eq_currs_asfs.
+  simpl in Hsymbexec.
+  destruct (dup pos sc) as [s'|] eqn: eq_dup_pos_sc; try discriminate.
+  injection Hsymbexec. intros eq_out_asfs. symmetry in eq_out_asfs.
+  rewrite -> eq_out_asfs. simpl.
+  destruct (length in_stk =? hc) eqn: eq_length_in_stk.
+  + unfold dup in eq_dup_pos_sc.
+    destruct ((pos =? 0) || (16 <? pos) || (StackLen <=? length sc))
+      eqn: eq_cond_push; try discriminate.
+    destruct (nth_error sc pos) eqn: eq_nth_error_sc; try discriminate.
+    injection eq_dup_pos_sc. intros eq_s'. symmetry in eq_s'.
+    rewrite -> eq_s'.
+    unfold dup in eq_dup_pos_curr_stk.
+    pose proof (height_stack_eval in_stk curr_stk hc maxc sc mc ops
+    Hevalcurr) as eq_length_sc_curr_stk.
+    rewrite <- eq_length_sc_curr_stk in eq_dup_pos_curr_stk.
+    rewrite -> eq_cond_push in eq_dup_pos_curr_stk.
+    destruct (nth_error curr_stk pos) as [x|] eqn: eq_nth_error_curr_stk;
+      try discriminate.
+    injection eq_dup_pos_curr_stk. intros eq_sk'. symmetry in eq_sk'.
+    rewrite -> eq_sk'.
+    unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+    fold apply_f_list_asfs_stack_val.
+    pose proof (eval_asfs2_position in_stk curr_stk hc maxc pos sc mc
+      ops a x Hevalcurr eq_nth_error_sc eq_nth_error_curr_stk) 
+      as eq_eval_asfs2_elem_a.
+    rewrite -> eq_eval_asfs2_elem_a.
+    rewrite -> eval_asfs2_ho.
+    unfold eval_asfs in Hevalcurr. 
+    rewrite eq_length_in_stk in Hevalcurr.
+    rewrite -> Hevalcurr. reflexivity.    
+  + simpl in Hevalcurr. rewrite -> eq_length_in_stk in Hevalcurr.
+    discriminate.
 - (* SWAP *)
-  admit.
+  unfold concr_intpreter_instr in Hconcr.
+  unfold swap_c in Hconcr. rewrite -> Hes_curr in Hconcr.
+  destruct (swap pos curr_stk) as [sk'|] eqn: eq_swap_pos_curr_stk; try discriminate.
+  injection Hconcr. intros eq_out_es. symmetry in eq_out_es.
+  rewrite -> eq_out_es in Hes_out.
+  rewrite -> set_get_stack_es in Hes_out. rewrite <- Hes_out.
+  unfold symbolic_exec'' in Hsymbexec.
+  destruct curr_asfs as [hc maxc sc mc] eqn: eq_currs_asfs.
+  simpl in Hsymbexec.
+  destruct (swap pos sc) as [s'|] eqn: eq_swap_pos_sc; try discriminate.
+  injection Hsymbexec. intros eq_out_asfs. symmetry in eq_out_asfs.
+  rewrite -> eq_out_asfs. simpl.
+  destruct (length in_stk =? hc) eqn: eq_length_in_stk.
+  + assert (Hevalcurr_orig := Hevalcurr).
+    unfold swap in eq_swap_pos_sc.
+    destruct ((pos =? 0) || (16 <? pos))
+      eqn: eq_cond_swap; try discriminate.
+    destruct (nth_error sc pos) eqn: eq_nth_error_sc; try discriminate.
+    destruct sc as [| hsc tsc] eqn: eq_sc; try discriminate.
+    injection eq_swap_pos_sc. intros eq_s'. symmetry in eq_s'.
+    rewrite -> eq_s'.
+    unfold swap in eq_swap_pos_curr_stk.
+    rewrite -> eq_cond_swap in eq_swap_pos_curr_stk.
+    destruct (nth_error curr_stk pos) as [x|] eqn: eq_nth_error_curr_stk;
+      try discriminate.
+    destruct curr_stk as [| hv tv] eqn: eq_curr_stk; try discriminate.
+    injection eq_swap_pos_curr_stk. intros eq_sk'. symmetry in eq_sk'.
+    rewrite -> eq_sk'.
+    pose proof (orb_false_elim (pos =? 0) (16 <? pos) eq_cond_swap)
+      as [eq_pos_neq_0 _].
+    pose proof (list_composition_for_swap pos hsc a tsc eq_pos_neq_0
+      eq_nth_error_sc) as eq_decomposition_hsc_tsc.
+    unfold eval_asfs in Hevalcurr.
+    rewrite -> eq_length_in_stk in Hevalcurr.
+    pose proof (list_composition_for_swap pos hv x tv eq_pos_neq_0
+      eq_nth_error_curr_stk) as eq_decomposition_hv_tv.
+    rewrite <- eq_sc in Hevalcurr. rewrite <- eq_curr_stk in Hevalcurr.
+    rewrite <- eq_sc in eq_decomposition_hsc_tsc at 1.
+    rewrite <- eq_curr_stk in eq_decomposition_hv_tv at 1.
+    pose proof (length_unitary_lists hsc hv) as eq_len_hsc_hv.
+    rewrite <- eq_currs_asfs in Hevalcurr_orig.
+    rewrite <- eq_curr_stk in Hevalcurr_orig.
+    rewrite <- eq_curr_stk in Hes_curr.
+    pose proof (concr_abs_stack_same_length in_stk curr_stk curr_asfs
+      ops curr_es Hevalcurr_orig Hes_curr) as eqn_len_curr_stk_abs.
+    rewrite -> Hes_curr in eqn_len_curr_stk_abs.
+    rewrite -> eq_currs_asfs in eqn_len_curr_stk_abs.
+    rewrite -> eq_curr_stk in eqn_len_curr_stk_abs.
+    simpl in eqn_len_curr_stk_abs.
+    injection eqn_len_curr_stk_abs. intros eq_len_tv_tsc.
+    symmetry in eq_len_tv_tsc.
+    pose proof (length_firstn_lists tsc tv (pos-1) eq_len_tv_tsc)
+      as eq_len_firstn_tsc_tv.
+    pose proof (length_unitary_lists a x) as eq_len_a_x.
+    pose proof (eval_asfs2_compositional4 in_stk curr_stk [hv]
+      (firstn (pos - 1) tv) [x] (skipn (pos + 1) (hv :: tv))
+      sc [hsc] (firstn (pos - 1) tsc) [a] (skipn (pos + 1) (hsc :: tsc))
+      mc ops Hevalcurr eq_decomposition_hsc_tsc eq_decomposition_hv_tv
+      eq_len_hsc_hv eq_len_firstn_tsc_tv eq_len_a_x) 
+      as [eq_eval_asfs2_hsc [eq_eval_asfs2_firstn 
+        [eq_eval_asfs2_a eq_eval_asfs2_skipn]]].
+    pose proof (eval_asfs2_compositional_r in_stk [x]
+      (firstn (pos - 1) tv) [a] (firstn (pos - 1) tsc)
+      mc ops eq_eval_asfs2_a eq_eval_asfs2_firstn) as Heval_a_firstn.
+    simpl in Heval_a_firstn.
+    pose proof (eval_asfs2_compositional_r in_stk [hv]
+      (skipn (pos + 1) (hv :: tv)) [hsc] (skipn (pos + 1) (hsc :: tsc))
+      mc ops eq_eval_asfs2_hsc eq_eval_asfs2_skipn) as Heval_hsc_skipn.
+    simpl in Heval_hsc_skipn.
+    pose proof (eval_asfs2_compositional_r in_stk (x :: firstn (pos - 1) tv)
+      (hv :: skipn (pos + 1) (hv :: tv)) (a :: firstn (pos - 1) tsc)
+      (hsc :: skipn (pos + 1) (hsc :: tsc)) mc ops
+      Heval_a_firstn Heval_hsc_skipn) as eqn_eval_all.
+    assumption.
+  + simpl in Hevalcurr. rewrite -> eq_length_in_stk in Hevalcurr.
+    discriminate.
 - (* OpCode *)
     simpl in Hconcr. destruct (ops label) as [oper|] eqn: eq_ops_label; try discriminate.
     destruct oper as [comm_flag nb_args func] eqn: eq_oper.
@@ -1008,7 +1201,7 @@ destruct instruction eqn: eq_instr.
     rewrite -> eval_asfs2_ho.
     rewrite -> eq_eval_s2.
     reflexivity.
-Admitted.
+Qed.
 
 
 (* Joseba will need it for the IH, as well as the proof that the initial
