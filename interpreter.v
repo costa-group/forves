@@ -514,7 +514,7 @@ Example cs_1 : concrete_stack := [
 Example p_1 : prog := [
   Opcode ADD;
   PUSH 1 (natToWord WLen 1); 
-  PUSH 1 (natToWord WLen 2); 
+  PUSH 1 (natToWord WLen 2);
   Opcode ADD
 ].
 
@@ -523,16 +523,56 @@ Compute get_stack_asfs a_1.
 Compute get_map_asfs a_1. 
 
 
-(* ENRIQUE:
-   Explictitly unfolded the code for evaluating lists of ASFSOp arguments in order to avoid mutually
-   recursive functions (one for one asfs_stack_val, the other for lists of asfs_stack_val) whose 
-   definition would require Program Fixpoint with a lexicographically decreasing (map size, list size)
-   that impose well-founded proof obligations and that complicates other proofs 
-   [I dont't know how to simplify or rewrite a call to a Program Fixpoint] 
-   Moreover, "Program Fixpoint" in mutually recursive definitions does not seem to be supported, although
-   the Coq documentation says the opposite.
-   *)
-Fixpoint eval_asfs2_elem (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) : option EVMWord :=
+(* Try 1: eval_asfs2_elem_list has recursive calls with smaller maps but one call with the same map
+          and a smaller list. Coq cannot detect decreasing argument because there is not one single 
+          decreasing argument.
+          The lexicographic decreasing element is de pair (length m, length l), that requires well_founded
+          and generates one proof obligation:
+
+well_founded
+  (MR lex_let_nat_pair
+     (fun
+        recarg : {_ : concrete_stack &
+                 {_ : asfs_stack &
+                 {_ : asfs_map & opm}}} =>
+      (length
+         (projT1 (projT2 (projT2 recarg))),
+      length (projT1 (projT2 recarg)))))          
+
+*)
+
+
+(* Try 2: 
+  a) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the hint that
+     m is the decreasing argument ({struct m}) -> <<Recursive call to eval_asfs2_elem 
+     has principal argument equal to "m0" instead of "rm">>.
+     
+  b) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the measure
+     (lenght m) as well-founded measure -> 5 proof obligations where I guess some of them
+     cannot be proved, for example the one for "length m < length m0"
+     
+  c) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the lexicographic 
+     measure (length m, length s) -> "s" cannot be used because is the argument of the 
+     inner eval_asfs2_elem_list recursive function
+*)
+
+(* Solution: 1) HO function to apply 'f' to a list of asfs_stack_val 
+             2) use the HO function in the definition of the function that evaluates one value
+*)
+Fixpoint apply_f_list_asfs_stack_val (f: asfs_stack_val -> option EVMWord) (l: asfs_stack) :
+  option (list EVMWord) :=
+match l with 
+| nil => Some []
+| elem::rs => let elem_oval := f elem in
+              let rs_oval := apply_f_list_asfs_stack_val f rs in
+              match (elem_oval, rs_oval) with 
+              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+              | _ => None
+              end
+end.
+
+Fixpoint eval_asfs2_elem (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) 
+ {struct m} : option EVMWord :=
 match elem with 
 | Val v => Some v
 | InStackVar idx => nth_error c idx
@@ -546,19 +586,12 @@ match elem with
                            match ops op with
                            | None => None
                            | Some (Op comm_flat nargs func) => 
-                               if (List.length args =? nargs) then 
-                                 match args with
-                                 | nil => func [] (* Operator without operands, call with empty list *)
-                                 | [a1] => match eval_asfs2_elem c a1 rm ops with
-                                           | Some v1 => func [v1]
-                                           | None => None
-                                           end
-                                 | [a1;a2] => match eval_asfs2_elem c a1 rm ops, 
-                                                    eval_asfs2_elem c a2 rm ops with
-                                           | Some v1, Some v2 => func [v1; v2]
-                                           | _, _ => None
-                                           end
-                                 | _ => None (* We do not consider operators with 3 or more arguments in our set of instructions *)
+                               if (List.length args =? nargs) then
+                                 (* Lambda-abstraction to create a unary function over asfa_stack_val *)
+                                 let f_eval_list := fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' rm ops in
+                                 match apply_f_list_asfs_stack_val f_eval_list args with
+                                 | None => None
+                                 | Some vargs => func vargs
                                  end
                                else None
                            end
@@ -567,16 +600,19 @@ match elem with
      end
 end.
 
-Fixpoint eval_asfs2 (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
-match s with 
-| nil => Some []
-| elem::rs => let elem_oval := eval_asfs2_elem c elem m ops in
-              let rs_oval := eval_asfs2 c rs m ops in
-              match (elem_oval, rs_oval) with 
-              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
-              | _ => None
-              end
-end.
+(* Define the evaluation of an asfs_stack in terms of the apply_f_list_asfs_stack_val *)
+Definition eval_asfs2 (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
+let f_eval_list := fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' m ops in
+apply_f_list_asfs_stack_val f_eval_list s.
+
+
+(* Trivial but useful for proofs *)
+Lemma eval_asfs2_ho: forall (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm),
+apply_f_list_asfs_stack_val (fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' m ops) s = 
+eval_asfs2 c s m ops.
+Proof. reflexivity. Qed.
+
+
 
 Definition eval_asfs (c: concrete_stack) (s: asfs) (ops: opm) : option (list EVMWord) :=
 match s with
@@ -705,7 +741,6 @@ length l2 = n.
 Proof.
 Admitted.
 
-
 Lemma eval_asfs2_compositional: forall (in_stk curr_stk args insk': concrete_stack) 
   (stkc s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
 eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
@@ -716,42 +751,23 @@ eval_asfs2 in_stk s1 mapc ops = Some args /\ eval_asfs2 in_stk s2 mapc ops = Som
 Proof.
 Admitted.
 
-Fixpoint fresh_var_not_in_map (idx: nat) (map: asfs_map) : bool :=
+Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : bool :=
 match map with 
 | nil => true
-| (k,v)::t => if k =? idx then false else fresh_var_not_in_map idx t
+| (k,v)::t => if idx <=? k then false else fresh_var_gt_map idx t
 end.
 
 Definition valid_asfs (sfs: asfs) : bool :=
 match sfs with 
-| ASFSc height maxid s m => fresh_var_not_in_map maxid m
+| ASFSc height maxid s m => fresh_var_gt_map maxid m
 end.
 
 (* ++++++++++++++This is the important one+++++++++++++ *)
 Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: concrete_stack) (s: asfs_stack) (map: asfs_map)
   (ops: opm) (n: nat) (val: asfs_map_val),
 eval_asfs2 in_stk s map ops = Some curr_stk ->
-fresh_var_not_in_map n map = true ->
+fresh_var_gt_map n map = true ->
 eval_asfs2 in_stk s ((n, val)::map) ops = Some curr_stk.
-Proof.
-Admitted.
-
-
-(* This function should check that all the operands in ops have nbargs <= 2*)
-(* I GUESS WE NEED TO CHANGE THE TYPE OF opm TO SOMETHING CONSTRUCTED (V.G. LISTS) *)
-Definition is_coherent_ops_nbargs (ops: opm) : bool :=
-true.
-
-Lemma coherent_ops_nbargs_lt3: forall (ops: opm) (instr: gen_instr) (comm:bool) (nb_args: nat)
-  (func: list EVMWord -> option EVMWord),
-is_coherent_ops_nbargs ops = true ->
-ops instr = Some (Op comm nb_args func) ->
-nb_args < 3.
-Proof.
-Admitted.
-
-Lemma length_gt3: forall (T: Type) (a1 a2 a3: T) (l: list T),
-~ (length (a1::a2::a3::l)) < 3.
 Proof.
 Admitted.
 
@@ -763,7 +779,6 @@ Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: gen_instr) (comm_flag:
   (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
   (mapc mapo: asfs_map),
 
-is_coherent_ops_nbargs ops = true ->
 valid_asfs curr_asfs = true ->
 get_stack_es curr_es = curr_stk ->
 ops OpCode = Some (Op comm_flag nb_args func) ->
@@ -784,7 +799,7 @@ out_asfs = ASFSc heo maxo stko mapo ->
    eval_asfs2 in_stk s2 mapo ops = Some insk'.
 Proof.
 intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in_stk curr_stk v
-  curr_asfs out_asfs stkc stko s1 s2 mapc mapo Hops_coherent Hvalid_asfs Hcurrstk Hops Hfirstn_curr_es 
+  curr_asfs out_asfs stkc stko s1 s2 mapc mapo Hvalid_asfs Hcurrstk Hops Hfirstn_curr_es 
   Hskipn_curr_es Hfunc Hcurr_asfs Heval_curr Hfirstn_curr_asfs Hskipn_curr_asfs Haddval Hout_asfs.
   assert (Hfirstn_curr_asfs' := Hfirstn_curr_asfs).
   unfold firstn_e in Hfirstn_curr_asfs.
@@ -851,39 +866,9 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
          ++ simpl. rewrite -> Hmapo. simpl. rewrite -> Nat.eqb_refl.
             rewrite -> Hops. rewrite -> eq_length_args in eq_length_s1.
             rewrite -> eq_length_s1. rewrite -> Nat.eqb_refl.
-            destruct s1 as [|a1 t1] eqn: eq_s1.
-            ** simpl in eq_length_s1. rewrite <- eq_length_s1 in eq_length_args.
-               apply length_zero_iff_nil in eq_length_args.
-               rewrite -> eq_length_args in Hfunc.
-               assumption.
-            ** destruct t1 as [|a2 t2] eqn: eq_t1.
-            --- simpl in Heval_asfs2_s1. 
-                destruct (eval_asfs2_elem in_stk a1 mapc ops) as [elem_val1|] eqn: eq_eval_a1;
-                  try discriminate.
-                injection Heval_asfs2_s1. intros eq_args_elem_val.
-                rewrite <- eq_args_elem_val in Hfunc.
-                assumption.
-            --- destruct t2 as [|a3 l3] eqn: eq_t2.
-               +++ destruct (eval_asfs2_elem in_stk a1 mapc ops) as [elem_val1|] eqn: eq_eval_a1.
-                   *** destruct (eval_asfs2_elem in_stk a2 mapc ops) as [elem_val2|] eqn: eq_eval_a2.
-                       ---- unfold eval_asfs2 in Heval_asfs2_s1.
-                            rewrite -> eq_eval_a1 in Heval_asfs2_s1.
-                            rewrite -> eq_eval_a2 in Heval_asfs2_s1. 
-                            injection Heval_asfs2_s1. intros eq_args_a1_a2.
-                            rewrite <- eq_args_a1_a2 in Hfunc.
-                            assumption.
-                       ---- unfold eval_asfs2 in Heval_asfs2_s1.
-                            rewrite -> eq_eval_a1 in Heval_asfs2_s1.
-                            rewrite -> eq_eval_a2 in Heval_asfs2_s1.
-                            discriminate.
-                   *** unfold eval_asfs2 in Heval_asfs2_s1.
-                       rewrite -> eq_eval_a1 in Heval_asfs2_s1.
-                       discriminate.
-               +++ pose proof (coherent_ops_nbargs_lt3 ops OpCode comm_flag nb_args
-                     func Hops_coherent Hops) as eq_nbargs_lt3. 
-                   pose proof (length_gt3 asfs_stack_val a1 a2 a3 l3) as eq_nbargs_ge3.
-                   rewrite -> eq_length_s1 in eq_nbargs_ge3. 
-                   contradiction.
+            unfold eval_asfs2 in Heval_asfs2_s1.
+            rewrite -> Heval_asfs2_s1.
+            assumption.
          ++ rewrite -> Hmapo.
             pose proof (eval_asfs2_extended_map in_stk insk' s2 mapc ops maxc (ASFSOp OpCode s1)
               Heval_asfs2_s2 Hvalid_asfs) as eq_eval_asfs2_s2_mapo.
@@ -894,7 +879,6 @@ Qed.
 (* One step of execution with one instruction *)
 Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
-is_coherent_ops_nbargs ops = true ->
 valid_asfs curr_asfs = true ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
@@ -905,7 +889,7 @@ symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
 intros instruction in_stk curr_stk out_stk ops height curr_es out_es curr_asfs out_asfs
-  Hcoherent_ops Hvalid_asfs HLen Hevalcurr Hes_curr Hconcr Hes_out Hsymbexec.
+  Hvalid_asfs HLen Hevalcurr Hes_curr Hconcr Hes_out Hsymbexec.
 destruct instruction eqn: eq_instr.
 - (* PUSH *)
   unfold concr_intpreter_instr in Hconcr.
@@ -935,7 +919,10 @@ destruct instruction eqn: eq_instr.
   pose proof (eval_eq_stack_len in_stk curr_stk height hc maxc curr_abs curr_map ops
     HLen Hevalcurr) as eq_height_hc.
   rewrite -> eq_height_hc. rewrite Nat.eqb_refl.
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
   rewrite -> eval_const_val.
+  fold apply_f_list_asfs_stack_val.
+  rewrite -> eval_asfs2_ho.
   simpl in Hevalcurr. rewrite -> HLen in Hevalcurr. rewrite -> eq_height_hc in Hevalcurr.
   rewrite Nat.eqb_refl in Hevalcurr. rewrite -> Hevalcurr.
   rewrite -> Hes_curr. reflexivity.
@@ -962,8 +949,9 @@ destruct instruction eqn: eq_instr.
   simpl. rewrite -> HLen.
   rewrite -> eq_height_h.
   unfold eval_asfs2 in Hevalcurr.
+  unfold apply_f_list_asfs_stack_val in Hevalcurr.
+  rewrite -> eval_asfs2_ho in Hevalcurr.
   destruct (eval_asfs2_elem in_stk poped curr_map ops) eqn: eq_eval_asfs2_elem; try discriminate.
-  fold eval_asfs2 in Hevalcurr.
   injection eq_pop_asfs. intros eq_t_s'. rewrite <- eq_t_s'.
   destruct (eval_asfs2 in_stk t curr_map ops) eqn: eval_asfs2_t; try discriminate.
   injection Hevalcurr. intros eq_l_c _.
@@ -1010,18 +998,27 @@ destruct instruction eqn: eq_instr.
     rewrite <- eq_curr_asfs in Hvalid_asfs.
     pose proof (opcode_exec_asfs_update ops label comm_flag nb_args hec maxc heo maxo
       func curr_es args insk' in_stk curr_stk v curr_asfs out_asfs stkc stko s1 s2
-      mapc mapo Hcoherent_ops Hvalid_asfs Hes_curr eq_ops_label eq_firstn_stk eq_skipn_stk eq_func_args eq_curr_asfs
+      mapc mapo Hvalid_asfs Hes_curr eq_ops_label eq_firstn_stk eq_skipn_stk eq_func_args eq_curr_asfs
       Hevalcurr eq_firstn_asfs eq_skipn_asfs Hsymbexec eq_out_asfs) 
       as [eq_stkc [eq_hec_heo [top_elem [eq_stko [eq_eval_top_elem eq_eval_s2]]]]].
     unfold eval_asfs. rewrite <- eq_hec_heo. rewrite -> eq_len_in_stk.
     rewrite -> eq_stko. unfold eval_asfs2.
-    rewrite -> eq_eval_top_elem. fold eval_asfs2.
+    unfold apply_f_list_asfs_stack_val.
+    rewrite -> eq_eval_top_elem. fold apply_f_list_asfs_stack_val. 
+    rewrite -> eval_asfs2_ho.
     rewrite -> eq_eval_s2.
     reflexivity.
 Admitted.
 
 
-
+(* Joseba will need it for the IH, as well as the proof that the initial
+   asfs is valid by construction [the map is empty] *)
+Lemma valid_asfs_preservation: forall (curr_asfs out_asfs: asfs) (instruction: instr) (ops: opm),
+valid_asfs curr_asfs = true ->
+symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
+valid_asfs out_asfs = true.
+Proof.
+Admitted.
 
 (* A complete program*)
 Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
