@@ -841,9 +841,43 @@ curr_stk = args ++ insk' ->
 length s1 = length args ->
 eval_asfs2 in_stk s1 mapc ops = Some args /\ eval_asfs2 in_stk s2 mapc ops = Some insk'.
 Proof.
-Admitted.
-
-Search length.
+intros in_stk curr_stk args insk' stkc s1.
+revert in_stk curr_stk args insk' stkc.
+induction s1 as [| h t IH ].
+- intros in_stk curr_stk args insk' stkc s2 mapc ops Heval_stkc Hstkc_concat
+    Hcurr_stk_concat Hlen. 
+  split.
+  + simpl in Hlen. symmetry in Hlen. rewrite -> length_zero_iff_nil in Hlen.
+    rewrite -> Hlen. reflexivity.
+  + simpl in Hstkc_concat. rewrite <- Hstkc_concat. 
+    simpl in Hlen. symmetry in Hlen. rewrite -> length_zero_iff_nil in Hlen.
+    rewrite -> Hlen in Hcurr_stk_concat. simpl in Hcurr_stk_concat.
+    rewrite -> Hcurr_stk_concat in Heval_stkc.
+    assumption.
+- intros in_stk curr_stk args insk' stkc s2 mapc ops Heval_stkc Hstkc_concat
+    Hcurr_stk_concat Hlen. 
+  rewrite <- app_comm_cons in Hstkc_concat. rewrite -> Hstkc_concat in Heval_stkc.
+  unfold eval_asfs2 in Heval_stkc. unfold apply_f_list_asfs_stack_val in Heval_stkc.
+  destruct (eval_asfs2_elem in_stk h mapc ops) as [h_val|] eqn: eq_eval_h;
+    try discriminate.
+  fold apply_f_list_asfs_stack_val in Heval_stkc. rewrite -> eval_asfs2_ho in Heval_stkc.
+  destruct (eval_asfs2 in_stk (t ++ s2) mapc ops) as [ts2_val|] eqn: eq_eval_t_s2;
+    try discriminate.
+  destruct args as [| argsh argst] eqn: eq_args; try ( simpl in Hlen; discriminate).
+  simpl in Hlen. injection Hlen. intros eq_len_t.
+  remember (t ++ s2) as stkc' eqn: eq_stkc'.
+  injection Heval_stkc. intros eq_curr_stk. symmetry in eq_curr_stk.
+  rewrite -> eq_curr_stk in Hcurr_stk_concat.
+  rewrite <- app_comm_cons in Hcurr_stk_concat.
+  injection Hcurr_stk_concat. intros eq_ts2_val eq_hval.
+  pose proof (IH in_stk ts2_val argst insk' stkc' s2 mapc ops
+    eq_eval_t_s2 eq_stkc' eq_ts2_val eq_len_t) as [eq_eval_t eq_eval_s2].
+  split; try assumption.
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  rewrite -> eq_eval_h. fold apply_f_list_asfs_stack_val.
+  rewrite -> eval_asfs2_ho. rewrite -> eq_eval_t.
+  rewrite -> eq_hval. reflexivity.
+Qed.  
 
 Lemma eval_asfs2_compositional_r: forall (in_stk curr_s1 curr_s2: concrete_stack) 
   (s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
@@ -898,8 +932,32 @@ eval_asfs2 in_stk s1 mapc ops = Some v1
 /\ eval_asfs2 in_stk s3 mapc ops = Some v3
 /\ eval_asfs2 in_stk s4 mapc ops = Some v4.
 Proof.
-(* Using eval_asfs2_compositional twice *)
-Admitted.
+intros in_stk curr_stk v1 v2 v3 v4 stck s1 s2 s3 s4 mapc ops Heval_stkc
+  Hstkc_concat Hcurr_stk_concat Hlen1 Hlen2 Hlen3.
+remember (s1 ++ s2) as s12 eqn: eq_s12.
+remember (s3 ++ s4) as s34 eqn: eq_s34.
+remember (v1 ++ v2) as v12 eqn: eq_v12.
+remember (v3 ++ v4) as v34 eqn: eq_v34.
+rewrite -> app_assoc in Hcurr_stk_concat.
+rewrite -> app_assoc in Hstkc_concat.
+rewrite <- eq_s12 in Hstkc_concat.
+rewrite <- eq_v12 in Hcurr_stk_concat.
+pose proof (app_length s1 s2) as eq_len_s1s2.
+pose proof (app_length v1 v2) as eq_len_v1v2.
+rewrite -> Hlen1 in eq_len_s1s2. rewrite -> Hlen2 in eq_len_s1s2.
+rewrite <- eq_len_v1v2 in eq_len_s1s2.
+rewrite <- eq_s12 in eq_len_s1s2. rewrite <- eq_v12 in eq_len_s1s2.
+pose proof (eval_asfs2_compositional in_stk curr_stk v12 v34 stck s12 s34
+  mapc ops Heval_stkc Hstkc_concat Hcurr_stk_concat eq_len_s1s2) 
+  as [Heval_s12 Heval_s34].
+pose proof (eval_asfs2_compositional in_stk v12 v1 v2 s12 s1 s2 mapc ops
+  Heval_s12 eq_s12 eq_v12 Hlen1) as [Heval_s1 Heval_s2].
+pose proof (eval_asfs2_compositional in_stk v34 v3 v4 s34 s3 s4 mapc ops
+  Heval_s34 eq_s34 eq_v34 Hlen3) as [Heval_s3 Heval_s4].
+split; try assumption.
+split; try assumption.
+split; try assumption.
+Qed.
 
 Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : bool :=
 match map with 
@@ -1026,6 +1084,55 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
 Qed.
 
 
+Lemma eval_asfs2_position': forall (in_stk curr_stk: concrete_stack) (pos: nat)
+  (sc: asfs_stack) (mc: asfs_map) (ops: opm) (a: asfs_stack_val) (x: EVMWord),
+eval_asfs2 in_stk sc mc ops = Some curr_stk ->
+nth_error sc pos = Some a ->
+nth_error curr_stk pos = Some x -> 
+eval_asfs2_elem in_stk a mc ops = Some x.
+Proof.
+intros in_stk curr_stk pos.
+revert in_stk curr_stk.
+induction pos as [| n'].
+- intros in_stk curr_stk sc mc ops a x Heval_asfs Hnth_sc Hnth_curr_stk.
+  unfold nth_error in Hnth_sc.
+  destruct sc as [| sc_val sc_t] eqn: eq_sc; try discriminate.
+  unfold nth_error in Hnth_curr_stk.
+  destruct curr_stk as [| curr_stk_val curr_stk_t] eqn: eq_curr_stk; try discriminate.
+  unfold eval_asfs in Heval_asfs.
+  unfold eval_asfs2 in Heval_asfs. unfold apply_f_list_asfs_stack_val in Heval_asfs.
+  destruct (eval_asfs2_elem in_stk sc_val mc ops) as [sc_val_v|] eqn: eq_sc_val;
+    try discriminate.
+  fold apply_f_list_asfs_stack_val in Heval_asfs.
+  rewrite -> eval_asfs2_ho in Heval_asfs.
+  destruct (eval_asfs2 in_stk sc_t mc ops) eqn: eq_sc_t; try discriminate.
+  injection Hnth_sc. intros eq_a_sc_val.
+  rewrite -> eq_a_sc_val in eq_sc_val.
+  injection Hnth_curr_stk. intros eq_x.
+  rewrite -> eq_x in Heval_asfs.
+  injection Heval_asfs. intros eq_l eq_sc_val_v.
+  rewrite -> eq_sc_val_v in eq_sc_val.
+  assumption.
+- intros in_stk curr_stk sc mc ops a x Heval_asfs Hnth_sc Hnth_curr_stk.
+  unfold nth_error in Hnth_sc. 
+  destruct sc as [| hsc tsc] eqn: eq_sc; try discriminate.
+  fold (nth_error tsc n') in Hnth_sc.
+  unfold nth_error in Hnth_curr_stk.
+  destruct curr_stk as [| hcurr_stk tcurr_stk] eqn: eq_curr_stk; try discriminate.
+  fold (nth_error tcurr_stk n') in Hnth_curr_stk.
+  unfold eval_asfs2 in Heval_asfs. unfold apply_f_list_asfs_stack_val in Heval_asfs.
+  destruct (eval_asfs2_elem in_stk hsc mc ops) as [hsc_val|] eqn: eq_hsc_eval;
+    try discriminate.
+  fold apply_f_list_asfs_stack_val in Heval_asfs. rewrite -> eval_asfs2_ho in Heval_asfs.
+  destruct (eval_asfs2 in_stk tsc mc ops) as [tsc_val|] eqn: eq_tsc_eval;
+    try discriminate.
+  injection Heval_asfs. intros eq_tsc_val eq_hcurr_stk.
+  rewrite <- eq_tsc_val in Hnth_curr_stk.
+  pose proof (IHn' in_stk tsc_val tsc mc ops a x eq_tsc_eval Hnth_sc 
+    Hnth_curr_stk).
+  assumption.
+Qed.
+
 Lemma eval_asfs2_position: forall (in_stk curr_stk: concrete_stack) (hc maxc pos: nat)
   (sc: asfs_stack) (mc: asfs_map) (ops: opm) (a: asfs_stack_val) (x: EVMWord),
 eval_asfs in_stk (ASFSc hc maxc sc mc) ops = Some curr_stk ->
@@ -1033,14 +1140,105 @@ nth_error sc pos = Some a ->
 nth_error curr_stk pos = Some x -> 
 eval_asfs2_elem in_stk a mc ops = Some x.
 Proof.
-Admitted.
+intros in_stk curr_stk hc maxc pos sc mc ops a x Heval_asfs Hnth_sc Hnth_curr_stk.
+unfold eval_asfs in Heval_asfs.
+destruct (length in_stk =? hc) eqn: eq_len_in_stk; try discriminate.
+apply eval_asfs2_position' with (curr_stk:=curr_stk)(pos:=pos)(sc:=sc);
+  try assumption.
+Qed.
+
+Lemma nat_sub_0: forall (n:nat),
+n - 0 = n.
+Proof. 
+intros n. unfold sub.
+destruct n as [|n'] eqn: eq_n; try reflexivity.
+Qed.
+
+Lemma list_concat: forall (T: Type) (l1 l2 l1' l2': list T),
+l1 ++ l2 = l1' ++ l2' ->
+length l1 = length l1' ->
+l1 = l1' /\ l2 = l2'.
+Proof.
+intros T l1. induction l1 as [| h t IH].
+- intros l2 l1' l2' Hconcat_eq Hlen_l1.
+  symmetry in Hlen_l1.
+  rewrite -> length_zero_iff_nil in Hlen_l1.
+  rewrite -> Hlen_l1 in Hconcat_eq. simpl in Hconcat_eq.
+  symmetry in Hlen_l1.
+  split; try assumption.
+- intros l2 l1' l2' Hconcat_eq Hlen_l1.
+  destruct l1' as [| h1 t1] eqn: eq_l1'.
+  + simpl in Hlen_l1. discriminate.
+  + simpl in Hlen_l1. injection Hlen_l1. intros eq_len_t_t1.
+    rewrite <- app_comm_cons in Hconcat_eq.
+    rewrite <- app_comm_cons in Hconcat_eq.
+    injection Hconcat_eq. intros eq_t_l2 eq_h.
+    pose proof (IH l2 t1 l2' eq_t_l2 eq_len_t_t1) as [eq_t_t1 eq_l2_l2'].
+    rewrite -> eq_h. rewrite -> eq_t_t1. rewrite -> eq_l2_l2'.
+    split; try reflexivity.
+Qed.
+
+Lemma some_is_not_none: forall (T: Type) (e: option T) (v: T),
+e = Some v -> e <> None.
+Proof.
+intros T e v Hesome.
+rewrite -> Hesome. discriminate.
+Qed.
+
+Lemma length_cons: forall (T: Type) (l: list T) (e: T) (n: nat),
+length l = n -> length (e::l) = S n.
+Proof.
+intros T l e n HLen. simpl. rewrite -> HLen. reflexivity.
+Qed.
+
+Lemma skipn_a_tail: forall (T: Type) (k: nat) (t l2: list T) (a: T),
+skipn k t = a :: l2 -> l2 = skipn (k+1) t.
+Proof.
+intros T k. induction k as [| k'].
+- intros t l2 a Hskipn.
+  simpl in Hskipn. simpl. rewrite -> Hskipn. reflexivity.
+- intros t l2 a Hskip. simpl in Hskip.
+  destruct t as [|h tail] eqn: eq_t; try discriminate.
+  pose proof (IHk' tail l2 a Hskip) as eq_l2_IH.
+  rewrite -> eq_l2_IH.
+  simpl. reflexivity.
+Qed.
 
 Lemma list_composition_for_swap: forall {T:Type} (k: nat) (h a: T) (t: list T),
 k =? 0 = false -> 
 nth_error (h::t) k = Some a ->
 h::t = [h] ++ (firstn (k-1) t) ++ [a] ++ (skipn (k+1) (h::t)).
 Proof.
-Admitted.
+intros T k h a t Hk_neq_0 Hnth_error_a.
+simpl.
+pose proof (@nth_error_split T (h::t) k a Hnth_error_a) as eq_split.
+pose proof (@firstn_skipn T k (h::t)) as eq_first_skip.
+unfold firstn in eq_first_skip.
+destruct k as [|k'] eqn: eq_k.
+- simpl in Hk_neq_0. discriminate.
+- fold (firstn k' t) in eq_first_skip. simpl.
+  destruct eq_split as [l1 [l2 [eq_split2 eq_len_l1]]].
+  rewrite <- eq_first_skip. 
+  rewrite -> nat_sub_0.
+  rewrite -> app_comm_cons.
+  rewrite -> eq_split2 in eq_first_skip at 2.
+  assert (Hnth_error_a' := Hnth_error_a).
+  simpl in Hnth_error_a'.
+  apply some_is_not_none in Hnth_error_a'.
+  apply nth_error_Some in Hnth_error_a'.
+  apply Nat.lt_le_incl in Hnth_error_a'.
+  pose proof (@firstn_length_le T t k' Hnth_error_a') as eq_len_firstn.
+  pose proof (length_cons T (firstn k' t) h k' eq_len_firstn)
+    as eq_length_h_firstn.
+  rewrite <- eq_len_l1 in eq_length_h_firstn.
+  pose proof (list_concat T (h :: firstn k' t) (skipn (S k') (h :: t))
+    l1 (a::l2) eq_first_skip eq_length_h_firstn) as [eq_l1 eq_a_l2].
+  rewrite -> eq_a_l2. 
+  simpl in eq_a_l2.
+  pose proof (skipn_a_tail T k' t l2 a eq_a_l2) as eq_l2.
+  rewrite -> eq_l2.
+  reflexivity.
+Qed.
 
 Lemma length_unitary_lists: forall {T1 T2: Type} (e1: T1) (e2: T2),
 length [e1] = length [e2].
