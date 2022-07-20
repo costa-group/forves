@@ -661,13 +661,58 @@ eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
 
 
+Lemma concr_abs_stack_same_length_eval_asfs2: forall (in_stk curr_stk: concrete_stack) 
+  (abs: asfs_stack) (m: asfs_map) (ops: opm),
+eval_asfs2 in_stk abs m ops = Some curr_stk ->
+length abs = length curr_stk.
+Proof.
+intros in_stk curr_stk. revert in_stk.
+induction curr_stk as [| h t IH].
+- intros in_stk abs m ops Heval_abs. 
+  destruct abs as [| ha ta] eqn: eq_abs; try trivial.
+  unfold eval_asfs2 in Heval_abs. unfold apply_f_list_asfs_stack_val in Heval_abs.
+  destruct (eval_asfs2_elem in_stk ha m ops) as [ha_val|] eqn: eval_ha;
+    try discriminate.
+  fold apply_f_list_asfs_stack_val in Heval_abs.
+  rewrite -> eval_asfs2_ho in Heval_abs.
+  destruct (eval_asfs2 in_stk ta m ops) as [ta_val|] eqn: eq_eval_ta;
+    try discriminate.
+- intros in_stk abs m ops Heval_abs.
+  destruct abs as [| ha ta] eqn: eq_abs.
+  + unfold eval_asfs2 in Heval_abs. unfold apply_f_list_asfs_stack_val in Heval_abs.
+    discriminate.
+  + unfold eval_asfs2 in Heval_abs. unfold apply_f_list_asfs_stack_val in Heval_abs.
+    destruct (eval_asfs2_elem in_stk ha m ops) as [ha_val|] eqn: eval_ha;
+      try discriminate.
+    fold apply_f_list_asfs_stack_val in Heval_abs.
+    rewrite -> eval_asfs2_ho in Heval_abs.
+    destruct (eval_asfs2 in_stk ta m ops) as [ta_val|] eqn: eq_eval_ta;
+      try discriminate.
+    injection Heval_abs. intros eq_t eq_h. rewrite -> eq_t in eq_eval_ta.
+    pose proof (IH in_stk ta m ops eq_eval_ta) as IH_ta_t.
+    simpl. rewrite -> IH_ta_t.
+    reflexivity.
+Qed.
+
+
 Lemma concr_abs_stack_same_length: forall (in_stk curr_stk: concrete_stack) (curr_asfs: asfs)
         (ops: opm) (curr_es: execution_state),
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
 length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs).
 Proof.
-Admitted.
+intros in_stk curr_stk curr_asfs ops curr_es Heval_asfs Hget_stack.
+destruct curr_es as [stk mem store] eqn: eq_curr_es.
+rewrite -> Hget_stack.
+destruct curr_asfs as [height maxid abs map] eqn: eq_curr_asfs.
+simpl.
+unfold eval_asfs in Heval_asfs.
+destruct (length in_stk =? height); try discriminate.
+symmetry.
+apply concr_abs_stack_same_length_eval_asfs2 with (m:= map) 
+  (in_stk:=in_stk) (ops:= ops).
+assumption.
+Qed.
 
 Lemma set_get_stack_es: forall (es: execution_state) (stk: concrete_stack),
 get_stack_es (set_stack_es es stk) = stk.
@@ -676,19 +721,32 @@ intros es stk. unfold set_stack_es. destruct es.
 reflexivity.
 Qed.
 
+Search (_ =? _).
+
 Lemma eval_eq_stack_len: forall (in_stk out_stk: concrete_stack) (height hc maxid: nat) (abs: asfs_stack)
   (map: asfs_map) (ops: opm),
 length in_stk = height -> 
 eval_asfs in_stk (ASFSc hc maxid abs map) ops = Some out_stk ->
 height = hc.
 Proof.
-Admitted.
+intros in_stk out_stk height hc maxid abs map ops Hlen Heval.
+unfold eval_asfs in Heval.
+destruct (length in_stk =? hc) eqn: eq_len_hc; try discriminate.
+symmetry in eq_len_hc.
+apply beq_nat_eq in eq_len_hc.
+rewrite -> Hlen in eq_len_hc.
+assumption.
+Qed.
+
 
 Lemma eval_const_val: forall (stk: concrete_stack) (w: EVMWord) (map: asfs_map) (ops: opm),
 eval_asfs2_elem stk (Val w) map ops = Some w.
 Proof.
-intros stk w map ops.
-Admitted.
+intros stk w map ops. unfold eval_asfs2_elem.
+destruct map eqn: eq_m; try reflexivity.
+(* unneeded unfolding, required by Coq to simplify because the map is the
+   decreasing argument *)
+Qed.
 
 
 Lemma height_stack_eval: forall (in_stk curr_stk: concrete_stack) (h mx: nat) 
@@ -696,27 +754,52 @@ Lemma height_stack_eval: forall (in_stk curr_stk: concrete_stack) (h mx: nat)
 eval_asfs in_stk (ASFSc h mx abs map) ops = Some curr_stk ->
 length abs = length curr_stk.
 Proof.
-Admitted.
+intros in_stk curr_stk h mx abs map ops Heval.
+unfold eval_asfs in Heval.
+destruct (length in_stk =? h); try discriminate.
+apply concr_abs_stack_same_length_eval_asfs2 with (in_stk:= in_stk)
+  (m:=map) (ops:=ops).
+assumption.
+Qed.
 
 Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
 firstn_e n l1 = Some res1 ->
 length l1 = length l2 ->
 exists (res2: list T2), firstn_e n l2 = Some res2.
 Proof.
-intros T1 T2 n l1 res1 l2 HeqLen.
-Admitted.
+intros T1 T2 n l1 res1 l2 Hfirstn HeqLen.
+unfold firstn_e in Hfirstn.
+destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
+injection Hfirstn. intros eq_firstn.
+unfold firstn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
+exists (firstn n l2).
+reflexivity.
+Qed.
+
 
 Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
 skipn_e n l1 = Some res1 ->
 length l1 = length l2 ->
 exists (res2: list T2), skipn_e n l2 = Some res2.
 Proof.
-intros T1 T2 n l1 res1 l2 HeqLen.
-Admitted.
+intros T1 T2 n l1 res1 l2 Hskipn HeqLen.
+unfold skipn_e in Hskipn.
+destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
+injection Hskipn. intros eq_skipn.
+unfold skipn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
+exists (skipn n l2).
+reflexivity.
+Qed.
 
 Lemma push_succeed: forall (T: Type) (e: T) (l1 l2: list T),
 push e l1 = Some l2 -> l2 = e::l1.
-Admitted.
+Proof.
+intros T e l1 l2 Hpush.
+unfold push in Hpush.
+destruct (length l1 <? StackLen); try discriminate.
+symmetry in Hpush. injection Hpush.
+trivial.
+Qed.
 
 
 Lemma firstn_skipn_e: forall (T: Type) (n: nat) (l l1 l2: list T),
@@ -735,11 +818,20 @@ rewrite -> eq_skip_l2 in eq_first_skip.
 symmetry. assumption.
 Qed.
 
+Search (_ <=? _).
+
 Lemma firstn_e_length: forall (T: Type) (n: nat) (l l2: list T),
 firstn_e n l = Some l2 ->
 length l2 = n.
 Proof.
-Admitted.
+intros T n l l2 Hfirstne.
+unfold firstn_e in Hfirstne.
+destruct (n <=? length l) eqn: eq_n_len; try discriminate.
+injection Hfirstne. intros Hl2. rewrite <- Hl2.
+apply leb_complete in eq_n_len.
+apply firstn_length_le.
+assumption.
+Qed.
 
 Lemma eval_asfs2_compositional: forall (in_stk curr_stk args insk': concrete_stack) 
   (stkc s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
@@ -751,20 +843,47 @@ eval_asfs2 in_stk s1 mapc ops = Some args /\ eval_asfs2 in_stk s2 mapc ops = Som
 Proof.
 Admitted.
 
+Search length.
+
 Lemma eval_asfs2_compositional_r: forall (in_stk curr_s1 curr_s2: concrete_stack) 
   (s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
 eval_asfs2 in_stk s1 mapc ops = Some curr_s1 ->
 eval_asfs2 in_stk s2 mapc ops = Some curr_s2 ->
 eval_asfs2 in_stk (s1++s2) mapc ops = Some (curr_s1 ++ curr_s2).
 Proof.
-intros in_stk curr_s1.
-revert in_stk.
-induction curr_s1 as [ | h t] eqn: eq_curr_s1.
-- admit.
-- intros in_stk curr_s2 s1 s2 mapc ops Heval_h_t Heval_s2.
-  unfold eval_asfs2 in Heval_h_t. unfold apply_f_list_asfs_stack_val in Heval_h_t. simpl in Heval_h_t.
-  admit.
-Admitted.
+intros in_stk curr_s1 curr_s2 s1.
+revert in_stk curr_s1 curr_s2.
+induction s1 as [ | h t].
+- intros in_stk curr_s1 curr_s2 s2 mapc ops Hevals1 Hevals2. simpl.
+  pose proof (concr_abs_stack_same_length_eval_asfs2 in_stk curr_s1 [] mapc
+    ops Hevals1) as eq_curr_s1_len.
+  simpl in eq_curr_s1_len. symmetry in eq_curr_s1_len.
+  apply length_zero_iff_nil in eq_curr_s1_len.
+  rewrite -> eq_curr_s1_len. simpl. assumption.
+- intros in_stk curr_s1 curr_s2 s2 mapc ops Hevals1 Hevals2. simpl.
+  destruct curr_s1 as [ | hc tc] eqn: eq_curr_s1.
+  + pose proof (concr_abs_stack_same_length_eval_asfs2 in_stk [] (h :: t)
+      mapc ops Hevals1) as eqn_curr_s1_len. 
+    simpl in eqn_curr_s1_len. discriminate.
+  + unfold eval_asfs2 in Hevals1. unfold apply_f_list_asfs_stack_val in Hevals1.
+    destruct (eval_asfs2_elem in_stk h mapc ops) as [elemv |] eqn: eq_evalh;
+      try discriminate.
+    fold apply_f_list_asfs_stack_val in Hevals1.
+    rewrite -> eval_asfs2_ho in Hevals1.  
+    destruct (eval_asfs2 in_stk t mapc ops) as [tval|] eqn: eq_evalt;
+      try discriminate.
+    injection Hevals1. intros eq_tc eq_hc. symmetry in eq_tc. symmetry in eq_hc.
+    rewrite -> eq_hc. rewrite -> eq_tc.
+    rewrite <- app_comm_cons. 
+    unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+    rewrite -> eq_evalh. fold apply_f_list_asfs_stack_val.
+    rewrite -> eval_asfs2_ho.
+    pose proof (IHt in_stk tval curr_s2 s2 mapc ops eq_evalt Hevals2)
+      as IHts2.
+    rewrite -> IHts2.
+    reflexivity. 
+Qed.
+
 
 Lemma eval_asfs2_compositional4: forall (in_stk curr_stk v1 v2 v3 v4: concrete_stack) 
   (stkc s1 s2 s3 s4: asfs_stack) (mapc: asfs_map) (ops: opm),
