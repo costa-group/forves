@@ -721,7 +721,6 @@ intros es stk. unfold set_stack_es. destruct es.
 reflexivity.
 Qed.
 
-Search (_ =? _).
 
 Lemma eval_eq_stack_len: forall (in_stk out_stk: concrete_stack) (height hc maxid: nat) (abs: asfs_stack)
   (map: asfs_map) (ops: opm),
@@ -818,7 +817,6 @@ rewrite -> eq_skip_l2 in eq_first_skip.
 symmetry. assumption.
 Qed.
 
-Search (_ <=? _).
 
 Lemma firstn_e_length: forall (T: Type) (n: nat) (l l2: list T),
 firstn_e n l = Some l2 ->
@@ -970,6 +968,64 @@ match sfs with
 | ASFSc height maxid s m => fresh_var_gt_map maxid m
 end.
 
+Lemma gt_neq: forall (n m : nat), n <=? m = false -> n =? m = false.
+Proof.
+  induction n as [|n' IHn'].
+  - intros. destruct m.
+    * discriminate H.
+    * reflexivity.
+  - intros. destruct m.
+    * reflexivity.
+    * simpl. simpl in H. apply IHn'. apply H.
+Qed.
+
+Lemma eval_asfs2_elem_extended_map_aux: forall
+    (c: concrete_stack) (elem: nat) 
+    (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat),
+eval_asfs2_elem c (FreshVar elem) m ops = Some w ->
+fresh_var_gt_map n m = true ->
+n =? elem = false.
+Proof.
+  intros.
+  induction m as [|x xs IH].
+  - discriminate H.
+  - simpl in H. simpl in H0.
+    destruct x.
+    + destruct (n0 =? elem) eqn:H1.
+      ++ destruct (n <=? n0) eqn:H2.
+         * discriminate H0.
+         * apply gt_neq. apply beq_nat_true in H1. rewrite H1 in H2. apply H2.
+           ++ destruct (n <=? n0) eqn:H2.
+         * discriminate H0.
+         * apply IH.
+           ** apply H.
+           ** apply H0.
+Qed.           
+
+    
+Lemma eval_asfs2_elem_extended_map: forall
+    (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat) (val: asfs_map_val),
+eval_asfs2_elem c elem m ops = Some w ->
+fresh_var_gt_map n m = true ->
+eval_asfs2_elem c elem ((n, val)::m) ops = Some w.
+Proof.
+  intros.
+  destruct m.
+  - destruct elem.
+    + unfold eval_asfs2_elem. unfold eval_asfs2_elem in H. rewrite -> H. reflexivity.
+    + unfold eval_asfs2_elem. unfold eval_asfs2_elem in H. rewrite -> H. reflexivity.
+    + unfold eval_asfs2_elem in H. discriminate H.
+  - destruct elem.
+    + unfold eval_asfs2_elem. unfold eval_asfs2_elem in H. rewrite -> H. reflexivity.
+    + unfold eval_asfs2_elem. unfold eval_asfs2_elem in H. rewrite -> H. reflexivity.
+    + assert (HHH: n =? var = false).
+      ** apply eval_asfs2_elem_extended_map_aux with (c:=c)(elem:=var)(m:=(p::m))(w:=w)(ops:=ops).
+         apply H. apply H0.
+      ** simpl. destruct (n =? var).
+         *** discriminate HHH.
+         *** simpl in H. apply H.
+Qed.
+
 (* ++++++++++++++This is the important one+++++++++++++ *)
 Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: concrete_stack) (s: asfs_stack) (map: asfs_map)
   (ops: opm) (n: nat) (val: asfs_map_val),
@@ -977,8 +1033,33 @@ eval_asfs2 in_stk s map ops = Some curr_stk ->
 fresh_var_gt_map n map = true ->
 eval_asfs2 in_stk s ((n, val)::map) ops = Some curr_stk.
 Proof.
-Admitted.
+  intros in_stk curr_stk s map ops n val.
+  generalize dependent in_stk.
+  generalize dependent curr_stk.
+  generalize dependent map.
+  generalize dependent val.
+  generalize dependent ops.
+  
+  induction s as [|x s' IHs'].
+  - intros. apply H.
+  - intros.
+    unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+     unfold eval_asfs2 in H. unfold apply_f_list_asfs_stack_val in H.
+     rewrite -> eval_asfs2_ho. rewrite -> eval_asfs2_ho in H.
+      destruct (eval_asfs2_elem in_stk x map0 ops) eqn:HH.
+     + apply eval_asfs2_elem_extended_map with (n:=n)(val:=val) in HH.
+       rewrite -> HH.
+       destruct (eval_asfs2 in_stk s' map0 ops) eqn:HHH.
+       * apply IHs' with (val:=val) in HHH.
+         rewrite -> HHH.
+         apply H.
+         apply H0.
+       * discriminate H.
+       * apply H0.
+     + discriminate H.
+Qed.
 
+       
 
 (* Main lemma that relates curr_asfs to out_asfs in the case of executing an operator. 
    It relates their asfs_stacks and the results of their evaluation *)
