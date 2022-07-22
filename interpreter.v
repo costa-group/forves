@@ -1611,6 +1611,29 @@ valid_asfs out_asfs = true.
 Proof.
 Admitted.
 
+ 
+Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
+  (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
+  (curr_es out_es: execution_state) (p: prog),
+valid_asfs curr_asfs = true ->
+length in_stk = height ->
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+get_stack_es curr_es = curr_stk ->
+concr_interpreter p curr_es ops = Some out_es ->
+get_stack_es out_es = out_stk ->
+symbolic_exec' p curr_asfs ops = Some out_asfs ->
+eval_asfs in_stk out_asfs ops = Some out_stk.
+Proof.
+(* Induction on p 
+- Caso base p=[] : trivial
+- P. Inductivo) p = instr::p'
+  1) dar un paso con el teorema correctness_symb_exec_step
+  1') aplicar valid_asfs_preservation
+  2) aplicar IH
+*)
+Admitted.
+
+
 (* A complete program*)
 Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
@@ -1621,6 +1644,12 @@ get_stack_es out_es = out_stk ->
 symbolic_exec p height ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
+(*
+Teorema completo:
+1) ASFS_inicial es valido
+2) eval_asfs ASFS_inicial in_stk ops = Some in_stk
+3) aplicar lemma y listo
+*)
 Admitted.
 
 (*
