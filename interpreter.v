@@ -326,7 +326,7 @@ Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
   rev (gen_initial_stack_inv size f).
 
 Definition empty_asfs (size: nat) : asfs :=
-  let s := gen_initial_stack size in_to_asfs' in
+  let s := gen_initial_stack size (fun (curr_size : nat) => InStackVar (S (size - curr_size))) in
   ASFSc size 0 s nil.
 
 (*
@@ -1059,7 +1059,6 @@ Proof.
      + discriminate H.
 Qed.
 
-       
 
 (* Main lemma that relates curr_asfs to out_asfs in the case of executing an operator. 
    It relates their asfs_stacks and the results of their evaluation *)
@@ -1611,6 +1610,7 @@ valid_asfs out_asfs = true.
 Proof.
 Admitted.
 
+
 (* A complete program*)
 Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
           (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
@@ -1648,6 +1648,28 @@ Admitted.
 
 *)
 
+
+(*
+
+- We should support commutativity -> require passing the opm
+- Handle any number of arguments, woth a specific case for 2 args
+- Add a theorem SFS_EQIV
+
+    if asfs1 is equiv to asfs2, then for any concrete stack
+    'stk', eval_asfs stk asfs1 opm =  eval_asfs stk asfs2 opm
+
+- The main theorem
+
+  for program P1, P2, height, in_stk, opm
+
+  length in_stk = height
+  asfs1 is symblic execution of P1 with height, opm
+  asfs2 is symblic execution of P2 with height, opm
+  SFS_EQIV(asfs1,asfs2)
+  -> conc_exec in_stk P1 opm = conc_exec in_stk P2 opm
+
+*)
+
 Require Import Program.Wf.
 (* Overkill: 22 obligations remaining!!! *)
 Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
@@ -1682,7 +1704,116 @@ match e1, e2 with
     end
 |_, _ => false
 end.
-Admit Obligations.
+
+(* Proof od obligations *)
+Lemma length_s: forall (X: Type) (l : list X) (x : X),
+    length (x::l) = S (length l).
+Proof.
+  intros. simpl. reflexivity.
+Qed.
+
+
+Lemma plus_s: forall (a b : nat),
+    S a + S b = S (S a + b).
+Proof.
+  intros.
+  rewrite <- plus_n_Sm.
+  reflexivity. 
+Qed.
+
+Lemma a_lt_SSa: forall (a : nat), a < S (S a).
+Proof.
+  intros.
+  apply le_lt_n_Sm.
+  apply Nat.le_succ_diag_r.
+Qed.
+
+Next Obligation.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
+Qed.
+
+Next Obligation.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
+Qed.
+
+Next Obligation.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
+Qed.
+
+Next Obligation.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+
 
 (* 
 Alternative definition for asfs_eq_stack_elem:
