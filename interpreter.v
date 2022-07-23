@@ -313,20 +313,23 @@ Definition set_map_asfs (a: asfs) (m': asfs_map) : asfs :=
 Definition in_to_asfs' (v: nat) : asfs_stack_val := InStackVar v.
 Definition in_to_asfs  (s: in_stack) : asfs_stack := List.map in_to_asfs' s.
 
+(*
 Definition concrete_to_asfs' (v: EVMWord) : asfs_stack_val := Val v.
 Definition concrete_to_asfs  (s: list EVMWord) : asfs_stack := List.map concrete_to_asfs' s.
-
-Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
+*)
+(*Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
   match size with
   | 0 => nil
   | S n => (f n)::(gen_initial_stack_inv n f)
   end.
+*)  
 
-Definition gen_initial_stack {T: Type} (size: nat) (f: nat -> T): list T :=
-  rev (gen_initial_stack_inv size f).
+Definition gen_initial_stack (size: nat): list asfs_stack_val :=
+  let ids := seq 0 size in
+  List.map InStackVar ids.
 
 Definition empty_asfs (size: nat) : asfs :=
-  let s := gen_initial_stack size (fun (curr_size : nat) => InStackVar (S (size - curr_size))) in
+  let s := gen_initial_stack size in
   ASFSc size 0 s nil.
 
 (*
@@ -1610,7 +1613,23 @@ valid_asfs out_asfs = true.
 Proof.
 Admitted.
 
- 
+
+
+(* If you can eval a with s1, then |s1| = a.h *) 
+Theorem t1: forall (s1 s2: concrete_stack) (a : asfs) (h maxid : nat) (m : asfs_map)
+  (sa : asfs_stack) (ops: opm),
+  eval_asfs s1 a ops = Some s2 ->
+  a = ASFSc h maxid sa m ->
+  length s1 = h.
+Proof.
+  intros s1 s2 a h maxid m sa ops H1 H2.
+  subst.
+  unfold eval_asfs in H1.
+  destruct (length s1 =? h) eqn:Eq1.
+  - apply beq_nat_true in Eq1. apply Eq1.
+  - discriminate. 
+Qed.
+
 Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
   (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
   (curr_es out_es: execution_state) (p: prog),
@@ -1630,12 +1649,172 @@ Proof.
   1') aplicar valid_asfs_preservation
   2) aplicar IH
 *)
+
+  intros a2 a3 s1 s2 s3 h ops es2 es3 p.
+  intros Hv Hl He2 Hg2 Hc2 Hg3 Hs2.
+  (* Induction over p *)
+  induction p as [| e p' IHp'] eqn:Eq1.
+  (* p = [] *)
+  - 
+    (* Obtain a2.h = s3.h *)
+    simpl in Hs2. injection Hs2 as Hs2.
+    simpl in Hc2. injection Hc2 as Hc2.
+    destruct a2 eqn:Eqa2.
+    destruct a3 eqn:Eqa3.
+    inversion Hs2.
+    (* Obtain |s1| = a2.h *)
+    assert (t := t1 s1 s2 a2 height maxid m s ops).
+    rewrite <- Eqa2 in He2.
+    specialize t with (1 := He2) (2 := Eqa2).
+    rewrite -> H0 in t. apply Nat.eqb_eq in t.
+    (* Simplify eval_asfs *)
+    unfold eval_asfs.
+    rewrite -> t.
+    (* Continue *)
+    rewrite -> Eqa2 in He2.
+    unfold eval_asfs in He2.
+    rewrite <- H0 in t.
+    rewrite -> t in He2.
+    rewrite -> H2 in He2. rewrite -> H3 in He2. rewrite -> He2.
+    subst. reflexivity.
+    (* Inductive case *)
+  - assert (cses := correctness_symb_exec_step).
+    apply (cses e s1 s2 s3 ops h es2 es3 a2 a3); try assumption. clear cses.
+    -- simpl in Hc2.
+       (* The "destruct" path tested, not sure if it is the way to go *)
+       destruct (concr_intpreter_instr e es2 ops) eqn:Eqq.
+       --- admit.
+       --- discriminate. 
+    -- clear cses.
+       simpl in Hs2.
+       destruct (symbolic_exec'' e a2 ops) eqn:Eqq.
+       --- admit.
+       --- discriminate.
 Admitted.
 
 
+
+Lemma valid_asfs_empty: forall (n: nat),
+valid_asfs (empty_asfs n) = true.
+Proof.
+intros n.
+unfold valid_asfs. unfold empty_asfs.
+reflexivity.
+Qed.
+
+Lemma nth_error_ok' : forall (T: Type) (l : list T) (i : nat),
+i < length l -> 
+exists (v: T), nth_error l i = Some v.
+Proof.
+intros T l i.
+pose proof (@nth_error_nth' T l i).
+(*    Lemma nth_error_nth' : forall (l : list A) (n : nat) (d : A),
+    n < length l -> nth_error l n = Some (nth n l d).*)
+Admitted.
+
+Lemma succ_minus_succ: forall (n i: nat),
+i < n -> S (n - S i) = n - i.
+Proof.
+intros n i.
+simpl.
+Admitted.
+
+Lemma skipn_nth: forall (T: Type) (i: nat) (l: list T) (v: T),
+nth_error l i = Some v -> 
+skipn i l = v :: (skipn (S i) l).
+Proof.
+Admitted.
+
+Lemma nat_lt_pos_sub: forall (n m: nat),
+n > 0 -> m > 0 -> n <= m -> m - n < m.
+Proof.
+Admitted.
+
+(* We need to use it with i=length stk=n*)
+(* This is only true for i<=n *)
+Lemma empty_skip_eval: forall (i n: nat) (stk: concrete_stack) (ops: opm),
+length stk = n ->
+i <= n -> n > 0 ->
+eval_asfs2 stk (List.map InStackVar (seq (n-i) i)) [] ops = 
+  Some (skipn (n-i) stk).
+Proof.
+intros i n stk ops.
+induction i as [| i' IH].
+- intros Hlen_stk Hi_n Hn. simpl. 
+  rewrite -> Nat.sub_0_r.
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  rewrite <- Hlen_stk. rewrite -> skipn_all.
+  reflexivity.
+- intros Hlen_stk Hi_n Hn. simpl. 
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  rewrite -> eval_asfs2_ho. unfold eval_asfs2_elem.
+  pose proof (gt_Sn_O i') as eq_Si_gt_0.
+  pose proof (nat_lt_pos_sub (S i') n eq_Si_gt_0 Hn Hi_n) as eq_si_n.
+  rewrite <- Hlen_stk in eq_si_n at 2.
+  pose proof (@nth_error_ok' EVMWord stk (n - S i') eq_si_n) as
+    eq_nth_error_value_ex.
+  destruct (eq_nth_error_value_ex) as [x eq_nth_error_value].
+  rewrite -> eq_nth_error_value.
+  pose proof (le_Sn_le i' n Hi_n) as eq_i'_leq_n.
+  pose proof (IH Hlen_stk eq_i'_leq_n Hn) as IHc.
+  rewrite -> Nat.le_succ_l in Hi_n.
+  pose proof (succ_minus_succ n i' Hi_n) as eq_n_i_succ.
+  rewrite -> eq_n_i_succ.
+  rewrite -> IHc.
+  pose proof (skipn_nth EVMWord (n - (S i')) stk x eq_nth_error_value)
+    as eq_skipn_x.
+  rewrite -> eq_skipn_x. 
+  rewrite -> eq_n_i_succ.
+  reflexivity.
+Qed. 
+
+Lemma empty_skip_eval_zero: forall (i n: nat) (stk: concrete_stack) (ops: opm),
+length stk = n ->
+i <= n -> n = 0 ->
+eval_asfs2 stk (List.map InStackVar (seq (n-i) i)) [] ops = 
+  Some (skipn (n-i) stk).
+Proof.
+intros i n stk ops Hlen_stk Hin_leq Hnzero.
+rewrite -> Hnzero. simpl.
+(* i must be 0
+   stk must be [] because length = 0
+ *)
+Admitted.
+
+Search (skipn).
+
+Lemma empty_asfs_concr_stk: forall (n: nat) (stk: concrete_stack) (ops: opm),
+length stk = n ->
+eval_asfs stk (empty_asfs n) ops = Some stk.
+Proof.
+intros n stk ops Hlen_stk. unfold empty_asfs.
+unfold eval_asfs. rewrite -> Hlen_stk.
+rewrite <- beq_nat_refl.
+unfold gen_initial_stack.
+destruct n as [| n'] eqn: eq_n.
+- pose proof (eq_refl 0) as eq_0_0.
+  pose proof (Nat.le_refl 0) as eq_leq_0.
+  pose proof (empty_skip_eval_zero 0 0 stk ops Hlen_stk eq_leq_0 eq_0_0)
+    as Heval_nil.
+  rewrite -> Nat.sub_diag in Heval_nil.
+  assumption.
+- rewrite <- eq_n in Hlen_stk.
+  pose proof (Nat.le_refl n) as eq_leq_n.
+  pose proof (gt_Sn_O n') as eq_sn_gt_0.
+  rewrite <- eq_n in eq_sn_gt_0.
+  pose proof (empty_skip_eval n n stk ops Hlen_stk eq_leq_n eq_sn_gt_0)
+    as eq_eval.
+  rewrite -> Nat.sub_diag in eq_eval.
+  rewrite -> eq_n in eq_eval.
+  rewrite -> eq_eval.
+  rewrite -> skipn_O.
+  reflexivity.
+Qed.
+
+
 (* A complete program*)
-Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack) (ops:opm)
-          (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
+Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack)
+  (ops:opm) (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
 length in_stk = height ->
 get_stack_es in_es = in_stk ->
 concr_interpreter p in_es ops = Some out_es ->
@@ -1643,13 +1822,20 @@ get_stack_es out_es = out_stk ->
 symbolic_exec p height ops = Some out_asfs ->
 eval_asfs in_stk out_asfs ops = Some out_stk.
 Proof.
-(*
-Teorema completo:
-1) ASFS_inicial es valido
-2) eval_asfs ASFS_inicial in_stk ops = Some in_stk
-3) aplicar lemma y listo
-*)
-Admitted.
+intros p in_stk out_stk ops height in_es out_es out_asfs Hlen_in_stk
+  Hget_in_es Hconcr_p Hget_out_stk Hsymbolic_exec.
+unfold symbolic_exec in Hsymbolic_exec.
+pose proof (valid_asfs_empty height) as H_valid_empty.
+pose proof (empty_asfs_concr_stk height in_stk ops Hlen_in_stk)
+  as H_eval_empty.
+pose proof (correctness_symb_exec_gen (empty_asfs height) out_asfs
+  in_stk in_stk out_stk height ops in_es out_es p H_valid_empty
+  Hlen_in_stk H_eval_empty Hget_in_es Hconcr_p Hget_out_stk
+  Hsymbolic_exec).
+assumption.
+Qed.
+
+
 
 (*
 
