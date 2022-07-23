@@ -1700,7 +1700,7 @@ Admitted.
 
 Require Import Program.Wf.
 (* Overkill: 22 obligations remaining!!! *)
-Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
+Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) (ops: opm)
   {measure (List.length m1 + List.length m2)} : bool :=
 match e1, e2 with 
 | Val v1, Val v2 => weqb v1 v2
@@ -1710,23 +1710,26 @@ match e1, e2 with
     | (idx1, mv1)::rm1, (idx2, mv2)::rm2 => 
         if (idx1 =? i1) && (idx2 =? i2) then
           match mv1, mv2 with 
-          | ASFSBasicVal av1, ASFSBasicVal av2 => asfs_eq_stack_elem av1 av2 rm1 rm2
+          | ASFSBasicVal av1, ASFSBasicVal av2 => asfs_eq_stack_elem av1 av2 rm1 rm2 ops
           | ASFSOp opcode1 args1, ASFSOp opcode2 args2 => 
               if eq_gen_instr opcode1 opcode2 then 
                 match args1, args2 with 
                 | [], [] => true
-                | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2
-                | [a1;a2], [b1;b2] => (asfs_eq_stack_elem a1 b1 rm1 rm2) &&
-                                      (asfs_eq_stack_elem a2 b2 rm1 rm2)
+                | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
+                | [a1;a2], [b1;b2] => ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) &&
+                                         (asfs_eq_stack_elem a2 b2 rm1 rm2 ops)) ||
+
+                                      ((asfs_eq_stack_elem a1 b2 rm1 rm2 ops) &&
+                                      (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
                 | _, _  => false
                 end
               else false
           | _, _ => false
           end
         else if idx1 =? i1 then
-          asfs_eq_stack_elem e1 e2 m1 rm2
+          asfs_eq_stack_elem e1 e2 m1 rm2 ops
         else if idx2 =? i2 then
-          asfs_eq_stack_elem e1 e2 rm1 m2
+          asfs_eq_stack_elem e1 e2 rm1 m2 ops
         else false
     | _, _ => false
     end
@@ -1781,38 +1784,15 @@ Next Obligation.
 Qed.
 
 Next Obligation.
-  intuition; try discriminate.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
 Qed.
 
 Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
+  rewrite -> length_s. rewrite -> length_s.
+  rewrite -> plus_s.   rewrite -> plus_Sn_m.
+  simpl. apply a_lt_SSa.
 Qed.
 
 Next Obligation.
@@ -1833,6 +1813,7 @@ Qed.
 Next Obligation.
   intuition; try discriminate.
 Qed.
+
 Next Obligation.
   intuition; try discriminate.
 Qed.
@@ -1840,6 +1821,41 @@ Qed.
 Next Obligation.
   intuition; try discriminate.
 Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
+Next Obligation.
+  intuition; try discriminate.
+Qed.
+
 
 
 
