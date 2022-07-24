@@ -1706,29 +1706,68 @@ Lemma nth_error_ok' : forall (T: Type) (l : list T) (i : nat),
 i < length l -> 
 exists (v: T), nth_error l i = Some v.
 Proof.
-intros T l i.
-pose proof (@nth_error_nth' T l i).
-(*    Lemma nth_error_nth' : forall (l : list A) (n : nat) (d : A),
-    n < length l -> nth_error l n = Some (nth n l d).*)
-Admitted.
+intros T l i. revert T l.
+induction i as [| i' IH].
+- intros T l Hlen.
+  destruct l as [| h t] eqn: eq_l.
+  + simpl in Hlen. 
+    pose proof (Nat.nlt_0_r 0). contradiction.
+  + simpl. exists h. reflexivity.
+- intros T l Hlen.
+  destruct l as [| h t] eqn: eq_l.
+  + simpl in Hlen. pose proof (Nat.nlt_0_r (S i')). contradiction.
+  + simpl in Hlen. rewrite <- Nat.succ_lt_mono in Hlen.
+    simpl.
+    pose proof (IH T t Hlen). assumption.
+Qed.
+
+Lemma lt_minus_lt_0: forall (n m: nat),
+m < n -> 0 < (n - m).
+Proof.
+intros n.
+induction n as [| n' IH].
+- intros m Hm_lt_0. 
+  pose proof (Nat.nlt_0_r m).
+  contradiction.
+- intros m Hm_lt_sn.
+  destruct m as [|m'] eqn: eq_m.
+  + rewrite -> Nat.sub_0_r. assumption.
+  + pose proof (lt_S_n m' n' Hm_lt_sn) as eq_m'_lt_n'.
+    pose proof (IH m' eq_m'_lt_n') as IHc.
+    rewrite -> Nat.sub_succ.
+    assumption.
+Qed.
 
 Lemma succ_minus_succ: forall (n i: nat),
 i < n -> S (n - S i) = n - i.
 Proof.
-intros n i.
-simpl.
-Admitted.
+intros n i H_i_lt_n.
+rewrite -> Nat.sub_succ_r.
+pose proof (lt_minus_lt_0 n i H_i_lt_n) as Hni_gt_0.
+pose proof (Nat.succ_pred_pos (n - i) Hni_gt_0) as Hs_pred_n_i.
+assumption.
+Qed.
 
 Lemma skipn_nth: forall (T: Type) (i: nat) (l: list T) (v: T),
 nth_error l i = Some v -> 
 skipn i l = v :: (skipn (S i) l).
 Proof.
-Admitted.
-
-Lemma nat_lt_pos_sub: forall (n m: nat),
-n > 0 -> m > 0 -> n <= m -> m - n < m.
-Proof.
-Admitted.
+intros T i. induction i as [| i' IH].
+- intros l v Hnth_error.
+  destruct l as [|h t] eqn: eq_l.
+  + simpl in Hnth_error. discriminate.
+  + simpl in Hnth_error. simpl.
+    injection Hnth_error. intros eq_h_v. rewrite -> eq_h_v.
+    reflexivity.
+- intros l v Hnth_error.
+  destruct l as [|h t] eqn: eq_l.
+  + simpl in Hnth_error. discriminate.
+  + simpl in Hnth_error.
+    rewrite -> skipn_cons.
+    rewrite -> skipn_cons.
+    pose proof (IH t v Hnth_error).
+    assumption.
+Qed.
 
 (* We need to use it with i=length stk=n*)
 (* This is only true for i<=n *)
@@ -1749,7 +1788,7 @@ induction i as [| i' IH].
   unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
   rewrite -> eval_asfs2_ho. unfold eval_asfs2_elem.
   pose proof (gt_Sn_O i') as eq_Si_gt_0.
-  pose proof (nat_lt_pos_sub (S i') n eq_Si_gt_0 Hn Hi_n) as eq_si_n.
+  pose proof (Nat.sub_lt n (S i') Hi_n eq_Si_gt_0) as eq_si_n.
   rewrite <- Hlen_stk in eq_si_n at 2.
   pose proof (@nth_error_ok' EVMWord stk (n - S i') eq_si_n) as
     eq_nth_error_value_ex.
@@ -1768,6 +1807,7 @@ induction i as [| i' IH].
   reflexivity.
 Qed. 
 
+
 Lemma empty_skip_eval_zero: forall (i n: nat) (stk: concrete_stack) (ops: opm),
 length stk = n ->
 i <= n -> n = 0 ->
@@ -1776,12 +1816,15 @@ eval_asfs2 stk (List.map InStackVar (seq (n-i) i)) [] ops =
 Proof.
 intros i n stk ops Hlen_stk Hin_leq Hnzero.
 rewrite -> Hnzero. simpl.
-(* i must be 0
-   stk must be [] because length = 0
- *)
-Admitted.
-
-Search (skipn).
+rewrite -> Hnzero in Hin_leq.
+rewrite -> Nat.le_0_r in Hin_leq.
+rewrite -> Hin_leq. simpl.
+rewrite -> Hnzero in Hlen_stk.
+destruct stk as [| h t] eqn: eq_stk.
+- unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  reflexivity.
+- simpl in Hlen_stk. discriminate.
+Qed.
 
 Lemma empty_asfs_concr_stk: forall (n: nat) (stk: concrete_stack) (ops: opm),
 length stk = n ->
