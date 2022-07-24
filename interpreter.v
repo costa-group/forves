@@ -1611,9 +1611,41 @@ valid_asfs curr_asfs = true ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
 valid_asfs out_asfs = true.
 Proof.
+intros curr_asfs out_asfs instruction ops Hvalid_curr_asfs Hsymbexec.
+destruct curr_asfs as [hc maxc absc mc] eqn: eq_curr_asfs.
+destruct out_asfs as [ho maxo abso mo] eqn: eq_out_asfs.
+simpl in Hvalid_curr_asfs.
+unfold symbolic_exec'' in Hsymbexec.
+destruct instruction eqn: eq_inst.
+- (*PUSH *)
+  destruct (push (Val w)
+                (get_stack_asfs (ASFSc hc maxc absc mc))) as [s'|] eqn: eq_push;
+    try discriminate.
+  simpl in Hsymbexec.
+  injection Hsymbexec. intros eq_mc_mo eq_s'_abso eq_maxc_maxo _.
+  simpl. rewrite <- eq_mc_mo. rewrite <- eq_maxc_maxo.
+  assumption.
+- (* POP *)
+  destruct (pop (get_stack_asfs (ASFSc hc maxc absc mc))); try discriminate.
+  simpl in Hsymbexec.
+  injection Hsymbexec. intros eq_mc_mo eq_s'_abso eq_maxc_maxo _.
+  simpl. rewrite <- eq_mc_mo. rewrite <- eq_maxc_maxo.
+  assumption.
+- (* DUP*) 
+  destruct (dup pos (get_stack_asfs (ASFSc hc maxc absc mc))); try discriminate.
+  simpl in Hsymbexec.
+  injection Hsymbexec. intros eq_mc_mo eq_s'_abso eq_maxc_maxo _.
+  simpl. rewrite <- eq_mc_mo. rewrite <- eq_maxc_maxo.
+  assumption.
+- (* SWAP *)
+  destruct (swap pos (get_stack_asfs (ASFSc hc maxc absc mc))); try discriminate.
+  simpl in Hsymbexec.
+  injection Hsymbexec. intros eq_mc_mo eq_s'_abso eq_maxc_maxo _.
+  simpl. rewrite <- eq_mc_mo. rewrite <- eq_maxc_maxo.
+  assumption.
+- (* Operator *)
+  admit.  
 Admitted.
-
-
 
 (* If you can eval a with s1, then |s1| = a.h *) 
 Theorem t1: forall (s1 s2: concrete_stack) (a : asfs) (h maxid : nat) (m : asfs_map)
@@ -1702,6 +1734,9 @@ unfold valid_asfs. unfold empty_asfs.
 reflexivity.
 Qed.
 
+Compute (nth_error [1;2;3] 0).
+Search (_ < 0).
+
 Lemma nth_error_ok' : forall (T: Type) (l : list T) (i : nat),
 i < length l -> 
 exists (v: T), nth_error l i = Some v.
@@ -1747,6 +1782,8 @@ pose proof (lt_minus_lt_0 n i H_i_lt_n) as Hni_gt_0.
 pose proof (Nat.succ_pred_pos (n - i) Hni_gt_0) as Hs_pred_n_i.
 assumption.
 Qed.
+
+Search (skipn (S _)).
 
 Lemma skipn_nth: forall (T: Type) (i: nat) (l: list T) (v: T),
 nth_error l i = Some v -> 
@@ -1807,6 +1844,7 @@ induction i as [| i' IH].
   reflexivity.
 Qed. 
 
+Search (_ <= 0).
 
 Lemma empty_skip_eval_zero: forall (i n: nat) (stk: concrete_stack) (ops: opm),
 length stk = n ->
