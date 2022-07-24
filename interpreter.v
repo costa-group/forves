@@ -1603,6 +1603,27 @@ destruct instruction eqn: eq_instr.
     reflexivity.
 Qed.
 
+Lemma fresh_var_gt_succ: forall (maxc: nat) (mc: asfs_map),
+fresh_var_gt_map maxc mc = true ->
+fresh_var_gt_map (S maxc) mc = true.
+Proof.
+intros maxc mc. revert maxc.
+induction mc as [|h t IH].
+- intuition.
+- intros maxc Hfresh_var_gt_h_t.
+  unfold fresh_var_gt_map in Hfresh_var_gt_h_t.
+  destruct h as [k v] eqn: eq_h.
+  destruct (maxc <=? k) eqn: eq_maxc_leq_k; try discriminate.
+  fold (fresh_var_gt_map maxc t) in Hfresh_var_gt_h_t.
+  unfold fresh_var_gt_map.
+  pose proof (leb_complete_conv k maxc eq_maxc_leq_k) as k_lt_maxc.
+  pose proof (Nat.lt_lt_succ_r k maxc k_lt_maxc) as k_lt_succ_maxc.
+  pose proof (leb_correct_conv k (S maxc) k_lt_succ_maxc) as k_succ_maxc_false.
+  rewrite -> k_succ_maxc_false.
+  fold fresh_var_gt_map.
+  apply IH.
+  assumption.
+Qed.
 
 (* Joseba will need it for the IH, as well as the proof that the initial
    asfs is valid by construction [the map is empty] *)
@@ -1644,8 +1665,34 @@ destruct instruction eqn: eq_inst.
   simpl. rewrite <- eq_mc_mo. rewrite <- eq_maxc_maxo.
   assumption.
 - (* Operator *)
-  admit.  
-Admitted.
+  destruct (ops label) eqn: eq_label; try discriminate.
+  destruct o eqn: eqn_o.
+  destruct (firstn_e nb_args
+                (get_stack_asfs (ASFSc hc maxc absc mc))) eqn: eq_firstn;
+  try discriminate.
+  destruct (skipn_e nb_args
+                (get_stack_asfs (ASFSc hc maxc absc mc))) eqn: eq_skipn;
+  try discriminate.
+  unfold add_val_asfs in Hsymbexec.
+  destruct (push
+                (FreshVar
+                   (get_maxid_asfs
+                      (set_stack_asfs (ASFSc hc maxc absc mc) l0)))
+                (get_stack_asfs
+                   (set_stack_asfs (ASFSc hc maxc absc mc) l0))) eqn: eq_push;
+  try discriminate.
+  simpl in Hsymbexec.
+  injection Hsymbexec. intros eq_mo eq_abso eq_maxo eq_ho.
+  rewrite <- eq_mo. rewrite <- eq_maxo.
+  unfold asfs_map_add. unfold valid_asfs. unfold fresh_var_gt_map.
+  pose proof (Nat.nle_succ_diag_l maxc) as Sn_not_lte_n.
+  rewrite -> Nat.add_1_r.
+  rewrite <- Nat.leb_nle in Sn_not_lte_n.
+  rewrite -> Sn_not_lte_n.
+  fold fresh_var_gt_map.
+  apply fresh_var_gt_succ.
+  assumption.
+Qed.
 
 (* If you can eval a with s1, then |s1| = a.h *) 
 Theorem t1: forall (s1 s2: concrete_stack) (a : asfs) (h maxid : nat) (m : asfs_map)
