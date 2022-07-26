@@ -3,6 +3,7 @@ Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
+Require Import Program.Wf.
 Require Import Coq_EVM.lib.evmModel.
 Require Import Coq_EVM.datatypes.
 Import EVM_Def Concrete Abstract.
@@ -1709,6 +1710,7 @@ Proof.
   - discriminate. 
 Qed.
 
+(*
 Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
   (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
   (curr_es out_es: execution_state) (p: prog),
@@ -1770,7 +1772,63 @@ Proof.
        --- admit.
        --- discriminate.
 Admitted.
+*)
 
+Lemma get_stack_es_ok: forall (stk: concrete_stack) (memory: tmemory)
+  (storage: tstorage),
+get_stack_es ((ExState stk memory storage)) = stk.
+Proof.
+reflexivity.
+Qed.
+
+Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
+  (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
+  (curr_es out_es: execution_state) (p: prog),
+valid_asfs curr_asfs = true ->
+length in_stk = height ->
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+get_stack_es curr_es = curr_stk ->
+concr_interpreter p curr_es ops = Some out_es ->
+get_stack_es out_es = out_stk ->
+symbolic_exec' p curr_asfs ops = Some out_asfs ->
+eval_asfs in_stk out_asfs ops = Some out_stk.
+Proof.
+intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es p.
+revert curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es.
+induction p as [|instr rp IH].
+- (* Empty program *)
+  intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es
+    Hvalid_curr Hlen Heval_curr Hget_stack_curr Hconcr_intr Hget_stack_out
+    Hsymb_exec.
+  simpl in Hconcr_intr. injection Hconcr_intr. intros eq_curr_out_es.
+  simpl in Hsymb_exec. injection Hsymb_exec. intros eq_curr_out_asfs.
+  rewrite <- eq_curr_out_asfs. rewrite <- eq_curr_out_es in Hget_stack_out.
+  rewrite -> Hget_stack_curr in Hget_stack_out.
+  rewrite <- Hget_stack_out.
+  assumption.
+- (* Program = instr::rp *)
+  intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es
+    Hvalid_curr Hlen Heval_curr Hget_stack_curr Hconcr_intr Hget_stack_out
+    Hsymb_exec.
+  simpl in Hsymb_exec.
+  destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn: eq_symb_exec'';
+    try discriminate.
+  simpl in Hconcr_intr.
+  destruct (concr_intpreter_instr instr curr_es ops) as [insk'|] 
+    eqn: eq_concr_instr; try discriminate.
+  destruct insk' as [stki memi stori] eqn: eq_insk'.
+  rewrite <- eq_insk' in eq_concr_instr.
+  pose proof (get_stack_es_ok stki memi stori) as eq_get_stack_insk'.
+  rewrite <- eq_insk' in eq_get_stack_insk'.
+  pose proof (valid_asfs_preservation curr_asfs a' instr ops Hvalid_curr
+    eq_symb_exec'') as Hvalid_a'.
+  pose proof (correctness_symb_exec_step instr in_stk curr_stk stki ops height
+    curr_es insk' curr_asfs a' Hvalid_curr Hlen Heval_curr Hget_stack_curr
+    eq_concr_instr eq_get_stack_insk' eq_symb_exec'') as Heval_instr.
+  rewrite <- eq_insk' in Hconcr_intr.
+  apply IH with (curr_asfs:=a')(curr_stk:=stki)(height:=height)(curr_es:=insk')
+    (out_es:=out_es); try assumption.
+Qed.
 
 
 Lemma valid_asfs_empty: forall (n: nat),
@@ -1781,8 +1839,6 @@ unfold valid_asfs. unfold empty_asfs.
 reflexivity.
 Qed.
 
-Compute (nth_error [1;2;3] 0).
-Search (_ < 0).
 
 Lemma nth_error_ok' : forall (T: Type) (l : list T) (i : nat),
 i < length l -> 
@@ -2012,10 +2068,10 @@ Qed.
 
 *)
 
-Require Import Program.Wf.
+
 (* Overkill: 22 obligations remaining!!! *)
-Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) (ops: opm)
-  {measure (List.length m1 + List.length m2)} : bool :=
+Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
+  (ops: opm) {measure (List.length m1 + List.length m2)} : bool :=
 match e1, e2 with 
 | Val v1, Val v2 => weqb v1 v2
 | InStackVar i1, InStackVar i2 => i1 =? i2
@@ -2187,19 +2243,21 @@ Alternative definition for asfs_eq_stack_elem:
 
 
 
-Fixpoint asfs_eq_stack (s1 s2: asfs_stack) (m1 m2: asfs_map) : bool :=
+Fixpoint asfs_eq_stack (s1 s2: asfs_stack) (m1 m2: asfs_map) (ops: opm) : bool :=
 match s1, s2 with 
 | nil, nil => true
-| e1::r1, e2::r2 => (asfs_eq_stack_elem e1 e2 m1 m2) && (asfs_eq_stack r1 r2 m1 m2)
+| e1::r1, e2::r2 => (asfs_eq_stack_elem e1 e2 m1 m2 ops) && 
+                    (asfs_eq_stack r1 r2 m1 m2 ops)
 | _, _ => false
 end.
 
 
-Definition asfs_eq (a1 a2: asfs) : bool :=
+Definition asfs_eq (a1 a2: asfs) (ops: opm) : bool :=
 match a1, a2 with
-| ASFSc height1 maxid1 curr_stack1 amap1, ASFSc height2 maxid2 curr_stack2 amap2 => 
+| ASFSc height1 maxid1 curr_stack1 amap1, 
+  ASFSc height2 maxid2 curr_stack2 amap2 => 
     let eq_size := height1 =? height2 in
-    let eq_stack := asfs_eq_stack curr_stack1 curr_stack2 amap1 amap2 in
+    let eq_stack := asfs_eq_stack curr_stack1 curr_stack2 amap1 amap2 ops in
     eq_size && eq_stack
 end.
 
@@ -2208,7 +2266,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs asfs = true.
+asfs_eq asfs asfs opmap = true.
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_eq_2:
@@ -2220,7 +2278,7 @@ let asfs2 := ASFSc 3 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs1 asfs2 = false.
+asfs_eq asfs1 asfs2 opmap = false.
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_eq_3:
@@ -2232,7 +2290,7 @@ let asfs2 := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 1; InStackVar 0])] in
-asfs_eq asfs1 asfs2 = false.
+asfs_eq asfs1 asfs2 opmap = true.
 Proof.
 reflexivity. Qed.
 
