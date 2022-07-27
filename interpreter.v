@@ -1695,84 +1695,6 @@ destruct instruction eqn: eq_inst.
   assumption.
 Qed.
 
-(* If you can eval a with s1, then |s1| = a.h *) 
-Theorem t1: forall (s1 s2: concrete_stack) (a : asfs) (h maxid : nat) (m : asfs_map)
-  (sa : asfs_stack) (ops: opm),
-  eval_asfs s1 a ops = Some s2 ->
-  a = ASFSc h maxid sa m ->
-  length s1 = h.
-Proof.
-  intros s1 s2 a h maxid m sa ops H1 H2.
-  subst.
-  unfold eval_asfs in H1.
-  destruct (length s1 =? h) eqn:Eq1.
-  - apply beq_nat_true in Eq1. apply Eq1.
-  - discriminate. 
-Qed.
-
-(*
-Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
-  (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
-  (curr_es out_es: execution_state) (p: prog),
-valid_asfs curr_asfs = true ->
-length in_stk = height ->
-eval_asfs in_stk curr_asfs ops = Some curr_stk ->
-get_stack_es curr_es = curr_stk ->
-concr_interpreter p curr_es ops = Some out_es ->
-get_stack_es out_es = out_stk ->
-symbolic_exec' p curr_asfs ops = Some out_asfs ->
-eval_asfs in_stk out_asfs ops = Some out_stk.
-Proof.
-(* Induction on p 
-- Caso base p=[] : trivial
-- P. Inductivo) p = instr::p'
-  1) dar un paso con el teorema correctness_symb_exec_step
-  1') aplicar valid_asfs_preservation
-  2) aplicar IH
-*)
-
-  intros a2 a3 s1 s2 s3 h ops es2 es3 p.
-  intros Hv Hl He2 Hg2 Hc2 Hg3 Hs2.
-  (* Induction over p *)
-  induction p as [| e p' IHp'] eqn:Eq1.
-  (* p = [] *)
-  - 
-    (* Obtain a2.h = s3.h *)
-    simpl in Hs2. injection Hs2 as Hs2.
-    simpl in Hc2. injection Hc2 as Hc2.
-    destruct a2 eqn:Eqa2.
-    destruct a3 eqn:Eqa3.
-    inversion Hs2.
-    (* Obtain |s1| = a2.h *)
-    assert (t := t1 s1 s2 a2 height maxid m s ops).
-    rewrite <- Eqa2 in He2.
-    specialize t with (1 := He2) (2 := Eqa2).
-    rewrite -> H0 in t. apply Nat.eqb_eq in t.
-    (* Simplify eval_asfs *)
-    unfold eval_asfs.
-    rewrite -> t.
-    (* Continue *)
-    rewrite -> Eqa2 in He2.
-    unfold eval_asfs in He2.
-    rewrite <- H0 in t.
-    rewrite -> t in He2.
-    rewrite -> H2 in He2. rewrite -> H3 in He2. rewrite -> He2.
-    subst. reflexivity.
-    (* Inductive case *)
-  - assert (cses := correctness_symb_exec_step).
-    apply (cses e s1 s2 s3 ops h es2 es3 a2 a3); try assumption. clear cses.
-    -- simpl in Hc2.
-       (* The "destruct" path tested, not sure if it is the way to go *)
-       destruct (concr_intpreter_instr e es2 ops) eqn:Eqq.
-       --- admit.
-       --- discriminate. 
-    -- clear cses.
-       simpl in Hs2.
-       destruct (symbolic_exec'' e a2 ops) eqn:Eqq.
-       --- admit.
-       --- discriminate.
-Admitted.
-*)
 
 Lemma get_stack_es_ok: forall (stk: concrete_stack) (memory: tmemory)
   (storage: tstorage),
@@ -1796,36 +1718,40 @@ Proof.
 intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es p.
 revert curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es.
 induction p as [|instr rp IH].
-- (* Empty program *)
+- (* Base Case: p = [] *)
   intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es
     Hvalid_curr Hlen Heval_curr Hget_stack_curr Hconcr_intr Hget_stack_out
     Hsymb_exec.
-  simpl in Hconcr_intr. injection Hconcr_intr. intros eq_curr_out_es.
-  simpl in Hsymb_exec. injection Hsymb_exec. intros eq_curr_out_asfs.
-  rewrite <- eq_curr_out_asfs. rewrite <- eq_curr_out_es in Hget_stack_out.
-  rewrite -> Hget_stack_curr in Hget_stack_out.
-  rewrite <- Hget_stack_out.
-  assumption.
-- (* Program = instr::rp *)
+  injection Hconcr_intr as eq_curr_out_es. 
+  injection Hsymb_exec  as eq_curr_out_asfs.
+  rewrite <- eq_curr_out_es in Hget_stack_out.
+  subst. assumption.
+- (* Inductuve Case = p = instr::rp *)
   intros curr_asfs out_asfs in_stk curr_stk out_stk height ops curr_es out_es
-    Hvalid_curr Hlen Heval_curr Hget_stack_curr Hconcr_intr Hget_stack_out
-    Hsymb_exec.
-  simpl in Hsymb_exec.
-  destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn: eq_symb_exec'';
+  Hvalid_curr Hlen Heval_curr Hget_stack_curr Hconcr_intr Hget_stack_out
+  Hsymb_exec.
+  (* Introduce intermediate a' insk' stki *)
+  simpl in Hsymb_exec. simpl in Hconcr_intr.
+  (** a' *)
+  destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn:eq_symb_exec'';
     try discriminate.
-  simpl in Hconcr_intr.
+  (** insk' *)
   destruct (concr_intpreter_instr instr curr_es ops) as [insk'|] 
     eqn: eq_concr_instr; try discriminate.
-  destruct insk' as [stki memi stori] eqn: eq_insk'.
-  rewrite <- eq_insk' in eq_concr_instr.
+  (** stki *)
+  destruct insk' as [stki memi stori] eqn:eq_insk'.
   pose proof (get_stack_es_ok stki memi stori) as eq_get_stack_insk'.
+  rewrite <- eq_insk' in eq_concr_instr.
+  rewrite <- eq_insk' in Hconcr_intr.
   rewrite <- eq_insk' in eq_get_stack_insk'.
+  (* Show validity of a' *)
   pose proof (valid_asfs_preservation curr_asfs a' instr ops Hvalid_curr
     eq_symb_exec'') as Hvalid_a'.
+  (* Show that a' evaluates to stki *)
   pose proof (correctness_symb_exec_step instr in_stk curr_stk stki ops height
     curr_es insk' curr_asfs a' Hvalid_curr Hlen Heval_curr Hget_stack_curr
     eq_concr_instr eq_get_stack_insk' eq_symb_exec'') as Heval_instr.
-  rewrite <- eq_insk' in Hconcr_intr.
+  (* Apply IH *)
   apply IH with (curr_asfs:=a')(curr_stk:=stki)(height:=height)(curr_es:=insk')
     (out_es:=out_es); try assumption.
 Qed.
