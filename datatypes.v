@@ -37,6 +37,8 @@ Inductive instr :=
   | DUP (pos: nat)
   | SWAP (pos: nat)
   | Opcode (label: gen_instr).
+  
+Definition prog := list instr.  
 
 (** Function that evaluates a list of EVMWord, they are related to gen_instr *)
 Inductive operator :=
@@ -96,7 +98,9 @@ Notation "x '|->n' v ';' m" := (updaten m x v)
 Notation "x '|->n' v" := (updaten empty_nmap x v)
   (at level 100).
   
-Definition opmap : map gen_instr operator :=
+Definition opm := map gen_instr operator.
+  
+Definition opmap : opm :=
   ADD |->i Op true 2 add;
   MUL |->i Op true 2 mul;
   NOT |->i Op false 1 not.
@@ -203,9 +207,6 @@ Inductive asfs_stack_val : Type :=
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)
   | ASFSOp  (opcode : gen_instr) (args : list asfs_stack_val).
-
-Definition opm := map gen_instr operator.
-Definition prog := list instr.
 
 Definition concrete_stack := list EVMWord.
 Definition in_stack := list nat.
