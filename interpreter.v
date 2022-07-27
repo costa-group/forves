@@ -1946,33 +1946,6 @@ assumption.
 Qed.
 
 
-
-(*
-
-
-\forall opcode:instr, instk:list EVMword, currstk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
-
-  length instk = height,
-  eval_asfs instk in_sfs opm = Some currstk,
-  conc_exec' opcode curr ops = Some out_stk,
-  sym_exec' opcode in_sfs ops = Some out_asfs
- 
-  ->
- 
-  eval_asfs instk out_sfs opm = Some out_stk
-
-
-\forall p:prog, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
-
-  length instk = height,
-  conc_exec p instk ops = Some out_stk,
-  sym_exec height p ops = Some out_asfs 
-  -> 
-  eval_asfs instk out_asfs opm = Some out_stk
-
-*)
-
-
 (*
 
 - We should support commutativity -> require passing the opm
@@ -2155,20 +2128,6 @@ Qed.
 
 
 
-(* 
-Alternative definition for asfs_eq_stack_elem:
-1) Generate *nested* AST representation (asfs_val_nest) by replacing fresh variables:
-    - Value
-    - InStackVar nat
-    - Op opcode [asfs_val_nest]
-2) Compare both ASTs now without the map, so there is a clear syntactically 
-   decreasing argument
-*)
-
-
-
-
-
 Fixpoint asfs_eq_stack (s1 s2: asfs_stack) (m1 m2: asfs_map) (ops: opm) : bool :=
 match s1, s2 with 
 | nil, nil => true
@@ -2220,7 +2179,121 @@ asfs_eq asfs1 asfs2 opmap = true.
 Proof.
 reflexivity. Qed.
 
+
+Theorem asfs_eq_correctness:
+  forall (a1 a2: asfs) (ops: opm) (s : concrete_stack),
+  asfs_eq a1 a2 ops = true ->
+  eval_asfs s a1 ops = eval_asfs s a2 ops.
+Proof.
+Admitted.    
+
+
 End SFS.
+
+(*
+Plan:
+
+Phase 1: handle prog with no memory, and some optimizations
+
+ - to go back to the add(x,0) optimization and rewrite in terms of
+   the new representation (Enrique)
+
+ - opfunc SFS => (SFS,bool): func SFS => SFS: add(x,0) ...
+
+ - apply_all_op [opfunc1,...,optfuncn] SFS => (SFS,bool)   
+
+ - opt_scheme SFS => SFS 
+
+ - equiv_blocks p1 p2 height opt_scheme (Joseba)
+
+     p1 -> SFS1
+     p2 -> SFS2
+     SFS2 -> opt_scheme -> SFS3
+     equiv SFS1 SFS3
+
+   equiv_gas ....
+ 
+    -> equiv p1 p2 height opt_scheme_gas
+
+  equiv_size ....
+ 
+    -> equiv p1 p2 height opt_scheme_gas
+
+ - f1, f2, f2 --> P(fi)  P is preservation of SFS
+
+   l = [f1,f2,f3] 
+
+   Plist(l) \for x \ in l. P(x)
+
+   Prop Plist(l)
+    nil | l=[]
+    rec | l=x::l' && P(x) && Plist(l')
+
+ - Generation of executable (Joseba)
+
+    1. Coq -> OCaml (simple translation)
+    2. Execute Coq
+
+******
+Enrique:
+
+  - Look at simple optimiztions, ...
+
+Joseba:
+
+  - write a trivial optimizaer in=out
+  - write equiv_blocks and proof correctness
+  - look at code generation
+
+Samir:
+
+  - missing proof
+
+
+Phase 2
+
+Samir:
+
+  - how we handle memory
+
+Mem
+[y,x,y,b4,b5,..x]
+
+  STORE 9 (x,y)
+  LOAD 0 -> (b1,x)
+
+Store:
+
+*)
+
+
+  
+  
+              
+(*
+
+
+\forall opcode:instr, instk:list EVMword, currstk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
+
+  length instk = height,
+  eval_asfs instk in_sfs opm = Some currstk,
+  conc_exec' opcode curr ops = Some out_stk,
+  sym_exec' opcode in_sfs ops = Some out_asfs
+ 
+  ->
+ 
+  eval_asfs instk out_sfs opm = Some out_stk
+
+
+\forall p:prog, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
+
+  length instk = height,
+  conc_exec p instk ops = Some out_stk,
+  sym_exec height p ops = Some out_asfs 
+  -> 
+  eval_asfs instk out_asfs opm = Some out_stk
+
+*)
 
 
 
