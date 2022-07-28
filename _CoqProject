@@ -1,5 +1,5 @@
 -R . Coq_EVM
-lib/evmModel.v
+datatypes.v
 interpreter.v
 optimizations.v
-datatypes.v
+

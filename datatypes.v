@@ -11,9 +11,11 @@ Import ListNotations.
 (* ################################################################# *)
 (* * EVM related definitions *)
 Module EVM_Def.
-Definition WLen: nat := 1024. 
+Definition WLen: nat := 256. 
 Definition EVMWord:= word WLen.
 Definition StackLen := 1024.
+Definition WZero: EVMWord  := natToWord WLen 0.
+Definition WTrue: EVMWord  := natToWord WLen 1.
 End EVM_Def.
 Import EVM_Def.
 
