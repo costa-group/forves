@@ -7,7 +7,6 @@ Require Import Coq_EVM.datatypes.
 Import EVM_Def Concrete Abstract.
 Require Import Coq_EVM.interpreter.
 Import Interpreter SFS.
-(*Require Import Coq_EVM.lib.evmModel.*)
 Import ListNotations.
 
 
@@ -57,6 +56,63 @@ Qed.
 
 (* General definitions to define different optimizations and useful common
    lemmas *)
+
+Fixpoint optimize_fresh_var2 (a: asfs) (m: asfs_map) 
+ (opt: nat -> asfs -> option asfs): asfs*bool :=
+match m with
+| [] => (a, false)
+| (n,_)::t => match opt n a with
+              | None => optimize_fresh_var2 a t opt
+              | Some a' => (a',true)
+              end
+end.
+
+
+Definition optimize_fresh_var (opt: nat -> asfs -> option asfs) (a: asfs):
+  asfs*bool :=
+match a with
+| ASFSc height maxid s m  => optimize_fresh_var2 a m opt
+end.
+
+
+Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) :=
+forall (n: nat) (c cf: concrete_stack) (a opt_a: asfs),
+eval_asfs c a opmap = Some cf ->
+opt n a = Some opt_a ->
+eval_asfs c opt_a opmap = Some cf.
+
+
+Definition safe_optimization (opt: asfs -> asfs*bool) :=
+forall (c cf: concrete_stack) (a opt_a: asfs),
+eval_asfs c a opmap = Some cf ->
+opt a = (opt_a, true) ->
+eval_asfs c opt_a opmap = Some cf.
+
+
+Lemma optimize_fresh_var_preservation: forall (opt: nat -> asfs -> option asfs),
+safe_optimization_fvar opt ->
+safe_optimization (optimize_fresh_var opt).
+Proof.
+intros. unfold safe_optimization_fvar in H.
+unfold safe_optimization. intros.
+unfold optimize_fresh_var in H1.
+destruct a as [ha maxa sa ma] eqn: eq_a.
+unfold optimize_fresh_var2 in H1.
+destruct ma as [| h t] eqn: eq_m.
+(* INDUCTION ON ma, GENERALIZE RESULTS *)
+- injection H1 as Hasfs Hfalse. discriminate.
+- destruct h as [fvar expr] eqn: eq_h.
+  destruct (opt fvar (ASFSc ha maxa sa ((fvar, expr) :: t))) as [a'|] 
+    eqn: eq_opt_fvar.
+  + injection H1 as eqa'.
+    rewrite <- eq_a in H0. rewrite <- eq_a in eq_opt_fvar.
+    rewrite -> eqa' in eq_opt_fvar.
+    pose proof (H fvar c cf a opt_a H0 eq_opt_fvar).
+    assumption.
+  + fold optimize_fresh_var2 in H1.
+Admitted. 
+
+
 Definition stack_val_has_value (av: asfs_stack_val) (v: EVMWord) : bool :=
 match av with 
 | Val x => weqb x v
@@ -73,7 +129,7 @@ match s with
     end
 end.
 
-Search (weqb).
+
 Lemma stack_val_has_value_eval: forall (c: concrete_stack) 
   (elem: asfs_stack_val) (v: EVMWord) (m: asfs_map) (ops: opm),
 stack_val_has_value elem v = true ->  
@@ -85,12 +141,14 @@ apply weqb_sound in H. rewrite -> H.
 destruct m; try reflexivity.
 Qed.
 
+
 Lemma eval_value: forall (stack: concrete_stack) (val: EVMWord) (m: asfs_map)
   (ops: opm),
 eval_asfs2_elem stack (Val val) m ops = Some val.
 Proof.
 intros. destruct m; try (unfold eval_asfs2_elem; reflexivity).
 Qed.
+
 
 Lemma eval_var: forall (stack: concrete_stack) (var: nat) (m1 m2: asfs_map)
   (ops: opm),
@@ -128,6 +186,37 @@ induction s as [| h t IH].
     rewrite <- eq_eval_h_m1_m2.
     rewrite -> eq_eval_h_m1.
     reflexivity.
+Qed.
+
+
+(* If the successful evaluation of every element wrt. m1 is the same as 
+   wrt. m2, then the successful evaluation of any list of elements will 
+   be the same sucessfull value*)
+Lemma eq_succ_eval_elem_stack: forall (c cf: concrete_stack) (m1 m2: asfs_map)
+  (ops: opm) (s: asfs_stack),
+(forall (elem: asfs_stack_val) (v: EVMWord), 
+   eval_asfs2_elem c elem m1 ops = Some v ->
+   eval_asfs2_elem c elem m2 ops = Some v) ->
+eval_asfs2 c s m1 ops = Some cf -> 
+eval_asfs2 c s m2 ops = Some cf.
+Proof.
+intros c cf m1 m2 ops s. revert c cf m1 m2 ops. 
+induction s as [| h t IH].
+- intros. unfold eval_asfs2 in H0. simpl in H0. 
+  injection H0 as H0. rewrite <- H0.
+  unfold eval_asfs2. simpl. reflexivity.
+- intros c cf m1 m2 ops Heval_elem_eq. 
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  rewrite -> eval_asfs2_ho. rewrite -> eval_asfs2_ho.
+  destruct (eval_asfs2_elem c h m1 ops) as [eval_h|] eqn: eq_eval_h_m1;
+    try (intros; discriminate).
+  apply Heval_elem_eq in eq_eval_h_m1 as eq_eval_h_m2.
+  rewrite -> eq_eval_h_m2.
+  destruct (eval_asfs2 c t m1 ops) as [teval|] eqn: eq_eval_t_m1;
+    try (intros; discriminate).
+  pose proof (IH c teval  m1 m2 ops Heval_elem_eq eq_eval_t_m1)
+    as eq_eval_t_m2.
+  rewrite -> eq_eval_t_m2. intros. assumption.
 Qed.
 
 
@@ -264,6 +353,335 @@ apply eq_eval_elem_stack. assumption.
 Qed.
 
 
+
+
+
+
+(* 
+  Optimization MUL(1,X) or MUL(X,1) --> X 
+*)
+Fixpoint optimize_map_mul_one (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp MUL [arg1; arg2] => 
+                     if stack_val_has_value arg1 WOne then
+                       Some ((n, ASFSBasicVal arg2)::t)
+                     else if stack_val_has_value arg2 WOne then
+                       Some ((n, ASFSBasicVal arg1)::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_mul_one fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_mul_one (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_mul_one fresh_var s.
+
+Search wmult.
+Lemma word_mul_1_x_is_x: forall (x: EVMWord),
+mul [WOne; x] = Some x.
+Proof.
+intros x. simpl.
+rewrite -> wmult_unit. reflexivity.
+Qed.
+
+Lemma word_mul_x_1_is_x: forall (x: EVMWord),
+mul [x; WOne] = Some x.
+Proof.
+intros x. simpl.
+rewrite -> wmult_comm. rewrite -> wmult_unit. 
+reflexivity.
+Qed.
+
+
+(* Main lemma: every stack value is evaluated to the same value in the 
+   original map and also in the optimized one for MUL_1 *)
+Lemma eq_eval_opt_mul_one: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
+  (stack: concrete_stack),
+ops MUL = Some (Op true 2 mul) ->
+optimize_map_mul_one n m1 = Some m2 ->
+forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
+                               eval_asfs2_elem stack elem m2 ops.
+Proof.
+induction m1 as [|h t IH].
+- intros. simpl in H0. discriminate.
+- intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
+  destruct (hn =? n) eqn: eq_hn_n.
+  + (* We have found the fresh variable to optimize in the map *) 
+    destruct (hv) as [basicval|opval] eqn: eq_hv. 
+    * discriminate.
+    * destruct (opval) eqn: eq_opval; try discriminate.
+      destruct args as [| arg1 ta]; try discriminate.
+      destruct ta as [| arg2 tta]; try discriminate.
+      destruct tta; try discriminate.
+      destruct (stack_val_has_value arg1 WOne) eqn: eq_arg1_one.
+      -- (* arg1 is WOne *)
+         injection H0 as eq_m2. rewrite <- eq_m2.
+         destruct elem as [val|var|fvar] eqn: eq_elem.
+         ++ apply eval_value.
+         ++ apply eval_var.
+         ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
+            ** rewrite -> H. simpl. fold eval_asfs2_elem.
+               rewrite -> stack_val_has_value_eval with (v:=WOne);
+                 try assumption.
+               destruct (eval_asfs2_elem stack arg2 t ops) as [arg2_val|]
+                 eqn: eq_eval_arg2; try reflexivity.
+               rewrite -> word_mul_1_x_is_x. reflexivity.
+            ** fold eval_asfs2_elem. reflexivity.
+      -- (* arg2 is One *)
+         destruct (stack_val_has_value arg2 WOne) eqn: eq_arg2_one;
+           try discriminate.
+         injection H0 as eq_m2. rewrite <- eq_m2.
+         destruct elem as [val|var|fvar] eqn: eq_elem.
+         ++ apply eval_value.
+         ++ apply eval_var.
+         ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
+            ** rewrite -> H. simpl. fold eval_asfs2_elem.
+               destruct (eval_asfs2_elem stack arg1 t ops) as [arg1_val|]
+                 eqn: eq_eval_arg2; try reflexivity.
+               rewrite -> stack_val_has_value_eval with (v:=WOne);
+                 try assumption.
+               rewrite -> word_mul_x_1_is_x.
+               reflexivity.
+            ** fold eval_asfs2_elem. reflexivity.
+  + (* This is not yet the fresh variable to optimize*) 
+    destruct (optimize_map_mul_one n t) as [map'|] eqn: eq_optimize_t; 
+      try discriminate.
+    injection H0 as H0. rewrite <- H0. 
+    destruct elem as [val|var|fvar] eqn: eq_elem; try reflexivity.
+    simpl. destruct (hn =? fvar) eqn: eq_hn_fvar.
+    * destruct hv eqn: eq_hv.
+      -- apply IH with (n:=n); try assumption.
+      -- rewrite -> eval_asfs2_ho. rewrite -> eval_asfs2_ho.
+         pose proof (IH map' ops n stack H eq_optimize_t) as IHc.
+         pose proof (eq_eval_elem_stack stack t map' ops args IHc) as
+           eq_eval_t_map'.
+         rewrite -> eq_eval_t_map'. reflexivity.
+    * apply IH with (n:=n); try assumption.
+Qed.
+
+
+Theorem optimize_mul_one_safe: forall (a1 a2: asfs) (fresh_var: nat)
+  (c: concrete_stack) (ops: opm),
+ops MUL = Some (Op true 2 mul) ->
+optimize_mul_one fresh_var a1 = Some a2 ->
+eval_asfs c a1 ops = eval_asfs c a2 ops.
+Proof.
+intros.
+destruct a1 as [h1 maxid1 s1 m1] eqn: eq_a1.
+destruct a2 as [h2 maxid2 s2 m2] eqn: eq_a2.
+simpl in H0.
+destruct (optimize_map_mul_one fresh_var m1) eqn: eq_opt_mul_one_map;
+  try discriminate.
+injection H0 as Hh1h2 Hmaxid1_2 Hs1s2 Hm1a.
+rewrite -> Hm1a in eq_opt_mul_one_map.
+pose proof (eq_eval_opt_mul_one m1 m2 ops fresh_var c H eq_opt_mul_one_map)
+  as Hall_elem_eval_same_m1_m2.
+simpl. rewrite -> Hh1h2. rewrite -> Hs1s2.
+destruct (length c =? h2); try reflexivity.
+apply eq_eval_elem_stack. assumption.
+Qed.
+
+
+
+
+
+(* 
+  Optimization MUL(0,X) or MUL(X,0) --> 0
+*)
+Fixpoint optimize_map_mul_zero (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp MUL [arg1; arg2] => 
+                     if stack_val_has_value arg1 WZero then
+                       Some ((n, ASFSBasicVal (Val WZero))::t)
+                     else if stack_val_has_value arg2 WZero then
+                       Some ((n, ASFSBasicVal (Val WZero))::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_mul_zero fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_mul_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_mul_zero fresh_var s.
+
+Definition optimize_mul_zero : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_mul_zero_fvar.
+
+
+Lemma word_mul_0_x_is_0: forall (x: EVMWord),
+mul [WZero; x] = Some WZero.
+Proof.
+intros x. simpl.
+rewrite -> wmult_neut_l. reflexivity.
+Qed.
+
+Lemma word_mul_x_0_is_0: forall (x: EVMWord),
+mul [x; WZero] = Some WZero.
+Proof.
+intros x. simpl.
+rewrite -> wmult_neut_r. reflexivity.
+Qed.
+
+
+(* Main lemma: if a stack value is evaluated to a value in the original map
+   then it is evaluated to the same value in the optimized map for MUL_0.
+   
+   NOTICE that MUL(ill-defined-value, 0) is evaluated to None in the original
+   map but MUL(ill-defined-value, 0) ~~> 0 is evaluated to 0 in the optimized
+   one, so THEY ARE NOT EQUAL FOR EVERY POSSIBLE stack_val *)
+Lemma eq_succ_eval_opt_mul_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
+  (stack: concrete_stack),
+ops MUL = Some (Op true 2 mul) ->
+optimize_map_mul_zero n m1 = Some m2 ->
+forall (elem: asfs_stack_val) (v: EVMWord), 
+  eval_asfs2_elem stack elem m1 ops = Some v ->
+  eval_asfs2_elem stack elem m2 ops = Some v.
+Proof.
+induction m1 as [|h t IH].
+- intros. simpl in H0. discriminate.
+- intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
+  destruct (hn =? n) eqn: eq_hn_n.
+  + (* We have found the fresh variable to optimize in the map *) 
+    destruct (hv) as [basicval|opval] eqn: eq_hv. 
+    * discriminate.
+    * destruct (opval) eqn: eq_opval; try discriminate.
+      destruct args as [| arg1 ta]; try discriminate.
+      destruct ta as [| arg2 tta]; try discriminate.
+      destruct tta; try discriminate.
+      destruct (stack_val_has_value arg1 WZero) eqn: eq_arg1_zero.
+      -- (* arg1 is WZero *)
+         injection H0 as eq_m2. rewrite <- eq_m2.
+         destruct elem as [val|var|fvar] eqn: eq_elem.
+         ++ rewrite -> eval_value in H1. injection H1 as H1.
+            rewrite <- H1.
+            rewrite -> eval_value. reflexivity.
+         ++ pose proof (eval_var stack var ((hn, ASFSOp MUL [arg1; arg2]) :: t)
+             ((hn, ASFSBasicVal (Val WZero)) :: t) ops) as Hsameeval.
+            rewrite <- Hsameeval. assumption.
+         ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
+            ** fold eval_asfs2_elem. simpl in H1.
+               rewrite -> eq_vame_fvar in H1. rewrite -> H in H1.
+               pose proof (stack_val_has_value_eval stack arg1 WZero t ops
+                 eq_arg1_zero) as eq_eval_arg1.
+               rewrite -> eq_eval_arg1 in H1.
+               destruct (eval_asfs2_elem stack arg2 t ops) as [arg2_val|]
+                 eqn: eq_eval_arg2; try discriminate.
+               rewrite -> word_mul_0_x_is_0 in H1.
+               injection H1 as H1. rewrite <- H1.
+               destruct t; try reflexivity.
+            ** fold eval_asfs2_elem. simpl in H1. rewrite -> eq_vame_fvar in H1.
+               assumption.
+      -- (* arg2 is WZero *)
+         destruct (stack_val_has_value arg2 WZero) eqn: eq_arg2_zero;
+           try discriminate.
+         injection H0 as eq_m2. rewrite <- eq_m2.
+         destruct elem as [val|var|fvar] eqn: eq_elem.
+         ++ rewrite -> eval_value in H1. injection H1 as H1.
+            rewrite <- H1.
+            rewrite -> eval_value. reflexivity.
+         ++ pose proof (eval_var stack var ((hn, ASFSOp MUL [arg1; arg2]) :: t)
+             ((hn, ASFSBasicVal (Val WZero)) :: t) ops) as Hsameeval.
+            rewrite <- Hsameeval. assumption.
+         ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
+            ** fold eval_asfs2_elem. simpl in H1.
+               rewrite -> eq_vame_fvar in H1. rewrite -> H in H1.
+               destruct (eval_asfs2_elem stack arg1 t ops) as [arg1_val|]
+                 eqn: eq_eval_arg1; try discriminate.
+                pose proof (stack_val_has_value_eval stack arg2 WZero t ops
+                 eq_arg2_zero) as eq_eval_arg2.
+               rewrite -> eq_eval_arg2 in H1.
+               rewrite -> word_mul_x_0_is_0 in H1.
+               injection H1 as H1. rewrite <- H1.
+               destruct t; try reflexivity.
+            ** fold eval_asfs2_elem. simpl in H1. rewrite -> eq_vame_fvar in H1.
+               assumption.
+  + (* This is not yet the fresh variable to optimize*) 
+    destruct (optimize_map_mul_zero n t) as [map'|] eqn: eq_optimize_t; 
+      try discriminate.
+    injection H0 as H0. rewrite <- H0. 
+    destruct elem as [val|var|fvar] eqn: eq_elem.
+    * rewrite -> eval_value. rewrite -> eval_value in H1. assumption.
+    * pose proof (eval_var stack var ((hn, hv) :: t) ((hn, hv) :: map')
+        ops) as eq_eval_instack.
+      rewrite <- eq_eval_instack. assumption.
+    * simpl. simpl in H1. destruct (hn =? fvar) eqn: eq_hn_fvar.
+      -- destruct hv eqn: eq_hv.
+         ++ apply IH with (n:=n); try assumption.
+         ++ destruct (ops opcode) as [ops_val|] eqn: eq_ops_opcode; 
+              try discriminate.
+            destruct (ops_val) as [comm nargs func] eqn: eq_opval.
+            destruct (length args =? nargs); try discriminate.
+            rewrite -> eval_asfs2_ho in H1. rewrite -> eval_asfs2_ho.
+            pose proof (IH map' ops n stack H eq_optimize_t) as
+              eq_succ_eval_elem_t_map'.
+            destruct (eval_asfs2 stack args t ops) as [vargs|] 
+              eqn: eq_eval_args; try discriminate.
+            pose proof (eq_succ_eval_elem_stack stack vargs t map' ops args
+              eq_succ_eval_elem_t_map' eq_eval_args) as IHc.
+            rewrite -> IHc. assumption.
+      -- pose proof (IH map' ops n stack H eq_optimize_t (FreshVar fvar) v
+           H1) as eq_succ_eval_elem_t_map'.
+         rewrite -> eq_succ_eval_elem_t_map'.
+         reflexivity.
+Qed.
+
+
+Theorem optimize_mul_zero_safe_success: forall (a1 a2: asfs) (fresh_var: nat)
+  (c s: concrete_stack) (ops: opm),
+ops MUL = Some (Op true 2 mul) ->
+optimize_mul_zero_fvar fresh_var a1 = Some a2 ->
+eval_asfs c a1 ops = Some s ->
+eval_asfs c a2 ops = Some s.
+Proof.
+intros.
+destruct a1 as [h1 maxid1 s1 m1] eqn: eq_a1.
+destruct a2 as [h2 maxid2 s2 m2] eqn: eq_a2.
+simpl in H0.
+destruct (optimize_map_mul_zero fresh_var m1) eqn: eq_opt_mul_zero_map;
+  try discriminate.
+injection H0 as Hh1h2 Hmaxid1_2 Hs1s2 Hm1a.
+rewrite -> Hm1a in eq_opt_mul_zero_map.
+pose proof (eq_succ_eval_opt_mul_zero m1 m2 ops fresh_var c H eq_opt_mul_zero_map)
+  as Hall_elem_succ_eval_same_m1_m2.
+simpl. rewrite <- Hh1h2. rewrite <- Hs1s2.
+simpl in H1. destruct (length c =? h1); try discriminate.
+apply eq_succ_eval_elem_stack with (m1:=m1); try assumption.
+Qed.
+
+Theorem optimize_mul_zero_safe_fvar: 
+safe_optimization_fvar optimize_mul_zero_fvar.
+Proof.
+unfold safe_optimization_fvar. intros.
+apply optimize_mul_zero_safe_success with (a1:=a) (fresh_var:=n); 
+  try intuition.
+Qed.
+
+Theorem optimize_mul_zero_safe: 
+safe_optimization optimize_mul_zero.
+Proof.
+unfold safe_optimization. intros.
+unfold optimize_mul_zero in H0.
+pose proof (optimize_mul_zero_safe_fvar) as Hsafe_fvar_mult_zero.
+pose proof (optimize_fresh_var_preservation optimize_mul_zero_fvar
+  Hsafe_fvar_mult_zero) as Hsafe_optimize.
+unfold safe_optimization in Hsafe_optimize.
+pose proof (Hsafe_optimize c cf a opt_a H H0).
+assumption.
+Qed.
 
 
 (*

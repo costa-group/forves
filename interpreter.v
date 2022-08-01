@@ -618,7 +618,7 @@ Proof. reflexivity. Qed.
 
 
 
-Definition eval_asfs (c: concrete_stack) (s: asfs) (ops: opm) : option (list EVMWord) :=
+Definition eval_asfs (c: concrete_stack) (s: asfs) (ops: opm) : option (concrete_stack) :=
 match s with
 | ASFSc height maxid curr_stack amap => 
     if List.length c =? height then
