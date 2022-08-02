@@ -89,28 +89,46 @@ opt a = (opt_a, true) ->
 eval_asfs c opt_a opmap = Some cf.
 
 
+Lemma optimize_fresh_var2_preservation: forall (m: asfs_map) (a a': asfs) 
+  (opt: nat -> asfs -> option asfs) (c cf: concrete_stack),
+safe_optimization_fvar opt ->
+optimize_fresh_var2 a m opt = (a', true) ->
+eval_asfs c a opmap = Some cf ->
+eval_asfs c a' opmap = Some cf.
+Proof.
+intros m.
+induction m as [| h t IH]. 
+- intros. unfold optimize_fresh_var2 in H0. injection H0 as Hasfs Hfalse. 
+  discriminate.
+- intros. 
+  unfold optimize_fresh_var2 in H0.
+  destruct h as [fvar expr] eqn: eq_h.
+  destruct (opt fvar a) as [opt_a|] eqn: eq_opt_fvar.
+  + injection H0 as eqa'.
+    unfold safe_optimization_fvar in H.
+    rewrite -> eqa' in eq_opt_fvar.
+    pose proof (H fvar c cf a a' H1 eq_opt_fvar).
+    assumption.
+  + fold optimize_fresh_var2 in H0.
+    pose proof (IH a a' opt c cf H H0 H1).
+    assumption.
+Qed.
+
+
 Lemma optimize_fresh_var_preservation: forall (opt: nat -> asfs -> option asfs),
 safe_optimization_fvar opt ->
 safe_optimization (optimize_fresh_var opt).
 Proof.
-intros. unfold safe_optimization_fvar in H.
+intros. 
 unfold safe_optimization. intros.
-unfold optimize_fresh_var in H1.
 destruct a as [ha maxa sa ma] eqn: eq_a.
-unfold optimize_fresh_var2 in H1.
-destruct ma as [| h t] eqn: eq_m.
-(* INDUCTION ON ma, GENERALIZE RESULTS *)
-- injection H1 as Hasfs Hfalse. discriminate.
-- destruct h as [fvar expr] eqn: eq_h.
-  destruct (opt fvar (ASFSc ha maxa sa ((fvar, expr) :: t))) as [a'|] 
-    eqn: eq_opt_fvar.
-  + injection H1 as eqa'.
-    rewrite <- eq_a in H0. rewrite <- eq_a in eq_opt_fvar.
-    rewrite -> eqa' in eq_opt_fvar.
-    pose proof (H fvar c cf a opt_a H0 eq_opt_fvar).
-    assumption.
-  + fold optimize_fresh_var2 in H1.
-Admitted. 
+unfold optimize_fresh_var in H1.
+rewrite <- eq_a in H1. rewrite <- eq_a in H0.
+pose proof (optimize_fresh_var2_preservation ma a opt_a opt c cf H H1 H0).
+assumption.
+Qed.
+
+
 
 
 Definition stack_val_has_value (av: asfs_stack_val) (v: EVMWord) : bool :=
@@ -224,9 +242,9 @@ Qed.
 
 
 
-(* 
+(*******************************************
   Optimization ADD(0,X) or ADD(X,0) --> X 
-*)
+********************************************)
 Fixpoint optimize_map_add_zero (fresh_var: nat) (map: asfs_map): 
   option asfs_map :=
 match map with
@@ -247,7 +265,7 @@ match map with
                       end
 end.
 
-Definition optimize_add_zero (fresh_var: nat) (s: asfs) : option asfs :=
+Definition optimize_add_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_add_zero fresh_var s.
 
 Lemma word_add_0_x_is_x: forall (x: EVMWord),
@@ -331,10 +349,10 @@ induction m1 as [|h t IH].
     * apply IH with (n:=n); try assumption.
 Qed.
 
-Theorem optimize_add_zero_safe: forall (a1 a2: asfs) (fresh_var: nat)
+Theorem optimize_add_zero_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: concrete_stack) (ops: opm),
 ops ADD = Some (Op true 2 add) ->
-optimize_add_zero fresh_var a1 = Some a2 ->
+optimize_add_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
 intros.
@@ -353,13 +371,37 @@ apply eq_eval_elem_stack. assumption.
 Qed.
 
 
+(* This is the main ADD_0 optimization *)
+Definition optimize_add_zero (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_add_zero_fvar a.
+
+
+Lemma optimize_add_zero_fvar_safe:
+safe_optimization_fvar optimize_add_zero_fvar.
+Proof.
+unfold safe_optimization_fvar. intros.
+assert (opmap ADD = Some (Op true 2 add)) as Hopmap_add; try reflexivity.
+pose proof (optimize_add_zero_fvar_eq a opt_a n c opmap Hopmap_add H0)
+  as Heq_eval_a_opta.
+rewrite -> Heq_eval_a_opta in H.
+rewrite -> H.
+reflexivity.
+Qed.
+
+
+Theorem optimize_add_zero_safe:
+safe_optimization optimize_add_zero.
+Proof.
+apply optimize_fresh_var_preservation.
+apply optimize_add_zero_fvar_safe.
+Qed.
 
 
 
 
-(* 
+(****************************************** 
   Optimization MUL(1,X) or MUL(X,1) --> X 
-*)
+*******************************************)
 Fixpoint optimize_map_mul_one (fresh_var: nat) (map: asfs_map): 
   option asfs_map :=
 match map with
@@ -380,7 +422,7 @@ match map with
                       end
 end.
 
-Definition optimize_mul_one (fresh_var: nat) (s: asfs) : option asfs :=
+Definition optimize_mul_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_mul_one fresh_var s.
 
 Search wmult.
@@ -402,7 +444,7 @@ Qed.
 
 (* Main lemma: every stack value is evaluated to the same value in the 
    original map and also in the optimized one for MUL_1 *)
-Lemma eq_eval_opt_mul_one: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
+Lemma eq_eval_opt_mul_one_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: concrete_stack),
 ops MUL = Some (Op true 2 mul) ->
 optimize_map_mul_one n m1 = Some m2 ->
@@ -467,10 +509,10 @@ induction m1 as [|h t IH].
 Qed.
 
 
-Theorem optimize_mul_one_safe: forall (a1 a2: asfs) (fresh_var: nat)
+Theorem optimize_mul_one_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: concrete_stack) (ops: opm),
 ops MUL = Some (Op true 2 mul) ->
-optimize_mul_one fresh_var a1 = Some a2 ->
+optimize_mul_one_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
 intros.
@@ -481,7 +523,7 @@ destruct (optimize_map_mul_one fresh_var m1) eqn: eq_opt_mul_one_map;
   try discriminate.
 injection H0 as Hh1h2 Hmaxid1_2 Hs1s2 Hm1a.
 rewrite -> Hm1a in eq_opt_mul_one_map.
-pose proof (eq_eval_opt_mul_one m1 m2 ops fresh_var c H eq_opt_mul_one_map)
+pose proof (eq_eval_opt_mul_one_eq m1 m2 ops fresh_var c H eq_opt_mul_one_map)
   as Hall_elem_eval_same_m1_m2.
 simpl. rewrite -> Hh1h2. rewrite -> Hs1s2.
 destruct (length c =? h2); try reflexivity.
@@ -489,12 +531,39 @@ apply eq_eval_elem_stack. assumption.
 Qed.
 
 
+(* This is the main MUL_1 optimization *)
+Definition optimize_mul_one (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_mul_one_fvar a.
+
+
+Lemma optimize_mul_one_fvar_safe:
+safe_optimization_fvar optimize_mul_one_fvar.
+Proof.
+unfold safe_optimization_fvar. intros.
+assert (opmap MUL = Some (Op true 2 mul)) as Hopmap_mul; try reflexivity.
+pose proof (optimize_mul_one_eq a opt_a n c opmap Hopmap_mul H0)
+  as Heq_eval_a_opta.
+rewrite -> Heq_eval_a_opta in H.
+rewrite -> H.
+reflexivity.
+Qed.
+
+
+Theorem optimize_mul_one_safe:
+safe_optimization optimize_mul_one.
+Proof.
+apply optimize_fresh_var_preservation.
+apply optimize_mul_one_fvar_safe.
+Qed.
 
 
 
-(* 
+
+
+
+(*****************************************
   Optimization MUL(0,X) or MUL(X,0) --> 0
-*)
+******************************************)
 Fixpoint optimize_map_mul_zero (fresh_var: nat) (map: asfs_map): 
   option asfs_map :=
 match map with
@@ -518,6 +587,7 @@ end.
 Definition optimize_mul_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_mul_zero fresh_var s.
 
+(* THIS IS THE MAIN MUL_0 OPTIMIZATION *)
 Definition optimize_mul_zero : (asfs -> asfs*bool) :=
 optimize_fresh_var optimize_mul_zero_fvar.
 
@@ -662,7 +732,8 @@ simpl in H1. destruct (length c =? h1); try discriminate.
 apply eq_succ_eval_elem_stack with (m1:=m1); try assumption.
 Qed.
 
-Theorem optimize_mul_zero_safe_fvar: 
+
+Theorem optimize_mul_zero_fvar_safe: 
 safe_optimization_fvar optimize_mul_zero_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
@@ -673,15 +744,15 @@ Qed.
 Theorem optimize_mul_zero_safe: 
 safe_optimization optimize_mul_zero.
 Proof.
-unfold safe_optimization. intros.
-unfold optimize_mul_zero in H0.
-pose proof (optimize_mul_zero_safe_fvar) as Hsafe_fvar_mult_zero.
-pose proof (optimize_fresh_var_preservation optimize_mul_zero_fvar
-  Hsafe_fvar_mult_zero) as Hsafe_optimize.
-unfold safe_optimization in Hsafe_optimize.
-pose proof (Hsafe_optimize c cf a opt_a H H0).
-assumption.
+apply optimize_fresh_var_preservation.
+apply optimize_mul_zero_fvar_safe.
 Qed.
+
+
+
+
+
+
 
 
 (*
