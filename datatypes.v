@@ -222,3 +222,13 @@ Inductive asfs : Type :=
   | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
 
 End Abstract.
+Import Abstract.
+
+
+
+Module Optimizations.
+
+Definition optimization := asfs -> asfs*bool.
+
+End Optimizations.
+Import Optimizations. 

@@ -4,7 +4,7 @@ Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
 Require Import Coq_EVM.datatypes.
-Import EVM_Def Concrete Abstract.
+Import EVM_Def Concrete Abstract Optimizations.
 Require Import Coq_EVM.interpreter.
 Import Interpreter SFS.
 Import ListNotations.
@@ -752,6 +752,110 @@ Qed.
 
 
 
+
+(***************************************
+Application of a list of optimizations
+****************************************)
+
+(* Apply all the optimization functions in chain, returns false if 
+   some optimization cannot be applied *)
+Fixpoint apply_all_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
+match l_opt with
+| nil => (a, true)
+| opt::ropts => match opt a with
+                | (a', true) => apply_all_op ropts a'
+                | (a', false) => (a, false)
+                end
+end.
+
+(* Apply the first optimization function possible, returns false only if 
+   no optimization can be applied *)
+Fixpoint apply_first_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
+match l_opt with
+| nil => (a, false)
+| opt::ropts => match opt a with
+                | (a', true) => (a', true)
+                | (_, false) => apply_first_op ropts a
+                end
+end.
+
+
+(* A pipeline of optimizations if safe if every optimization in the list 
+   is safe *)
+Definition safe_optimization_pipeline (l: list optimization) :=
+Forall safe_optimization l.
+
+
+Theorem apply_all_op_safety: forall (l: list optimization),
+safe_optimization_pipeline l -> 
+safe_optimization (apply_all_op l).
+induction l as [|opt ropts IH].
+- unfold safe_optimization. intros.
+  simpl in H1. injection H1 as H1. 
+  rewrite <- H1.
+  assumption.
+- unfold safe_optimization. intros.
+  unfold safe_optimization_pipeline in H.
+  assert (Hcopy := H).
+  apply Forall_inv in H.
+  unfold safe_optimization_pipeline in IH.
+  apply Forall_inv_tail in Hcopy.
+  apply IH in Hcopy.
+  unfold apply_all_op in H1.
+  destruct (opt a) as [a1 flag] eqn: eq_opta.
+  destruct flag eqn: eq_flag.
+  + fold apply_all_op in H1.
+    unfold safe_optimization in H.
+    pose proof (H c cf a a1 H0 eq_opta).
+    unfold safe_optimization in Hcopy.
+    apply Hcopy with (a:=a1).
+    * apply H2.
+    * apply H1.
+  + injection H1 as _ Hfalse. discriminate.
+Qed.
+
+
+
+Theorem apply_first_op_safety: forall (l: list optimization),
+safe_optimization_pipeline l -> 
+safe_optimization (apply_first_op l).
+induction l as [|opt ropts IH].
+- unfold safe_optimization. intros.
+  simpl in H1. injection H1 as _ Hfalse. 
+  discriminate.
+- unfold safe_optimization. intros.
+  unfold safe_optimization_pipeline in H.
+  assert (Hcopy := H).
+  apply Forall_inv in H.
+  unfold safe_optimization_pipeline in IH.
+  apply Forall_inv_tail in Hcopy.
+  apply IH in Hcopy.
+  unfold apply_first_op in H1.
+  destruct (opt a) as [a1 flag] eqn: eq_opta.
+  destruct flag eqn: eq_flag.
+  + unfold safe_optimization in H.
+    pose proof (H c cf a a1 H0 eq_opta).
+    injection H1 as eqa1_opta.
+    rewrite <- eqa1_opta.
+    apply H2.
+  + fold apply_first_op in H1.
+    unfold safe_optimization in Hcopy.
+    apply Hcopy with (a:=a).
+    * apply H0.
+    * apply H1.
+Qed.
+
+
+Theorem our_optimization_pipeline_is_safe: 
+safe_optimization_pipeline [optimize_add_zero; optimize_mul_one; 
+  optimize_mul_zero].
+Proof.
+unfold safe_optimization_pipeline. 
+apply Forall_cons; try apply optimize_add_zero_safe.
+apply Forall_cons; try apply optimize_mul_one_safe.
+apply Forall_cons; try apply optimize_mul_zero_safe.
+intuition.
+Qed.
 
 
 
