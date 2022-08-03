@@ -56,6 +56,14 @@ match (a, b) with
 end.
 Notation "m '=?i' n" := (eq_gen_instr m n) (at level 100).
 
+Lemma eq_gen_instr_correct:  forall (a b: gen_instr),
+eq_gen_instr a b = true -> a = b.
+Proof.
+intros. unfold eq_gen_instr in H. 
+destruct a; try (destruct b; intuition).
+Qed.
+
+
 
 (* ================================================================= *)
 (** ** Implementation of current instructions *)
@@ -209,7 +217,7 @@ Inductive asfs_stack_val : Type :=
 
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)
-  | ASFSOp  (opcode : gen_instr) (args : list asfs_stack_val).
+  | ASFSOp (opcode : gen_instr) (args : list asfs_stack_val).
 
 Definition concrete_stack := list EVMWord.
 Definition in_stack := list nat.

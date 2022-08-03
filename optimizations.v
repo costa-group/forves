@@ -56,6 +56,46 @@ Qed.
 
 (* General definitions to define different optimizations and useful common
    lemmas *)
+   
+Fixpoint lookup_asfs_map (m: asfs_map) (fvar: nat) : option asfs_map_val :=
+match m with
+| [] => None
+| (k,v)::t => if k =? fvar then Some v
+              else lookup_asfs_map t fvar
+end.   
+
+(*Definition stack_val_is_oper (oper: gen_instr) (val: asfs_stack_val) 
+  (m: asfs_map) : option (list asfs_stack_val) :=
+match val with 
+| Val _ => None
+| InStackVar _ => None
+| FreshVar fvar => match lookup_asfs_map m fvar with
+                   | Some (ASFSOp opcode args) =>
+                       if eq_gen_instr oper opcode then Some args
+                       else None
+                   | _ => None
+                   end
+end.*)
+
+Fixpoint stack_val_is_oper (oper: gen_instr) (val: asfs_stack_val) 
+  (m: asfs_map) {struct m}: option (list asfs_stack_val) :=
+match val with 
+| Val _ => None
+| InStackVar _ => None
+| FreshVar fvar => match m with
+                   | [] => None
+                   | (k,v)::t => 
+                       if k =? fvar then
+                         match v with
+                         | ASFSOp opcode args =>
+                           if eq_gen_instr oper opcode then Some args
+                           else None
+                         | _ => None
+                         end
+                       else stack_val_is_oper oper val t
+                   end
+end.
+
 
 Fixpoint optimize_fresh_var2 (a: asfs) (m: asfs_map) 
  (opt: nat -> asfs -> option asfs): asfs*bool :=
@@ -746,6 +786,208 @@ safe_optimization optimize_mul_zero.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_mul_zero_fvar_safe.
+Qed.
+
+
+
+
+
+
+(*****************************************
+  Optimization NOT(NOT(X)) --> X
+******************************************)
+Fixpoint optimize_map_not_not (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp NOT [arg] => 
+                     match stack_val_is_oper NOT arg t with 
+                     | Some [arg'] => Some ((n, ASFSBasicVal arg')::t)
+                     | _ => None
+                     end
+                 | _ => None
+                 end
+                 else match optimize_map_not_not fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_not_not_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_not_not fresh_var s.
+
+(* THIS IS THE MAIN NOT_NOT OPTIMIZATION *)
+Definition optimize_not_not : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_not_not_fvar.
+
+
+Lemma wnot_idempotent: forall {sz : nat} (w : word sz), wnot (wnot w) = w.
+Proof.
+intros. induction w.
+- reflexivity.
+- simpl. rewrite <- negb_involutive_reverse.
+  rewrite -> IHw.
+  reflexivity.
+Qed.
+
+(*
+Lemma adsf:
+stack_val_is_oper oper (FreshVar fvar) ((fvar,val) :: t) = Some inner_args ->
+eval_asfs2 stack inner_args ((k, ASFSOp opcode args) :: t) ops =
+     Some inner_vals ->
+eval_asfs2 stack inner_args t ops = Some inner_vals
+*)
+
+Lemma val_is_oper_gen: forall (m: asfs_map) (oper: gen_instr)
+ (arg: asfs_stack_val) (inner_args: list asfs_stack_val) 
+ (stack inner_vals: concrete_stack) (ops: opm) 
+ (func: list EVMWord -> option EVMWord)
+ (comm: bool) (nbargs: nat),
+stack_val_is_oper oper arg m = Some inner_args ->
+ops oper = Some (Op comm nbargs func) ->
+eval_asfs2 stack inner_args m ops = Some inner_vals ->
+length inner_args = nbargs ->
+eval_asfs2_elem stack arg m ops = func inner_vals.
+Proof.
+induction m as [|h t IH].
+- intros. destruct arg as [const|var|fvar] eqn: eq_arg.
+  + simpl in H. discriminate.
+  + simpl in H. discriminate.
+  + unfold stack_val_is_oper in H. unfold lookup_asfs_map in H.
+    discriminate.
+- intros. destruct arg as [const|var|fvar] eqn: eq_arg.
+  + simpl in H. discriminate.
+  + simpl in H. discriminate.
+  + unfold stack_val_is_oper in H. 
+    destruct h as [k v] eqn: eq_h.
+    destruct (k =? fvar) eqn: eq_k_fvar.
+    * destruct v as [|opcode args] eqn: eq_v; try discriminate.
+      destruct (oper =?i opcode) eqn: eq_oper_opcode; try discriminate.
+      injection H as H.
+      unfold eval_asfs2_elem. rewrite -> eq_k_fvar.
+      apply eq_gen_instr_correct in eq_oper_opcode.
+      rewrite <- eq_oper_opcode. rewrite -> H0.
+      rewrite -> H.
+      apply Nat.eqb_eq in H2. rewrite -> H2.
+      rewrite -> eval_asfs2_ho.
+      admit.
+    * unfold eval_asfs2_elem. rewrite -> eq_k_fvar.
+      fold eval_asfs2_elem. fold stack_val_is_oper in H.
+      apply IH with (oper:=oper) (inner_args:=inner_args) (comm:=comm)
+        (nbargs:=nbargs); try assumption.
+      unfold eval_asfs2 in H1. admit.
+Admitted.
+
+Lemma val_is_oper_unary: forall (oper: gen_instr) (m: asfs_map) 
+ (arg inner_arg: asfs_stack_val) (stack: concrete_stack)
+ (inner_val: EVMWord) (ops: opm) (func: list EVMWord -> option EVMWord)
+ (comm: bool) (nbargs: nat),
+stack_val_is_oper oper arg m = Some [inner_arg] ->
+ops oper = Some (Op comm nbargs func) ->
+eval_asfs2_elem stack inner_arg m ops = Some inner_val ->
+eval_asfs2_elem stack arg m ops = func [inner_val].
+Proof.
+intros.
+apply val_is_oper_gen with (oper:=oper)(inner_args:=[inner_arg])
+ (comm:=comm)(nbargs:=nbargs); try assumption.
+unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+rewrite -> H1. reflexivity.
+Qed.
+
+(* Could be generalized to any arity? Otherwise we need proofs for 1 and 2 
+   arguments at least *)
+Lemma eval_outer_implies_inner: forall (stack: concrete_stack) (op: gen_instr)
+  (arg inner_arg: asfs_stack_val) (m: asfs_map) (ops: opm) (v: EVMWord),
+eval_asfs2_elem stack arg m ops = Some v -> 
+stack_val_is_oper op arg m = Some [inner_arg] ->
+exists (v': EVMWord), eval_asfs2_elem stack inner_arg m ops = Some v'.
+Proof.
+Admitted.
+
+
+
+(* Main lemma: every stack value is evaluated to the same value in the 
+   original map and also in the optimized one for NOT_NOT *)
+Lemma eq_succ_eval_opt_not_not_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
+  (stack: concrete_stack),
+ops NOT = Some (Op false 1 not) ->
+optimize_map_not_not n m1 = Some m2 ->
+forall (elem: asfs_stack_val) (v: EVMWord), 
+  eval_asfs2_elem stack elem m1 ops = Some v ->
+  eval_asfs2_elem stack elem m2 ops = Some v.
+Proof.
+induction m1 as [|h t IH].
+- intros. simpl in H0. discriminate.
+- intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
+  destruct (hn =? n) eqn: eq_hn_n.
+  + (* We have found the fresh variable to optimize in the map *) 
+    destruct (hv) as [basicval|opval] eqn: eq_hv. 
+    * discriminate.
+    * destruct (opval) eqn: eq_opval; try discriminate.
+      destruct args as [| arg1 ta]; try discriminate.
+      destruct ta; try discriminate.
+      destruct (stack_val_is_oper NOT arg1 t) as [inner_args|] 
+        eqn: eq_arg_is_NOT; try discriminate.
+      destruct inner_args as [| inner_arg inner_t] eqn: eq_inner_args;
+        try discriminate.
+      destruct inner_t eqn: eq_inner_t; try discriminate.
+      injection H0 as eq_m2. rewrite <- eq_m2.
+      destruct elem as [val|var|fvar] eqn: eq_elem.
+      -- rewrite -> eval_value in H1.
+         rewrite -> eval_value. assumption.
+      -- rewrite -> eval_var with (m2 := ((hn, ASFSBasicVal inner_arg) :: t))
+           in H1. assumption.
+      -- unfold eval_asfs2_elem. unfold eval_asfs2_elem in H1. 
+         destruct (hn =? fvar) eqn: eq_vame_fvar.
+         ++ fold eval_asfs2_elem. 
+            rewrite -> H in H1. simpl in H1.
+            fold eval_asfs2_elem in H1.
+            destruct (eval_asfs2_elem stack arg1 t ops) eqn: eq_eval_arg1;
+              try discriminate.
+            pose proof (eval_outer_implies_inner stack NOT arg1 inner_arg
+              t ops e eq_eval_arg1 eq_arg_is_NOT) as [v' Hevalinner].
+            pose proof (val_is_oper_unary NOT t arg1 inner_arg stack  v' ops
+              not false 1 eq_arg_is_NOT H Hevalinner).
+            rewrite -> H0 in eq_eval_arg1.
+            simpl in eq_eval_arg1. injection eq_eval_arg1 as eq_e.
+            simpl in H1. injection H1 as H1. rewrite <- H1.
+            simpl in H0.
+            rewrite -> Hevalinner.
+            rewrite <- eq_e.
+            rewrite -> wnot_idempotent.
+            reflexivity.
+         ++ fold eval_asfs2_elem in H1. fold eval_asfs2_elem. 
+            assumption.
+  + (* This is not yet the fresh variable to optimize*) 
+    destruct (optimize_map_not_not n t) as [map'|] eqn: eq_optimize_t; 
+      try discriminate.
+    injection H0 as H0. rewrite <- H0. 
+    destruct elem as [val|var|fvar] eqn: eq_elem.
+    * rewrite -> eval_value in H1. rewrite -> eval_value. assumption.
+    * rewrite -> eval_var with (m2 := ((hn, hv) :: map'))
+           in H1. assumption.
+    * simpl. simpl in H1. 
+      destruct (hn =? fvar) eqn: eq_hn_fvar.
+      -- destruct hv eqn: eq_hv.
+         ++ apply IH with (n:=n); try assumption.
+         ++ destruct (ops opcode) as [ops_val|] eqn: eq_ops_opcode; 
+              try discriminate.
+            destruct (ops_val) as [comm nargs func] eqn: eq_opval.
+            destruct (length args =? nargs); try discriminate.
+            rewrite -> eval_asfs2_ho in H1. rewrite -> eval_asfs2_ho.
+            pose proof (IH map' ops n stack H eq_optimize_t) as
+              eq_succ_eval_elem_t_map'.
+            destruct (eval_asfs2 stack args t ops) as [vargs|] 
+              eqn: eq_eval_args; try discriminate.
+            pose proof (eq_succ_eval_elem_stack stack vargs t map' ops args
+              eq_succ_eval_elem_t_map' eq_eval_args) as IHc.
+            rewrite -> IHc. assumption.
+      -- pose proof (IH map' ops n stack H eq_optimize_t (FreshVar fvar) v
+           H1) as eq_succ_eval_elem_t_map'.
+         rewrite -> eq_succ_eval_elem_t_map'.
+         reflexivity.
 Qed.
 
 
