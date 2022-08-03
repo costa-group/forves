@@ -1126,3 +1126,354 @@ Proof obligations: [opt1; opt2;....] is a sublist of l:op
 
 
 (* Joseba *)
+
+(** Here I add a more naive approach to optimizations that allows the "empty"
+    optimization, in case a specific optimization is not applicable.
+    
+    Examples:
+      
+      e = ASFSOp ADD [FreshVar 1; Val 0] 
+      opt_add_0_elem e = ASFSBasicVal (FreshVar 1)
+      
+      e = ASFSOp ADD [FreshVar 1; FreshVar 2]
+      opt_add_0_elem e = e
+    
+ *)
+
+(* Definitions *)
+Definition opt  := asfs_map_val -> asfs_map_val.
+Definition optm := asfs_map -> asfs_map.
+Definition opta := asfs -> asfs.
+Definition optl := asfs -> asfs.
+
+(* Simple optimizations *) 
+Definition opt_add_0_elem (e: asfs_map_val) : asfs_map_val :=
+  match e with
+  | ASFSOp ADD [a1; a2] =>
+      match stack_val_has_value a1 WZero,
+            stack_val_has_value a2 WZero with
+      | true, _      => ASFSBasicVal a2
+      | _   , true   => ASFSBasicVal a1
+      | false, false => e
+      end
+  | _ => e
+  end.
+
+Definition opt_add_0_check (e: asfs_map_val) : bool :=
+  match e with
+  | ASFSOp ADD [a1; a2] =>
+      stack_val_has_value a1 WZero || 
+      stack_val_has_value a2 WZero
+  | _ => false
+  end.
+
+Definition opt_mul_1_elem (e: asfs_map_val) : asfs_map_val :=
+  match e with
+  | ASFSOp MUL [a1; a2] =>
+      match stack_val_has_value a1 WOne,
+            stack_val_has_value a2 WOne with
+      | true, _      => ASFSBasicVal a2
+      | _   , true   => ASFSBasicVal a1
+      | false, false => e
+      end
+  | _ => e
+  end.
+
+Definition opt_mul_1_check (e: asfs_map_val) : bool :=
+  match e with
+  | ASFSOp MUL [a1; a2] =>
+      stack_val_has_value a1 WOne ||
+      stack_val_has_value a2 WOne
+  | _ => false
+  end.
+
+
+(* Optimizations applications *)
+
+Definition opt_map (o: opt) (m: asfs_map) : asfs_map :=
+  let (a,b) := split m in
+  let b' := List.map o b in
+  combine a b'.
+
+Definition opt_asfs (om: optm) (a: asfs) : asfs :=
+  match a with
+  | ASFSc h id s m => ASFSc h id s (om m)
+  end.
+
+Fixpoint opt_list_asfs (l: list opta) (a : asfs) : asfs :=
+  match l with
+  | [] => a
+  | o::l' => opt_list_asfs l' (o a)
+  end.
+
+
+Fixpoint opt_id (o: opt) (id: nat) (m : asfs_map): asfs_map :=
+  match m with
+  | [] => m
+  | (id', v)::m' =>
+      match id =? id' with
+      | false => opt_id o id m'
+      | true  => (id, o v)::m'
+      end
+  end.
+
+(* Correctness *)
+    
+Theorem th2: forall (c: concrete_stack) (v: EVMWord) (id: nat) (m: asfs_map) (ops: opm),
+  eval_asfs2_elem c (FreshVar id) ((id, ASFSBasicVal (Val v))::m) ops = Some v.
+  Proof.
+    intros. simpl. rewrite Nat.eqb_refl. destruct m; simpl; reflexivity. Qed.
+
+Theorem th3: forall (c: concrete_stack) (id var: nat) (m: asfs_map) (ops: opm),
+  eval_asfs2_elem c (FreshVar id) ((id, ASFSBasicVal (InStackVar var))::m) ops = nth_error c var.
+  Proof.
+    intros. simpl. rewrite Nat.eqb_refl. destruct m; simpl; reflexivity. Qed.
+
+(* Proof Test *)  
+(*
+Theorem th0: forall (c: concrete_stack) (e: asfs_stack_val) (m1 m2: asfs_map) (ops: opm) (id: nat),
+  ops ADD = Some (Op true 2 add) ->
+  opt_id opt_add_0_elem id m1 = m2 ->
+  e = FreshVar id ->
+  eval_asfs2_elem c e m1 ops = eval_asfs2_elem c e m2 ops.
+Proof.
+  intros c e m1 m2 ops id.
+  revert c e    m2 ops id.
+  induction m1 as [| entry m1' IH].
+  (* Base Case: m1 = [] *)
+  - intros c e m2 ops id.
+    intros H1 H2 H3. 
+    subst. reflexivity.
+  (* Inductive Case: m1 = pair::m1' *)
+  - intros c e m2 ops id.
+    intros H1 H2 H3.
+    simpl. 
+    rewrite H3. 
+    destruct entry as (id', v') eqn:Eq1.
+    destruct (id' =? id) eqn:Eq2.
+
+    (* Case: id' = id *)
+    -- 
+       destruct v' as [bv | opcode args] eqn:Eq3.
+      
+       (* Case: ASFSBasicVal bv *)
+       ---
+           simpl in H2. 
+           rewrite Nat.eqb_sym in Eq2. 
+           rewrite Eq2 in H2. 
+           rewrite <- H2. simpl. 
+           rewrite Nat.eqb_refl. 
+           reflexivity.   
+       
+       (* Case: ASFSOp mv *)
+       --- destruct (ops opcode) as [[comm nargs f]| None ] eqn:Eq4.
+           
+           (* Case: ops opcode = Some (Op comm nargs f) *)
+           ---- destruct (length args =? nargs) eqn:Eq5.
+                (* Case: |args| = nargs *)
+                ----- simpl in H2.
+                      rewrite Nat.eqb_sym in Eq2.
+                      rewrite Eq2 in H2.
+                      rewrite <- H2. simpl.
+                      rewrite Nat.eqb_refl.
+                      destruct opcode eqn:Eq6.
+                      ------ rewrite H1 in Eq4.
+                             injection Eq4 as Hc Hn Hf.
+                             rewrite <- Hn in Eq5.
+                             destruct args as [| arg1 args1] eqn:Eq7.
+                             + discriminate.
+                             + destruct args1 as [| arg2 args2] eqn:Eq8. 
+                               ++ discriminate.
+                               ++ destruct args2 as [| arg3 args3] eqn:Eq9.
+                                  +++ destruct (stack_val_has_value arg1 WZero) eqn:Eq10.
+                                      ++++ destruct (apply_f_list_asfs_stack_val 
+                                           (fun elem': asfs_stack_val => 
+                                           eval_asfs2_elem c elem' m1' ops) args) as 
+                                           [args'|] eqn:Eq11. 
+                                           +++++ rewrite Eq7 in Eq11. rewrite Eq11. 
+                                                 destruct m1'.
+                                                 ++++++ simpl. admit.
+                                                 ++++++ discriminate. 
+                                           +++++ admit. 
+                                      ++++ admit.
+                                  +++ discriminate .
+                               
+
+
+                      destruct 
+                      (apply_f_list_asfs_stack_val 
+                        (fun elem': asfs_stack_val => 
+                          eval_asfs2_elem c elem' m1' ops) args) as [args'|]eqn:Eq6.
+                          (* Case: ... = Some args' *)
+                          ------ 
+                                 simpl in H2. x1º
+                                 rewrite Nat.eqb_sym in Eq2. 
+                                 rewrite Eq2 in H2. 
+                                 rewrite <- H2. simpl. 
+                                 rewrite Nat.eqb_refl.
+                                 destruct opcode eqn:Eq7;
+                                   try (rewrite Eq4; rewrite Eq5; rewrite Eq6; reflexivity). 
+                                 ------- rewrite H1 in Eq4. 
+                                         injection Eq4 as Hc Hn Hf.
+                                         rewrite <- Hn in Eq5.
+                                         admit.
+
+
+                          (* Case: ... = None *)
+                          ------ 
+                                 simpl in H2. 
+                                 rewrite Nat.eqb_sym in Eq2. 
+                                 rewrite Eq2 in H2. 
+                                 rewrite <- H2. simpl. 
+                                 rewrite Nat.eqb_refl.
+
+                                 destruct opcode eqn:Eq7;
+                                 (* Case: opcode = MUL *)
+                                 (* Case: opcode = NOT *)
+                                  try (rewrite Eq4; rewrite Eq5; rewrite Eq6; reflexivity).
+                                 rewrite H1 in Eq4.
+                                 injection Eq4 as Hc Hn Hf.
+                                 rewrite <- Hn in Eq5.
+                                 destruct args as [| arg1 args1] eqn:Eq8.
+                                 ------- rewrite H1. simpl. reflexivity.
+                                 ------- destruct args1 as [|arg2 args2] eqn:Eq9.
+                                         -------- rewrite H1. simpl. reflexivity.
+                                         -------- destruct args2 as [| arg3 args3] eqn:Eq10.
+                                         + simpl in Eq6.       
+                                           destruct (eval_asfs2_elem c arg1 m1' ops) eqn:Eq11.
+                                           ++ destruct (eval_asfs2_elem c arg2 m1' ops) eqn:Eq12.
+                                              +++ discriminate. 
+                                              +++ destruct 
+                                                  (stack_val_has_value arg1 WZero) eqn:Eq13.
+                                                  ++++ destruct m1' eqn:Eq14.
+                                                       +++++ destruct arg1 eqn:Eq15;
+                                                             try (simpl in Eq12; discriminate).
+                                                             rewrite Eq12. reflexivity.
+                                                       +++++ destruct arg1 eqn:Eq15;
+                                                             try (simpl in Eq12; discriminate).
+                                                             rewrite Eq12. reflexivity.
+
+
+
+                                                  ++++ destruct (stack_val_has_value arg2 WZero) 
+                                                       eqn:Eq14.
+                                                       +++++ admit.
+
+
+                                                       +++++ rewrite H1. simpl.
+                                                             rewrite Eq11.
+                                                             rewrite Eq12.
+                                                             reflexivity.
+                                           ++ destruct (eval_asfs2_elem c arg1 m1' ops) eqn:Eq12.
+                                              +++ discriminate.
+                                              +++ destruct
+                                                  (stack_val_has_value arg1 WZero) eqn:Eq13.
+                                                  ++++ destruct m1' eqn:Eq14.
+                                                       +++++ simpl. 
+                                                             destruct arg1 eqn:Eq15; 
+                                                             simpl in Eq12; discriminate.
+                                                       +++++ simpl.
+                                                             destruct arg1 eqn:Eq15; 
+                                                             simpl in Eq12; discriminate.
+
+                                                  ++++ destruct (stack_val_has_value arg2 WZero)
+                                                       eqn:Eq14.
+                                                       +++++ rewrite Eq12. reflexivity.
+                                                       +++++ rewrite H1. 
+                                                             simpl. rewrite Eq12. 
+                                                             reflexivity. 
+
+
+
+                                         + rewrite H1. simpl. reflexivity. 
+
+                (* Case: |args| != nargs *)
+                ----- 
+                      simpl in H2. 
+                      rewrite Nat.eqb_sym in Eq2. 
+                      rewrite Eq2 in H2.
+                      rewrite <- H2. simpl. 
+                      rewrite Nat.eqb_refl.
+                      destruct opcode eqn:Eq6; 
+                      (* Case: opcode = MUL *)
+                      (* Case: opcode = NOT *)
+                        try (rewrite Eq4; rewrite Eq5; reflexivity).
+                      (* Case: opcode = ADD *)
+                        rewrite H1 in Eq4. 
+                        injection Eq4 as Hc Hn Hf.
+                        rewrite <- Hn in Eq5.
+                        destruct args as [| arg1 args1] eqn:Eq7.
+                        (* Case: args = [] *)
+                        ------ rewrite H1. simpl. reflexivity.
+                        (* Case: args = arg1::args1 *)
+                        ------ destruct args1 as [| arg2 args2] eqn:Eq8.
+                               (* Case: args1 = [] *)
+                               ------- rewrite H1. simpl. reflexivity.
+                               (* Case: args1 = arg2::args2 *)
+                               ------- destruct args2 as [| arg3 args3] eqn:Eq9.
+                                       (* Case: args2 = [] *)
+                                       -------- discriminate.
+                                       (* Case: args2 = arg3::args3 *)
+                                       -------- rewrite H1. simpl. reflexivity.
+           
+           (* Case: ops opcode = None *) 
+           ---- simpl in H2. 
+                rewrite Nat.eqb_sym in Eq2. 
+                rewrite Eq2 in H2. 
+                rewrite <- H2. simpl.
+                rewrite Nat.eqb_refl.
+
+                destruct opcode eqn:Eq5;
+                (* Case: opcode != ADD *)
+                  try (rewrite Eq4; reflexivity).
+                (* Case: opcode = ADD *)
+                  rewrite H1 in Eq4. discriminate. 
+
+    (* Case: id' != id *)
+    -- simpl in H2. 
+       rewrite Nat.eqb_sym in Eq2. 
+       rewrite Eq2 in H2.
+       rewrite <- H3.
+       apply IH with (id := id); try assumption.
+Admitted.
+*)
+
+
+
+(* Examples *)
+
+Example p1 : prog := [
+  Opcode ADD;
+  PUSH 1 (natToWord WLen 0); 
+  PUSH 1 (natToWord WLen 2);
+  Opcode ADD;
+  PUSH 1 (natToWord WLen 1); 
+  PUSH 1 (natToWord WLen 0);
+  Opcode MUL
+].
+
+Definition extract_asfs (a: option asfs) : asfs :=
+  match a with
+  | None => empty_asfs 0
+  | Some a' => a'
+  end.
+
+(* Create asfs a, asfs opt o1 and o2, and opta list ol *)
+Example a1 := extract_asfs (symbolic_exec p1 3 opmap).
+Example o1 := opt_asfs (opt_map opt_add_0_elem).
+Example o2 := opt_asfs (opt_map opt_mul_1_elem).
+Example ol := [o1; o2].
+
+Example t1 := get_stack_asfs a1.
+Example t2 := get_map_asfs a1.
+Example t3 := o1 a1.
+Example t4 := o2 a1.
+Example t5 := opt_list_asfs ol a1.
+  
+Compute t1.
+Compute t2.
+Compute t3.
+Compute t4.
+Compute t5.
+
+
