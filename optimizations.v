@@ -53,6 +53,74 @@ apply aaa. apply all_true_lnat.
 Qed.
 *)
 
+(* EXPLANATION OPTIMIZATIONS
+
+What is a safe optimization (a: ASFS) = a': ASFS?
+-------------------------------------------------
+1) Some optimizations like ADD(X,0) -> X or MUL(X,1) -> X completely preserve
+the evaluation of any asfs_stack_value 'e', i.e., if a' = optimization a then
+  eval_elem concrete_stack e a = eval_elem concrete_stack e a'
+Both return None and Some x in the same cases.
+
+2) Other optimizations like MUL(X,0) -> 0 do not completely preserve the 
+evaluation *for any asfs_stack_value 'e'* if 'e' is ill-defined (for example
+e = FresVar 57, where FreshVar 57 is not defined in the ASFS a). In these
+cases the evaluation can return None for the ASFS a but the evaluation in 
+a' returns 0. However, every successful evaluation in the ASFS a will obtain
+the same value in the ASFS a':
+  eval_elem concrete_stack e a = Some v ->
+  eval_elem concrete_stack e a' = Some v
+  
+Clearly, 1) implies 2) because is stronger. In summary, our notion of "safe
+optimization" must be 2), as all the optimizations will verify it and is 
+strong enought for our needs
+
+
+Do we need to impose some properties about the ASFS a?
+------------------------------------------------------
+Consider the optimization "NOT(NOT(X)) -> X" and an ASFS "a" with a mapping
+with this (simplified) shape:
+
+[ (100, NOT [FreshVar 75]), 
+  (50, Val 16),
+  (75, NOT [FreshVar 50]),
+  (50, Val 5),
+]
+
+The evaluation of (FreshVar 100) will be NOT(NOT(5)) = 5.
+
+The optimization NOT(NOT(X)) -> X will generate an optimized ASFS a' with a
+mapping with this (simplified) shape, where (FreshVar 100) points directly to
+the value in (FreshVar 50):
+
+[ (100, FreshVar 50), 
+  (50, Val 16),
+  (75, NOT [FreshVar 50]),
+  (50, Val 5),
+]
+
+Here, the evaluation of (FreshVar 100) will be 16. The problem here is that
+when evaluating (FreshVar 100) in the ASFS a' we have found an occurrence of 
+(FreshVar 50) with a different value that the one stored later in the mapping.
+
+In order to have preservation of the evaluation with this optimization, we
+cannot assume *any possible mapping* (as we have done in the rest of 
+optimizations) but a *mapping without repetitions*. It is not a problem 
+because the way we crete an ASFS with the symbolic execution there will never
+be repetitions (we always take maxid+1 as the FreshVar number). Indeed, the 
+mapping is *strictly decreasing in the fresh variable numbers*, which is a 
+stronger property that implies the absence of repetitions and can be more 
+convenient in for proofs?.
+
+Note that (so far) the optimization does not add any entry in the mapping but
+changes the value related to some entry, so the property is preserved under
+any optimization [which is mandatory in order to concatenate them]. 
+*)
+
+
+
+
+
 
 (* General definitions to define different optimizations and useful common
    lemmas *)
