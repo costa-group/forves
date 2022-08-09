@@ -1499,6 +1499,12 @@ Definition opt_map (o: opt) (m: asfs_map) : asfs_map :=
   let b' := List.map o b in
   combine a b'.
 
+Fixpoint opt_map' (o: opt) (m: asfs_map) : asfs_map :=
+  match m with
+  | [] => []
+  | (id, v)::m' => (id, o v)::(opt_map' o m')
+  end.
+
 Definition opt_asfs (om: optm) (a: asfs) : asfs :=
   match a with
   | ASFSc h id s m => ASFSc h id s (om m)
@@ -1521,6 +1527,12 @@ Fixpoint opt_id (o: opt) (id: nat) (m : asfs_map): asfs_map :=
       end
   end.
 
+(* Composition *)
+Definition opt_add_0_map := opt_map' opt_add_0_elem.
+Definition opt_add_0: opta := opt_asfs (opt_map opt_add_0_elem).
+Definition opt_mul_1: opta := opt_asfs (opt_map opt_mul_1_elem).
+
+
 (* Correctness *)
     
 Theorem th2: forall (c: concrete_stack) (v: EVMWord) (id: nat) (m: asfs_map) (ops: opm),
@@ -1532,6 +1544,281 @@ Theorem th3: forall (c: concrete_stack) (id var: nat) (m: asfs_map) (ops: opm),
   eval_asfs2_elem c (FreshVar id) ((id, ASFSBasicVal (InStackVar var))::m) ops = nth_error c var.
   Proof.
     intros. simpl. rewrite Nat.eqb_refl. destruct m; simpl; reflexivity. Qed.
+
+Theorem th4: forall {A B: Type} (la: list A) (lb: list B) (l : list (A*B)) (f: B -> B),
+  (la, lb) = split l  -> 
+  combine la (List.map f lb) = [] ->
+  l = []. Admitted.
+
+Theorem th5: forall {A B: Type} (l : list (A*B)) (ll: list A) (a: A) (b: B),
+  split ((a, b) :: l) <> (ll, []).
+Proof.
+  intros A B l ll a b H.
+  assert (HH:= split_combine ((a,b)::l)).
+  rewrite H in HH. rewrite combine_nil in HH. discriminate.
+Qed.
+
+
+(* Theorem th_opt_add_0_elem: forall (e e': asfs_map_val) (c: concrete_stack) *)
+(*   (m: asfs_map) (ops: opm), *) 
+(*   ops ADD = Some (Op true 2 add)-> *)
+(*   opt_add_0_elem e = e' -> *)
+(*   eval_asfs2_elem c e m ops = eval_asfs2_elem c e' m ops. *)
+
+Theorem th6: forall (p: nat*asfs_map_val) (m: asfs_map),
+  opt_map' opt_add_0_elem (p :: m) <> [].
+Proof.
+  intros p m H. destruct m.
+  - simpl in H. destruct p. discriminate. 
+  - simpl in H. destruct p. destruct p0. discriminate.
+Qed.
+
+Theorem th7: forall (m: asfs_map),
+  opt_map' opt_add_0_elem m = [] -> m = [].
+Proof.
+  intros. destruct m. reflexivity. cbn in H. destruct p. discriminate. Qed.
+
+Theorem th8: forall (c: concrete_stack) (var: nat) (m: asfs_map) (ops: opm),
+  eval_asfs2_elem c (InStackVar var) m ops = nth_error c var.
+Proof.
+  intros. destruct m; simpl; reflexivity. Qed.
+
+Lemma th_opt_add_0_val: forall (m1 m2: asfs_map) (ops: opm) (e: asfs_stack_val)
+  (c: concrete_stack) (val: EVMWord),
+  ops ADD = Some (Op true 2 add) ->
+  opt_add_0_map m1 = m2 ->
+  e = Val val ->
+  eval_asfs2_elem c e m1 ops = eval_asfs2_elem c e m2 ops.
+  Proof.
+    destruct m1.
+    - intros m2 ops e c val H1 H2 H3.
+      cbn in H2. rewrite <- H2. reflexivity.
+    - intros m2 ops e c val H1 H2 H3.
+      cbn. rewrite H3. rewrite eval_value. reflexivity.
+  Qed.
+
+Lemma th_opt_add_0_map: forall (m1 m2: asfs_map) (ops: opm)
+  (c: concrete_stack),
+  ops ADD = Some (Op true 2 add) ->
+  opt_add_0_map m1 = m2 ->
+  forall (e: asfs_stack_val), eval_asfs2_elem c e m1 ops = 
+                              eval_asfs2_elem c e m2 ops.
+  Proof.
+    induction m1 as [| (id, v) m1' IH].
+    (* Case: m1 = [] *)
+    - intros. cbn in H0. subst. reflexivity.
+    (* Case: m1 = (id,v)::m1' *)
+    - intros m2 ops c H1 H2.
+      destruct v as [basicval| opval] eqn:Eq1;
+        (* Case: v = BasicVal (Val val) *)
+        (* Case: v = BasicVal (Var var) *)
+        (* Case: v = BasicVal (FreshVar fvar) *)
+        try simpl in H2; try rewrite <- H2; try simpl;
+          destruct e as [val'|var'|fvar'] eqn:Eq2;
+          (* Case: e = Val val' *)
+          (* Case: e = Var var' *)
+          try reflexivity;
+          (* Case: e = FreshVar fvar' *)    
+          try destruct (id =? fvar') eqn:Eq3; 
+            try apply IH; 
+              try assumption; 
+              try reflexivity.
+        (* Case: v = Op opcode args *) 
+        destruct opval eqn:Eq4. 
+          (* Case: opcode = ADD *)
+          -- rewrite H1. 
+             destruct args  as [|arg2 args2] eqn:Eq5; try rewrite H1; try reflexivity.
+             destruct args2 as [|arg3 args3] eqn:Eq6; try rewrite H1; try reflexivity.
+             destruct args3 as [|arg4 args4] eqn:Eq7; try rewrite H1; try reflexivity.
+             simpl.
+             destruct (stack_val_has_value arg2 WZero) eqn:Eq8.
+             destruct (stack_val_has_value arg3 WZero) eqn:Eq9.
+             assert (Eq8' := stack_val_has_value_eval c arg2 WZero m1' ops Eq8).
+             assert (Eq9' := stack_val_has_value_eval c arg3 WZero m1' ops Eq9).
+             destruct arg2 as [val2|var2|fvar2] eqn:Eq10; try discriminate.
+             destruct arg3 as [val3|var3|fvar3] eqn:Eq11; try discriminate.
+             --- repeat (try rewrite eval_value).
+                 rewrite eval_value in Eq8'. injection Eq8' as Eq8'.
+                 rewrite Eq8'. rewrite word_add_0_x_is_x. reflexivity.
+             --- 
+                 destruct m2; try discriminate.
+                 destruct (opt_map' opt_add_0_elem m1') eqn:Eq12.
+                 ---- assert (Eq12' := th7 m1' Eq12). rewrite Eq12'. cbn.
+                      destruct arg2 eqn:Eq13; try discriminate.
+                      destruct arg3 eqn:Eq14; try discriminate; try reflexivity;
+                      try destruct (nth_error c var) eqn:Eq15; try reflexivity;
+                      try (
+                        assert (Eq8' := stack_val_has_value_eval c (Val val) WZero m1' ops Eq8);
+                        rewrite eval_value in Eq8'; injection Eq8' as Eq8'; rewrite Eq8';
+                        rewrite word_add_0_x_is_x; reflexivity).
+
+
+                 ---- pose proof (IH (p0::a) ops c H1 Eq12) as HH.
+                      rewrite <- HH.
+                      destruct m1' eqn:Eq13;  try discriminate.
+                      destruct arg2 eqn:Eq14; try discriminate. 
+                      rewrite eval_value.
+                      destruct arg3 eqn:Eq15;
+                      (* Case: arg3 = Val val *)
+                      (* Case: arg3 = InStackVar var *)
+                      (* Case: arg3 = FreshVar var *)
+                      try rewrite eval_value;
+                      try destruct (eval_asfs2_elem c (InStackVar var) (p1 :: l) ops) eqn:Eq16; try reflexivity;
+                      try destruct (eval_asfs2_elem c (FreshVar var) (p1 :: l)) eqn:Eq17; try reflexivity; 
+                      try (
+                        assert (Eq8' := stack_val_has_value_eval c (Val val) WZero m1' ops Eq8);
+                        rewrite eval_value in Eq8'; injection Eq8' as Eq8'; rewrite Eq8'; 
+                        rewrite word_add_0_x_is_x; reflexivity).
+
+
+
+             --- destruct m2; try discriminate.
+                 destruct (eval_asfs2_elem c arg2 m1' ops) eqn:Eq12.
+                 ---- destruct (eval_asfs2_elem c arg3 m1' ops) eqn:Eq13.
+                      ----- destruct (stack_val_has_value arg3 WZero) eqn:Eq14.
+                            + destruct (opt_map' opt_add_0_elem m1') eqn:Eq15.
+                              ++ destruct arg2 eqn:Eq16. 
+                                 +++ rewrite eval_value.
+                                     rewrite eval_value in Eq12.
+                                     assert (Eq14' := stack_val_has_value_eval c arg3 WZero m1' ops Eq14).
+                                     rewrite Eq13 in Eq14'. 
+                                     injection Eq14' as Eq14'. rewrite Eq14'.
+                                     injection Eq12  as Eq12.  rewrite Eq12.
+                                     rewrite word_add_x_0_is_x. reflexivity.
+                                 +++ assert (Eq14' := stack_val_has_value_eval c arg3 WZero m1' ops Eq14).
+                                     rewrite Eq13 in Eq14'. 
+                                     injection Eq14' as Eq14'. rewrite Eq14'.
+                                     destruct m1' eqn:Eq17.
+                                     ++++ simpl in Eq12.                                      
+                                          rewrite word_add_x_0_is_x. simpl.
+                                          rewrite Eq12. reflexivity.
+                                     ++++ exfalso. apply (th6 p0 l). assumption.
+                                 +++ assert (Eq14' := stack_val_has_value_eval c arg3 WZero m1' ops Eq14).
+                                     rewrite Eq13 in Eq14'. 
+                                     injection Eq14' as Eq14'. rewrite Eq14'.
+                                     rewrite word_add_x_0_is_x.
+                                     assert (Eq15' := th7 m1' Eq15). rewrite Eq15' in Eq12.
+                                     rewrite Eq12. reflexivity.
+                              ++ pose proof (IH (p0::a) ops c H1 Eq15) as HH.
+                                 rewrite <- HH. rewrite Eq12.
+                                 assert (Eq14' := stack_val_has_value_eval c arg3 WZero m1' ops Eq14).
+                                 rewrite Eq13 in Eq14'. 
+                                 injection Eq14' as Eq14'. rewrite Eq14'.
+                                 rewrite word_add_x_0_is_x. reflexivity.
+                            + rewrite H1. rewrite -> eval_asfs2_ho.
+                              destruct (opt_map' opt_add_0_elem m1') eqn:Eq15.
+                              ++ 
+                                 destruct arg2 eqn:Eq16.
+                                 destruct arg3 eqn:Eq17.
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as Eq12.
+                                     rewrite eval_value in Eq13. injection Eq13 as Eq13.
+                                     rewrite Eq12. rewrite Eq13.
+                                     reflexivity.
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as Eq12.
+                                     destruct (nth_error c var) eqn:Eq18.
+                                     ++++ rewrite (th8 c var m1' ops) in Eq13.
+                                          cbn. rewrite Eq12. rewrite Eq18.
+                                          rewrite Eq13 in Eq18. injection Eq18 as Eq18.
+                                          rewrite Eq18. reflexivity.
+                                     ++++ rewrite (th8 c var m1' ops) in Eq13.
+                                          rewrite Eq13 in Eq18. discriminate.
+
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as E12.
+                                     assert (Eq15':= th7 m1' Eq15).
+                                     rewrite Eq15' in Eq13.
+                                     simpl in Eq13. discriminate.
+                                 +++ assert (Eq15':= th7 m1' Eq15).
+                                     rewrite Eq15' in Eq12.
+                                     simpl in Eq12.
+                                     cbn. rewrite Eq12.
+                                     destruct arg3 eqn:Eq18.
+                                     ++++ rewrite eval_value in Eq13. injection Eq13 as Eq13.
+                                          rewrite Eq13. reflexivity.
+                                     ++++ rewrite (th8 c var0 m1' ops) in Eq13.
+                                          rewrite Eq13. reflexivity.
+                                     ++++ rewrite Eq15' in Eq13. simpl in Eq13. discriminate. 
+                                 +++ assert (Eq15':= th7 m1' Eq15).
+                                     rewrite Eq15' in Eq12. simpl in Eq12. discriminate. 
+
+
+
+                              ++ pose proof (IH (p0::a) ops c H1 Eq15) as HH.
+                                 destruct arg2 eqn:Eq16.
+                                 destruct arg3 eqn:Eq17.
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as Eq12.
+                                     rewrite eval_value in Eq13. injection Eq13 as Eq13.
+                                     rewrite Eq12. rewrite Eq13.
+                                     reflexivity.
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as Eq12.
+                                     destruct (nth_error c var) eqn:Eq18.
+                                     ++++ rewrite (th8 c var m1' ops) in Eq13.
+                                          cbn. rewrite Eq12. rewrite Eq18.
+                                          rewrite Eq13 in Eq18. injection Eq18 as Eq18.
+                                          rewrite Eq18. reflexivity.
+                                     ++++ rewrite (th8 c var m1' ops) in Eq13.
+                                          rewrite Eq13 in Eq18. discriminate.
+                                 +++ rewrite eval_value in Eq12. injection Eq12 as E12.
+                                     destruct m1' eqn:Eq18.
+                                     ++++ cbn in Eq13. discriminate.
+                                     ++++ simpl. admit.
+                                 +++ admit.
+                                 +++ destruct m1' eqn:E18.
+                                     ++++ simpl in Eq12. discriminate.
+                                     ++++ simpl. admit. 
+            
+                      ----- admit.
+                 ---- admit.
+ 
+          -- destruct (ops MUL) eqn:Eq5; try reflexivity.
+             destruct o eqn:Eq6.
+             destruct (length args =? nb_args) eqn:Eq7; try reflexivity.
+             destruct (opt_map' opt_add_0_elem m1') eqn:Eq8.
+             --- assert (Eq8' := th7 m1' Eq8). rewrite Eq8'. reflexivity.
+             --- pose proof (IH (p::a) ops c H1 Eq8) as HH.
+                 rewrite -> eval_asfs2_ho. rewrite -> eval_asfs2_ho.
+                 assert (HH2 := eq_eval_elem_stack c m1' (p::a) ops args HH).
+                 rewrite <- HH2. reflexivity.
+          -- destruct (ops NOT) eqn:Eq5; try reflexivity.
+             destruct o eqn:Eq6.
+             destruct (length args =? nb_args) eqn:Eq7; try reflexivity.
+             destruct (opt_map' opt_add_0_elem m1') eqn:Eq8.
+             --- assert (Eq8' := th7 m1' Eq8). rewrite Eq8'. reflexivity.
+             --- pose proof (IH (p::a) ops c H1 Eq8) as HH.
+                 rewrite -> eval_asfs2_ho. rewrite -> eval_asfs2_ho.
+                 assert (HH2 := eq_eval_elem_stack c m1' (p::a) ops args HH).
+                 rewrite <- HH2. reflexivity.
+
+Admitted.
+
+Theorem th_opt_add_0_correct: forall (c1 c2: concrete_stack) (a1 a2 : asfs) (ops: opm),
+  length c1 = get_height_asfs a1 ->
+  ops ADD = Some (Op true 2 add) ->
+  eval_asfs c1 a1  ops = Some c2 -> 
+  opt_add_0 a1 = a2 ->
+  eval_asfs c1 a2 ops = Some c2.
+  Proof.
+    intros c1 c2 a1 a2 ops.
+    intros H1 H2 H3 H4.
+    
+    (* Obtain some equalities *)
+    destruct a1 as [h1 id1 s1 m1] eqn:Eq1.
+    destruct a2 as [h2 id2 s2 m2] eqn:Eq2.
+    unfold opt_add_0 in H4.
+    unfold opt_asfs in H4. 
+    injection H4 as Eqh Eqid Eqs Eqm.
+    
+    (* Reduce goal *)
+    simpl in H1. apply Nat.eqb_eq in H1. 
+    simpl. rewrite <- Eqh. rewrite H1.
+     
+    (* Transform *)
+    simpl in H3. rewrite H1 in H3. rewrite <- Eqs.
+    rewrite <- H3. symmetry.
+    apply eq_eval_elem_stack.
+
+    (* Apply th' *)
+
+    Admitted.
 
 (* Proof Test *)  
 (*
