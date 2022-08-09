@@ -228,6 +228,17 @@ Definition asfs_map    := list (nat*asfs_map_val).
 (** ASFS := 〈h, max, S, M〉 *)
 Inductive asfs : Type :=
   | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
+  
+  
+Fixpoint strictly_decreasing_map (a: asfs_map) {struct a} : Prop :=
+match a with
+| [] => True
+| (var1, e1)::t1 => match t1 with 
+                    | [] => True
+                    | (var2, e2)::t2 => var1 > var2 /\ 
+                                        strictly_decreasing_map t1
+                    end
+end.
 
 End Abstract.
 Import Abstract.
