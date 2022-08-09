@@ -167,22 +167,25 @@ Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) :=
 forall (n: nat) (c cf: concrete_stack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt n a = Some opt_a ->
-eval_asfs c opt_a opmap = Some cf.
+strictly_decreasing_map_asfs a ->
+eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Definition safe_optimization (opt: asfs -> asfs*bool) :=
 forall (c cf: concrete_stack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt a = (opt_a, true) ->
-eval_asfs c opt_a opmap = Some cf.
+strictly_decreasing_map_asfs a ->
+eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Lemma optimize_fresh_var2_preservation: forall (m: asfs_map) (a a': asfs) 
   (opt: nat -> asfs -> option asfs) (c cf: concrete_stack),
 safe_optimization_fvar opt ->
 optimize_fresh_var2 a m opt = (a', true) ->
+strictly_decreasing_map_asfs a ->
 eval_asfs c a opmap = Some cf ->
-eval_asfs c a' opmap = Some cf.
+eval_asfs c a' opmap = Some cf /\ strictly_decreasing_map_asfs a'.
 Proof.
 intros m.
 induction m as [| h t IH]. 
@@ -195,10 +198,10 @@ induction m as [| h t IH].
   + injection H0 as eqa'.
     unfold safe_optimization_fvar in H.
     rewrite -> eqa' in eq_opt_fvar.
-    pose proof (H fvar c cf a a' H1 eq_opt_fvar).
-    assumption.
+    pose proof (H fvar c cf a a' H2 eq_opt_fvar H1) as [HH1 HH2].
+    split; try assumption.
   + fold optimize_fresh_var2 in H0.
-    pose proof (IH a a' opt c cf H H0 H1).
+    pose proof (IH a a' opt c cf H H0 H1 H2).
     assumption.
 Qed.
 
@@ -212,7 +215,8 @@ unfold safe_optimization. intros.
 destruct a as [ha maxa sa ma] eqn: eq_a.
 unfold optimize_fresh_var in H1.
 rewrite <- eq_a in H1. rewrite <- eq_a in H0.
-pose proof (optimize_fresh_var2_preservation ma a opt_a opt c cf H H1 H0).
+rewrite <- eq_a in H2.
+pose proof (optimize_fresh_var2_preservation ma a opt_a opt c cf H H1 H2 H0).
 assumption.
 Qed.
 
@@ -1250,6 +1254,7 @@ induction m1 as [|h t IH].
          reflexivity.
 Qed.
 
+
 Lemma eq_succ_eval_opt_not_not_eq_abs: forall (m1 m2: asfs_map) (ops: opm) 
   (n: nat) (stack: concrete_stack),
 ops NOT = Some (Op false 1 not) ->
@@ -1259,7 +1264,18 @@ forall (abs: asfs_stack) (v: concrete_stack),
   eval_asfs2 stack abs m1 ops = Some v ->
   eval_asfs2 stack abs m2 ops = Some v.
 Proof.
-Admitted.  
+induction abs as [| h t IH].
+- intros. unfold eval_asfs2 in H2. simpl in H2. 
+  unfold eval_asfs2. simpl. assumption.
+- intros. 
+  pose proof (eval_asfs2_cons h t m1 ops stack v H2) 
+    as [hval [tval [eq_v [eval_h_m1 eval_t_m1]]]].
+  pose proof (eq_succ_eval_opt_not_not_eq m1 m2 ops n stack H H0 H1 h hval
+    eval_h_m1) as eval_h_m2.
+  pose proof (IH tval eval_t_m1) as eval_t_m2.
+  rewrite -> eq_v.
+  apply eval_asfs2_cons_r; try assumption.
+Qed.
 
 
 Lemma optimize_not_not_fvar_safe:
@@ -1272,20 +1288,15 @@ destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
 destruct (length c =? ha) eqn: eq_len; try discriminate.
 assert (opmap NOT = Some (Op false 1 not)) as eq_opmap_NOT; try reflexivity.
 simpl in H0. destruct (optimize_map_not_not n ma) as [ma' |] 
-  eqn: eq_optmize_ma.
+  eqn: eq_optmize_ma; try discriminate.
 injection H0 as eq_h eq_max eq_abs eq_m.
 rewrite -> eq_m in eq_optmize_ma.
+simpl in H1.
 pose proof (eq_succ_eval_opt_not_not_eq_abs ma mopt opmap n c eq_opmap_NOT
-  eq_optmize_ma).
-(* TODO: include the hypothesis of strictly_decresing map in the definition
-   of safe_optimization, as we need it for the safety lemma
-   
-   We also need to state the preservation of the decreasingness when
-   optimizing with NOT_NOT *)
-(*
-apply eq_succ_eval_opt_not_not_eq_abs with (a1:=a) (fresh_var:=n); 
-  try intuition.*)
-Admitted.
+  eq_optmize_ma H1).
+simpl. rewrite <- eq_h. rewrite -> eq_len.
+apply H0 in H. rewrite -> eq_abs in H. assumption.
+Qed.
 
 Theorem optimize_not_not_safe:
 safe_optimization optimize_not_not.
@@ -1327,11 +1338,15 @@ end.
 
 
 (* A pipeline of optimizations if safe if every optimization in the list 
-   is safe *)
+   is safe AND every optimization preserver the decreasingness of the map *)
 Definition safe_optimization_pipeline (l: list optimization) :=
 Forall safe_optimization l.
 
 
+
+(* TODO
+   I need to impose that every optimization preserves the decreasingness of 
+   the maps in order to apply all of them in chain *)
 Theorem apply_all_op_safety: forall (l: list optimization),
 safe_optimization_pipeline l -> 
 safe_optimization (apply_all_op l).
@@ -1355,10 +1370,11 @@ induction l as [|opt ropts IH].
     pose proof (H c cf a a1 H0 eq_opta).
     unfold safe_optimization in Hcopy.
     apply Hcopy with (a:=a1).
-    * apply H2.
+    * apply H3. assumption.
     * apply H1.
+    * admit.
   + injection H1 as _ Hfalse. discriminate.
-Qed.
+Admitted.
 
 
 
@@ -1383,12 +1399,10 @@ induction l as [|opt ropts IH].
     pose proof (H c cf a a1 H0 eq_opta).
     injection H1 as eqa1_opta.
     rewrite <- eqa1_opta.
-    apply H2.
+    apply H3. assumption.
   + fold apply_first_op in H1.
     unfold safe_optimization in Hcopy.
-    apply Hcopy with (a:=a).
-    * apply H0.
-    * apply H1.
+    apply Hcopy with (a:=a); try assumption.
 Qed.
 
 

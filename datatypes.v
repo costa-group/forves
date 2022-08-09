@@ -240,6 +240,11 @@ match a with
                     end
 end.
 
+Definition strictly_decreasing_map_asfs (a: asfs) : Prop :=
+match a with
+| ASFSc _ _ _ m => strictly_decreasing_map m
+end.
+
 End Abstract.
 Import Abstract.
 
