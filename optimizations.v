@@ -547,6 +547,70 @@ reflexivity.
 Qed.
 
 
+Fixpoint same_fvar_in_maps (m1 m2: asfs_map) {struct m1} : Prop :=
+match m1 with
+| [] => match m2 with 
+        | [] => True
+        | _  => False
+        end
+| (fvar1, _)::t1 => match m2 with
+                    | [] => False
+                    | (fvar2, _)::t2 => fvar1 = fvar2 /\ 
+                                        same_fvar_in_maps t1 t2
+                    end
+end.
+
+
+Lemma same_fvar_refl: forall (m: asfs_map),
+same_fvar_in_maps m m.
+Proof.
+induction m as [|h t IH].
+- intuition.
+- intuition. simpl. split.
+  + reflexivity.
+  + apply IH.
+Qed.
+
+
+
+Lemma same_fvar_in_map_preserves_decreasingness: forall (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+same_fvar_in_maps m1 m2 -> 
+strictly_decreasing_map m2.
+Proof.
+induction m1 as [|h t IH].
+- intros m2 Hdecr_m1 Hsame_fvars. 
+  simpl in Hsame_fvars. destruct m2 eqn: eq_m2; try contradiction.
+  intuition.
+- intros m2 Hdecr_m1 Hsame_fvars. 
+  simpl in Hsame_fvars. destruct h as [fvar efvar] eqn: eq_h.
+  destruct m2 as [| h' t'] eqn: eq_m2; try contradiction.
+  destruct h' as [fvar' efvar'] eqn: eq_h'.
+  destruct Hsame_fvars as [eq_fvar_fvar' Hsame_vars_t_t'].
+  rewrite <- eq_fvar_fvar'.
+  simpl in Hdecr_m1.
+  destruct t as [|h2 t2] eqn: eq_t.
+  + simpl in Hsame_vars_t_t'. destruct t' eqn: eq_t'; try contradiction.
+    intuition.
+  + destruct h2 as [fvar2 efvar2] eqn: eq_h2.
+    destruct Hdecr_m1 as [fvar_gt_fvar2 Hdecr_t1].
+    pose proof (IH t' Hdecr_t1 Hsame_vars_t_t').
+    simpl in Hsame_vars_t_t'.
+    destruct t' as [|h2' t2'] eqn: eq_t'; try contradiction.
+    destruct h2' as [fvar2' efvar2'] eqn: eq_h2'.
+    destruct Hsame_vars_t_t' as [eq_fvar2_fvar2' _].
+    rewrite <- eq_t'.
+    simpl. rewrite -> eq_t'.
+    rewrite <- eq_fvar2_fvar2'.
+    rewrite -> eq_fvar2_fvar2' at 2.
+    split; try assumption.
+Qed.
+
+
+
+
+
+
 (* The evaluation of an asfs_stack does not change in strictly_decreasing maps
    when adding a new prefix in the head of the map *)
 Lemma eval_bigger_decreasing_map: forall (stack vals: concrete_stack)
@@ -710,6 +774,56 @@ apply eq_eval_elem_stack. assumption.
 Qed.
 
 
+
+Lemma opt_add_zero_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map),
+optimize_map_add_zero n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+intros n m1. revert n.
+induction m1 as [| h t IH].
+- intros n m2 Hopt. simpl in Hopt. discriminate.
+- intros n m2 Hopt.
+  simpl in Hopt.
+  destruct h as [fvar efvar] eqn: eq_h.
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct efvar eqn: eq_efvar; try discriminate.
+    destruct opcode eqn: eq_opcode; try discriminate.
+    destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
+    destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
+    destruct targs2 eqn: eq_args2; try discriminate.
+    destruct (stack_val_has_value arg1 WZero).
+    * injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+    * destruct (stack_val_has_value arg2 WZero); try discriminate.
+      injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+  + destruct (optimize_map_add_zero n t) as [t_opt|] eqn: optimize_t;
+      try discriminate.
+    pose proof (strictly_decreasing_preserv fvar efvar t) 
+      as Hdecr_t.
+    pose proof (IH n t_opt optimize_t).
+    simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
+    split; try reflexivity. assumption.
+Qed.
+
+
+
+Lemma opt_add_zero_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+optimize_map_add_zero n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+intros.
+apply opt_add_zero_same_fvar_in_maps in H0.
+apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
+  try assumption.
+Qed.
+
+
 (* This is the main ADD_0 optimization *)
 Definition optimize_add_zero (a: asfs) : asfs*bool :=
 optimize_fresh_var optimize_add_zero_fvar a.
@@ -724,7 +838,16 @@ pose proof (optimize_add_zero_fvar_eq a opt_a n c opmap Hopmap_add H0)
   as Heq_eval_a_opta.
 rewrite -> Heq_eval_a_opta in H.
 rewrite -> H.
-reflexivity.
+split; try reflexivity.
+destruct opt_a as [hopt maxopt sopt mopt] eqn: eq_opt_a.
+simpl.
+destruct a as [ha maxa sa ma] eqn: eq_a.
+simpl in H1. simpl in H0.
+destruct (optimize_map_add_zero n ma) eqn: optimize_ma; try discriminate.
+injection H0 as eq_h eq_max eq_stack eq_maps. 
+rewrite -> eq_maps in optimize_ma.
+apply opt_add_zero_decreasingness_preservation with (n:=n) (m1:=ma);
+  try assumption.
 Qed.
 
 
@@ -870,6 +993,54 @@ apply eq_eval_elem_stack. assumption.
 Qed.
 
 
+Lemma opt_mul_one_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map),
+optimize_map_mul_one n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+intros n m1. revert n.
+induction m1 as [| h t IH].
+- intros n m2 Hopt. simpl in Hopt. discriminate.
+- intros n m2 Hopt.
+  simpl in Hopt.
+  destruct h as [fvar efvar] eqn: eq_h.
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct efvar eqn: eq_efvar; try discriminate.
+    destruct opcode eqn: eq_opcode; try discriminate.
+    destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
+    destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
+    destruct targs2 eqn: eq_args2; try discriminate.
+    destruct (stack_val_has_value arg1 WOne).
+    * injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+    * destruct (stack_val_has_value arg2 WOne); try discriminate.
+      injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+  + destruct (optimize_map_mul_one n t) as [t_opt|] eqn: optimize_t;
+      try discriminate.
+    pose proof (strictly_decreasing_preserv fvar efvar t) 
+      as Hdecr_t.
+    pose proof (IH n t_opt optimize_t).
+    simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
+    split; try reflexivity. assumption.
+Qed.
+
+
+Lemma opt_mul_one_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+optimize_map_mul_one n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+intros.
+apply opt_mul_one_same_fvar_in_maps in H0.
+apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
+  try assumption.
+Qed.
+
+
 (* This is the main MUL_1 optimization *)
 Definition optimize_mul_one (a: asfs) : asfs*bool :=
 optimize_fresh_var optimize_mul_one_fvar a.
@@ -884,7 +1055,16 @@ pose proof (optimize_mul_one_eq a opt_a n c opmap Hopmap_mul H0)
   as Heq_eval_a_opta.
 rewrite -> Heq_eval_a_opta in H.
 rewrite -> H.
-reflexivity.
+split; try reflexivity.
+destruct opt_a as [hopt maxopt sopt mopt] eqn: eq_opt_a.
+simpl.
+destruct a as [ha maxa sa ma] eqn: eq_a.
+simpl in H1. simpl in H0.
+destruct (optimize_map_mul_one n ma) eqn: optimize_ma; try discriminate.
+injection H0 as eq_h eq_max eq_stack eq_maps. 
+rewrite -> eq_maps in optimize_ma.
+apply opt_mul_one_decreasingness_preservation with (n:=n) (m1:=ma);
+  try assumption.
 Qed.
 
 
@@ -1408,12 +1588,13 @@ Qed.
 
 Theorem our_optimization_pipeline_is_safe: 
 safe_optimization_pipeline [optimize_add_zero; optimize_mul_one; 
-  optimize_mul_zero].
+  optimize_mul_zero; optimize_not_not].
 Proof.
 unfold safe_optimization_pipeline. 
 apply Forall_cons; try apply optimize_add_zero_safe.
 apply Forall_cons; try apply optimize_mul_one_safe.
 apply Forall_cons; try apply optimize_mul_zero_safe.
+apply Forall_cons; try apply optimize_not_not_safe.
 intuition.
 Qed.
 
