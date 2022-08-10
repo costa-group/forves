@@ -1252,12 +1252,71 @@ apply eq_succ_eval_elem_stack with (m1:=m1); try assumption.
 Qed.
 
 
+Lemma opt_mul_zero_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map),
+optimize_map_mul_zero n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+intros n m1. revert n.
+induction m1 as [| h t IH].
+- intros n m2 Hopt. simpl in Hopt. discriminate.
+- intros n m2 Hopt.
+  simpl in Hopt.
+  destruct h as [fvar efvar] eqn: eq_h.
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct efvar eqn: eq_efvar; try discriminate.
+    destruct opcode eqn: eq_opcode; try discriminate.
+    destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
+    destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
+    destruct targs2 eqn: eq_args2; try discriminate.
+    destruct (stack_val_has_value arg1 WZero).
+    * injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+    * destruct (stack_val_has_value arg2 WZero); try discriminate.
+      injection Hopt as eq_m2. rewrite <- eq_m2.
+      simpl. split; try reflexivity.
+      apply same_fvar_refl.
+  + destruct (optimize_map_mul_zero n t) as [t_opt|] eqn: optimize_t;
+      try discriminate.
+    pose proof (strictly_decreasing_preserv fvar efvar t) 
+      as Hdecr_t.
+    pose proof (IH n t_opt optimize_t).
+    simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
+    split; try reflexivity. assumption.
+Qed.
+
+
+Lemma opt_mul_zero_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+optimize_map_mul_zero n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+intros.
+apply opt_mul_zero_same_fvar_in_maps in H0.
+apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
+  try assumption.
+Qed.
+
+
+
 Theorem optimize_mul_zero_fvar_safe: 
 safe_optimization_fvar optimize_mul_zero_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
-apply optimize_mul_zero_safe_success with (a1:=a) (fresh_var:=n); 
-  try intuition.
+split.
+- apply optimize_mul_zero_safe_success with (a1:=a) (fresh_var:=n); 
+    try intuition.
+- destruct opt_a as [hopt maxopt sopt mopt] eqn: eq_opt_a.
+  simpl.
+  destruct a as [ha maxa sa ma] eqn: eq_a.
+  simpl in H1. simpl in H0.
+  destruct (optimize_map_mul_zero n ma) eqn: optimize_ma; try discriminate.
+  injection H0 as eq_h eq_max eq_stack eq_maps. 
+  rewrite -> eq_maps in optimize_ma.
+  apply opt_mul_zero_decreasingness_preservation with (n:=n) (m1:=ma);
+    try assumption.
 Qed.
 
 Theorem optimize_mul_zero_safe: 
@@ -1458,6 +1517,55 @@ induction abs as [| h t IH].
 Qed.
 
 
+Lemma opt_not_not_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map),
+optimize_map_not_not n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+intros n m1. revert n.
+induction m1 as [| h t IH].
+- intros n m2 Hopt. simpl in Hopt. discriminate.
+- intros n m2 Hopt.
+  simpl in Hopt.
+  destruct h as [fvar efvar] eqn: eq_h.
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct efvar eqn: eq_efvar; try discriminate.
+    destruct opcode eqn: eq_opcode; try discriminate.
+    destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
+    destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
+    destruct (stack_val_is_oper NOT arg1 t) as [inner_args|]; 
+      try discriminate.
+    destruct inner_args as [|arg' t_inner_args] eqn: eq_inner_args;
+      try discriminate.
+    destruct (t_inner_args) as [| ttt] eqn: eq_t_inner_args;
+      try discriminate.
+    injection Hopt as eq_m2. rewrite <- eq_m2.
+    simpl. split; try reflexivity.
+    apply same_fvar_refl.
+  + destruct (optimize_map_not_not n t) as [t_opt|] eqn: optimize_t;
+      try discriminate.
+    pose proof (strictly_decreasing_preserv fvar efvar t) 
+      as Hdecr_t.
+    pose proof (IH n t_opt optimize_t).
+    simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
+    split; try reflexivity. assumption.
+Qed.
+
+
+Lemma opt_not_not_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+optimize_map_not_not n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+intros.
+apply opt_not_not_same_fvar_in_maps in H0.
+apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
+  try assumption.
+Qed.
+
+
+
 Lemma optimize_not_not_fvar_safe:
 safe_optimization_fvar optimize_not_not_fvar.
 Proof.
@@ -1475,7 +1583,11 @@ simpl in H1.
 pose proof (eq_succ_eval_opt_not_not_eq_abs ma mopt opmap n c eq_opmap_NOT
   eq_optmize_ma H1).
 simpl. rewrite <- eq_h. rewrite -> eq_len.
-apply H0 in H. rewrite -> eq_abs in H. assumption.
+apply H0 in H. rewrite -> eq_abs in H.
+split.
+- apply H. 
+- apply opt_not_not_decreasingness_preservation with (n:=n) (m1:=ma);
+    try assumption.
 Qed.
 
 Theorem optimize_not_not_safe:
@@ -1518,15 +1630,12 @@ end.
 
 
 (* A pipeline of optimizations if safe if every optimization in the list 
-   is safe AND every optimization preserver the decreasingness of the map *)
+   is safe (preserves succesful evaluations and decreasingness of the map *)
 Definition safe_optimization_pipeline (l: list optimization) :=
 Forall safe_optimization l.
 
 
 
-(* TODO
-   I need to impose that every optimization preserves the decreasingness of 
-   the maps in order to apply all of them in chain *)
 Theorem apply_all_op_safety: forall (l: list optimization),
 safe_optimization_pipeline l -> 
 safe_optimization (apply_all_op l).
@@ -1534,7 +1643,7 @@ induction l as [|opt ropts IH].
 - unfold safe_optimization. intros.
   simpl in H1. injection H1 as H1. 
   rewrite <- H1.
-  assumption.
+  split; try assumption.
 - unfold safe_optimization. intros.
   unfold safe_optimization_pipeline in H.
   assert (Hcopy := H).
@@ -1552,9 +1661,9 @@ induction l as [|opt ropts IH].
     apply Hcopy with (a:=a1).
     * apply H3. assumption.
     * apply H1.
-    * admit.
+    * apply H3 in H2 as [_ Hdecreasing_a1]. assumption.
   + injection H1 as _ Hfalse. discriminate.
-Admitted.
+Qed.
 
 
 
@@ -1586,16 +1695,19 @@ induction l as [|opt ropts IH].
 Qed.
 
 
+Search Forall.
 Theorem our_optimization_pipeline_is_safe: 
-safe_optimization_pipeline [optimize_add_zero; optimize_mul_one; 
-  optimize_mul_zero; optimize_not_not].
+safe_optimization_pipeline [optimize_add_zero; 
+                            optimize_mul_one; 
+                            optimize_mul_zero; 
+                            optimize_not_not].
 Proof.
 unfold safe_optimization_pipeline. 
 apply Forall_cons; try apply optimize_add_zero_safe.
 apply Forall_cons; try apply optimize_mul_one_safe.
 apply Forall_cons; try apply optimize_mul_zero_safe.
 apply Forall_cons; try apply optimize_not_not_safe.
-intuition.
+apply Forall_nil.
 Qed.
 
 
