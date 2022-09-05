@@ -1968,6 +1968,13 @@ Qed.
 *)
 
 
+// + a1 b1 , + a2 b2
+
+//   -> [ [[a1,a2],[b1,b2]], [[a1,b2],[b1,b2]] ]
+
+//   -> [ [[a1,a2],[b1,b2]] ]
+
+
 (* Overkill: 22 obligations remaining!!! *)
 Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
   (ops: opm) {measure (List.length m1 + List.length m2)} : bool :=
@@ -1985,7 +1992,7 @@ match e1, e2 with
                 match args1, args2 with 
                 | [], [] => true
                 | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
-                | [a1;a2], [b1;b2] => ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) &&
+                (* two cases, for comm and non-comm, take bool from map ops *)                                            | [a1;a2], [b1;b2] => ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) &&
                                          (asfs_eq_stack_elem a2 b2 rm1 rm2 ops)) ||
 
                                       ((asfs_eq_stack_elem a1 b2 rm1 rm2 ops) &&
@@ -2191,6 +2198,49 @@ Admitted.
 End SFS.
 
 (*
+
+asfs_eq asfs1 asfs2 opmap ->
+asfs_eq asfs2 asfs3 opmap ->
+asfs_eq asfs1 asfs3 opmap
+
+asfs_eq asfs1 asfs2 opmap ->
+  asfs_eq asfs2 asfs1 opmap
+
+check_block_eq b1 b2 opt -> bool
+
+  asfs1 = sym_exec b1 opmap
+  asfs2 = sym_exec b2 opmap
+  asfs3 = opt asfs2 opmap
+  return asfs_eq asfs1 asfs3 opmap
+
+
+ *lemma*
+  forall b1 b2
+   asfs1 = sym_exec b1 opmap ->
+   asfs2 = sym_exec b2 opmap ->
+   asfs_eq asfs1 asfs2 opmap ->
+     foall all in_stk conc in_stk b1 = conc in_stk b2
+
+
+
+theorem:
+forsll in_stk b1 b2 opt
+  some requirment on 'opt' ->
+   check_block_eq b1 b2 opt = true ->
+    conc in_state in_stk b1 = conc in_stk b2
+
+proof.
+
+ - we know that asfs1 and asfs3 are equivalent
+ - by requirement of 'opt' -> asfs1 and asfs2 are equiv
+ 
+   which mean for any concrete stack, they eval to the same thing
+
+*)
+
+
+
+
 Plan:
 
 Phase 1: handle prog with no memory, and some optimizations
@@ -2299,3 +2349,35 @@ Store:
 
 
 
+
+
+(*
+
+Store -> Easy -- map from addr to word 
+Mem -> Diff -- map from add to bytes
+
+Store is a list
+
+ get add store -> if add is not in store return orig(add), otherwise return the value mapped to
+ update add val store -> if store has add, morift its value, otherwise add addr->val
+
+bbv
+
+ w2b: Word -> List of bytes
+ b2w: List of bytes -> Word
+
+ (b2w (w2b w)) = w
+ (w2b (b2w l)) = l
+
+           
+ update mem add val
+  
+  val -> list of bytes
+  add->b1
+  add+1 -> b2
+  add+2 -> b3       
+  ...           
+       
+
+
+*)
