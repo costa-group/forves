@@ -144,7 +144,9 @@ match val with
                    end
 end.
 
-
+(* Tries to apply the optimization 'opt' traversin all the free variables
+   in the map. Stops as soon as it finds one that the optmization succeeds
+*)
 Fixpoint optimize_fresh_var2 (a: asfs) (m: asfs_map) 
  (opt: nat -> asfs -> option asfs): asfs*bool :=
 match m with
@@ -163,7 +165,7 @@ match a with
 end.
 
 
-Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) :=
+Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) : Prop :=
 forall (n: nat) (c cf: concrete_stack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt n a = Some opt_a ->
@@ -171,7 +173,7 @@ strictly_decreasing_map_asfs a ->
 eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
-Definition safe_optimization (opt: asfs -> asfs*bool) :=
+Definition safe_optimization (opt: asfs -> asfs*bool) : Prop :=
 forall (c cf: concrete_stack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt a = (opt_a, true) ->
@@ -432,7 +434,7 @@ induction m as [| hm tm IH].
 Qed.
 
 
-(* If a map is strictly_decreasing, then the head is different from any any 
+(* If a map is strictly_decreasing, then the head is different from any 
    entry in the tail *)
 Lemma decreasing_cons_then_different: forall (fvar n: nat) 
   (e efvar: asfs_map_val) (m: asfs_map),
@@ -513,8 +515,8 @@ induction prefix as [|h t IH].
 Qed.
 
 
-(* If we evaluate a abstract stack (h::t) then we can evaluate the element 'e'
-   and the tail 't' *)
+(* If we evaluate an abstract stack (h::t) then we can evaluate the element 
+   'h' and the tail 't' *)
 Lemma eval_asfs2_cons: forall (h: asfs_stack_val) (t: asfs_stack) 
   (m: asfs_map) (ops: opm) (stack vals: concrete_stack),
 eval_asfs2 stack (h :: t) m ops = Some vals ->
@@ -547,6 +549,7 @@ reflexivity.
 Qed.
 
 
+(* Both maps contains the same free vars *)
 Fixpoint same_fvar_in_maps (m1 m2: asfs_map) {struct m1} : Prop :=
 match m1 with
 | [] => match m2 with 
@@ -1611,9 +1614,9 @@ Application of a list of optimizations
 Fixpoint apply_all_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
 match l_opt with
 | nil => (a, true)
-| opt::ropts => match opt a with
-                | (a', true) => apply_all_op ropts a'
-                | (a', false) => (a, false)
+| opt::ropts => match opt a with (* apply n times (opt a) *)
+                | (a', _) => apply_all_op ropts a'
+                (*| (a', false) => (a, false)*)
                 end
 end.
 
@@ -1628,10 +1631,22 @@ match l_opt with
                 end
 end.
 
+(*
+  Enrique: 
+  1) Apply all the optimization but do not stop when false
+  2) Apply 'n' times: at most n times
+  3) Apply the list 'n' times
+  
+  Enrique: X -> 0
+  Better: X -> Y -> Z -> 0
+*)
+
+
+
 
 (* A pipeline of optimizations if safe if every optimization in the list 
    is safe (preserves succesful evaluations and decreasingness of the map *)
-Definition safe_optimization_pipeline (l: list optimization) :=
+Definition safe_optimization_pipeline (l: list optimization) : Prop :=
 Forall safe_optimization l.
 
 
