@@ -1967,13 +1967,13 @@ Qed.
 
 *)
 
-
+(*
 // + a1 b1 , + a2 b2
 
 //   -> [ [[a1,a2],[b1,b2]], [[a1,b2],[b1,b2]] ]
 
 //   -> [ [[a1,a2],[b1,b2]] ]
-
+*)
 
 (* Overkill: 22 obligations remaining!!! *)
 Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
@@ -2240,7 +2240,7 @@ proof.
 
 
 
-
+(*
 Plan:
 
 Phase 1: handle prog with no memory, and some optimizations
