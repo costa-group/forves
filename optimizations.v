@@ -119,7 +119,7 @@ any optimization [which is mandatory in order to concatenate them].
 
 
 
-
+Module Optimizations.
 
 
 (* General definitions to define different optimizations and useful common
@@ -144,7 +144,7 @@ match val with
                    end
 end.
 
-(* Tries to apply the optimization 'opt' traversin all the free variables
+(* Tries to apply the optimization 'opt' traversing all the free variables
    in the map. Stops as soon as it finds one that the optmization succeeds
 *)
 Fixpoint optimize_fresh_var2 (a: asfs) (m: asfs_map) 
@@ -156,6 +156,22 @@ match m with
               | Some a' => (a',true)
               end
 end.
+
+(* When an optimization is not applicable, optimize_fresh_var2 returns the
+   same ASFS *)
+Lemma optimize_fresh_var2_not_applicable: forall (a a': asfs) (m: asfs_map) 
+ (opt: nat -> asfs -> option asfs),
+optimize_fresh_var2 a m opt = (a', false) ->
+a = a'.
+Proof.
+intros a a' m. revert a a'.
+induction m as [|h t IH].
+- intros. simpl in H. injection H. auto.
+- intros. simpl in H. destruct h as [var expr] eqn: eq_h.
+  destruct (opt var a) as [opta|] eqn: eq_opt_var_a.
+  + discriminate.
+  + apply IH in H. assumption.
+Qed.
 
 
 Definition optimize_fresh_var (opt: nat -> asfs -> option asfs) (a: asfs):
@@ -174,25 +190,25 @@ eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Definition safe_optimization (opt: asfs -> asfs*bool) : Prop :=
-forall (c cf: concrete_stack) (a opt_a: asfs),
+forall (c cf: concrete_stack) (a opt_a: asfs) (b: bool),
 eval_asfs c a opmap = Some cf ->
-opt a = (opt_a, true) ->
+opt a = (opt_a, b) ->
 strictly_decreasing_map_asfs a ->
 eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Lemma optimize_fresh_var2_preservation: forall (m: asfs_map) (a a': asfs) 
-  (opt: nat -> asfs -> option asfs) (c cf: concrete_stack),
+  (opt: nat -> asfs -> option asfs) (b: bool) (c cf: concrete_stack),
 safe_optimization_fvar opt ->
-optimize_fresh_var2 a m opt = (a', true) ->
+optimize_fresh_var2 a m opt = (a', b) ->
 strictly_decreasing_map_asfs a ->
 eval_asfs c a opmap = Some cf ->
 eval_asfs c a' opmap = Some cf /\ strictly_decreasing_map_asfs a'.
 Proof.
 intros m.
 induction m as [| h t IH]. 
-- intros. unfold optimize_fresh_var2 in H0. injection H0 as Hasfs Hfalse. 
-  discriminate.
+- intros. unfold optimize_fresh_var2 in H0. injection H0 as Hasfs Hfalse.
+  rewrite <- Hasfs. split; try assumption. 
 - intros. 
   unfold optimize_fresh_var2 in H0.
   destruct h as [fvar expr] eqn: eq_h.
@@ -203,7 +219,7 @@ induction m as [| h t IH].
     pose proof (H fvar c cf a a' H2 eq_opt_fvar H1) as [HH1 HH2].
     split; try assumption.
   + fold optimize_fresh_var2 in H0.
-    pose proof (IH a a' opt c cf H H0 H1 H2).
+    pose proof (IH a a' opt b c cf H H0 H1 H2).
     assumption.
 Qed.
 
@@ -218,7 +234,7 @@ destruct a as [ha maxa sa ma] eqn: eq_a.
 unfold optimize_fresh_var in H1.
 rewrite <- eq_a in H1. rewrite <- eq_a in H0.
 rewrite <- eq_a in H2.
-pose proof (optimize_fresh_var2_preservation ma a opt_a opt c cf H H1 H2 H0).
+pose proof (optimize_fresh_var2_preservation ma a opt_a opt b c cf H H1 H2 H0).
 assumption.
 Qed.
 
@@ -1609,8 +1625,8 @@ Qed.
 Application of a list of optimizations
 ****************************************)
 
-(* Apply all the optimization functions in chain, returns false if 
-   some optimization cannot be applied *)
+(* Apply all the optimization functions in chain, always returns true
+   MUST TAKE AN EXTRA PARAMETER 'n' TO REPEAT THE OPTIMIZATION *)
 Fixpoint apply_all_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
 match l_opt with
 | nil => (a, true)
@@ -1649,11 +1665,13 @@ end.
 Definition safe_optimization_pipeline (l: list optimization) : Prop :=
 Forall safe_optimization l.
 
-
+(* TODO NEED TO BE ADAPTED *)
 
 Theorem apply_all_op_safety: forall (l: list optimization),
 safe_optimization_pipeline l -> 
 safe_optimization (apply_all_op l).
+Proof.
+(*
 induction l as [|opt ropts IH].
 - unfold safe_optimization. intros.
   simpl in H1. injection H1 as H1. 
@@ -1678,13 +1696,17 @@ induction l as [|opt ropts IH].
     * apply H1.
     * apply H3 in H2 as [_ Hdecreasing_a1]. assumption.
   + admit. (* injection H1 as _ Hfalse. discriminate.*)
+  *)
 Admitted.
 
 
+(* TODO NEED TO BE ADAPTED *)
 
 Theorem apply_first_op_safety: forall (l: list optimization),
 safe_optimization_pipeline l -> 
 safe_optimization (apply_first_op l).
+Proof.
+(*
 induction l as [|opt ropts IH].
 - unfold safe_optimization. intros.
   simpl in H1. injection H1 as _ Hfalse. 
@@ -1707,7 +1729,8 @@ induction l as [|opt ropts IH].
   + fold apply_first_op in H1.
     unfold safe_optimization in Hcopy.
     apply Hcopy with (a:=a); try assumption.
-Qed.
+    *)
+Admitted.
 
 
 Search Forall.
@@ -1749,6 +1772,9 @@ eq_asfs opt_asfs1  asfs2 opmap.
 
 Proof obligations: [opt1; opt2;....] is a sublist of l:op
 *)
+
+End Optimizations.
+Import Optimizations.
 
 
 (* Joseba *)
