@@ -1975,6 +1975,12 @@ Qed.
 //   -> [ [[a1,a2],[b1,b2]] ]
 *)
 
+Definition is_comm_op (opcode: gen_instr) (ops: opm) : bool :=
+  match (ops opcode) with
+  | Some (Op true _ _) => true
+  | _ => false
+  end.
+
 (* Overkill: 22 obligations remaining!!! *)
 Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
   (ops: opm) {measure (List.length m1 + List.length m2)} : bool :=
@@ -1992,11 +1998,9 @@ match e1, e2 with
                 match args1, args2 with 
                 | [], [] => true
                 | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
-                (* two cases, for comm and non-comm, take bool from map ops *)                                            | [a1;a2], [b1;b2] => ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) &&
-                                         (asfs_eq_stack_elem a2 b2 rm1 rm2 ops)) ||
-
-                                      ((asfs_eq_stack_elem a1 b2 rm1 rm2 ops) &&
-                                      (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
+                | [a1,a2],[b1,b2] =>
+                    ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b2 rm1 rm2 ops) ) ||
+                    ( (is_comm_op opcode1) && (asfs_eq_stack_elem a1 b2 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
                 | _, _  => false
                 end
               else false
