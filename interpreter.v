@@ -1998,9 +1998,9 @@ match e1, e2 with
                 match args1, args2 with 
                 | [], [] => true
                 | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
-                | [a1,a2],[b1,b2] =>
+                | [a1;a2], [b1;b2] =>
                     ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b2 rm1 rm2 ops) ) ||
-                    ( (is_comm_op opcode1) && (asfs_eq_stack_elem a1 b2 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
+                    ( (is_comm_op opcode1 ops) && (asfs_eq_stack_elem a1 b2 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
                 | _, _  => false
                 end
               else false
