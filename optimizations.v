@@ -1625,53 +1625,58 @@ Qed.
 Application of a list of optimizations
 ****************************************)
 
-(* Apply all the optimization functions in chain, always returns true
-   MUST TAKE AN EXTRA PARAMETER 'n' TO REPEAT THE OPTIMIZATION *)
-Fixpoint apply_all_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
-match l_opt with
-| nil => (a, true)
-| opt::ropts => match opt a with (* apply n times (opt a) *)
-                | (a', _) => apply_all_op ropts a'
-                (*| (a', false) => (a, false)*)
-                end
+(* Applies the optimization 'n' times. Always returns 'true' *) 
+Fixpoint apply_n_times (opt: optimization) (n: nat) (a: asfs) : asfs*bool :=
+match n with
+| 0 => (a, true)
+| S n' => match opt a with
+          | (a', _) => apply_n_times opt n' a'
+          end
 end.
 
-(* Apply the first optimization function possible, returns false only if 
-   no optimization can be applied *)
-Fixpoint apply_first_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
-match l_opt with
-| nil => (a, false)
-| opt::ropts => match opt a with
-                | (a', true) => (a', true)
-                | (_, false) => apply_first_op ropts a
-                end
-end.
-
-(*
-  Enrique: 
-  1) Apply all the optimization but do not stop when false
-  2) Apply 'n' times: at most n times
-  3) Apply the list 'n' times
-  
-  Enrique: X -> 0
-  Better: X -> Y -> Z -> 0
-*)
-
-
+Lemma safe_apply_n_times: forall (opt: optimization) (n: nat),
+safe_optimization opt ->
+safe_optimization (apply_n_times opt n).
+Proof.
+intros opt n. revert opt.
+induction n as [| n' IH].
+- intros. unfold safe_optimization. intros. 
+  simpl in H1. injection H1 as eq_a_a' _. rewrite <- eq_a_a'. 
+  split; try auto.
+- intros. unfold safe_optimization. intros. 
+  simpl in H1. destruct (opt a) as [a' flag] eqn: eq_opt_a.
+  assert (Hcopy := H).
+  unfold safe_optimization in H.
+  pose proof (H c cf a a' flag H0 eq_opt_a H2) as 
+   [Heval_a' Hstrictly_decr_a'].
+  pose proof (IH opt Hcopy) as Hsafe_n'.
+  unfold safe_optimization in Hsafe_n'.
+  pose proof (Hsafe_n' c cf a' opt_a b Heval_a' H1 Hstrictly_decr_a').
+  assumption.
+Qed.
 
 
-(* A pipeline of optimizations if safe if every optimization in the list 
+(* A pipeline of optimizations is safe if every optimization in the list 
    is safe (preserves succesful evaluations and decreasingness of the map *)
 Definition safe_optimization_pipeline (l: list optimization) : Prop :=
 Forall safe_optimization l.
 
-(* TODO NEED TO BE ADAPTED *)
 
-Theorem apply_all_op_safety: forall (l: list optimization),
+(* Apply all the possible optimization functions in chain, always 
+   returns true *)
+Fixpoint apply_all_possible_opt (l_opt: list optimization) (a: asfs)
+  : asfs*bool :=
+match l_opt with
+| nil => (a, true)
+| opt::ropts => match opt a with
+                | (a', _) => apply_all_possible_opt ropts a'
+                end
+end.
+
+Theorem safe_apply_all_possible_opt: forall (l: list optimization),
 safe_optimization_pipeline l -> 
-safe_optimization (apply_all_op l).
+safe_optimization (apply_all_possible_opt l).
 Proof.
-(*
 induction l as [|opt ropts IH].
 - unfold safe_optimization. intros.
   simpl in H1. injection H1 as H1. 
@@ -1684,33 +1689,57 @@ induction l as [|opt ropts IH].
   unfold safe_optimization_pipeline in IH.
   apply Forall_inv_tail in Hcopy.
   apply IH in Hcopy.
-  unfold apply_all_op in H1.
+  unfold apply_all_possible_opt in H1.
   destruct (opt a) as [a1 flag] eqn: eq_opta.
-  destruct flag eqn: eq_flag.
-  + fold apply_all_op in H1.
-    unfold safe_optimization in H.
-    pose proof (H c cf a a1 H0 eq_opta).
-    unfold safe_optimization in Hcopy.
-    apply Hcopy with (a:=a1).
-    * apply H3. assumption.
-    * apply H1.
-    * apply H3 in H2 as [_ Hdecreasing_a1]. assumption.
-  + admit. (* injection H1 as _ Hfalse. discriminate.*)
-  *)
-Admitted.
+  fold apply_all_possible_opt in H1.
+  unfold safe_optimization in H.
+  pose proof (H c cf a a1 flag H0 eq_opta H2) as [Heval_a1 Hstric_decr_a1].
+  unfold safe_optimization in Hcopy.
+  pose proof (Hcopy c cf a1 opt_a b Heval_a1 H1 Hstric_decr_a1).
+  assumption.
+Qed.
 
 
-(* TODO NEED TO BE ADAPTED *)
+(* Applies the complete optimization pipeline 'n' times, each time trying
+   to apply all the steps in order *)
+Definition apply_pipeline_n_times (l_opt: list optimization) (n: nat) 
+  (a: asfs) : asfs*bool :=
+apply_n_times (apply_all_possible_opt l_opt) n a.
+
+
+Theorem safe_apply_pipeline_n_times: forall (l: list optimization) (n: nat),
+safe_optimization_pipeline l -> 
+safe_optimization (apply_pipeline_n_times l n).
+Proof.
+intros.
+apply safe_apply_all_possible_opt in H.
+unfold apply_pipeline_n_times.
+replace (fun a : asfs => apply_n_times (apply_all_possible_opt l) n a) with 
+  (apply_n_times (apply_all_possible_opt l) n ) by auto.
+  (* To remove the useless lambda expression using eta-conversion *)
+apply safe_apply_n_times.
+assumption.
+Qed.
+
+(* Apply the first optimization function possible, returns false only if 
+   no optimization can be applied *)
+Fixpoint apply_first_op (l_opt: list optimization) (a: asfs) : asfs*bool :=
+match l_opt with
+| nil => (a, false)
+| opt::ropts => match opt a with
+                | (a', true) => (a', true)
+                | (_, false) => apply_first_op ropts a
+                end
+end.
 
 Theorem apply_first_op_safety: forall (l: list optimization),
 safe_optimization_pipeline l -> 
 safe_optimization (apply_first_op l).
 Proof.
-(*
 induction l as [|opt ropts IH].
 - unfold safe_optimization. intros.
-  simpl in H1. injection H1 as _ Hfalse. 
-  discriminate.
+  simpl in H1. injection H1 as eq_a_opta Hfalse.
+  rewrite <- eq_a_opta. auto.
 - unfold safe_optimization. intros.
   unfold safe_optimization_pipeline in H.
   assert (Hcopy := H).
@@ -1722,15 +1751,24 @@ induction l as [|opt ropts IH].
   destruct (opt a) as [a1 flag] eqn: eq_opta.
   destruct flag eqn: eq_flag.
   + unfold safe_optimization in H.
-    pose proof (H c cf a a1 H0 eq_opta).
+    pose proof (H c cf a a1 true H0 eq_opta H2).
     injection H1 as eqa1_opta.
     rewrite <- eqa1_opta.
-    apply H3. assumption.
+    apply H3.
   + fold apply_first_op in H1.
     unfold safe_optimization in Hcopy.
-    apply Hcopy with (a:=a); try assumption.
-    *)
-Admitted.
+    pose proof (Hcopy c cf a opt_a b H0 H1 H2).
+    assumption.
+Qed.
+
+(*
+  Enrique: X -> 0
+  Better: X -> Y -> Z -> 0
+*)
+
+
+
+
 
 
 Search Forall.
