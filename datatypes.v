@@ -218,6 +218,10 @@ Inductive asfs_stack_val : Type :=
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)
   | ASFSOp (opcode : gen_instr) (args : list asfs_stack_val).
+  
+Inductive flat_asfs_map_val : Type :=
+  | FASFSBasicVal (val: asfs_stack_val)
+  | FASFSOp (opcode : gen_instr) (args : list flat_asfs_map_val).
 
 Definition concrete_stack := list EVMWord.
 Definition in_stack := list nat.

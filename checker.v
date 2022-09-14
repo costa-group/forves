@@ -25,6 +25,7 @@ match symbolic_exec p1 height opmap with
     end
 end.
 
+
 Lemma symb_exec''_strictly_decreasing: forall (ins: instr) (a a': asfs) 
   (ops: opm),
 strictly_decreasing_map_asfs a ->

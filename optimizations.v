@@ -1769,14 +1769,16 @@ Qed.
 
 
 
+Definition our_optimization_pipeline := 
+[optimize_add_zero; 
+ optimize_mul_one; 
+ optimize_mul_zero; 
+ optimize_not_not].
 
 
 Search Forall.
 Theorem our_optimization_pipeline_is_safe: 
-safe_optimization_pipeline [optimize_add_zero; 
-                            optimize_mul_one; 
-                            optimize_mul_zero; 
-                            optimize_not_not].
+safe_optimization_pipeline our_optimization_pipeline.
 Proof.
 unfold safe_optimization_pipeline. 
 apply Forall_cons; try apply optimize_add_zero_safe.

@@ -3,4 +3,5 @@ datatypes.v
 interpreter.v
 optimizations.v
 checker.v
+examples.v
 
