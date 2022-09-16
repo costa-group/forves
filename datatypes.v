@@ -122,6 +122,8 @@ Definition opmap : opm :=
 Definition tstack := list EVMWord.
 Definition tmemory := map nat EVMWord.
 Definition tstorage := map nat EVMWord.
+Inductive execution_state :=
+ | ExState (stack: tstack) (memory: tmemory) (storage: tstorage).
 
 End Concrete.
 Import Concrete.

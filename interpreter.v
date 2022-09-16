@@ -35,9 +35,6 @@ Compute skipn_e 6 [1;2;3;4;5].
 
 Module Interpreter.
 
-Inductive execution_state :=
- | ExState (stack: tstack) (memory: tmemory) (storage: tstorage).
- 
 Definition get_stack_es (es: execution_state) : tstack :=
 match es with
 | ExState stack _ _ => stack
@@ -1980,10 +1977,26 @@ Definition is_comm_op (opcode: gen_instr) (ops: opm) : bool :=
   | Some (Op true _ _) => true
   | _ => false
   end.
+
+
+
+
+Fixpoint apply_f_opt_list {X Y: Type} (f: X -> option Y) (l: list X) :
+  option (list Y) :=
+match l with 
+| [] => Some []
+| elem::rs => let felem := f elem in
+              let frs := apply_f_opt_list f rs in
+              match (felem, frs) with 
+              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+              | _ => None
+              end
+end.
   
- 
-Fixpoint flat_stack_elem (e: asfs_stack_val) (m: asfs_map)
-  {struct m} : option flat_asfs_map_val :=
+
+(* Creates the AST version of an asfs_stack_value (follows FreshVar links *)
+Fixpoint flat_stack_elem (e: asfs_stack_val) (m: asfs_map) {struct m} 
+  : option flat_asfs_map_val :=
 match e with
 | Val v => Some (FASFSBasicVal (Val v))
 | InStackVar n => Some (FASFSBasicVal (InStackVar n))
@@ -1995,33 +2008,43 @@ match e with
              | ASFSBasicVal (Val v) => Some (FASFSBasicVal (Val v))
              | ASFSBasicVal (InStackVar n) => Some (FASFSBasicVal (InStackVar n))
              | ASFSBasicVal (FreshVar n) => flat_stack_elem (FreshVar n) rm
-             | ASFSOp opcode [arg] => match flat_stack_elem arg rm with
-                 | Some farg => Some (FASFSOp opcode [farg])
+             | ASFSOp opcode args =>
+                 let f := fun (elem': asfs_stack_val) => 
+                          flat_stack_elem elem' rm in
+                 match apply_f_opt_list f args with
+                 | Some fargs => Some (FASFSOp opcode fargs)
                  | _ => None
                  end
-             | ASFSOp opcode [arg1; arg2] => 
-                 match (flat_stack_elem arg1 rm,
-                        flat_stack_elem arg1 rm) with
-                 | (Some farg1, Some farg2) => Some (FASFSOp opcode [farg1; farg2])
-                 | _ => None
-                 end
-             | _ => None
              end
         else flat_stack_elem e rm
     | _ => None
     end
 end.
 
-Fixpoint compare_flat_asfs_map_val (e1 e2: flat_asfs_map_val) (ops: opm): bool :=
+
+Fixpoint apply_pred_lists {X: Type} (f: X -> X -> bool) (l1 l2: list X) 
+  {struct l1} : bool :=
+match l1, l2 with 
+| [], [] => true
+| h1::t1, h2::t2 => (f h1 h2) && (apply_pred_lists f t1 t2)
+| _, _ => false
+end.
+
+
+(* Compares if two AST of flat_asfs_map_val are equivalent (considering
+   commutativity) *)
+Fixpoint compare_flat_asfs_map_val (e1 e2: flat_asfs_map_val) (ops: opm)
+ {struct e1}: bool :=
 match (e1, e2) with
 | (FASFSBasicVal (Val v1), FASFSBasicVal (Val v2)) => weqb v1 v2
 | (FASFSBasicVal (InStackVar v1), FASFSBasicVal (InStackVar v2)) => v1 =? v2
-| (FASFSOp opcode1 [farg1], FASFSOp opcode2 [farg2]) => 
-      (eq_gen_instr opcode1 opcode2) && (compare_flat_asfs_map_val farg1 farg2 ops)
-| (FASFSOp opcode1 [farg11;farg12], FASFSOp opcode2 [farg21; farg22]) => 
-      (eq_gen_instr opcode1 opcode2) && (compare_flat_asfs_map_val farg11 farg21 ops)
-      && (compare_flat_asfs_map_val farg12 farg22 ops)
-  (* TODO add commutativity check *)
+| (FASFSOp opcode [arg1;arg2], FASFSOp opcode' [arg1';arg2']) => 
+  (* Binary case to consider commutativity *)
+  false*)
+| (FASFSOp opcode args, FASFSOp opcode' args') => 
+      let f := fun (a b: flat_asfs_map_val) => 
+                   compare_flat_asfs_map_val a b ops in
+      (eq_gen_instr opcode opcode') && (apply_pred_lists f args args')
 | _ => false
 end.
 

@@ -17,68 +17,6 @@ Import ListNotations.
 
 Module Examples.
 
-(* CHECKER *)
-Example checker_ex1:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5)] in
-let stack_size := 10 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker optimized_p p stack_size opt = true.
-Proof. auto. Qed.
-
-Example checker_ex2:
-let optimized_p := [PUSH 32 (natToWord WLen 6)] in
-let p := [PUSH 32 (natToWord WLen 5)] in
-let stack_size := 10 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker optimized_p p stack_size opt = false.
-Proof. auto. Qed.
-
-Example checker_ex3:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 6);
-          POP] in
-let stack_size := 10 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker optimized_p p stack_size opt = true.
-Proof. auto. Qed.
-
-Example checker_ex4:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 0);
-          PUSH 32 (natToWord WLen 5);
-          Opcode ADD] in
-let stack_size := 0 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker optimized_p p stack_size opt = true.
-Proof. auto. Qed.
-
-Example checker_ex5:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 0);
-          Opcode ADD;
-          PUSH 32 WOne;
-          Opcode MUL] in
-let stack_size := 0 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker optimized_p p stack_size opt = true.
-Proof. auto. Qed.
-
-Example checker_ex6:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 WOne;
-          PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 0);
-          Opcode ADD;
-          Opcode MUL] in
-let stack_size := 0 in
-let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker optimized_p p stack_size opt = true.
-Proof. auto. Qed.
-
-
 
 
 (* CONCRETE EXECUTION *)
@@ -161,6 +99,13 @@ let prog := [PUSH 32 W0;
              Opcode MUL]
 in symbolic_exec prog 2 opmap
 ).
+(*
+ [FreshVar 1]
+ +
+ MAP: [FreshVar 1 |-> MUL 2 (FreshVar 0) 
+       FreshVar 0 |-> ADD 0 (InStackVar 0)
+      ]
+*)
 
 
 Compute (
@@ -169,6 +114,109 @@ let prog := [Opcode ADD;
 in symbolic_exec prog 3 opmap
 ).
 
+
+
+(* OPTIMIZATIONS ON ASFS *)
+Compute (
+let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp ADD [Val W0; InStackVar 0])] in
+optimize_add_zero a
+).
+
+Compute (
+let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [Val W0; InStackVar 0])] in
+optimize_add_zero a
+).
+
+
+Compute (
+let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [InStackVar 0; Val W0])] in
+optimize_mul_zero a
+).
+
+Compute (
+let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [InStackVar 0; Val W1])] in
+optimize_mul_one a
+).
+
+Compute (
+let a := ASFSc 1 2 [FreshVar 1] [(1, ASFSOp NOT [FreshVar 0]);
+                                 (0, ASFSOp NOT [InStackVar 0])] in
+optimize_not_not a
+).
+
+
+
+(* CHECKER *)
+Example checker_ex1:
+let optimized_p := [PUSH 32 (natToWord WLen 5)] in
+let p := [PUSH 32 (natToWord WLen 5)] in
+let stack_size := 10 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
+Example checker_ex2:
+let optimized_p := [PUSH 32 (natToWord WLen 6)] in
+let p := [PUSH 32 (natToWord WLen 5)] in
+let stack_size := 10 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+equiv_checker optimized_p p stack_size opt = false.
+Proof. auto. Qed.
+
+Example checker_ex3:
+let optimized_p := [PUSH 32 (natToWord WLen 5)] in
+let p := [PUSH 32 (natToWord WLen 5);
+          PUSH 32 (natToWord WLen 6);
+          POP] in
+let stack_size := 10 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
+Example checker_ex4:
+let optimized_p := [PUSH 32 (natToWord WLen 5)] in
+let p := [PUSH 32 (natToWord WLen 0);
+          PUSH 32 (natToWord WLen 5);
+          Opcode ADD] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
+Example checker_ex4b:
+let optimized_p := [PUSH 32 (natToWord WLen 5); Opcode ADD] in
+let p := [PUSH 32 (natToWord WLen 0);
+          Opcode ADD;
+          PUSH 32 (natToWord WLen 5);
+          Opcode ADD] in
+let stack_size := 1 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
+Example checker_ex5:
+let optimized_p := [PUSH 32 (natToWord WLen 5)] in
+let p := [PUSH 32 (natToWord WLen 5);
+          PUSH 32 (natToWord WLen 0);
+          Opcode ADD;
+          PUSH 32 WOne;
+          Opcode MUL] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
+Example checker_ex6:
+let optimized_p := [PUSH 32 (natToWord WLen 5)] in
+let p := [PUSH 32 WOne;
+          PUSH 32 (natToWord WLen 5);
+          PUSH 32 (natToWord WLen 0);
+          Opcode ADD;
+          Opcode MUL] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
 
 
 
