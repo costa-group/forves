@@ -26,6 +26,160 @@ match symbolic_exec p1 height opmap with
 end.
 
 
+(** 
+  JOSEBA:
+  
+    equiv_checker version where final execution stack are comapred.
+*)
+
+
+Fixpoint concrete_stack_eq (cs1 cs2: concrete_stack) : bool :=
+  match cs1, cs2 with
+  | [], [] => true
+  | h1::cs1', h2::cs2' => (weqb h1 h2) && concrete_stack_eq cs1' cs2'
+  | _, _ => false
+  end.
+
+
+
+
+Definition equiv_checker' (p1 p2: prog) (es: execution_state) 
+  (opt: optimization) : bool :=
+
+  match concr_interpreter p1 es opmap with
+  | None => false
+  | Some es' =>
+      let s  := get_stack_es es in
+      let s1 := get_stack_es es' in
+      let h  := length s in
+      match symbolic_exec p2 h opmap with
+      | None => false
+      | Some a =>
+          let (a', _) := opt a in
+          match eval_asfs s a' opmap with
+          | None => false
+          | Some s2 => concrete_stack_eq s1 s2
+          end
+      end
+  end.
+
+     
+
+
+(* Tests *)
+(* Symbolic Execution Tests *)
+
+Example es_0 := ExState [] empty_nmap empty_nmap.
+
+Example cs_0 : concrete_stack := [ 
+  natToWord WLen 8;
+  natToWord WLen 2;
+  natToWord WLen 3
+  ].
+
+Example p_0 : prog := [
+  PUSH 1 (natToWord WLen 1) 
+].
+
+Example p_1 : prog := [
+  PUSH 1 (natToWord WLen 1); 
+  PUSH 1 (natToWord WLen 0); 
+  Opcode ADD
+].
+
+Example p_2 : prog := [
+  PUSH 1 (natToWord WLen 2) 
+].
+
+Example a_0 := match symbolic_exec p_0 0 opmap with None => empty_asfs 0 | Some a' => a' end.
+Compute get_stack_asfs a_0.
+Compute get_map_asfs a_0. 
+
+Example a_1 := match symbolic_exec p_1 0 opmap with None => empty_asfs 0 | Some a' => a' end.
+Compute get_stack_asfs a_1.
+Compute get_map_asfs a_1. 
+
+Example a_1' := fst (optimize_add_zero a_1).
+Example b_1 := snd (optimize_add_zero a_1).
+Compute b_1.
+Compute get_stack_asfs a_1'.
+Compute get_map_asfs a_1'. 
+
+Example eq_0 := equiv_checker p_0 p_1 0 optimize_add_zero.
+Compute eq_0.
+
+Example eq_1 := equiv_checker p_1 p_1 0 optimize_add_zero.
+Compute eq_1.
+
+Example s_0 := get_stack_asfs a_0.
+Example s_1 := get_stack_asfs a_1.
+Example s_1' := get_stack_asfs a_1'.
+
+Example m_0  := get_map_asfs a_0.
+Example m_1  := get_map_asfs a_1.
+Example m_1' := get_map_asfs a_1'.
+
+Compute s_0.
+Compute s_1.
+Compute s_1'.
+
+Compute m_0.
+Compute m_1.
+Compute m_1'.
+
+Compute eval_asfs [] a_0 opmap.
+Compute eval_asfs [] a_1 opmap.
+Compute eval_asfs [] a_1' opmap.
+
+Compute asfs_eq a_1 a_1' opmap.
+
+Compute equiv_checker' p_0 p_2 es_0 optimize_add_zero.
+
+
+
+Example p_3 : prog := [
+  PUSH 1 (natToWord WLen 1) 
+].
+
+
+
+Definition get_asfs (p1 p2: prog) (h: nat): option (asfs*asfs) :=
+  let a1:= symbolic_exec p1 h opmap in
+  let a2:= symbolic_exec p2 h opmap in
+  match a1, a2 with
+  | Some a1', Some a2' => Some (a1', a2')
+  | _, _ => None
+  end.
+
+Definition get_stacks (a1 a2: asfs): (asfs_stack*asfs_stack) :=
+  let s1 := get_stack_asfs a1 in
+  let s2 := get_stack_asfs a2 in
+  (s1,s2).
+
+
+
+Compute (
+  let p1 := [
+    PUSH 1 (natToWord WLen 1);
+    PUSH 1 (natToWord WLen 0);
+    Opcode ADD] in
+
+  let p2 := [
+    PUSH 1 (natToWord WLen 1)] in
+
+  let a := get_asfs p1 p2 0 in
+  match a with
+  | Some (a1, a2) => get_stacks a1 a2
+  | None => ([], [])
+  end
+  (* equiv_checker p1 p2 0 optimize_add_zero *)
+  
+).
+
+
+
+
+
 Lemma symb_exec''_strictly_decreasing: forall (ins: instr) (a a': asfs) 
   (ops: opm),
 strictly_decreasing_map_asfs a ->
