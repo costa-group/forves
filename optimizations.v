@@ -125,7 +125,7 @@ Module Optimizations.
 (* General definitions to define different optimizations and useful common
    lemmas *)
 
-Fixpoint stack_val_is_oper (oper: gen_instr) (val: asfs_stack_val) 
+Fixpoint stack_val_is_oper (oper: oper_label) (val: asfs_stack_val) 
   (m: asfs_map) {struct m}: option (list asfs_stack_val) :=
 match val with 
 | Val _ => None
@@ -136,7 +136,7 @@ match val with
                        if k =? fvar then
                          match v with
                          | ASFSOp opcode args =>
-                           if eq_gen_instr oper opcode then Some args
+                           if oper =?i opcode then Some args
                            else None
                          | _ => None
                          end
@@ -368,7 +368,7 @@ Qed.
 Lemma evaluation_sufix_map: forall (m: asfs_map) (nbargs: nat)  
   (elem: asfs_stack_val)
   (inner_args: asfs_stack) (comm: bool) (func: list EVMWord -> option EVMWord)
-  (val: EVMWord) (oper: gen_instr) (ops: opm) (stack: concrete_stack),
+  (val: EVMWord) (oper: oper_label) (ops: opm) (stack: concrete_stack),
 stack_val_is_oper oper elem m = Some inner_args ->
 ops oper = Some (Op comm nbargs func) ->
 eval_asfs2_elem stack elem m ops = Some val ->
@@ -386,7 +386,7 @@ induction m as [| h t IH].
   + destruct e as [basicval| opcode args] eqn: eq_e; try discriminate H.
     destruct (oper =?i opcode) eqn: eq_oper; try discriminate H.
     simpl in H1. rewrite -> eq_k_fvar in H1.
-    apply eq_gen_instr_correct in eq_oper.
+    apply eq_oper_label_correct in eq_oper.
     rewrite <- eq_oper in H1. rewrite -> H0 in H1.
     destruct (length args =? nbargs) eqn: eq_len_args; try discriminate H1.
     rewrite -> eval_asfs2_ho in H1.
@@ -1804,7 +1804,7 @@ l is subset of l_op ->
 opt_scheme l a = Some a' ->
 eval a opmap = eval a' opmap.
 
-Definition checker (p1 p2: prog) =
+Definition checker (p1 p2: block) =
 let asfs1 := symb_exec p1 opmap in
 let asfs2 := symb_exec p2 opmap in
 let opt_asfs1 := opt_scheme ([opt1; opt2;....]) a in
@@ -2343,7 +2343,7 @@ Admitted.
 
 (* Examples *)
 
-Example p1 : prog := [
+Example p1 : block := [
   Opcode ADD;
   PUSH 1 (natToWord WLen 0); 
   PUSH 1 (natToWord WLen 2);

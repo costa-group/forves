@@ -13,12 +13,12 @@ Import ListNotations.
 
 Module Checker.
 
-Definition equiv_checker (p1 p2: prog) (height: nat) (opt: optimization) 
+Definition equiv_checker (opt_p p: block) (height: nat) (opt: optimization) 
   : bool :=
-match symbolic_exec p1 height opmap with
+match symbolic_exec opt_p height opmap with
 | None => false
 | Some sfs1 => 
-    match symbolic_exec p2 height opmap with 
+    match symbolic_exec p height opmap with 
     | None => false
     | Some sfs2 => let (sfs3, _) := opt sfs2 in 
                    asfs_eq sfs1 sfs3 opmap
@@ -43,7 +43,7 @@ Fixpoint concrete_stack_eq (cs1 cs2: concrete_stack) : bool :=
 
 
 
-Definition equiv_checker' (p1 p2: prog) (es: execution_state) 
+Definition equiv_checker' (p1 p2: block) (es: execution_state) 
   (opt: optimization) : bool :=
 
   match concr_interpreter p1 es opmap with
@@ -77,17 +77,17 @@ Example cs_0 : concrete_stack := [
   natToWord WLen 3
   ].
 
-Example p_0 : prog := [
+Example p_0 : block := [
   PUSH 1 (natToWord WLen 1) 
 ].
 
-Example p_1 : prog := [
+Example p_1 : block := [
   PUSH 1 (natToWord WLen 1); 
   PUSH 1 (natToWord WLen 0); 
   Opcode ADD
 ].
 
-Example p_2 : prog := [
+Example p_2 : block := [
   PUSH 1 (natToWord WLen 2) 
 ].
 
@@ -137,13 +137,13 @@ Compute equiv_checker' p_0 p_2 es_0 optimize_add_zero.
 
 
 
-Example p_3 : prog := [
+Example p_3 : block := [
   PUSH 1 (natToWord WLen 1) 
 ].
 
 
 
-Definition get_asfs (p1 p2: prog) (h: nat): option (asfs*asfs) :=
+Definition get_asfs (p1 p2: block) (h: nat): option (asfs*asfs) :=
   let a1:= symbolic_exec p1 h opmap in
   let a2:= symbolic_exec p2 h opmap in
   match a1, a2 with
@@ -199,7 +199,7 @@ intros. destruct ins eqn: eq_ins.
   admit.
 Admitted.
 
-Lemma symb_exec'_strictly_decreasing: forall (p: prog) (a a': asfs) 
+Lemma symb_exec'_strictly_decreasing: forall (p: block) (a a': asfs) 
   (ops: opm),
 strictly_decreasing_map_asfs a ->
 symbolic_exec' p a ops = Some a' ->
@@ -221,7 +221,7 @@ Proof.
 intros. simpl. auto.
 Qed.
 
-Lemma symb_exec_strictly_decreasing: forall (p: prog) (height: nat) (ops: opm)
+Lemma symb_exec_strictly_decreasing: forall (p: block) (height: nat) (ops: opm)
   (sfs: asfs),
 symbolic_exec p height ops = Some sfs ->
 strictly_decreasing_map_asfs sfs.
@@ -236,7 +236,7 @@ Qed.
 
 
 
-Theorem equiv_checker_correct: forall (p1 p2: prog) (height: nat) 
+Theorem equiv_checker_correct: forall (p1 p2: block) (height: nat) 
   (opt: optimization) (in_es out_es1 out_es2: execution_state) 
   (in_stk: concrete_stack),
 safe_optimization opt ->

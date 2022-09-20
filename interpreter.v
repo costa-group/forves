@@ -232,7 +232,7 @@ match inst with
       end
   end.
 
-Fixpoint concr_interpreter (insts : prog) (es : execution_state)
+Fixpoint concr_interpreter (insts : block) (es : execution_state)
   (ops : opm) : option execution_state :=
   match insts with
   | [] => Some es
@@ -343,7 +343,7 @@ Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : option bool :=
   match a, b with
   | ASFSBasicVal v1,  ASFSBasicVal v2  => Some (asfs_stack_val_eq v1 v2)
   | ASFSOp op1 args1, ASFSOp op2 args2 => 
-      match eq_gen_instr op1 op2 with
+      match eq_oper_label op1 op2 with
       | true => 
           match ops op1 with
           | None => None
@@ -381,7 +381,7 @@ Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : bool :=
   match a, b with
   | ASFSBasicVal v1,  ASFSBasicVal v2  => asfs_stack_val_eq v1 v2
   | ASFSOp op1 args1, ASFSOp op2 args2 => 
-      eq_gen_instr op1 op2 && asfs_stack_val_list_eq args1 args2
+      eq_oper_label op1 op2 && asfs_stack_val_list_eq args1 args2
   | _, _ => false
   end.
 
@@ -473,7 +473,7 @@ Definition symbolic_exec'' (ins: instr) (a: asfs) (ops: opm) : option asfs :=
       end
   end.
 
-Fixpoint symbolic_exec' (p: prog) (a: asfs) (ops: opm) : option asfs :=
+Fixpoint symbolic_exec' (p: block) (a: asfs) (ops: opm) : option asfs :=
   match p with
   | nil => Some a
   | ins::p' =>
@@ -483,7 +483,7 @@ Fixpoint symbolic_exec' (p: prog) (a: asfs) (ops: opm) : option asfs :=
       end
   end.
 
-Definition symbolic_exec (p: prog) (height: nat) (ops: opm) : option asfs :=
+Definition symbolic_exec (p: block) (height: nat) (ops: opm) : option asfs :=
   let a : asfs := empty_asfs height in 
   symbolic_exec' p a ops.
 
@@ -495,7 +495,7 @@ Example cs_0 : concrete_stack := [
   natToWord WLen 3
   ].
 
-Example p_0 : prog := [
+Example p_0 : block := [
   PUSH 1 (natToWord WLen 5); 
   PUSH 1 (natToWord WLen 7); 
   PUSH 1 (natToWord WLen 7); 
@@ -512,7 +512,7 @@ Example cs_1 : concrete_stack := [
   natToWord WLen 2
   ].
 
-Example p_1 : prog := [
+Example p_1 : block := [
   Opcode ADD;
   PUSH 1 (natToWord WLen 1); 
   PUSH 1 (natToWord WLen 2);
@@ -1063,7 +1063,7 @@ Qed.
 
 (* Main lemma that relates curr_asfs to out_asfs in the case of executing an operator. 
    It relates their asfs_stacks and the results of their evaluation *)
-Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: gen_instr) (comm_flag: bool)
+Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: oper_label) (comm_flag: bool)
   (nb_args hec maxc heo maxo: nat) (func: list EVMWord -> option EVMWord) (curr_es: execution_state)
   (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
   (mapc mapo: asfs_map),
@@ -1702,7 +1702,7 @@ Qed.
 
 Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
   (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
-  (curr_es out_es: execution_state) (p: prog),
+  (curr_es out_es: execution_state) (p: block),
 valid_asfs curr_asfs = true ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
@@ -1919,8 +1919,8 @@ destruct n as [| n'] eqn: eq_n.
 Qed.
 
 
-(* A complete program*)
-Theorem correctness_symb_exec: forall (p: prog) (in_stk out_stk: concrete_stack)
+(* A complete blockram*)
+Theorem correctness_symb_exec: forall (p: block) (in_stk out_stk: concrete_stack)
   (ops:opm) (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
 length in_stk = height ->
 get_stack_es in_es = in_stk ->
@@ -1954,7 +1954,7 @@ Qed.
 
 - The main theorem
 
-  for program P1, P2, height, in_stk, opm
+  for blockram P1, P2, height, in_stk, opm
 
   length in_stk = height
   asfs1 is symblic execution of P1 with height, opm
@@ -1972,7 +1972,7 @@ Qed.
 //   -> [ [[a1,a2],[b1,b2]] ]
 *)
 
-Definition is_comm_op (opcode: gen_instr) (ops: opm) : bool :=
+Definition is_comm_op (opcode: oper_label) (ops: opm) : bool :=
   match (ops opcode) with
   | Some (Op true _ _) => true
   | _ => false
@@ -2030,7 +2030,7 @@ match l1, l2 with
 | _, _ => false
 end.
 
-
+(* ENRIQUE: CANNOT DETECT DECREASING ARGUMENT!!!
 (* Compares if two AST of flat_asfs_map_val are equivalent (considering
    commutativity) *)
 Fixpoint compare_flat_asfs_map_val (e1 e2: flat_asfs_map_val) (ops: opm)
@@ -2040,12 +2040,39 @@ match (e1, e2) with
 | (FASFSBasicVal (InStackVar v1), FASFSBasicVal (InStackVar v2)) => v1 =? v2
 | (FASFSOp opcode [arg1;arg2], FASFSOp opcode' [arg1';arg2']) => 
   (* Binary case to consider commutativity *)
-  false*)
+  false
 | (FASFSOp opcode args, FASFSOp opcode' args') => 
       let f := fun (a b: flat_asfs_map_val) => 
                    compare_flat_asfs_map_val a b ops in
-      (eq_gen_instr opcode opcode') && (apply_pred_lists f args args')
+      (eq_oper_label opcode opcode') && (apply_pred_lists f args args')
 | _ => false
+end.
+*)
+
+Fixpoint compare_flat_asfs_map_val (e1 e2: flat_asfs_map_val) (ops: opm)
+ {struct e1}: bool :=
+match e1, e2 with
+| FASFSBasicVal (Val v1), FASFSBasicVal (Val v2) => weqb v1 v2
+| FASFSBasicVal (InStackVar v1), FASFSBasicVal (InStackVar v2) => v1 =? v2
+| FASFSOp opcode [], FASFSOp opcode' [] => opcode =?i opcode'
+| FASFSOp opcode [arg], FASFSOp opcode' [arg'] => 
+    (opcode =?i opcode') && (compare_flat_asfs_map_val arg arg' ops)
+| FASFSOp opcode [arg1;arg2], FASFSOp opcode' [arg1';arg2'] => 
+  (* Binary case to consider commutativity *)
+  (opcode =?i opcode') && 
+    ((compare_flat_asfs_map_val arg1 arg1' ops) &&
+     (compare_flat_asfs_map_val arg2 arg2' ops) 
+    ||
+     (is_comm_op opcode ops) &&
+     (compare_flat_asfs_map_val arg1 arg2' ops) &&
+     (compare_flat_asfs_map_val arg2 arg1' ops)
+    )
+(* General case for any length cannot be define because of termination *)
+(*| (FASFSOp opcode args, FASFSOp opcode' args') => 
+      let f := fun (a b: flat_asfs_map_val) => 
+                   compare_flat_asfs_map_val a b ops in
+      (eq_oper_label opcode opcode') && (apply_pred_lists f args args')*)
+| _, _ => false
 end.
 
 
@@ -2070,7 +2097,7 @@ match e1, e2 with
           match mv1, mv2 with 
           | ASFSBasicVal av1, ASFSBasicVal av2 => asfs_eq_stack_elem av1 av2 rm1 rm2 ops
           | ASFSOp opcode1 args1, ASFSOp opcode2 args2 => 
-              if eq_gen_instr opcode1 opcode2 then 
+              if eq_oper_label opcode1 opcode2 then 
                 match args1, args2 with 
                 | [], [] => true
                 | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
@@ -2267,12 +2294,17 @@ Proof.
 reflexivity. Qed.
 
 
+Definition eq_ss (ss1 ss2: asfs) (ops: opm) : Prop :=
+forall (s: tstack), eval_asfs s ss1 ops = eval_asfs s ss2 ops.
+
+
 Theorem asfs_eq_correctness:
   forall (a1 a2: asfs) (ops: opm) (s : concrete_stack),
   asfs_eq a1 a2 ops = true ->
+  (* eq_ss a1 a2 ops. *)
   eval_asfs s a1 ops = eval_asfs s a2 ops.
 Proof.
-Admitted.    
+Admitted.
 
 
 End SFS.
@@ -2323,7 +2355,7 @@ proof.
 (*
 Plan:
 
-Phase 1: handle prog with no memory, and some optimizations
+Phase 1: handle block with no memory, and some optimizations
 
  - to go back to the add(x,0) optimization and rewrite in terms of
    the new representation (Enrique)
@@ -2415,7 +2447,7 @@ Store:
   eval_asfs instk out_sfs opm = Some out_stk
 
 
-\forall p:prog, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
+\forall p:block, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
 
   length instk = height,
   conc_exec p instk ops = Some out_stk,

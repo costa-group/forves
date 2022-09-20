@@ -16,7 +16,6 @@ Definition EVMWord:= word WLen.
 Definition StackLen := 1024.
 Definition WZero: EVMWord  := natToWord WLen 0.
 Definition WOne : EVMWord  := natToWord WLen 1.
-Definition WTrue: EVMWord  := natToWord WLen 1.
 End EVM_Def.
 Import EVM_Def.
 
@@ -27,8 +26,9 @@ Import EVM_Def.
 (** Execution State and Stack Machine related definitions *)
 Module Concrete.
 
-(** General opcodes that operate on stack elements and return one value on top of stack*)
-Inductive gen_instr :=
+(** General opcodes that operate on stack elements and return one value on 
+    top of the stack *)
+Inductive oper_label :=
   | ADD
   | MUL
   | NOT.
@@ -39,27 +39,27 @@ Inductive instr :=
   | POP 
   | DUP (pos: nat)
   | SWAP (pos: nat)
-  | Opcode (label: gen_instr).
+  | Opcode (label: oper_label).
   
-Definition prog := list instr.  
+Definition block := list instr.  
 
-(** Function that evaluates a list of EVMWord, they are related to gen_instr *)
+(** Function that evaluates a list of EVMWord, they are related to oper_label *)
 Inductive operator :=
   | Op (comm: bool) (nb_args : nat) (func : list EVMWord -> option EVMWord).
 
-Definition eq_gen_instr (a b: gen_instr) : bool :=
+Definition eq_oper_label (a b: oper_label) : bool :=
 match (a, b) with
  | (ADD, ADD) => true
  | (MUL, MUL) => true
  | (NOT, NOT) => true 
  | _ => false
 end.
-Notation "m '=?i' n" := (eq_gen_instr m n) (at level 100).
+Notation "m '=?i' n" := (eq_oper_label m n) (at level 100).
 
-Lemma eq_gen_instr_correct:  forall (a b: gen_instr),
-eq_gen_instr a b = true -> a = b.
+Lemma eq_oper_label_correct:  forall (a b: oper_label),
+eq_oper_label a b = true -> a = b.
 Proof.
-intros. unfold eq_gen_instr in H. 
+intros. unfold eq_oper_label in H. 
 destruct a; try (destruct b; intuition).
 Qed.
 
@@ -89,12 +89,12 @@ match args with
 (* ================================================================= *)
 (** ** Definition of maps *)
 
-(* The maps here link an opcode (gen_instr) to an operator *)
+(* The maps here link an opcode (oper_label) to an operator *)
 
 Definition map (K V : Type) : Type := K -> option V.
 
-Definition empty_imap {A : Type} : map gen_instr A := (fun _ => None).
-Definition updatei {A : Type} (m : map gen_instr A) (x : gen_instr) (v : A) :=
+Definition empty_imap {A : Type} : map oper_label A := (fun _ => None).
+Definition updatei {A : Type} (m : map oper_label A) (x : oper_label) (v : A) :=
   fun x' => if x =?i x' then Some v else m x'.
 Notation "x '|->i' v ';' m" := (updatei m x v)
   (at level 100, v at next level, right associativity).
@@ -109,7 +109,7 @@ Notation "x '|->n' v ';' m" := (updaten m x v)
 Notation "x '|->n' v" := (updaten empty_nmap x v)
   (at level 100).
   
-Definition opm := map gen_instr operator.
+Definition opm := map oper_label operator.
   
 Definition opmap : opm :=
   ADD |->i Op true 2 add;
@@ -173,7 +173,7 @@ Module Abstract.
       Inductive sfs_val : Type :=
         | SFSVal (val : EVMWord)
         | SFSVar (var : nat)
-        | SFSOp  (opcode : gen_instr) (args : list sfs_val).
+        | SFSOp  (opcode : oper_label) (args : list sfs_val).
 
       Definition sfs_stack   := list sfs_val.
       
@@ -219,11 +219,11 @@ Inductive asfs_stack_val : Type :=
 
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)
-  | ASFSOp (opcode : gen_instr) (args : list asfs_stack_val).
+  | ASFSOp (opcode : oper_label) (args : list asfs_stack_val).
   
 Inductive flat_asfs_map_val : Type :=
   | FASFSBasicVal (val: asfs_stack_val)
-  | FASFSOp (opcode : gen_instr) (args : list flat_asfs_map_val).
+  | FASFSOp (opcode : oper_label) (args : list flat_asfs_map_val).
 
 Definition concrete_stack := list EVMWord.
 Definition in_stack := list nat.

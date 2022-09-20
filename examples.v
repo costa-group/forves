@@ -35,39 +35,39 @@ Definition W10 := natToWord WLen 10.
 
 Compute (
 let es := ExState [] empty_nmap empty_nmap
-in let prog := [PUSH 32 W0;
+in let block := [PUSH 32 W0;
                 PUSH 32 W5;
                 Opcode ADD]
-in concr_interpreter prog es opmap
+in concr_interpreter block es opmap
 ).
 
 
 Compute (
 let es := ExState [] empty_nmap empty_nmap
-in let prog := [PUSH 32 W5;
+in let block := [PUSH 32 W5;
                 PUSH 32 W0;
                 Opcode ADD;
                 PUSH 32 W1;
                 Opcode MUL]
-in concr_interpreter prog es opmap
+in concr_interpreter block es opmap
 ).
 
 
 Compute (
 let es := ExState [W7; W7] empty_nmap empty_nmap
-in let prog := [PUSH 32 W0;
+in let block := [PUSH 32 W0;
                 Opcode ADD;
                 PUSH 32 W2;
                 Opcode MUL]
-in concr_interpreter prog es opmap
+in concr_interpreter block es opmap
 ).
 
 
 Compute (
 let es := ExState [W5; W1; W2] empty_nmap empty_nmap
-in let prog := [Opcode ADD;
+in let block := [Opcode ADD;
                 Opcode MUL]
-in concr_interpreter prog es opmap
+in concr_interpreter block es opmap
 ).
 
 
@@ -75,29 +75,29 @@ in concr_interpreter prog es opmap
 
 (* SYMBOLIC EXECUTION *)
 Compute (
-let prog := [PUSH 32 W0;
+let block := [PUSH 32 W0;
              PUSH 32 W5;
              Opcode ADD]
-in symbolic_exec prog 0 opmap
+in symbolic_exec block 0 opmap
 ).
 
 
 Compute (
-let prog := [PUSH 32 W5;
+let block := [PUSH 32 W5;
              PUSH 32 W0;
              Opcode ADD;
              PUSH 32 W1;
              Opcode MUL]
-in symbolic_exec prog 0 opmap
+in symbolic_exec block 0 opmap
 ).
 
 
 Compute (
-let prog := [PUSH 32 W0;
+let block := [PUSH 32 W0;
              Opcode ADD;
              PUSH 32 W2;
              Opcode MUL]
-in symbolic_exec prog 2 opmap
+in symbolic_exec block 2 opmap
 ).
 (*
  [FreshVar 1]
@@ -109,9 +109,9 @@ in symbolic_exec prog 2 opmap
 
 
 Compute (
-let prog := [Opcode ADD;
+let block := [Opcode ADD;
              Opcode MUL]
-in symbolic_exec prog 3 opmap
+in symbolic_exec block 3 opmap
 ).
 
 
@@ -148,35 +148,47 @@ optimize_not_not a
 
 (* CHECKER *)
 Example checker_ex1:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5)] in
+let optimized_p := [PUSH 32 W5] in
+let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
 equiv_checker optimized_p p stack_size opt = true.
 Proof. auto. Qed.
 
 Example checker_ex2:
-let optimized_p := [PUSH 32 (natToWord WLen 6)] in
-let p := [PUSH 32 (natToWord WLen 5)] in
+let optimized_p := [PUSH 32 W6] in
+let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
 equiv_checker optimized_p p stack_size opt = false.
 Proof. auto. Qed.
 
 Example checker_ex3:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 6);
+let optimized_p := [PUSH 32 W5] in
+let p := [PUSH 32 W5;
+          PUSH 32 W6;
           POP] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
 equiv_checker optimized_p p stack_size opt = true.
 Proof. auto. Qed.
 
+Example checker_ex3_comm:
+let optimized_p := [PUSH 32 W6;
+                    PUSH 32 W5;
+                    Opcode ADD] in
+let p := [PUSH 32 W5;
+          PUSH 32 W6;
+          Opcode ADD] in
+let stack_size := 10 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker optimized_p p stack_size opt = true.
+Proof. auto. Qed.
+
 Example checker_ex4:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 0);
-          PUSH 32 (natToWord WLen 5);
+let optimized_p := [PUSH 32 W5] in
+let p := [PUSH 32 W0;
+          PUSH 32 W5;
           Opcode ADD] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
@@ -195,11 +207,11 @@ equiv_checker optimized_p p stack_size opt = true.
 Proof. auto. Qed.
 
 Example checker_ex5:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 0);
+let optimized_p := [PUSH 32 W5] in
+let p := [PUSH 32 W5;
+          PUSH 32 W0;
           Opcode ADD;
-          PUSH 32 WOne;
+          PUSH 32 W1;
           Opcode MUL] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
@@ -207,10 +219,10 @@ equiv_checker optimized_p p stack_size opt = true.
 Proof. auto. Qed.
 
 Example checker_ex6:
-let optimized_p := [PUSH 32 (natToWord WLen 5)] in
-let p := [PUSH 32 WOne;
-          PUSH 32 (natToWord WLen 5);
-          PUSH 32 (natToWord WLen 0);
+let optimized_p := [PUSH 32 W5] in
+let p := [PUSH 32 W1;
+          PUSH 32 W5;
+          PUSH 32 W0;
           Opcode ADD;
           Opcode MUL] in
 let stack_size := 0 in
