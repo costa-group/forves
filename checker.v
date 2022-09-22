@@ -235,7 +235,6 @@ apply symb_exec'_strictly_decreasing with (p:=p) (a:=empty_asfs height)
 Qed.
 
 
-
 Theorem equiv_checker_correct: forall (p1 p2: block) (height: nat) 
   (opt: optimization) (in_es out_es1 out_es2: execution_state) 
   (in_stk: concrete_stack),
@@ -276,6 +275,101 @@ rewrite -> Heval_sfs1 in eq_eval_sfs1_sfs3.
 rewrite -> Heval_sfs3 in eq_eval_sfs1_sfs3.
 injection eq_eval_sfs1_sfs3. auto.
 Qed.
+
+
+(*** IDEAS FOR IMPROVING CORRECTNESS *)
+Lemma lengths_stack_eval: forall in_stk curr_stk curr_asfs ops,
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+length curr_stk = length (get_stack_asfs curr_asfs).
+Proof.
+auto.
+Admitted.
+
+Lemma push_correct: forall w curr_asfs s' curr_stk,
+push (Val w) (get_stack_asfs curr_asfs) = Some s' ->
+length curr_stk = length (get_stack_asfs curr_asfs) ->
+exists sk', push w curr_stk = Some sk'.
+Proof.
+Admitted.
+
+
+Theorem correctness_symb_exec_step_2: forall (instruction: instr) 
+  (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
+  (height: nat) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
+valid_asfs curr_asfs = true ->
+length in_stk = height ->
+eval_asfs in_stk curr_asfs ops = Some curr_stk ->
+get_stack_es curr_es = curr_stk ->
+symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
+exists (out_es: execution_state), 
+concr_intpreter_instr instruction curr_es ops = Some out_es.
+Proof.
+intros.
+destruct instruction eqn: eq_instr.
+- (* PUSH *)
+  simpl. unfold push_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H3. simpl in H2. rewrite -> H2.
+  destruct (push (Val w) (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_push_asfs_stack; try discriminate.
+  pose proof (lengths_stack_eval in_stk curr_stk curr_asfs ops H1).
+  pose proof (push_correct w curr_asfs s' curr_stk eq_push_asfs_stack H4)
+    as [sk'' Hpush].
+  rewrite Hpush.
+  exists (ExState sk'' memory storage).
+  reflexivity.
+- (* POP: similar to PUSH *)
+  admit.
+- (* DUP *) 
+  admit.
+- (* SWAP *)
+  admit.
+- (* opcode *)
+  admit.
+Admitted.
+
+  
+
+Theorem correctness_symb_exec_2: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+exists (out_es: execution_state), concr_interpreter p in_es ops = Some out_es.
+Proof.
+Admitted.
+
+
+Theorem equiv_checker_correct_2: forall (p1 p2: block) (height: nat) 
+  (opt: optimization) (in_es: execution_state) 
+  (in_stk: concrete_stack),
+safe_optimization opt ->
+equiv_checker p1 p2 height opt = true ->
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+exists (out_es1 out_es2: execution_state),
+(concr_interpreter p1 in_es opmap = Some out_es1 /\
+ concr_interpreter p2 in_es opmap = Some out_es2 /\
+ get_stack_es out_es1 = get_stack_es out_es2).
+Proof.
+intros.
+assert (H0_copy := H0).
+unfold equiv_checker in H0.
+destruct (symbolic_exec p1 height opmap) as [sfs1|] eqn: eq_symb_exec_p1;
+  try discriminate.
+destruct (symbolic_exec p2 height opmap) as [sfs2|] eqn: eq_symb_exec_p2;
+  try discriminate.
+pose proof (correctness_symb_exec_2 p1 in_stk opmap height in_es sfs1 H1
+  H2 eq_symb_exec_p1) as [out_es1 Hconcr_p1].
+pose proof (correctness_symb_exec_2 p2 in_stk opmap height in_es sfs2 H1
+  H2 eq_symb_exec_p2) as [out_es2 Hconcr_p2].
+exists out_es1. exists out_es2.
+split; try assumption. split; try assumption.
+pose proof (equiv_checker_correct p1 p2 height opt in_es out_es1 out_es2
+  in_stk H H0_copy H1 H2 Hconcr_p1 Hconcr_p2).
+assumption.
+Qed.
+(***)
 
 End Checker.
 Import Checker.

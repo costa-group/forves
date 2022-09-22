@@ -100,7 +100,7 @@ let block := [PUSH 32 W0;
 in symbolic_exec block 2 opmap
 ).
 (*
- [FreshVar 1]
+ [FreshVar 1; InStackVar 1]
  +
  MAP: [FreshVar 1 |-> MUL 2 (FreshVar 0) 
        FreshVar 0 |-> ADD 0 (InStackVar 0)
@@ -196,10 +196,10 @@ equiv_checker optimized_p p stack_size opt = true.
 Proof. auto. Qed.
 
 Example checker_ex4b:
-let optimized_p := [PUSH 32 (natToWord WLen 5); Opcode ADD] in
-let p := [PUSH 32 (natToWord WLen 0);
+let optimized_p := [PUSH 32 W5; Opcode ADD] in
+let p := [PUSH 32 W0;
           Opcode ADD;
-          PUSH 32 (natToWord WLen 5);
+          PUSH 32 W5;
           Opcode ADD] in
 let stack_size := 1 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
