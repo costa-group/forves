@@ -1919,8 +1919,8 @@ destruct n as [| n'] eqn: eq_n.
 Qed.
 
 
-(* A complete blockram*)
-Theorem correctness_symb_exec: forall (p: block) (in_stk out_stk: concrete_stack)
+(* A complete block*)
+Lemma correctness_symb_exec_eval: forall (p: block) (in_stk out_stk: concrete_stack)
   (ops:opm) (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
 length in_stk = height ->
 get_stack_es in_es = in_stk ->
@@ -1941,6 +1941,18 @@ pose proof (correctness_symb_exec_gen (empty_asfs height) out_asfs
   Hsymbolic_exec).
 assumption.
 Qed.
+
+
+Theorem correctness_symb_exec: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+exists (out_es: execution_state), 
+   concr_interpreter p in_es ops = Some out_es /\ 
+   eval_asfs in_stk out_asfs ops = Some (get_stack_es out_es).
+Proof.
+Admitted.
 
 
 (*

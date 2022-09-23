@@ -262,9 +262,9 @@ assert (get_stack_es out_es2 = out_stk2) as eq_get_stack_2;
   try (rewrite -> eq_out_es2; auto).
 rewrite <- eq_out_es2 in H4.  
 simpl.
-pose proof (correctness_symb_exec p1 in_stk out_stk1 opmap height in_es
+pose proof (correctness_symb_exec_eval p1 in_stk out_stk1 opmap height in_es
   out_es1 sfs1 H2 H1 H3 eq_get_stack_1 symb_exec_p1) as Heval_sfs1.
-pose proof (correctness_symb_exec p2 in_stk out_stk2 opmap height in_es
+pose proof (correctness_symb_exec_eval p2 in_stk out_stk2 opmap height in_es
   out_es2 sfs2 H2 H1 H4 eq_get_stack_2 symb_exec_p2) as Heval_sfs2.
 pose proof (asfs_eq_correctness sfs1 sfs3 opmap in_stk H0) as eq_eval_sfs1_sfs3.
 unfold safe_optimization in H.
@@ -328,17 +328,6 @@ destruct instruction eqn: eq_instr.
   admit.
 Admitted.
 
-  
-
-Theorem correctness_symb_exec_2: forall (p: block) (in_stk : tstack)
-  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
-get_stack_es in_es = in_stk ->
-length in_stk = height ->
-symbolic_exec p height ops = Some out_asfs ->
-exists (out_es: execution_state), concr_interpreter p in_es ops = Some out_es.
-Proof.
-Admitted.
-
 
 Theorem equiv_checker_correct_2: forall (p1 p2: block) (height: nat) 
   (opt: optimization) (in_es: execution_state) 
@@ -353,22 +342,23 @@ exists (out_es1 out_es2: execution_state),
  get_stack_es out_es1 = get_stack_es out_es2).
 Proof.
 intros.
-assert (H0_copy := H0).
+(*assert (H0_copy := H0).*)
 unfold equiv_checker in H0.
 destruct (symbolic_exec p1 height opmap) as [sfs1|] eqn: eq_symb_exec_p1;
   try discriminate.
 destruct (symbolic_exec p2 height opmap) as [sfs2|] eqn: eq_symb_exec_p2;
   try discriminate.
-pose proof (correctness_symb_exec_2 p1 in_stk opmap height in_es sfs1 H1
-  H2 eq_symb_exec_p1) as [out_es1 Hconcr_p1].
-pose proof (correctness_symb_exec_2 p2 in_stk opmap height in_es sfs2 H1
-  H2 eq_symb_exec_p2) as [out_es2 Hconcr_p2].
+pose proof (correctness_symb_exec p1 in_stk opmap height in_es sfs1 H1
+  H2 eq_symb_exec_p1) as [out_es1 [Hconcr_p1 eq_eval_sfs1]].
+pose proof (correctness_symb_exec p2 in_stk opmap height in_es sfs2 H1
+  H2 eq_symb_exec_p2) as [out_es2 [Hconcr_p2 eq_eval_sfs2]].  
 exists out_es1. exists out_es2.
 split; try assumption. split; try assumption.
-pose proof (equiv_checker_correct p1 p2 height opt in_es out_es1 out_es2
+(* continue here with the original proof of correctness *)
+(*pose proof (equiv_checker_correct p1 p2 height opt in_es out_es1 out_es2
   in_stk H H0_copy H1 H2 Hconcr_p1 Hconcr_p2).
-assumption.
-Qed.
+assumption.*)
+Admitted.
 (***)
 
 End Checker.
