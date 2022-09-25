@@ -1969,6 +1969,13 @@ Proof.
 Admitted.
 
 
+(*
+
+It looks like we need a claim to say that the operators in the
+map _alway_succeed_ when applied to the right number of arguments. 
+Otherwise symbolic execution might succeed, but then eval of the 
+state might be None.
+*)
 Lemma correctness_symb_success_step: forall (instruction: instr) 
  (ops:opm) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
 valid_asfs curr_asfs = true ->
