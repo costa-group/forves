@@ -230,12 +230,18 @@ Inductive stack_expr : Type :=
 Definition asfs_stack  := list asfs_stack_val.
 Definition asfs_map    := list (nat*asfs_map_val).
 
-(** ASFS := 〈S0, S, M〉 *)
-(** ASFS := 〈h, max, S, M〉 *)
 Inductive asfs : Type :=
   | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
-  
-  
+
+
+(* MaxID is > any fresh variable in the map *)
+Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : Prop :=
+match map with 
+| nil => True
+| (k,v)::t => idx > k /\ fresh_var_gt_map idx t
+end.
+
+(* Fresh variables in a map are strictly decreasing *)
 Fixpoint strictly_decreasing_map (a: asfs_map) {struct a} : Prop :=
 match a with
 | [] => True
@@ -246,9 +252,10 @@ match a with
                     end
 end.
 
-Definition strictly_decreasing_map_asfs (a: asfs) : Prop :=
-match a with
-| ASFSc _ _ _ m => strictly_decreasing_map m
+Definition valid_asfs (sfs: asfs) : Prop :=
+match sfs with 
+| ASFSc height maxid s m => (fresh_var_gt_map maxid m) /\
+                            (strictly_decreasing_map m)
 end.
 
 End Abstract.

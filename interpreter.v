@@ -906,16 +906,6 @@ split; try assumption.
 split; try assumption.
 Qed.
 
-Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : bool :=
-match map with 
-| nil => true
-| (k,v)::t => if idx <=? k then false else fresh_var_gt_map idx t
-end.
-
-Definition valid_asfs (sfs: asfs) : bool :=
-match sfs with 
-| ASFSc height maxid s m => fresh_var_gt_map maxid m
-end.
 
 Lemma gt_neq: forall (n m : nat), n <=? m = false -> n =? m = false.
 Proof.
@@ -928,11 +918,13 @@ Proof.
     * simpl. simpl in H. apply IHn'. apply H.
 Qed.
 
+Search ( _ <= _).
+
 Lemma eval_asfs2_elem_extended_map_aux: forall
     (c: tstack) (elem: nat) 
     (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat),
 eval_asfs2_elem c (FreshVar elem) m ops = Some w ->
-fresh_var_gt_map n m = true ->
+fresh_var_gt_map n m ->
 n =? elem = false.
 Proof.
   intros.
@@ -942,20 +934,27 @@ Proof.
     destruct x.
     + destruct (n0 =? elem) eqn:H1.
       ++ destruct (n <=? n0) eqn:H2.
-         * discriminate H0.
+         * rewrite -> Nat.eqb_eq in H1. rewrite -> H1 in H0. 
+           destruct H0 as [n_gt_elem _]. 
+           rewrite -> Nat.leb_le in H2. rewrite -> H1 in H2.
+           pose proof (gt_not_le n elem n_gt_elem).
+           contradiction.
          * apply gt_neq. apply beq_nat_true in H1. rewrite H1 in H2. apply H2.
            ++ destruct (n <=? n0) eqn:H2.
-         * discriminate H0.
+         * destruct H0 as [n_gt_n0 _]. 
+           rewrite -> Nat.leb_le in H2. 
+           pose proof (gt_not_le n n0 n_gt_n0).
+           contradiction.
          * apply IH.
            ** apply H.
            ** apply H0.
-Qed.           
+Qed.
 
-    
+
 Lemma eval_asfs2_elem_extended_map: forall
     (c: tstack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat) (val: asfs_map_val),
 eval_asfs2_elem c elem m ops = Some w ->
-fresh_var_gt_map n m = true ->
+fresh_var_gt_map n m ->
 eval_asfs2_elem c elem ((n, val)::m) ops = Some w.
 Proof.
   intros.
@@ -979,7 +978,7 @@ Qed.
 Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: tstack) (s: asfs_stack) (map: asfs_map)
   (ops: opm) (n: nat) (val: asfs_map_val),
 eval_asfs2 in_stk s map ops = Some curr_stk ->
-fresh_var_gt_map n map = true ->
+fresh_var_gt_map n map ->
 eval_asfs2 in_stk s ((n, val)::map) ops = Some curr_stk.
 Proof.
   intros in_stk curr_stk s map ops n val.
@@ -1016,7 +1015,7 @@ Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: oper_label) (comm_flag
   (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
   (mapc mapo: asfs_map),
 
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 get_stack_es curr_es = curr_stk ->
 ops OpCode = Some (Op comm_flag nb_args func) ->
 firstn_e nb_args (get_stack_es curr_es) = Some args ->
@@ -1107,8 +1106,9 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
             rewrite -> Heval_asfs2_s1.
             assumption.
          ++ rewrite -> Hmapo.
+            destruct Hvalid_asfs as [fresh_var_gt _].
             pose proof (eval_asfs2_extended_map in_stk insk' s2 mapc ops maxc (ASFSOp OpCode s1)
-              Heval_asfs2_s2 Hvalid_asfs) as eq_eval_asfs2_s2_mapo.
+              Heval_asfs2_s2 fresh_var_gt) as eq_eval_asfs2_s2_mapo.
             assumption.
 Qed.
 
@@ -1304,7 +1304,7 @@ Qed.
 (* One step of execution with one instruction *)
 Lemma correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: tstack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -1549,9 +1549,17 @@ destruct instruction eqn: eq_instr.
     reflexivity.
 Qed.
 
+Search (_ > _).
+
+Lemma gt_succ: forall (n m: nat), n > m -> S n > m.
+Proof.
+intros.
+
+Admitted.
+
 Lemma fresh_var_gt_succ: forall (maxc: nat) (mc: asfs_map),
-fresh_var_gt_map maxc mc = true ->
-fresh_var_gt_map (S maxc) mc = true.
+fresh_var_gt_map maxc mc ->
+fresh_var_gt_map (S maxc) mc.
 Proof.
 intros maxc mc. revert maxc.
 induction mc as [|h t IH].
@@ -1559,24 +1567,19 @@ induction mc as [|h t IH].
 - intros maxc Hfresh_var_gt_h_t.
   unfold fresh_var_gt_map in Hfresh_var_gt_h_t.
   destruct h as [k v] eqn: eq_h.
-  destruct (maxc <=? k) eqn: eq_maxc_leq_k; try discriminate.
-  fold (fresh_var_gt_map maxc t) in Hfresh_var_gt_h_t.
-  unfold fresh_var_gt_map.
-  pose proof (leb_complete_conv k maxc eq_maxc_leq_k) as k_lt_maxc.
-  pose proof (Nat.lt_lt_succ_r k maxc k_lt_maxc) as k_lt_succ_maxc.
-  pose proof (leb_correct_conv k (S maxc) k_lt_succ_maxc) as k_succ_maxc_false.
-  rewrite -> k_succ_maxc_false.
-  fold fresh_var_gt_map.
-  apply IH.
-  assumption.
+  fold fresh_var_gt_map in Hfresh_var_gt_h_t.
+  simpl. destruct Hfresh_var_gt_h_t as [maxc_gt_k fresh_gt_maxc_t].
+  split.
+  + apply gt_succ. assumption.
+  + apply IH in fresh_gt_maxc_t. assumption.
 Qed.
 
-(* Joseba will need it for the IH, as well as the proof that the initial
-   asfs is valid by construction [the map is empty] *)
+Search ( _ > _).
+
 Lemma valid_asfs_preservation: forall (curr_asfs out_asfs: asfs) (instruction: instr) (ops: opm),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
-valid_asfs out_asfs = true.
+valid_asfs out_asfs.
 Proof.
 intros curr_asfs out_asfs instruction ops Hvalid_curr_asfs Hsymbexec.
 destruct curr_asfs as [hc maxc absc mc] eqn: eq_curr_asfs.
@@ -1634,11 +1637,13 @@ destruct instruction eqn: eq_inst.
   pose proof (Nat.nle_succ_diag_l maxc) as Sn_not_lte_n.
   rewrite -> Nat.add_1_r.
   rewrite <- Nat.leb_nle in Sn_not_lte_n.
-  rewrite -> Sn_not_lte_n.
   fold fresh_var_gt_map.
-  apply fresh_var_gt_succ.
-  assumption.
-Qed.
+  destruct (Hvalid_curr_asfs) as [fresh_gt_maxc strictly_decr_mc].
+  split; try split.
+  + apply gt_Sn_n.
+  + apply fresh_var_gt_succ. assumption.
+  + admit.
+Admitted.
 
 
 Lemma get_stack_es_ok: forall (stk: tstack) (memory: tmemory)
@@ -1651,7 +1656,7 @@ Qed.
 Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
   (in_stk curr_stk out_stk: tstack) (height: nat) (ops: opm) 
   (curr_es out_es: execution_state) (p: block),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -1703,11 +1708,13 @@ Qed.
 
 
 Lemma valid_asfs_empty: forall (n: nat),
-valid_asfs (empty_asfs n) = true.
+valid_asfs (empty_asfs n).
 Proof.
 intros n.
 unfold valid_asfs. unfold empty_asfs.
-reflexivity.
+split.
+- simpl. auto.
+- simpl. auto.
 Qed.
 
 
@@ -1894,9 +1901,9 @@ Qed.
 
 Lemma symb_exec''_strictly_decreasing: forall (ins: instr) (a a': asfs) 
   (ops: opm),
-strictly_decreasing_map_asfs a ->
+valid_asfs a ->
 symbolic_exec'' ins a ops = Some a' ->
-strictly_decreasing_map_asfs a'.
+valid_asfs a'.
 Proof.
 intros. destruct ins eqn: eq_ins.
 - (*PUSH*)
@@ -1914,9 +1921,9 @@ Admitted.
 
 Lemma symb_exec'_strictly_decreasing: forall (p: block) (a a': asfs) 
   (ops: opm),
-strictly_decreasing_map_asfs a ->
+valid_asfs a ->
 symbolic_exec' p a ops = Some a' ->
-strictly_decreasing_map_asfs a'.
+valid_asfs a'.
 Proof.
 induction p as [| ins rp IH].
 - intros. simpl in H0. injection H0 as eq_a_a'. 
@@ -1930,7 +1937,7 @@ Qed.
 
 
 Lemma decreasing_asfs_empty_asfs: forall (height: nat),
-strictly_decreasing_map_asfs (empty_asfs height).
+valid_asfs (empty_asfs height).
 Proof.
 intros. simpl. auto.
 Qed.
@@ -1939,7 +1946,7 @@ Qed.
 Lemma symb_exec_strictly_decreasing: forall (p: block) (height: nat) (ops: opm)
   (sfs: asfs),
 symbolic_exec p height ops = Some sfs ->
-strictly_decreasing_map_asfs sfs.
+valid_asfs sfs.
 Proof.
 intros.
 unfold symbolic_exec in H.
@@ -1978,7 +1985,7 @@ state might be None.
 *)
 Lemma correctness_symb_success_step: forall (instruction: instr) 
  (ops:opm) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
 length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
 exists (out_es: execution_state), 
@@ -2013,7 +2020,7 @@ Admitted.
 
 Lemma correctness_symb_success_gen: forall (p: block) 
   (curr_asfs out_asfs: asfs) (ops: opm) (curr_es: execution_state),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 symbolic_exec' p curr_asfs ops = Some out_asfs ->
 length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
 exists (out_es: execution_state),

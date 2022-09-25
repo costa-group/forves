@@ -185,25 +185,25 @@ Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) : Prop :=
 forall (n: nat) (c cf: tstack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt n a = Some opt_a ->
-strictly_decreasing_map_asfs a ->
-eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
+valid_asfs a ->
+eval_asfs c opt_a opmap = Some cf /\ valid_asfs opt_a.
 
 
 Definition safe_optimization (opt: asfs -> asfs*bool) : Prop :=
 forall (c cf: tstack) (a opt_a: asfs) (b: bool),
 eval_asfs c a opmap = Some cf ->
 opt a = (opt_a, b) ->
-strictly_decreasing_map_asfs a ->
-eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
+valid_asfs a ->
+eval_asfs c opt_a opmap = Some cf /\ valid_asfs opt_a.
 
 
 Lemma optimize_fresh_var2_preservation: forall (m: asfs_map) (a a': asfs) 
   (opt: nat -> asfs -> option asfs) (b: bool) (c cf: tstack),
 safe_optimization_fvar opt ->
 optimize_fresh_var2 a m opt = (a', b) ->
-strictly_decreasing_map_asfs a ->
+valid_asfs a ->
 eval_asfs c a opmap = Some cf ->
-eval_asfs c a' opmap = Some cf /\ strictly_decreasing_map_asfs a'.
+eval_asfs c a' opmap = Some cf /\ valid_asfs a'.
 Proof.
 intros m.
 induction m as [| h t IH]. 
@@ -865,9 +865,12 @@ simpl in H1. simpl in H0.
 destruct (optimize_map_add_zero n ma) eqn: optimize_ma; try discriminate.
 injection H0 as eq_h eq_max eq_stack eq_maps. 
 rewrite -> eq_maps in optimize_ma.
-apply opt_add_zero_decreasingness_preservation with (n:=n) (m1:=ma);
-  try assumption.
-Qed.
+split.
+- admit.
+- apply opt_add_zero_decreasingness_preservation with (n:=n) (m1:=ma).
+  + destruct H1. assumption.
+  + assumption.
+Admitted.
 
 
 Theorem optimize_add_zero_safe:
@@ -1082,9 +1085,12 @@ simpl in H1. simpl in H0.
 destruct (optimize_map_mul_one n ma) eqn: optimize_ma; try discriminate.
 injection H0 as eq_h eq_max eq_stack eq_maps. 
 rewrite -> eq_maps in optimize_ma.
-apply opt_mul_one_decreasingness_preservation with (n:=n) (m1:=ma);
+split.
+- admit.
+- destruct H1.
+  apply opt_mul_one_decreasingness_preservation with (n:=n) (m1:=ma);
   try assumption.
-Qed.
+Admitted.
 
 
 Theorem optimize_mul_one_safe:
@@ -1334,9 +1340,11 @@ split.
   destruct (optimize_map_mul_zero n ma) eqn: optimize_ma; try discriminate.
   injection H0 as eq_h eq_max eq_stack eq_maps. 
   rewrite -> eq_maps in optimize_ma.
-  apply opt_mul_zero_decreasingness_preservation with (n:=n) (m1:=ma);
+  destruct H1. split.
+  + admit. 
+  + apply opt_mul_zero_decreasingness_preservation with (n:=n) (m1:=ma);
     try assumption.
-Qed.
+Admitted.
 
 Theorem optimize_mul_zero_safe: 
 safe_optimization optimize_mul_zero.
@@ -1598,16 +1606,17 @@ simpl in H0. destruct (optimize_map_not_not n ma) as [ma' |]
   eqn: eq_optmize_ma; try discriminate.
 injection H0 as eq_h eq_max eq_abs eq_m.
 rewrite -> eq_m in eq_optmize_ma.
-simpl in H1.
-pose proof (eq_succ_eval_opt_not_not_eq_abs ma mopt opmap n c eq_opmap_NOT
-  eq_optmize_ma H1).
+simpl in H1. destruct H1 as [fresh_var_gt strictly_decr].
 simpl. rewrite <- eq_h. rewrite -> eq_len.
-apply H0 in H. rewrite -> eq_abs in H.
-split.
-- apply H. 
+split; try split.
+- rewrite -> eq_abs in H.
+  pose proof (eq_succ_eval_opt_not_not_eq_abs ma mopt opmap n c eq_opmap_NOT
+  eq_optmize_ma strictly_decr absopt cf H).
+  assumption.
+- admit.
 - apply opt_not_not_decreasingness_preservation with (n:=n) (m1:=ma);
     try assumption.
-Qed.
+Admitted.
 
 Theorem optimize_not_not_safe:
 safe_optimization optimize_not_not.
