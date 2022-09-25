@@ -1302,7 +1302,7 @@ Qed.
 
 
 (* One step of execution with one instruction *)
-Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: tstack) (ops:opm)
+Lemma correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: tstack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
 valid_asfs curr_asfs = true ->
 length in_stk = height ->
@@ -1891,17 +1891,6 @@ assumption.
 Qed.
 
 
-Theorem correctness_symb_exec: forall (p: block) (in_stk : tstack)
-  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
-get_stack_es in_es = in_stk ->
-length in_stk = height ->
-symbolic_exec p height ops = Some out_asfs ->
-exists (out_es: execution_state), 
-   concr_interpreter p in_es ops = Some out_es /\ 
-   eval_asfs in_stk out_asfs ops = Some (get_stack_es out_es).
-Proof.
-Admitted.
-
 
 Lemma symb_exec''_strictly_decreasing: forall (ins: instr) (a a': asfs) 
   (ops: opm),
@@ -1961,13 +1950,6 @@ apply symb_exec'_strictly_decreasing with (p:=p) (a:=empty_asfs height)
 Qed.
 
 
-(*** IDEAS FOR IMPROVING CORRECTNESS *)
-Lemma lengths_stack_eval: forall in_stk curr_stk curr_asfs ops,
-eval_asfs in_stk curr_asfs ops = Some curr_stk ->
-length curr_stk = length (get_stack_asfs curr_asfs).
-Proof.
-auto.
-Admitted.
 
 Lemma push_correct: forall w curr_asfs s' curr_stk,
 push (Val w) (get_stack_asfs curr_asfs) = Some s' ->
@@ -1977,27 +1959,35 @@ Proof.
 Admitted.
 
 
-Theorem correctness_symb_exec_step_2: forall (instruction: instr) 
-  (in_stk curr_stk out_stk: tstack) (ops:opm)
-  (height: nat) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
+Lemma symb_exec_step_len_presev: forall (instr: instr) 
+  (curr_asfs a': asfs) (ops: opm) (curr_es curr_es': execution_state),
+symbolic_exec'' instr curr_asfs ops = Some a' ->
+length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
+concr_intpreter_instr instr curr_es ops = Some curr_es' ->
+length (get_stack_es curr_es') = length (get_stack_asfs a').
+Proof.
+Admitted.
+
+
+Lemma correctness_symb_success_step: forall (instruction: instr) 
+ (ops:opm) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
 valid_asfs curr_asfs = true ->
-length in_stk = height ->
-eval_asfs in_stk curr_asfs ops = Some curr_stk ->
-get_stack_es curr_es = curr_stk ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
+length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
 exists (out_es: execution_state), 
-concr_intpreter_instr instruction curr_es ops = Some out_es.
+  concr_intpreter_instr instruction curr_es ops = Some out_es.
 Proof.
 intros.
 destruct instruction eqn: eq_instr.
 - (* PUSH *)
   simpl. unfold push_c.
   destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
-  simpl. simpl in H3. simpl in H2. rewrite -> H2.
+  simpl. simpl in H1. 
+  simpl in H0.
   destruct (push (Val w) (get_stack_asfs curr_asfs)) as [s'|]
     eqn: eq_push_asfs_stack; try discriminate.
-  pose proof (lengths_stack_eval in_stk curr_stk curr_asfs ops H1).
-  pose proof (push_correct w curr_asfs s' curr_stk eq_push_asfs_stack H4)
+  (*pose proof (lengths_stack_eval in_stk curr_stk curr_asfs ops H1).*)
+  pose proof (push_correct w curr_asfs s' curr_stk' eq_push_asfs_stack H1)
     as [sk'' Hpush].
   rewrite Hpush.
   exists (ExState sk'' memory storage).
@@ -2011,6 +2001,87 @@ destruct instruction eqn: eq_instr.
 - (* opcode *)
   admit.
 Admitted.
+
+
+
+Lemma correctness_symb_success_gen: forall (p: block) 
+  (curr_asfs out_asfs: asfs) (ops: opm) (curr_es: execution_state),
+valid_asfs curr_asfs = true ->
+symbolic_exec' p curr_asfs ops = Some out_asfs ->
+length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
+exists (out_es: execution_state),
+  concr_interpreter p curr_es ops = Some out_es.
+Proof.
+induction p as [| instr t IH].
+- intros. simpl. exists curr_es. reflexivity.
+- intros. simpl in H0.
+  destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn: eq_symb_instr;
+    try discriminate.
+  pose proof (correctness_symb_success_step instr ops curr_es curr_asfs
+    a' H eq_symb_instr H1) as [curr_es' HH].
+  pose proof (valid_asfs_preservation curr_asfs a' instr ops H eq_symb_instr)
+    as valid_a'.
+  pose proof (symb_exec_step_len_presev instr curr_asfs a' ops curr_es
+    curr_es' eq_symb_instr H1 HH) as eq_len_curr_es'.
+  pose proof (IH a' out_asfs ops curr_es' valid_a' H0 eq_len_curr_es')
+    as [out_es eq_concr_exec].
+  exists out_es. simpl. rewrite -> HH.
+  assumption.
+Qed.
+
+
+Search seq.
+Search List.map.
+
+Lemma correctness_symb_success: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+exists (out_es: execution_state), 
+   concr_interpreter p in_es ops = Some out_es.
+Proof.
+intros.
+unfold symbolic_exec in H1.
+pose proof (valid_asfs_empty height) as valid_empty_height.
+assert (length (get_stack_asfs (empty_asfs height)) = height) as eq_len.
+- simpl. unfold gen_initial_stack. 
+  rewrite -> map_length.
+  apply seq_length.
+- rewrite <- eq_len in H0.
+  rewrite <- H in H0.
+  pose proof (correctness_symb_success_gen p (empty_asfs height) out_asfs
+  ops in_es valid_empty_height H1 H0).
+  assumption.
+Qed.
+
+
+Theorem correctness_symb_exec: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+exists (out_es: execution_state), 
+   concr_interpreter p in_es ops = Some out_es /\ 
+   eval_asfs in_stk out_asfs ops = Some (get_stack_es out_es).
+Proof.
+intros.
+pose proof (correctness_symb_success p in_stk ops height in_es out_asfs
+  H H0 H1) as [out_es Hsucess].
+exists out_es. split; try assumption.
+assert (get_stack_es out_es = get_stack_es out_es) as HH; try reflexivity.
+pose proof (correctness_symb_exec_eval p in_stk (get_stack_es out_es) ops
+  height in_es out_es out_asfs H0 H Hsucess HH H1).
+ assumption.
+Qed.
+
+
+
+
+
+
+
+
 
 
 Definition is_comm_op (opcode: oper_label) (ops: opm) : bool :=
