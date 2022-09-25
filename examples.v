@@ -232,5 +232,21 @@ Proof. auto. Qed.
 
 
 
+
+
+
+Example checker_ex_real:
+(* BottleCastle_initial_block_3_2*)
+let p := [DUP 2; Opcode ADD; SWAP 1; PUSH 32 W4; SWAP 2; SWAP 1; PUSH 32 W5] in
+let opt_p := [DUP 2; Opcode ADD; PUSH 32 W4; SWAP 2; PUSH 32 W5] in
+let stack_size := 5 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+equiv_checker opt_p p stack_size opt = true.
+Proof. auto. Qed.
+
+
+
+
+
 End Examples.
 Import Examples.

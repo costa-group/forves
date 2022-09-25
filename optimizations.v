@@ -182,7 +182,7 @@ end.
 
 
 Definition safe_optimization_fvar (opt: nat -> asfs -> option asfs) : Prop :=
-forall (n: nat) (c cf: concrete_stack) (a opt_a: asfs),
+forall (n: nat) (c cf: tstack) (a opt_a: asfs),
 eval_asfs c a opmap = Some cf ->
 opt n a = Some opt_a ->
 strictly_decreasing_map_asfs a ->
@@ -190,7 +190,7 @@ eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Definition safe_optimization (opt: asfs -> asfs*bool) : Prop :=
-forall (c cf: concrete_stack) (a opt_a: asfs) (b: bool),
+forall (c cf: tstack) (a opt_a: asfs) (b: bool),
 eval_asfs c a opmap = Some cf ->
 opt a = (opt_a, b) ->
 strictly_decreasing_map_asfs a ->
@@ -198,7 +198,7 @@ eval_asfs c opt_a opmap = Some cf /\ strictly_decreasing_map_asfs opt_a.
 
 
 Lemma optimize_fresh_var2_preservation: forall (m: asfs_map) (a a': asfs) 
-  (opt: nat -> asfs -> option asfs) (b: bool) (c cf: concrete_stack),
+  (opt: nat -> asfs -> option asfs) (b: bool) (c cf: tstack),
 safe_optimization_fvar opt ->
 optimize_fresh_var2 a m opt = (a', b) ->
 strictly_decreasing_map_asfs a ->
@@ -258,7 +258,7 @@ match s with
 end.
 
 
-Lemma stack_val_has_value_eval: forall (c: concrete_stack) 
+Lemma stack_val_has_value_eval: forall (c: tstack) 
   (elem: asfs_stack_val) (v: EVMWord) (m: asfs_map) (ops: opm),
 stack_val_has_value elem v = true ->  
 eval_asfs2_elem c elem m ops = Some v.
@@ -270,7 +270,7 @@ destruct m; try reflexivity.
 Qed.
 
 
-Lemma eval_value: forall (stack: concrete_stack) (val: EVMWord) (m: asfs_map)
+Lemma eval_value: forall (stack: tstack) (val: EVMWord) (m: asfs_map)
   (ops: opm),
 eval_asfs2_elem stack (Val val) m ops = Some val.
 Proof.
@@ -278,7 +278,7 @@ intros. destruct m; try (unfold eval_asfs2_elem; reflexivity).
 Qed.
 
 
-Lemma eval_var: forall (stack: concrete_stack) (var: nat) (m1 m2: asfs_map)
+Lemma eval_var: forall (stack: tstack) (var: nat) (m1 m2: asfs_map)
   (ops: opm),
 eval_asfs2_elem stack (InStackVar var) m1 ops =
 eval_asfs2_elem stack (InStackVar var) m2 ops.
@@ -291,7 +291,7 @@ Qed.
 
 (* If the evaluation of every element wrt. m1 is the same as wrt. m2,
    then the evaluation of any list of elements will be the same *)
-Lemma eq_eval_elem_stack: forall (c: concrete_stack) (m1 m2: asfs_map)
+Lemma eq_eval_elem_stack: forall (c: tstack) (m1 m2: asfs_map)
   (ops: opm) (s: asfs_stack),
 (forall (elem: asfs_stack_val), eval_asfs2_elem c elem m1 ops =
                                 eval_asfs2_elem c elem m2 ops) ->
@@ -320,7 +320,7 @@ Qed.
 (* If the successful evaluation of every element wrt. m1 is the same as 
    wrt. m2, then the successful evaluation of any list of elements will 
    be the same sucessfull value *)
-Lemma eq_succ_eval_elem_stack: forall (c cf: concrete_stack) (m1 m2: asfs_map)
+Lemma eq_succ_eval_elem_stack: forall (c cf: tstack) (m1 m2: asfs_map)
   (ops: opm) (s: asfs_stack),
 (forall (elem: asfs_stack_val) (v: EVMWord), 
    eval_asfs2_elem c elem m1 ops = Some v ->
@@ -368,11 +368,11 @@ Qed.
 Lemma evaluation_sufix_map: forall (m: asfs_map) (nbargs: nat)  
   (elem: asfs_stack_val)
   (inner_args: asfs_stack) (comm: bool) (func: list EVMWord -> option EVMWord)
-  (val: EVMWord) (oper: oper_label) (ops: opm) (stack: concrete_stack),
+  (val: EVMWord) (oper: oper_label) (ops: opm) (stack: tstack),
 stack_val_is_oper oper elem m = Some inner_args ->
 ops oper = Some (Op comm nbargs func) ->
 eval_asfs2_elem stack elem m ops = Some val ->
-exists (prefix suffix: asfs_map) (inner_vals: concrete_stack), 
+exists (prefix suffix: asfs_map) (inner_vals: tstack), 
   m = prefix ++ suffix /\
   eval_asfs2 stack inner_args suffix ops = Some inner_vals /\
   func inner_vals = Some val.
@@ -409,7 +409,7 @@ Qed.
 
 
 (* If we can evaluate a FreshVar, the in must appear in the map *)
-Lemma eval_fvar_then_in_map: forall (stack: concrete_stack) (fvar: nat)
+Lemma eval_fvar_then_in_map: forall (stack: tstack) (fvar: nat)
   (m: asfs_map) (ops: opm) (v: EVMWord),
 eval_asfs2_elem stack (FreshVar fvar) m ops = Some v ->
 exists (e: asfs_map_val), In (fvar, e) m.
@@ -469,7 +469,7 @@ Qed.
 
 (* The evaluation of an element does not change in strictly_decreasing maps
    when adding a new entry in the head *)
-Lemma eval_elem_cons_decreasing_map: forall (stack: concrete_stack)
+Lemma eval_elem_cons_decreasing_map: forall (stack: tstack)
   (elem: asfs_stack_val) (n: nat) (e: asfs_map_val) (suffix m: asfs_map)
   (ops: opm) (v : EVMWord),
 eval_asfs2_elem stack elem suffix ops = Some v ->
@@ -496,7 +496,7 @@ Qed.
 
 (* The evaluation of an element does not change in strictly_decreasing maps
    when adding a prefix of entries in the head of the map *)
-Lemma eval_elem_bigger_decreasing_map: forall (stack: concrete_stack)
+Lemma eval_elem_bigger_decreasing_map: forall (stack: tstack)
   (elem: asfs_stack_val) (prefix suffix m: asfs_map) (ops: opm)
   (v : EVMWord),
 eval_asfs2_elem stack elem suffix ops = Some v ->
@@ -534,9 +534,9 @@ Qed.
 (* If we evaluate an abstract stack (h::t) then we can evaluate the element 
    'h' and the tail 't' *)
 Lemma eval_asfs2_cons: forall (h: asfs_stack_val) (t: asfs_stack) 
-  (m: asfs_map) (ops: opm) (stack vals: concrete_stack),
+  (m: asfs_map) (ops: opm) (stack vals: tstack),
 eval_asfs2 stack (h :: t) m ops = Some vals ->
-exists (v: EVMWord) (vals': concrete_stack),
+exists (v: EVMWord) (vals': tstack),
   vals = v::vals' /\
   eval_asfs2_elem stack h m ops = Some v /\
   eval_asfs2 stack t m ops = Some vals'.
@@ -553,7 +553,7 @@ Qed.
 (* If we can evaluate the element 'h' and an asfs_stack 't', then we can
    evaluate (h::t) *)
 Lemma eval_asfs2_cons_r: forall (h: asfs_stack_val) (t: asfs_stack) 
-  (m: asfs_map) (ops: opm) (stack vals': concrete_stack) (v: EVMWord),
+  (m: asfs_map) (ops: opm) (stack vals': tstack) (v: EVMWord),
 eval_asfs2 stack t m ops = Some vals' ->
 eval_asfs2_elem stack h m ops = Some v ->
 eval_asfs2 stack (h :: t) m ops = Some (v::vals').
@@ -632,7 +632,7 @@ Qed.
 
 (* The evaluation of an asfs_stack does not change in strictly_decreasing maps
    when adding a new prefix in the head of the map *)
-Lemma eval_bigger_decreasing_map: forall (stack vals: concrete_stack)
+Lemma eval_bigger_decreasing_map: forall (stack vals: tstack)
   (abs: asfs_stack) (prefix suffix m: asfs_map) (ops: opm),
 eval_asfs2 stack abs suffix ops = Some vals ->
 m = prefix ++ suffix ->
@@ -708,7 +708,7 @@ Qed.
 (* Main lemma: every stack value is evaluated to the same value in the 
    original map and also in the optimized one for ADD_0 *)
 Lemma eq_eval_opt_add_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
-  (stack: concrete_stack),
+  (stack: tstack),
 ops ADD = Some (Op true 2 add) ->
 optimize_map_add_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
@@ -772,7 +772,7 @@ induction m1 as [|h t IH].
 Qed.
 
 Theorem optimize_add_zero_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
-  (c: concrete_stack) (ops: opm),
+  (c: tstack) (ops: opm),
 ops ADD = Some (Op true 2 add) ->
 optimize_add_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
@@ -926,7 +926,7 @@ Qed.
 (* Main lemma: every stack value is evaluated to the same value in the 
    original map and also in the optimized one for MUL_1 *)
 Lemma eq_eval_opt_mul_one_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
-  (stack: concrete_stack),
+  (stack: tstack),
 ops MUL = Some (Op true 2 mul) ->
 optimize_map_mul_one n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
@@ -991,7 +991,7 @@ Qed.
 
 
 Theorem optimize_mul_one_eq: forall (a1 a2: asfs) (fresh_var: nat)
-  (c: concrete_stack) (ops: opm),
+  (c: tstack) (ops: opm),
 ops MUL = Some (Op true 2 mul) ->
 optimize_mul_one_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
@@ -1152,7 +1152,7 @@ Qed.
    map but MUL(ill-defined-value, 0) ~~> 0 is evaluated to 0 in the optimized
    one, so THEY ARE NOT EQUAL FOR EVERY POSSIBLE stack_val *)
 Lemma eq_succ_eval_opt_mul_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
-  (stack: concrete_stack),
+  (stack: tstack),
 ops MUL = Some (Op true 2 mul) ->
 optimize_map_mul_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val) (v: EVMWord), 
@@ -1249,7 +1249,7 @@ Qed.
 
 
 Theorem optimize_mul_zero_safe_success: forall (a1 a2: asfs) (fresh_var: nat)
-  (c s: concrete_stack) (ops: opm),
+  (c s: tstack) (ops: opm),
 ops MUL = Some (Op true 2 mul) ->
 optimize_mul_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = Some s ->
@@ -1414,7 +1414,7 @@ Qed.
 (* Main lemma: every stack value is evaluated to the same value in the 
    original map and also in the optimized one for NOT_NOT *)
 Lemma eq_succ_eval_opt_not_not_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
-  (stack: concrete_stack),
+  (stack: tstack),
 ops NOT = Some (Op false 1 not) ->
 optimize_map_not_not n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
@@ -1514,11 +1514,11 @@ Qed.
 
 
 Lemma eq_succ_eval_opt_not_not_eq_abs: forall (m1 m2: asfs_map) (ops: opm) 
-  (n: nat) (stack: concrete_stack),
+  (n: nat) (stack: tstack),
 ops NOT = Some (Op false 1 not) ->
 optimize_map_not_not n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
-forall (abs: asfs_stack) (v: concrete_stack), 
+forall (abs: asfs_stack) (v: tstack), 
   eval_asfs2 stack abs m1 ops = Some v ->
   eval_asfs2 stack abs m2 ops = Some v.
 Proof.
@@ -1923,12 +1923,12 @@ Definition opt_mul_1: opta := opt_asfs (opt_map opt_mul_1_elem).
 
 (* Correctness *)
     
-Theorem th2: forall (c: concrete_stack) (v: EVMWord) (id: nat) (m: asfs_map) (ops: opm),
+Theorem th2: forall (c: tstack) (v: EVMWord) (id: nat) (m: asfs_map) (ops: opm),
   eval_asfs2_elem c (FreshVar id) ((id, ASFSBasicVal (Val v))::m) ops = Some v.
   Proof.
     intros. simpl. rewrite Nat.eqb_refl. destruct m; simpl; reflexivity. Qed.
 
-Theorem th3: forall (c: concrete_stack) (id var: nat) (m: asfs_map) (ops: opm),
+Theorem th3: forall (c: tstack) (id var: nat) (m: asfs_map) (ops: opm),
   eval_asfs2_elem c (FreshVar id) ((id, ASFSBasicVal (InStackVar var))::m) ops = nth_error c var.
   Proof.
     intros. simpl. rewrite Nat.eqb_refl. destruct m; simpl; reflexivity. Qed.
@@ -1947,7 +1947,7 @@ Proof.
 Qed.
 
 
-(* Theorem th_opt_add_0_elem: forall (e e': asfs_map_val) (c: concrete_stack) *)
+(* Theorem th_opt_add_0_elem: forall (e e': asfs_map_val) (c: tstack) *)
 (*   (m: asfs_map) (ops: opm), *) 
 (*   ops ADD = Some (Op true 2 add)-> *)
 (*   opt_add_0_elem e = e' -> *)
@@ -1980,13 +1980,13 @@ Theorem th7': forall {A: Type} (a: A) (l: list A),
 Proof.
   intros A a l H. discriminate. Qed.
 
-Theorem th8: forall (c: concrete_stack) (var: nat) (m: asfs_map) (ops: opm),
+Theorem th8: forall (c: tstack) (var: nat) (m: asfs_map) (ops: opm),
   eval_asfs2_elem c (InStackVar var) m ops = nth_error c var.
 Proof.
   intros. destruct m; simpl; reflexivity. Qed.
 
 Lemma th_opt_add_0_val: forall (m1 m2: asfs_map) (ops: opm) (e: asfs_stack_val)
-  (c: concrete_stack) (val: EVMWord),
+  (c: tstack) (val: EVMWord),
   ops ADD = Some (Op true 2 add) ->
   opt_add_0_map m1 = m2 ->
   e = Val val ->
@@ -2002,7 +2002,7 @@ Lemma th_opt_add_0_val: forall (m1 m2: asfs_map) (ops: opm) (e: asfs_stack_val)
 
 
 Lemma th_opt_add_0_map: forall (m1 m2: asfs_map) (ops: opm)
-  (c: concrete_stack) (id: nat),
+  (c: tstack) (id: nat),
   ops ADD = Some (Op true 2 add) ->
   opt_add_0_id id m1 = m2 ->
   forall (e: asfs_stack_val), eval_asfs2_elem c e m1 ops = 
@@ -2100,7 +2100,7 @@ Admitted.
 
 
 
-Theorem th_opt_add_0_correct: forall (c1 c2: concrete_stack) (a1 a2 : asfs) (ops: opm),
+Theorem th_opt_add_0_correct: forall (c1 c2: tstack) (a1 a2 : asfs) (ops: opm),
   length c1 = get_height_asfs a1 ->
   ops ADD = Some (Op true 2 add) ->
   eval_asfs c1 a1  ops = Some c2 -> 
