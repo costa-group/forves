@@ -34,6 +34,73 @@ Compute skipn_e 6 [1;2;3;4;5].
 
 Module Interpreter.
 
+
+
+Definition coherent_ops (ops: opm) : Prop :=
+forall (k: oper_label) (flag: bool) (nb_args: nat) 
+  (func: list EVMWord -> option EVMWord) (l: list EVMWord), 
+ops k = Some (Op flag nb_args func) -> 
+length l = nb_args ->
+exists (v: EVMWord), func l = Some v.
+
+
+Lemma add_coherent: forall (l: list EVMWord),
+length l = 2 -> exists (v: EVMWord), add l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + simpl in H. discriminate.
+  + destruct r2 as [|c r3].
+    * exists (wplus a b). reflexivity.
+    * simpl in H. discriminate.
+Qed.
+
+Lemma mul_coherent: forall (l: list EVMWord),
+length l = 2 -> exists (v: EVMWord), mul l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + simpl in H. discriminate.
+  + destruct r2 as [|c r3].
+    * exists (wmult a b). reflexivity.
+    * simpl in H. discriminate.
+Qed.
+
+Lemma not_coherent: forall (l: list EVMWord),
+length l = 1 -> exists (v: EVMWord), not l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + exists (wnot a). reflexivity.
+  + simpl in H. discriminate.
+Qed.
+
+
+Lemma opmap_coherent: coherent_ops opmap.
+Proof.
+unfold coherent_ops. intros.
+destruct k eqn: eq_k.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply add_coherent. assumption.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply mul_coherent. assumption.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply not_coherent. assumption.
+Qed.
+
+
 Definition get_stack_es (es: execution_state) : tstack :=
 match es with
 | ExState stack _ _ => stack
