@@ -1,7 +1,8 @@
 -R . Coq_EVM
-datatypes.v
+definitions.v
 interpreter.v
 optimizations.v
 checker.v
 examples.v
+tests.v
 

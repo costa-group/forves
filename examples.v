@@ -16,9 +16,6 @@ Import ListNotations.
 
 
 Module Examples.
-
-
-
 (* CONCRETE EXECUTION *)
 Definition W0  := natToWord WLen 0.
 Definition W1  := natToWord WLen 1.
@@ -244,9 +241,4 @@ let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
 equiv_checker opt_p p stack_size opt = true.
 Proof. auto. Qed.
 
-
-
-
-
 End Examples.
-Import Examples.

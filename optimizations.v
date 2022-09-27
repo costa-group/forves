@@ -10,114 +10,6 @@ Import Interpreter SFS.
 Import ListNotations.
 
 
-(* Enrique *)
-
-(*
-Definition lnat := [2;4;6].
-
-Fixpoint all_true (prop: nat -> Prop) (l: list nat)  : Prop :=
-match l with
-| [] => True
-| h::t => (prop h) /\ (all_true prop t) 
-end.
-
-
-Theorem aaa: forall (l: list nat) (prop: nat -> Prop),
-all_true prop l->
-forall (v pos: nat), nth_error l pos = Some v -> prop v.
-Proof.
-induction l as [| h t IH].
-- intros. destruct pos; try (simpl in H0; discriminate).
-- intros. simpl in H.
-  destruct H as [proph propt].
-  destruct pos as [|pos'].
-  + simpl in H0. injection H0 as H0. rewrite <- H0. assumption.
-  + simpl in H0.
-    pose proof (IH prop propt v pos').
-    apply H in H0. assumption.
-Qed.
-
-Definition myeven (n: nat) :=
-Nat.even n = true.
-Check (myeven).
-
-Theorem all_true_lnat: all_true myeven lnat.
-Proof.
-unfold lnat. simpl. intuition; try (unfold myeven; reflexivity).
-Qed.
-
-Theorem bbb: forall (n: nat) (pos: nat), 
-nth_error lnat pos = Some n -> myeven n.
-Proof.
-apply aaa. apply all_true_lnat.
-Qed.
-*)
-
-(* EXPLANATION OPTIMIZATIONS
-
-What is a safe optimization (a: ASFS) = a': ASFS?
--------------------------------------------------
-1) Some optimizations like ADD(X,0) -> X or MUL(X,1) -> X completely preserve
-the evaluation of any asfs_stack_value 'e', i.e., if a' = optimization a then
-  eval_elem concrete_stack e a = eval_elem concrete_stack e a'
-Both return None and Some x in the same cases.
-
-2) Other optimizations like MUL(X,0) -> 0 do not completely preserve the 
-evaluation *for any asfs_stack_value 'e'* if 'e' is ill-defined (for example
-e = FresVar 57, where FreshVar 57 is not defined in the ASFS a). In these
-cases the evaluation can return None for the ASFS a but the evaluation in 
-a' returns 0. However, every successful evaluation in the ASFS a will obtain
-the same value in the ASFS a':
-  eval_elem concrete_stack e a = Some v ->
-  eval_elem concrete_stack e a' = Some v
-  
-Clearly, 1) implies 2) because is stronger. In summary, our notion of "safe
-optimization" must be 2), as all the optimizations will verify it and is 
-strong enought for our needs
-
-
-Do we need to impose some properties about the ASFS a?
-------------------------------------------------------
-Consider the optimization "NOT(NOT(X)) -> X" and an ASFS "a" with a mapping
-with this (simplified) shape:
-
-[ (100, NOT [FreshVar 75]), 
-  (50, Val 16),
-  (75, NOT [FreshVar 50]),
-  (50, Val 5),
-]
-
-The evaluation of (FreshVar 100) will be NOT(NOT(5)) = 5.
-
-The optimization NOT(NOT(X)) -> X will generate an optimized ASFS a' with a
-mapping with this (simplified) shape, where (FreshVar 100) points directly to
-the value in (FreshVar 50):
-
-[ (100, FreshVar 50), 
-  (50, Val 16),
-  (75, NOT [FreshVar 50]),
-  (50, Val 5),
-]
-
-Here, the evaluation of (FreshVar 100) will be 16. The problem here is that
-when evaluating (FreshVar 100) in the ASFS a' we have found an occurrence of 
-(FreshVar 50) with a different value that the one stored later in the mapping.
-
-In order to have preservation of the evaluation with this optimization, we
-cannot assume *any possible mapping* (as we have done in the rest of 
-optimizations) but a *mapping without repetitions*. It is not a problem 
-because the way we crete an ASFS with the symbolic execution there will never
-be repetitions (we always take maxid+1 as the FreshVar number). Indeed, the 
-mapping is *strictly decreasing in the fresh variable numbers*, which is a 
-stronger property that implies the absence of repetitions and can be more 
-convenient for the proofs.
-
-Note that (so far) the optimization does not add any entry in the mapping but
-changes the value related to some entry, so the property is preserved under
-any optimization [which is mandatory in order to concatenate them]. 
-*)
-
-
 
 Module Optimizations.
 
@@ -909,7 +801,6 @@ end.
 Definition optimize_mul_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_mul_one fresh_var s.
 
-Search wmult.
 Lemma word_mul_1_x_is_x: forall (x: EVMWord),
 mul [WOne; x] = Some x.
 Proof.
@@ -1381,24 +1272,7 @@ match map with
 end.
 
 
-(* Counterexample for the NOT_NOT optimization with an arbitrary map with
-   repetitions *)
-Example counterexample_notnot_any_ASFS:
-let map: asfs_map := [(100, ASFSOp NOT [FreshVar 75]); 
-                      (50,  ASFSBasicVal (Val WZero));
-                      (75,  ASFSOp NOT [FreshVar 50]);
-                      (50,  ASFSBasicVal (Val WOne))] in
-let opt_map: asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
-                          (50,  ASFSBasicVal (Val WZero));
-                          (75,  ASFSOp NOT [FreshVar 50]);
-                          (50,  ASFSBasicVal (Val WOne))] in
-let some_map2 := optimize_map_not_not 100 map in
-eval_asfs2_elem [] (FreshVar 100) map opmap = Some WOne /\
-some_map2 = Some opt_map /\
-eval_asfs2_elem [] (FreshVar 100) opt_map opmap = Some WZero.
-Proof.
-split; try (split; reflexivity).
-Qed.
+
 
 
 Definition optimize_not_not_fvar (fresh_var: nat) (s: asfs) : option asfs :=
@@ -1785,7 +1659,6 @@ Definition our_optimization_pipeline :=
  optimize_not_not].
 
 
-Search Forall.
 Theorem our_optimization_pipeline_is_safe: 
 safe_optimization_pipeline our_optimization_pipeline.
 Proof.
@@ -1798,32 +1671,20 @@ apply Forall_nil.
 Qed.
 
 
-
-(*
-Definition l_op := [optimize_add_zero_gen; optimize_add_mul1_gen, ....]
-
-Theorem t: forall e \in l_op, ASFS a, 
-  e a ops => Some a' ->
-  eval_asfs a opmap = eval a' opmap
-  
-Definition opt_scheme (lopt: list optimizations) (a: ASFS) := ...
-
-Theorem t: (l: list optimization)
-l is subset of l_op ->
-opt_scheme l a = Some a' ->
-eval a opmap = eval a' opmap.
-
-Definition checker (p1 p2: block) =
-let asfs1 := symb_exec p1 opmap in
-let asfs2 := symb_exec p2 opmap in
-let opt_asfs1 := opt_scheme ([opt1; opt2;....]) a in
-eq_asfs opt_asfs1  asfs2 opmap.
-
-Proof obligations: [opt1; opt2;....] is a sublist of l:op
-*)
-
 End Optimizations.
 Import Optimizations.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (* Joseba *)
@@ -2367,23 +2228,4 @@ Definition extract_asfs (a: option asfs) : asfs :=
   | None => empty_asfs 0
   | Some a' => a'
   end.
-
-(* Create asfs a, asfs opt o1 and o2, and opta list ol *)
-Example a1 := extract_asfs (symbolic_exec p1 3 opmap).
-Example o1 := opt_asfs (opt_map opt_add_0_elem).
-Example o2 := opt_asfs (opt_map opt_mul_1_elem).
-Example ol := [o1; o2].
-
-Example t1 := get_stack_asfs a1.
-Example t2 := get_map_asfs a1.
-Example t3 := o1 a1.
-Example t4 := o2 a1.
-Example t5 := opt_list_asfs ol a1.
-  
-Compute t1.
-Compute t2.
-Compute t3.
-Compute t4.
-Compute t5.
-
 
