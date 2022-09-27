@@ -46,9 +46,11 @@ destruct (symbolic_exec p height opmap) as [sfs_p|] eqn: eq_symb_exec_p;
 destruct (symbolic_exec opt_p height opmap) as [sfsopt_p|] eqn: eq_symb_exec_opt;
   try discriminate.
 pose proof (correctness_symb_exec opt_p in_stk opmap height in_es sfsopt_p H1
-  H2 eq_symb_exec_opt) as [out_es1 [Hconcr_p1 eq_eval_sfs_opt]].
+  H2 eq_symb_exec_opt evm_stack_opm_validity) 
+  as [out_es1 [Hconcr_p1 eq_eval_sfs_opt]].
 pose proof (correctness_symb_exec p in_stk opmap height in_es sfs_p H1
-  H2 eq_symb_exec_p) as [out_es2 [Hconcr_p2 eq_eval_sfs_p]].  
+  H2 eq_symb_exec_p evm_stack_opm_validity) 
+  as [out_es2 [Hconcr_p2 eq_eval_sfs_p]].  
 exists out_es1. exists out_es2.
 split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.

@@ -36,14 +36,42 @@ Module Interpreter.
 
 
 
-Definition coherent_ops (ops: opm) : Prop :=
+(****** opmap validity ******)
+Definition stack_op_map_comm (ops: opm) : Prop := 
+forall (instr: oper_label) (f: list EVMWord -> option EVMWord),
+ops instr = Some (Op true 2 f) ->
+forall (a b: EVMWord), f [a; b] = f [b; a].
+
+Definition coherent_stack_op_map (ops: opm) : Prop :=
 forall (k: oper_label) (flag: bool) (nb_args: nat) 
   (func: list EVMWord -> option EVMWord) (l: list EVMWord), 
 ops k = Some (Op flag nb_args func) -> 
 length l = nb_args ->
 exists (v: EVMWord), func l = Some v.
 
+Definition valid_stack_op_map (ops: opm) : Prop :=
+  stack_op_map_comm ops /\ coherent_stack_op_map ops.
 
+
+
+Lemma evm_stack_opm_comm: stack_op_map_comm opmap.
+Proof.
+unfold stack_op_map_comm. intros i f H a b.
+destruct i eqn: eq_i.
+- (* ADD *) 
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wplus_comm. reflexivity.
+- (* MUL *) 
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wmult_comm. reflexivity.
+- (* NOT *)
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H. intros. discriminate.
+Qed.
+
+(* Create strategy to simplify very similar proofs *)
 Lemma add_coherent: forall (l: list EVMWord),
 length l = 2 -> exists (v: EVMWord), add l = Some v.
 Proof.
@@ -82,9 +110,9 @@ destruct l as [|a r1].
 Qed.
 
 
-Lemma opmap_coherent: coherent_ops opmap.
+Lemma evm_stack_opm_coherent: coherent_stack_op_map opmap.
 Proof.
-unfold coherent_ops. intros.
+unfold coherent_stack_op_map. intros.
 destruct k eqn: eq_k.
 - unfold opmap in H. unfold updatei in H. simpl in H.
   injection H as eq_flag eq_nb_args eq_func.
@@ -100,7 +128,19 @@ destruct k eqn: eq_k.
   apply not_coherent. assumption.
 Qed.
 
+Theorem evm_stack_opm_validity: valid_stack_op_map opmap.
+Proof.
+unfold valid_stack_op_map. split.
+- apply evm_stack_opm_comm.
+- apply evm_stack_opm_coherent.
+Qed.
+(************)
 
+
+
+
+
+(****** Execution state manipulation ******)
 Definition get_stack_es (es: execution_state) : tstack :=
 match es with
 | ExState stack _ _ => stack
@@ -131,7 +171,12 @@ match es with
 | ExState stack memory _ => ExState stack memory storage
 end.
 
-(* stack manipulation operators *)
+(************)
+
+
+
+
+(******* stack manipulation operators ********)
 
 (* Polymorphic versions for manipulating the stack *)
 Definition push {T : Type} (v : T) (sk : list T) : option (list T) :=
@@ -263,6 +308,7 @@ swap_c 16 state0 = Some state1.
 Proof. 
 reflexivity.
 Qed.
+(***************************)
 
 
 Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) (sk: tstack) : option execution_state :=
@@ -985,7 +1031,7 @@ Proof.
     * simpl. simpl in H. apply IHn'. apply H.
 Qed.
 
-Search ( _ <= _).
+
 
 Lemma eval_asfs2_elem_extended_map_aux: forall
     (c: tstack) (elem: nat) 
@@ -1041,7 +1087,9 @@ Proof.
          *** simpl in H. apply H.
 Qed.
 
-(* ++++++++++++++This is the important one+++++++++++++ *)
+
+
+
 Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: tstack) (s: asfs_stack) (map: asfs_map)
   (ops: opm) (n: nat) (val: asfs_map_val),
 eval_asfs2 in_stk s map ops = Some curr_stk ->
@@ -1616,13 +1664,12 @@ destruct instruction eqn: eq_instr.
     reflexivity.
 Qed.
 
-Search (_ > _).
 
 Lemma gt_succ: forall (n m: nat), n > m -> S n > m.
 Proof.
-intros.
+auto.
+Qed.
 
-Admitted.
 
 Lemma fresh_var_gt_succ: forall (maxc: nat) (mc: asfs_map),
 fresh_var_gt_map maxc mc ->
@@ -1641,7 +1688,6 @@ induction mc as [|h t IH].
   + apply IH in fresh_gt_maxc_t. assumption.
 Qed.
 
-Search ( _ > _).
 
 Lemma valid_asfs_preservation: forall (curr_asfs out_asfs: asfs) (instruction: instr) (ops: opm),
 valid_asfs curr_asfs ->
@@ -1709,8 +1755,11 @@ destruct instruction eqn: eq_inst.
   split; try split.
   + apply gt_Sn_n.
   + apply fresh_var_gt_succ. assumption.
-  + admit.
-Admitted.
+  + simpl. destruct mc as [|h t] eqn: eq_m; try auto.
+    destruct h as [v e]. split; try assumption.
+    simpl in fresh_gt_maxc. destruct fresh_gt_maxc as [Hmaxc_gt_v _].
+    assumption.
+Qed.
 
 
 Lemma get_stack_es_ok: forall (stk: tstack) (memory: tmemory)
@@ -1892,7 +1941,7 @@ induction i as [| i' IH].
   reflexivity.
 Qed. 
 
-Search (_ <= 0).
+
 
 Lemma empty_skip_eval_zero: forall (i n: nat) (stk: tstack) (ops: opm),
 length stk = n ->
@@ -1965,27 +2014,6 @@ assumption.
 Qed.
 
 
-
-Lemma symb_exec''_strictly_decreasing: forall (ins: instr) (a a': asfs) 
-  (ops: opm),
-valid_asfs a ->
-symbolic_exec'' ins a ops = Some a' ->
-valid_asfs a'.
-Proof.
-intros. destruct ins eqn: eq_ins.
-- (*PUSH*)
-  admit.
-- (*POP*)
-  admit.
-- (*DUP*)
-  admit.
-- (*SWAP*)
-  admit.
-- (*Operation*)
-  admit.
-Admitted.
-
-
 Lemma symb_exec'_strictly_decreasing: forall (p: block) (a a': asfs) 
   (ops: opm),
 valid_asfs a ->
@@ -1998,7 +2026,7 @@ induction p as [| ins rp IH].
 - intros. simpl in H0. 
   destruct (symbolic_exec'' ins a ops) as [a''|] 
     eqn: eq_sym_exec''; try discriminate.
-  apply symb_exec''_strictly_decreasing in eq_sym_exec''; try assumption.
+  apply valid_asfs_preservation in eq_sym_exec''; try assumption.
   apply IH in H0; try assumption.
 Qed.
 
@@ -2025,40 +2053,111 @@ Qed.
 
 
 
-Lemma push_correct: forall w curr_asfs s' curr_stk,
-push (Val w) (get_stack_asfs curr_asfs) = Some s' ->
-length curr_stk = length (get_stack_asfs curr_asfs) ->
-exists sk', push w curr_stk = Some sk'.
+Lemma push_same_len: forall {X Y: Type} (e: X) (l1 l2: list X) 
+  (e': Y) (l1': list Y),
+push e l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), push e' l1' = Some l2'.
 Proof.
-Admitted.
+intros. unfold push in H.
+destruct (length l1 <? StackLen) eqn: Hlen_ok; try discriminate.
+unfold push. rewrite -> H0 in Hlen_ok. rewrite -> Hlen_ok.
+exists (e' :: l1'). reflexivity.
+Qed.
+
+
+Lemma length_s_then_cons: forall {X: Type} (l: list X) (n: nat),
+length l = S n ->
+exists (h: X) (t: list X), l = (h::t).
+Proof.
+intros. destruct l.
+- simpl in H. discriminate.
+- exists x. exists l. reflexivity.
+Qed.
+
+
+Lemma pop_same_len: forall {X Y: Type} (l1 l2: list X) (l1': list Y),
+pop l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), pop l1' = Some l2'.
+Proof.
+induction l1 as [| h t IH].
+- intros. simpl in H. discriminate.
+- intros. simpl in H. simpl in H0. symmetry in H0. 
+  apply length_s_then_cons in H0 as [h' [t' eq_l1']].
+  rewrite eq_l1'. simpl. exists t'.
+  reflexivity.
+Qed.
+
+Search (nth_error).
+Search (_ <> None).
+Lemma dup_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
+  (l1': list Y),
+dup pos l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), dup pos l1' = Some l2'.
+Proof.
+intros. unfold dup in H.
+destruct ((pos =? 0) || (16 <? pos) || (StackLen <=? length l1)) 
+  eqn: cond_ok; try discriminate.
+destruct (nth_error l1) as [x|] eqn: eq_nth_error; try discriminate.
+unfold dup. rewrite -> H0 in cond_ok. rewrite -> cond_ok.
+apply some_is_not_none in eq_nth_error.
+apply nth_error_Some in eq_nth_error.
+rewrite -> H0 in eq_nth_error.
+apply nth_error_ok' in eq_nth_error.
+destruct eq_nth_error as [v eq_nth_l1'].
+rewrite -> eq_nth_l1'.
+exists (v :: l1'). reflexivity.
+Qed.
+
+
+Search (length _ = S _).
+Lemma swap_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
+  (l1': list Y),
+swap pos l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), swap pos l1' = Some l2'.
+Proof.
+intros. unfold swap in H.
+destruct ((pos =? 0) || (16 <? pos)) eqn: cond_ok; try discriminate.
+destruct (nth_error l1 pos) as [v|] eqn: eq_nth_error_l1; try discriminate.
+destruct (l1) as [| h t] eqn: eq_l1; try discriminate.
+unfold swap. rewrite -> cond_ok.
+apply some_is_not_none in eq_nth_error_l1.
+apply nth_error_Some in eq_nth_error_l1.
+rewrite -> H0 in eq_nth_error_l1.
+apply nth_error_ok' in eq_nth_error_l1.
+destruct eq_nth_error_l1 as [v' eq_nth_l1'].
+rewrite -> eq_nth_l1'.
+simpl in H0. symmetry in H0. apply length_s_then_cons in H0.
+destruct H0 as [h' [t' eq_l1']]. rewrite eq_l1'.
+exists ([v'] ++ firstn (pos - 1) t' ++ [h'] ++ skipn (pos + 1) (h' :: t')).
+reflexivity.
+Qed.
 
 
 Lemma symb_exec_step_len_presev: forall (instr: instr) 
   (curr_asfs a': asfs) (ops: opm) (curr_es curr_es': execution_state),
 symbolic_exec'' instr curr_asfs ops = Some a' ->
-length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
 concr_intpreter_instr instr curr_es ops = Some curr_es' ->
-length (get_stack_es curr_es') = length (get_stack_asfs a').
+length (get_stack_asfs a') = length (get_stack_es curr_es').
 Proof.
 Admitted.
 
 
-(*
 
-It looks like we need a claim to say that the operators in the
-map _alway_succeed_ when applied to the right number of arguments. 
-Otherwise symbolic execution might succeed, but then eval of the 
-state might be None.
-*)
 Lemma correctness_symb_success_step: forall (instruction: instr) 
  (ops:opm) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
 valid_asfs curr_asfs ->
+valid_stack_op_map ops ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
-length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es)->
 exists (out_es: execution_state), 
   concr_intpreter_instr instruction curr_es ops = Some out_es.
 Proof.
-intros.
+intros instruction ops curr_es curr_asfs out_asfs H Hvalid_ops H0 H1.
 destruct instruction eqn: eq_instr.
 - (* PUSH *)
   simpl. unfold push_c.
@@ -2067,58 +2166,108 @@ destruct instruction eqn: eq_instr.
   simpl in H0.
   destruct (push (Val w) (get_stack_asfs curr_asfs)) as [s'|]
     eqn: eq_push_asfs_stack; try discriminate.
-  (*pose proof (lengths_stack_eval in_stk curr_stk curr_asfs ops H1).*)
-  pose proof (push_correct w curr_asfs s' curr_stk' eq_push_asfs_stack H1)
-    as [sk'' Hpush].
+  pose proof (push_same_len (Val w) (get_stack_asfs curr_asfs) s' 
+    w curr_stk' eq_push_asfs_stack H1) as [sk'' Hpush].
   rewrite Hpush.
   exists (ExState sk'' memory storage).
   reflexivity.
-- (* POP: similar to PUSH *)
-  admit.
+- (* POP *)
+  simpl. unfold pop_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (pop (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_pop_asfs_stack; try discriminate.
+  pose proof (pop_same_len (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_pop_asfs_stack H1) as [sk'' Hpop].
+  rewrite Hpop. exists (ExState sk'' memory storage).
+  reflexivity.
 - (* DUP *) 
-  admit.
+  simpl. unfold dup_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (dup pos (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_dup_asfs_stack; try discriminate.
+  pose proof (dup_same_len pos (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_dup_asfs_stack H1) as [sk'' Hdup].
+  rewrite Hdup. exists (ExState sk'' memory storage).
+  reflexivity.
 - (* SWAP *)
-  admit.
+  simpl. unfold swap_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (swap pos (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_swap_asfs_stack; try discriminate.
+  pose proof (swap_same_len pos (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_swap_asfs_stack H1) as [sk'' Hswap].
+  rewrite Hswap. exists (ExState sk'' memory storage).
+  reflexivity.
 - (* opcode *)
-  admit.
-Admitted.
+  simpl in H0. destruct (ops label) as [oper|] eqn: eq_ops_label; 
+    try discriminate.
+  destruct oper as [comm nargs f] eqn: eq_oper.
+  simpl. rewrite eq_ops_label.
+  destruct (firstn_e nargs (get_stack_asfs curr_asfs)) as [s1|] 
+    eqn: eq_firstn_e_curr_asfs; try discriminate.
+  destruct (skipn_e nargs (get_stack_asfs curr_asfs)) as [s2|]
+    eqn: eq_skipn_e_curr_asfs; try discriminate.
+  pose proof (same_length_firstn_e asfs_stack_val EVMWord nargs
+    (get_stack_asfs curr_asfs) s1 (get_stack_es curr_es)
+    eq_firstn_e_curr_asfs H1) as [vargs Hfirstn_e_es].
+  rewrite -> Hfirstn_e_es.
+  pose proof (same_length_skip_e asfs_stack_val EVMWord nargs
+    (get_stack_asfs curr_asfs) s2 (get_stack_es curr_es)
+    eq_skipn_e_curr_asfs H1) as [sk'' Hskipn_e_es].
+  rewrite -> Hskipn_e_es.
+  unfold valid_stack_op_map in Hvalid_ops.
+  destruct Hvalid_ops as [_ Hcoherent_ops].
+  unfold coherent_stack_op_map in Hcoherent_ops.
+  apply Hcoherent_ops with (l:=vargs) in eq_ops_label.
+  + destruct (eq_ops_label) as [v Hfvargs].
+    rewrite -> Hfvargs.
+    exists (set_stack_es curr_es (v :: sk'')).
+    reflexivity.
+  + apply firstn_e_length with (l:=get_stack_es curr_es).
+    assumption.
+Qed.
 
 
 
 Lemma correctness_symb_success_gen: forall (p: block) 
   (curr_asfs out_asfs: asfs) (ops: opm) (curr_es: execution_state),
 valid_asfs curr_asfs ->
+valid_stack_op_map ops ->
 symbolic_exec' p curr_asfs ops = Some out_asfs ->
-length (get_stack_es curr_es) = length (get_stack_asfs curr_asfs) ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
 exists (out_es: execution_state),
   concr_interpreter p curr_es ops = Some out_es.
 Proof.
 induction p as [| instr t IH].
 - intros. simpl. exists curr_es. reflexivity.
-- intros. simpl in H0.
+- intros curr_asfs out_asfs ops curr_es H Hvalid_ops H0 H1. simpl in H0.
   destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn: eq_symb_instr;
     try discriminate.
   pose proof (correctness_symb_success_step instr ops curr_es curr_asfs
-    a' H eq_symb_instr H1) as [curr_es' HH].
+    a' H Hvalid_ops eq_symb_instr H1) as [curr_es' HH].
   pose proof (valid_asfs_preservation curr_asfs a' instr ops H eq_symb_instr)
     as valid_a'.
   pose proof (symb_exec_step_len_presev instr curr_asfs a' ops curr_es
     curr_es' eq_symb_instr H1 HH) as eq_len_curr_es'.
-  pose proof (IH a' out_asfs ops curr_es' valid_a' H0 eq_len_curr_es')
-    as [out_es eq_concr_exec].
+  pose proof (IH a' out_asfs ops curr_es' valid_a' Hvalid_ops H0 
+    eq_len_curr_es') as [out_es eq_concr_exec].
   exists out_es. simpl. rewrite -> HH.
   assumption.
 Qed.
 
-
-Search seq.
-Search List.map.
 
 Lemma correctness_symb_success: forall (p: block) (in_stk : tstack)
   (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 symbolic_exec p height ops = Some out_asfs ->
+valid_stack_op_map ops ->
 exists (out_es: execution_state), 
    concr_interpreter p in_es ops = Some out_es.
 Proof.
@@ -2131,8 +2280,9 @@ assert (length (get_stack_asfs (empty_asfs height)) = height) as eq_len.
   apply seq_length.
 - rewrite <- eq_len in H0.
   rewrite <- H in H0.
+  symmetry in H0.
   pose proof (correctness_symb_success_gen p (empty_asfs height) out_asfs
-  ops in_es valid_empty_height H1 H0).
+  ops in_es valid_empty_height H2 H1 H0).
   assumption.
 Qed.
 
@@ -2142,13 +2292,14 @@ Theorem correctness_symb_exec: forall (p: block) (in_stk : tstack)
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 symbolic_exec p height ops = Some out_asfs ->
+valid_stack_op_map ops ->
 exists (out_es: execution_state), 
    concr_interpreter p in_es ops = Some out_es /\ 
    eval_asfs in_stk out_asfs ops = Some (get_stack_es out_es).
 Proof.
 intros.
 pose proof (correctness_symb_success p in_stk ops height in_es out_asfs
-  H H0 H1) as [out_es Hsucess].
+  H H0 H1 H2) as [out_es Hsucess].
 exists out_es. split; try assumption.
 assert (get_stack_es out_es = get_stack_es out_es) as HH; try reflexivity.
 pose proof (correctness_symb_exec_eval p in_stk (get_stack_es out_es) ops
