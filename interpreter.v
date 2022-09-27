@@ -15,21 +15,29 @@ Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
 Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
   if n <=? length l then Some (skipn n l) else None.
 
-Compute firstn 0 [1;2;3;4;5].
-Compute firstn 1 [1;2;3;4;5].
-Compute firstn 6 [1;2;3;4;5].
+Lemma skipn_e_len: forall {X: Type} (n: nat) (l1 l1': list X),
+skipn_e n l1 = Some l1' -> length l1' = (length l1) - n.
+Proof.
+intros. unfold skipn_e in H.
+destruct (n <=? length l1) eqn: eq_cond; try discriminate.
+injection H as H. rewrite <- H.
+rewrite -> skipn_length.
+reflexivity.
+Qed.
 
-Compute firstn_e 0 [1;2;3;4;5].
-Compute firstn_e 1 [1;2;3;4;5].
-Compute firstn_e 6 [1;2;3;4;5].
-
-Compute skipn 0 [1;2;3;4;5].
-Compute skipn 1 [1;2;3;4;5].
-Compute skipn 6 [1;2;3;4;5].
-
-Compute skipn_e 0 [1;2;3;4;5].
-Compute skipn_e 1 [1;2;3;4;5].
-Compute skipn_e 6 [1;2;3;4;5].
+Lemma skipn_e_same_len: forall {X Y: Type} (n: nat) (l1 l1': list X)
+  (l2 l2': list Y),
+skipn_e n l1 = Some l1' -> 
+skipn_e n l2 = Some l2' ->
+length l1 = length l2 ->
+length l1' = length l2'.
+Proof.
+intros.
+apply skipn_e_len in H0.
+apply skipn_e_len in H.
+rewrite -> H. rewrite -> H0. rewrite -> H1.
+reflexivity.
+Qed.
 
 
 Module Interpreter.
@@ -426,6 +434,15 @@ Definition gen_initial_stack (size: nat): list asfs_stack_val :=
 Definition empty_asfs (size: nat) : asfs :=
   let s := gen_initial_stack size in
   ASFSc size 0 s nil.
+  
+  
+  
+Lemma get_set_stack_idem: forall (a: asfs) (s: asfs_stack),
+get_stack_asfs (set_stack_asfs a s) = s.
+Proof.
+intros. destruct a.
+reflexivity.
+Qed.
 
 (*
 Definition asfs_stack_val_eq (a b: asfs_stack_val) : bool :=
@@ -547,6 +564,15 @@ Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
   | Some s' => Some (set_stack_asfs (set_map_asfs (set_maxid_asfs a (mid+1)) m') s')
   end.
 (**)
+
+
+Lemma add_val_asfs_incr: forall (ops: opm) (a a': asfs) (v: asfs_map_val),
+add_val_asfs ops a v = Some a' ->
+length (get_stack_asfs a') = S (length (get_stack_asfs a)).
+Proof.
+auto.
+Admitted.
+
 
 
 Definition symbolic_exec'' (ins: instr) (a: asfs) (ops: opm) : option asfs :=
@@ -2066,6 +2092,24 @@ exists (e' :: l1'). reflexivity.
 Qed.
 
 
+Lemma push_same_len2: forall {X Y: Type} (e: X) (l1 l2: list X) 
+  (e': Y) (l1' l2': list Y),
+push e l1 = Some l2 ->
+push e' l1' = Some l2' ->
+length l1 = length l1' ->
+length l2 = length l2'.
+Proof.
+intros. unfold push in H.
+destruct (length l1 <? StackLen) eqn: Hlen_ok; try discriminate.
+unfold push in H0. rewrite -> H1 in Hlen_ok. rewrite -> Hlen_ok in H0.
+injection H as H. injection H0 as H0.
+rewrite <- H0. simpl.
+symmetry in H0.
+rewrite <- H.
+apply length_cons. assumption.
+Qed.
+
+
 Lemma length_s_then_cons: forall {X: Type} (l: list X) (n: nat),
 length l = S n ->
 exists (h: X) (t: list X), l = (h::t).
@@ -2089,8 +2133,16 @@ induction l1 as [| h t IH].
   reflexivity.
 Qed.
 
-Search (nth_error).
-Search (_ <> None).
+
+Lemma pop_len: forall {X: Type} (l1 l2: list X),
+pop l1 = Some l2 ->
+length l1 = S (length l2).
+Proof.
+intros. destruct l1 as [| h t]; try discriminate.
+simpl in H. injection H as H. rewrite <- H.
+simpl. reflexivity.
+Qed.
+
 Lemma dup_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
   (l1': list Y),
 dup pos l1 = Some l2 ->
@@ -2111,8 +2163,20 @@ rewrite -> eq_nth_l1'.
 exists (v :: l1'). reflexivity.
 Qed.
 
+Lemma dup_len: forall {X: Type} (n:nat) (l1 l2: list X),
+dup n l1 = Some l2 ->
+S (length l1) = length l2.
+Proof.
+intros. unfold dup in H.
+destruct ((n =? 0) || (16 <? n) || (StackLen <=? length l1)) eqn: cond_ok;
+  try discriminate.
+destruct (nth_error l1 n) as [x|] eqn: eq_nth_err; try discriminate.
+injection H as H.
+rewrite <- H. 
+reflexivity.
+Qed.
 
-Search (length _ = S _).
+
 Lemma swap_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
   (l1': list Y),
 swap pos l1 = Some l2 ->
@@ -2137,14 +2201,158 @@ reflexivity.
 Qed.
 
 
-Lemma symb_exec_step_len_presev: forall (instr: instr) 
-  (curr_asfs a': asfs) (ops: opm) (curr_es curr_es': execution_state),
-symbolic_exec'' instr curr_asfs ops = Some a' ->
-length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
-concr_intpreter_instr instr curr_es ops = Some curr_es' ->
-length (get_stack_asfs a') = length (get_stack_es curr_es').
+(*
+Lemma nth_error_succ_len: forall {X: Type} (l: list X) (n: nat) (x: X),
+nth_error l n = Some x ->
+n <= length l.
 Proof.
 Admitted.
+
+Lemma n_lte_m_succ: forall (n m: nat),
+n <= S m -> n - 1 <= m.
+Proof.
+Admitted.
+
+Lemma swap_len: forall {X: Type} (n:nat) (l1 l2: list X),
+swap n l1 = Some l2 ->
+length l1 = length l2.
+Proof.
+intros. unfold swap in H. 
+destruct ((n =? 0) || (16 <? n)) eqn: cond_ok; try discriminate.
+destruct (nth_error l1 n) as [x|] eqn: eq_nth_err; try discriminate.
+destruct l1 as [|h t] eqn: eq_l1; try discriminate.
+injection H as H. rewrite <- H. simpl. 
+apply nth_error_succ_len in eq_nth_err. simpl in eq_nth_err.
+apply n_lte_m_succ in eq_nth_err.
+pose proof (firstn_length_le t eq_nth_err) as len_fistn_n_1.
+pose proof (@skipn_length X (n+1) (h::t)).
+rewrite -> app_length. simpl.
+rewrite -> len_fistn_n_1.
+rewrite -> H0. rewrite -> length_cons with (n:=length t); try auto.
+
+Admitted.*)
+
+Search (nth_error).
+Search (length _ = S _).
+Search (skipn).
+Search (length (_ ++ _)).
+Lemma swap_same_len2: forall {X Y: Type} (n:nat) (l1 l2: list X)
+  (l1' l2': list Y),
+swap n l1 = Some l2 ->
+swap n l1' = Some l2' ->
+length l1 = length l1' ->
+length l2 = length l2'.
+Proof.
+intros. unfold swap in H.
+destruct ((n =? 0) || (16 <? n)) eqn: cond_ok; try discriminate.
+destruct (nth_error l1 n) eqn: eq_nth_err; try discriminate.
+destruct l1 as [|h t] eqn: eq_l1; try discriminate.
+injection H as H.
+unfold swap in H0. rewrite -> cond_ok in H0.
+destruct (nth_error l1' n) eqn: eq_nth_err_concr; try discriminate.
+destruct (l1') as [|h' t'] eqn: eq_l1'; try discriminate.
+injection H0 as H0.
+rewrite <- H. rewrite <- H0.
+simpl.
+rewrite -> app_length. rewrite -> app_length.
+rewrite -> firstn_length. rewrite -> firstn_length.
+simpl. rewrite -> skipn_length. rewrite -> skipn_length.
+rewrite -> H1.
+simpl in H1. injection H1 as H1.
+rewrite -> H1.
+reflexivity.
+Qed.
+
+
+Lemma symb_exec_step_len_presev: forall (i: instr) 
+  (curr_asfs a': asfs) (ops: opm) (curr_es curr_es': execution_state),
+symbolic_exec'' i curr_asfs ops = Some a' ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
+concr_intpreter_instr i curr_es ops = Some curr_es' ->
+length (get_stack_asfs a') = length (get_stack_es curr_es').
+Proof.
+intros. 
+simpl in H1. destruct curr_es as [stack memory storage] eqn: eq_curr_es.
+simpl in H0.
+destruct i eqn: eq_i.
+- (* PUSH *) 
+  simpl in H. 
+  destruct (push (Val w) (get_stack_asfs curr_asfs)) 
+    as [s'|] eqn: eq_push_symb; try discriminate.
+  simpl in H1.
+  unfold push_c in H1. simpl in H1.
+  destruct (push w stack) as [sk'|] eqn: eq_push_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (push_same_len2 (Val w) (get_stack_asfs curr_asfs) s' w
+    stack sk' eq_push_symb eq_push_concr H0).
+  injection H as H.
+  rewrite <- H. simpl.
+  rewrite -> get_set_stack_idem. assumption.
+- (* POP *)
+  simpl in H. 
+  destruct (pop (get_stack_asfs curr_asfs)) 
+    as [s'|] eqn: eq_pop_symb; try discriminate.
+  unfold pop in H1. simpl in H1.
+  unfold pop_c in H1. simpl in H1.
+  destruct (pop stack) as [sk'|] eqn: eq_pop_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (pop_len (get_stack_asfs curr_asfs) s' eq_pop_symb) as
+    Hlen_symb.
+  injection H as H. rewrite <- H. 
+  rewrite -> get_set_stack_idem.
+  pose proof (pop_len stack sk' eq_pop_concr) as Hlen_concr.
+  rewrite -> Hlen_concr in H0.
+  rewrite -> Hlen_symb in H0.
+  injection H0 as H0.
+  assumption.
+- (* DUP *)
+  simpl in H. 
+  destruct (dup pos (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_dup_symb;
+    try discriminate.
+  simpl in H1. unfold dup_c in H1. simpl in H1.
+  destruct (dup pos stack) as [sk'|] eqn: eq_dup_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  apply dup_len in eq_dup_symb.
+  apply dup_len in eq_dup_concr.
+  injection H as H. rewrite <- H. rewrite get_set_stack_idem.
+  rewrite <- eq_dup_symb. rewrite <- eq_dup_concr.
+  auto.
+- (* SWAP *)
+  simpl in H. 
+  destruct (swap pos (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_swap_symb;
+    try discriminate.
+  simpl in H1. unfold swap_c in H1. simpl in H1.
+  destruct (swap pos stack) as [sk'|] eqn: eq_swap_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (swap_same_len2 pos (get_stack_asfs curr_asfs) s' stack sk'
+    eq_swap_symb eq_swap_concr H0).
+  injection H as H. rewrite <- H. rewrite get_set_stack_idem.
+  assumption.
+- (* Operator *)
+  simpl in H.
+  destruct (ops label) as [oper|] eqn: eq_ops_label; try discriminate.
+  destruct oper as [comm nargs f] eqn: eq_oper.
+  destruct (firstn_e nargs (get_stack_asfs curr_asfs)) as [s1|] 
+    eqn: eq_firstn_e_symb; try discriminate.
+  destruct (skipn_e nargs (get_stack_asfs curr_asfs)) as [s2|]
+    eqn: eq_skipn_e_symb; try discriminate.
+  simpl in H.
+  apply add_val_asfs_incr in H as HH.
+  rewrite -> get_set_stack_idem in HH.
+  simpl in H1. rewrite -> eq_ops_label in H1.
+  destruct (firstn_e nargs stack) as [args|]
+    eqn: eq_firstn_e_concr; try discriminate.
+  destruct (skipn_e nargs stack) as [insk'|]
+    eqn: eq_skipn_e_concr; try discriminate.
+  destruct (f args) as [v|] eqn: eq_f_args; try discriminate.
+  injection H1 as H1. rewrite <- H1.
+  simpl.
+  pose proof (skipn_e_same_len nargs (get_stack_asfs curr_asfs) s2 
+    stack insk' eq_skipn_e_symb eq_skipn_e_concr H0)
+    as H2.
+  rewrite <- H2.
+  assumption.
+Qed.
 
 
 
@@ -2178,6 +2386,7 @@ destruct instruction eqn: eq_instr.
   simpl in H0.
   destruct (pop (get_stack_asfs curr_asfs)) as [s'|]
     eqn: eq_pop_asfs_stack; try discriminate.
+  
   pose proof (pop_same_len (get_stack_asfs curr_asfs) s' curr_stk'
     eq_pop_asfs_stack H1) as [sk'' Hpop].
   rewrite Hpop. exists (ExState sk'' memory storage).
