@@ -134,88 +134,12 @@ Import Concrete.
 
 Module Abstract.
 
-(** Source: Integrating the EVM super-optimizer gasol into real-world compilers
-    Link: https://eprints.ucm.es/id/eprint/67430/1/tfm_alejandro_hernandez_definitivo.pdf
-
-    * STACK FUNCTIONAL SPECIFICATION (SFS) *
-    
-    Let B be a block and S0 its initial stack of size n that contains at
-    each position i ∈ {0,..., n−1} a symbolic variable s_i that 
-    represents the element stored at position i. 
-    The stack functional specification of B is the output stack S of size m 
-    that contains at each position j ∈ {0, ... , m−1} the element located 
-    at position j in the stack after executing the EVM instructions of B. 
-    Each element can be either 
-      
-      (1) a non-negative integer value, 
-      (2) a variable si ∈ S0, or 
-      (3) a symbolic expression composed by a functor OP with k parameters 
-      a_1,..., a_k such that each a_i can be either of type (1), (2) or (3).
-
-    The latter corresponds to an EVM instruction OP that operates on the stack 
-    (other than SWAPk, PUSHk, DUPk, and POP) using k stack elements 
-    s_i,..., s_i+k.
-
-    Then, a SFS := 〈S0, S〉is composed of:
-      
-      1. S0: Initial stack of size n that contains at each position 
-        i ∈ {0, ..., n−1} a symbolic variable s_i that represents 
-        the element stored at position i.
-
-      2. S: Output stack of size m that contains at each position 
-        j ∈ {0,..., m−1}  the element located at position j in the stack after 
-        executing the EVM instructions of B. Values are of the form 
-        (1), (2) and (3).
-
-
-    Implementation:
-
-      Inductive sfs_val : Type :=
-        | SFSVal (val : EVMWord)
-        | SFSVar (var : nat)
-        | SFSOp  (opcode : oper_label) (args : list sfs_val).
-
-      Definition sfs_stack   := list sfs_val.
-      
-      Inductive sfs : Type :=
-        | SFSc (s0: basic_stack) (s: sfs_stack).
-
-
-
-    * ABSTRACT STACK FUNCTIONAL SPECIFICATION (ASFS) *
-    
-    The motivation of this definition is based on avoiding composite elements 
-    when representing the stack evolution in the Max-SMT problem
-    
-    Hence, for each non-basic opcode in a basic-block and each application 
-    of that opcode to certain operands, a new stack variable is introduced. 
-    These stack variables are denoted as __fresh stack__ variables, so that 
-    a distinction can be made between them and the __initial stack variables__.
-
-    Every fresh stack variable represents the application of an opcode 
-    that consumes certain parameters. We need to keep track of the parameters 
-    associated to each fresh stack variable, so an operator map is introduced 
-    to link both. This map may contain recursive definitions when different 
-    composite elements are chained, but no infinite recursive definitions can 
-    be introduced due to its construction. All elements become shallow 
-    as a result of this process.
-
-    Then, an ASFS := 〈S0, S, M〉 is composed of:
-    
-      1. S0 initial stack: a list of stack variables s_0, ..., s_n with 
-      no repeated elements.
-      
-      2. S final stack: a list that contains a series of either 
-      stack variables or numerical values from 0 to 2^256 − 1.
-
-      3. M uninterpreted operation map: a minimal map that links every 
-      fresh new variable to its corresponding parameter
- *)
 
 Inductive asfs_stack_val : Type :=
   | Val (val: EVMWord)
   | InStackVar (var: nat)
   | FreshVar (var: nat).
+
 
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)

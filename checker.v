@@ -56,7 +56,7 @@ split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
 pose proof (asfs_eq_correctness sfsopt_p p_with_opt opmap H0 in_stk).
 unfold safe_optimization in H.
-apply symb_exec_strictly_decreasing in eq_symb_exec_p as Hdecr_sfs_p.
+apply symb_exec_valid_asfs in eq_symb_exec_p as Hdecr_sfs_p.
 pose proof (H in_stk (get_stack_es out_es2) sfs_p p_with_opt flag
   eq_eval_sfs_p eq_optimize_p Hdecr_sfs_p) as [eq_eval_p_with_opt _].
 rewrite -> eq_eval_p_with_opt in H3.
