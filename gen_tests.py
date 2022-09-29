@@ -156,8 +156,7 @@ def print_test(block_info, block_sfs):
         print(f' I: {block_info["previous_solution"]}')
         print(f' O: {block_info["solution_found"]}')
         print('*)')
-        print(f'Example {block_id}: equiv_checker {opt_bytecode} {bytecode} {stack_size} optimize_id = true.')
-        print('Proof.  reflexivity. Qed.')
+        print(f'Compute pair "{block_id}"%string (equiv_checker {opt_bytecode} {bytecode} {stack_size} optimize_id).')
         print()
     except Exception as e:
         print('(*')
