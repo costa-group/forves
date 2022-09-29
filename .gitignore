@@ -8,4 +8,4 @@
 Makefile
 Makefile.conf
 .Makefile.d
-
+!extraction/Makefile

@@ -4,8 +4,7 @@ Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
 Require Import Program.Wf.
-(*Require Import Coq_EVM.lib.evmModel.*)
-Require Import Coq_EVM.datatypes.
+Require Import Coq_EVM.definitions.
 Import EVM_Def Concrete Abstract.
 Import ListNotations.
 
@@ -16,25 +15,201 @@ Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
 Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
   if n <=? length l then Some (skipn n l) else None.
 
-Compute firstn 0 [1;2;3;4;5].
-Compute firstn 1 [1;2;3;4;5].
-Compute firstn 6 [1;2;3;4;5].
+Lemma skipn_e_len: forall {X: Type} (n: nat) (l1 l1': list X),
+skipn_e n l1 = Some l1' -> length l1' = (length l1) - n.
+Proof.
+intros. unfold skipn_e in H.
+destruct (n <=? length l1) eqn: eq_cond; try discriminate.
+injection H as H. rewrite <- H.
+rewrite -> skipn_length.
+reflexivity.
+Qed.
 
-Compute firstn_e 0 [1;2;3;4;5].
-Compute firstn_e 1 [1;2;3;4;5].
-Compute firstn_e 6 [1;2;3;4;5].
+Lemma skipn_e_same_len: forall {X Y: Type} (n: nat) (l1 l1': list X)
+  (l2 l2': list Y),
+skipn_e n l1 = Some l1' -> 
+skipn_e n l2 = Some l2' ->
+length l1 = length l2 ->
+length l1' = length l2'.
+Proof.
+intros.
+apply skipn_e_len in H0.
+apply skipn_e_len in H.
+rewrite -> H. rewrite -> H0. rewrite -> H1.
+reflexivity.
+Qed.
 
-Compute skipn 0 [1;2;3;4;5].
-Compute skipn 1 [1;2;3;4;5].
-Compute skipn 6 [1;2;3;4;5].
+Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+firstn_e n l1 = Some res1 ->
+length l1 = length l2 ->
+exists (res2: list T2), firstn_e n l2 = Some res2.
+Proof.
+intros T1 T2 n l1 res1 l2 Hfirstn HeqLen.
+unfold firstn_e in Hfirstn.
+destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
+injection Hfirstn. intros eq_firstn.
+unfold firstn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
+exists (firstn n l2).
+reflexivity.
+Qed.
 
-Compute skipn_e 0 [1;2;3;4;5].
-Compute skipn_e 1 [1;2;3;4;5].
-Compute skipn_e 6 [1;2;3;4;5].
+
+Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+skipn_e n l1 = Some res1 ->
+length l1 = length l2 ->
+exists (res2: list T2), skipn_e n l2 = Some res2.
+Proof.
+intros T1 T2 n l1 res1 l2 Hskipn HeqLen.
+unfold skipn_e in Hskipn.
+destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
+injection Hskipn. intros eq_skipn.
+unfold skipn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
+exists (skipn n l2).
+reflexivity.
+Qed.
+
+
+Lemma firstn_skipn_e: forall (T: Type) (n: nat) (l l1 l2: list T),
+firstn_e n l = Some l1 ->
+skipn_e n l = Some l2 ->
+l = l1 ++ l2.
+Proof.
+intros T n l l1 l2 Hfirst Hskip.
+unfold firstn_e in Hfirst.
+unfold skipn_e in Hskip.
+destruct (n <=? length l) eqn: eq_length_l; try discriminate.
+injection Hfirst. injection Hskip. intros eq_skip_l2 eq_firstn_l1.
+pose proof (@firstn_skipn T n l) as eq_first_skip.
+rewrite -> eq_firstn_l1 in eq_first_skip.
+rewrite -> eq_skip_l2 in eq_first_skip.
+symmetry. assumption.
+Qed.
+
+
+Lemma firstn_e_length: forall (T: Type) (n: nat) (l l2: list T),
+firstn_e n l = Some l2 ->
+length l2 = n.
+Proof.
+intros T n l l2 Hfirstne.
+unfold firstn_e in Hfirstne.
+destruct (n <=? length l) eqn: eq_n_len; try discriminate.
+injection Hfirstne. intros Hl2. rewrite <- Hl2.
+apply leb_complete in eq_n_len.
+apply firstn_length_le.
+assumption.
+Qed.
 
 
 Module Interpreter.
 
+
+
+(****** opmap validity ******)
+Definition stack_op_map_comm (ops: opm) : Prop := 
+forall (instr: oper_label) (f: list EVMWord -> option EVMWord),
+ops instr = Some (Op true 2 f) ->
+forall (a b: EVMWord), f [a; b] = f [b; a].
+
+Definition coherent_stack_op_map (ops: opm) : Prop :=
+forall (instr: oper_label) (comm: bool) (n: nat) 
+  (f: list EVMWord -> option EVMWord) (l: list EVMWord), 
+ops instr = Some (Op comm n f) -> 
+length l = n ->
+exists (v: EVMWord), f l = Some v.
+
+Definition valid_stack_op_map (ops: opm) : Prop :=
+  stack_op_map_comm ops /\ coherent_stack_op_map ops.
+
+
+
+Lemma evm_stack_opm_comm: stack_op_map_comm opmap.
+Proof.
+unfold stack_op_map_comm. intros i f H a b.
+destruct i eqn: eq_i.
+- (* ADD *) 
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wplus_comm. reflexivity.
+- (* MUL *) 
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wmult_comm. reflexivity.
+- (* NOT *)
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H. intros. discriminate.
+Qed.
+
+(* Create strategy to simplify very similar proofs *)
+Lemma add_coherent: forall (l: list EVMWord),
+length l = 2 -> exists (v: EVMWord), add l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + simpl in H. discriminate.
+  + destruct r2 as [|c r3].
+    * exists (wplus a b). reflexivity.
+    * simpl in H. discriminate.
+Qed.
+
+Lemma mul_coherent: forall (l: list EVMWord),
+length l = 2 -> exists (v: EVMWord), mul l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + simpl in H. discriminate.
+  + destruct r2 as [|c r3].
+    * exists (wmult a b). reflexivity.
+    * simpl in H. discriminate.
+Qed.
+
+Lemma not_coherent: forall (l: list EVMWord),
+length l = 1 -> exists (v: EVMWord), not l = Some v.
+Proof.
+intros.
+destruct l as [|a r1].
+- simpl in H. discriminate.
+- destruct r1 as [|b r2].
+  + exists (wnot a). reflexivity.
+  + simpl in H. discriminate.
+Qed.
+
+
+Lemma evm_stack_opm_coherent: coherent_stack_op_map opmap.
+Proof.
+unfold coherent_stack_op_map. 
+intros instr comm n f l H H0.
+destruct instr eqn: eq_instr.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply add_coherent. assumption.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply mul_coherent. assumption.
+- unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_flag eq_nb_args eq_func.
+  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
+  apply not_coherent. assumption.
+Qed.
+
+Theorem evm_stack_opm_validity: valid_stack_op_map opmap.
+Proof.
+unfold valid_stack_op_map. split.
+- apply evm_stack_opm_comm.
+- apply evm_stack_opm_coherent.
+Qed.
+(************)
+
+
+
+
+
+(****** Execution state manipulation ******)
 Definition get_stack_es (es: execution_state) : tstack :=
 match es with
 | ExState stack _ _ => stack
@@ -65,7 +240,12 @@ match es with
 | ExState stack memory _ => ExState stack memory storage
 end.
 
-(* stack manipulation operators *)
+(************)
+
+
+
+
+(******* stack manipulation operators ********)
 
 (* Polymorphic versions for manipulating the stack *)
 Definition push {T : Type} (v : T) (sk : list T) : option (list T) :=
@@ -121,82 +301,17 @@ match swap k sk with
 end.
 
 
-Example test_swap0:
-let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap_c 0 state0 = None.
-Proof. 
-reflexivity.
+Lemma push_succeed: forall (T: Type) (e: T) (l1 l2: list T),
+push e l1 = Some l2 -> l2 = e::l1.
+Proof.
+intros T e l1 l2 Hpush.
+unfold push in Hpush.
+destruct (length l1 <? StackLen); try discriminate.
+symmetry in Hpush. injection Hpush.
+trivial.
 Qed.
 
-Example test_swap1:
-let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-let state1 := ExState [(natToWord WLen 2);(natToWord WLen 1);(natToWord WLen 3)] empty_nmap empty_nmap in 
-swap_c 1 state0 = Some state1.
-Proof. 
-reflexivity.
-Qed.
 
-Example test_swap2:
-let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-let state1 := ExState [(natToWord WLen 3);(natToWord WLen 2);(natToWord WLen 1)] empty_nmap empty_nmap in 
-swap_c 2 state0 = Some state1.
-Proof. 
-reflexivity.
-Qed.
-
-Example test_swap_longer:
-let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap_c 3 state0 = None.
-Proof. 
-reflexivity.
-Qed.
-
-Example test_swap_17:
-let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
-swap_c 17 state0 = None.
-Proof. 
-reflexivity.
-Qed.
-
-Example test_swap_16:
-let state0 := ExState [(natToWord WLen 1);
-                       (natToWord WLen 2);
-                       (natToWord WLen 3);
-                       (natToWord WLen 4);
-                       (natToWord WLen 5);
-                       (natToWord WLen 6);
-                       (natToWord WLen 7);
-                       (natToWord WLen 8);
-                       (natToWord WLen 9);
-                       (natToWord WLen 10);
-                       (natToWord WLen 11);
-                       (natToWord WLen 12);
-                       (natToWord WLen 13);
-                       (natToWord WLen 14);
-                       (natToWord WLen 15);
-                       (natToWord WLen 16);
-                       (natToWord WLen 17)] empty_nmap empty_nmap in
-let state1 := ExState [(natToWord WLen 17);
-                       (natToWord WLen 2);
-                       (natToWord WLen 3);
-                       (natToWord WLen 4);
-                       (natToWord WLen 5);
-                       (natToWord WLen 6);
-                       (natToWord WLen 7);
-                       (natToWord WLen 8);
-                       (natToWord WLen 9);
-                       (natToWord WLen 10);
-                       (natToWord WLen 11);
-                       (natToWord WLen 12);
-                       (natToWord WLen 13);
-                       (natToWord WLen 14);
-                       (natToWord WLen 15);
-                       (natToWord WLen 16);
-                       (natToWord WLen 1)] empty_nmap empty_nmap in
-swap_c 16 state0 = Some state1.
-Proof. 
-reflexivity.
-Qed.
 
 
 Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) (sk: tstack) : option execution_state :=
@@ -243,55 +358,12 @@ Fixpoint concr_interpreter (insts : block) (es : execution_state)
     end
   end.
 
-Compute (concr_interpreter 
-        [PUSH 1 (natToWord WLen 7); Opcode ADD] 
-        (ExState [(natToWord WLen 8);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap)
-        opmap).
-
 End Interpreter.  
 
 
 Module SFS.
 Include Interpreter.
 
-(** ** List Manipulation Functions *)
-Fixpoint remove {A: Type} (eqa: A -> A -> bool) (l: list A) (a: A) : list A :=
-  match l with
-  | nil => nil
-  | h::t => if eqa h a then t else h::(remove eqa t a)
-  end.
-
-Fixpoint member {A: Type} (eqa: A -> A -> bool) (l: list A) (a: A) : bool :=
-  match l with
-  | nil => false
-  | h::t => if eqa h a then true else member eqa t a
-  end.
-
-Fixpoint subset {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
-  match l1 with
-  | nil => true
-  | h::t => if member eqa l2 h then subset eqa t (remove eqa l2 h) else false
-  end.
-
-Compute subset Nat.eqb [1; 3; 2; 3] [1; 2; 3].
-
-(* Set equality *)
-Definition permutation {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool := 
-  (subset eqa l1 l2) && (subset eqa l2 l1).
-
-(* Check equality element by element. Order matters *)
-Fixpoint list_eq {A: Type} (eqa: A -> A -> bool) (l1 l2 : list A) : bool :=
-  match l1, l2 with
-  | nil, nil => true
-  | h1::l1', h2::l2' => if eqa h1 h2 then list_eq eqa l1' l2' else false
-  | _, _ => false
-  end.
-
-Compute list_eq Nat.eqb [1;2;3] [1;2;3;4].
-Compute permutation Nat.eqb [1;3;2] [3;1;4].
-
-
-(** ** Getter and Setter *)
 Definition get_height_asfs (a: asfs) : nat        := match a with ASFSc h _ _ _ => h end.
 Definition get_maxid_asfs  (a: asfs) : nat        := match a with ASFSc _ i _ _ => i end.
 Definition get_stack_asfs  (a: asfs) : asfs_stack := match a with ASFSc _ _ s _ => s end.
@@ -307,21 +379,6 @@ Definition set_map_asfs (a: asfs) (m': asfs_map) : asfs :=
   match a with ASFSc h maxid s m => ASFSc h  maxid  s  m' end.
 
 
-(** ** Stack Manipulation and Creation *)
-Definition in_to_asfs' (v: nat) : asfs_stack_val := InStackVar v.
-Definition in_to_asfs  (s: in_stack) : asfs_stack := List.map in_to_asfs' s.
-
-(*
-Definition concrete_to_asfs' (v: EVMWord) : asfs_stack_val := Val v.
-Definition concrete_to_asfs  (s: list EVMWord) : asfs_stack := List.map concrete_to_asfs' s.
-*)
-(*Fixpoint gen_initial_stack_inv {T: Type} (size: nat) (f: nat -> T): list T :=
-  match size with
-  | 0 => nil
-  | S n => (f n)::(gen_initial_stack_inv n f)
-  end.
-*)  
-
 Definition gen_initial_stack (size: nat): list asfs_stack_val :=
   let ids := seq 0 size in
   List.map InStackVar ids.
@@ -329,117 +386,21 @@ Definition gen_initial_stack (size: nat): list asfs_stack_val :=
 Definition empty_asfs (size: nat) : asfs :=
   let s := gen_initial_stack size in
   ASFSc size 0 s nil.
-
-(*
-Definition asfs_stack_val_eq (a b: asfs_stack_val) : bool :=
-  match a, b with
-  | Val v1, Val v2 => weqb v1 v2
-  | InStackVar v1, InStackVar v2 => Nat.eqb v1 v2
-  | FreshVar v1, FreshVar v2 => Nat.eqb v1 v2
-  | _, _ => false
-  end.
-
-Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : option bool :=
-  match a, b with
-  | ASFSBasicVal v1,  ASFSBasicVal v2  => Some (asfs_stack_val_eq v1 v2)
-  | ASFSOp op1 args1, ASFSOp op2 args2 => 
-      match eq_oper_label op1 op2 with
-      | true => 
-          match ops op1 with
-          | None => None
-          | Some (Op comm nargs f) => 
-              match comm with
-              | true  => Some (permutation asfs_stack_val_eq args1 args2)
-              | false => Some (list_eq asfs_stack_val_eq args1 args2)
-              end
-          end
-      | false => Some false 
-      end 
-  | _, _ => Some false
-  end.
-
-Fixpoint asfs_map_get_id (ops: opm) (m: asfs_map) (a: asfs_map_val): option nat :=
-  match m with
-  | nil => None
-  | h::m' => 
-      match asfs_map_val_eq ops a (snd h) with
-      | None => None
-      | Some false => asfs_map_get_id ops m' a
-      | Some true => Some (fst h)
-      end
-  end.
   
-(* simplified version of Joseba's code *)
-Fixpoint asfs_stack_val_list_eq (a b: list asfs_stack_val) : bool :=
-  match a, b with
-  | nil, nil => true
-  | h1::t1, h2::t2 => asfs_stack_val_eq h1 h2 && asfs_stack_val_list_eq t1 t2
-  | _, _ => false
-  end.
+  
+  
+Lemma get_set_stack_idem: forall (a: asfs) (s: asfs_stack),
+get_stack_asfs (set_stack_asfs a s) = s.
+Proof.
+intros. destruct a.
+reflexivity.
+Qed.
 
-Definition asfs_map_val_eq (ops: opm) (a b: asfs_map_val) : bool :=
-  match a, b with
-  | ASFSBasicVal v1,  ASFSBasicVal v2  => asfs_stack_val_eq v1 v2
-  | ASFSOp op1 args1, ASFSOp op2 args2 => 
-      eq_oper_label op1 op2 && asfs_stack_val_list_eq args1 args2
-  | _, _ => false
-  end.
-
-Fixpoint asfs_map_get_id (ops: opm) (m: asfs_map) (a: asfs_map_val): option nat :=
-  match m with
-  | nil => None
-  | h::m' => 
-      match asfs_map_val_eq ops a (snd h) with
-      | false => asfs_map_get_id ops m' a
-      | true => Some (fst h)
-      end
-  end.
-
-(* We can use asfs_map_get_id for detecting if it is contained or not *)
-(*Fixpoint asfs_map_contains (ops: opm) (m: asfs_map) (a: asfs_map_val): option bool :=
-  match m with
-  | nil => Some false
-  | (k,v)::m' => 
-      match asfs_map_val_eq ops a v with
-      | None => None
-      | Some false => asfs_map_contains ops m' a
-      | Some true => Some true
-      end
-  end.*)
-*)
 
 Definition asfs_map_add (m: asfs_map) (id: nat) (a: asfs_map_val) : asfs_map :=
   (id, a)::m.
   
-(*
-Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
-  let m   : asfs_map    := get_map_asfs a in
-  let s   : asfs_stack  := get_stack_asfs a in
-  let vin : option bool := asfs_map_contains ops m v in
-  let vid : option nat  := asfs_map_get_id   ops m v in
-  let mid : nat         := get_maxid_asfs a in
-  match vin, vid with
 
-    (* Value is in map, there is id *)
-    (* (vid', s', m) *)
-    | Some vin', Some vid' => 
-        match push (FreshVar vid') s with None => None | Some s' =>
-            Some (set_stack_asfs a s') end
-
-    (* Value is not in map *)
-    (* (maxid+1, s', m') *)
-    | Some vin', None => 
-        let m' : asfs_map := asfs_map_add m (mid+1) v in 
-        match push (FreshVar (mid+1)) s with None => None | Some s' => 
-            let a' : asfs := set_maxid_asfs a (mid+1) in
-            Some (set_map_asfs a' m') end
-  
-    (* Owise *)
-    | _, _ => None
-  end.
-*)  
-
-(* simplification: always insert pair in asfs_map *)
 Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
   let m   : asfs_map    := get_map_asfs a in
   let s   : asfs_stack  := get_stack_asfs a in
@@ -449,7 +410,23 @@ Definition add_val_asfs (ops: opm) (a: asfs) (v: asfs_map_val) : option asfs :=
   | None => None 
   | Some s' => Some (set_stack_asfs (set_map_asfs (set_maxid_asfs a (mid+1)) m') s')
   end.
-(**)
+
+
+
+Lemma add_val_asfs_incr: forall (ops: opm) (a a': asfs) (v: asfs_map_val),
+add_val_asfs ops a v = Some a' ->
+length (get_stack_asfs a') = S (length (get_stack_asfs a)).
+Proof.
+intros. unfold add_val_asfs in H.
+destruct (push (FreshVar (get_maxid_asfs a)) (get_stack_asfs a)) 
+  as [s'|] eqn: eq_push; try discriminate.
+injection H as H. rewrite <- H.
+rewrite -> get_set_stack_idem.
+apply push_succeed in eq_push.
+rewrite -> eq_push. simpl.
+reflexivity.
+Qed.
+
 
 
 Definition symbolic_exec'' (ins: instr) (a: asfs) (ops: opm) : option asfs :=
@@ -487,79 +464,7 @@ Definition symbolic_exec (p: block) (height: nat) (ops: opm) : option asfs :=
   let a : asfs := empty_asfs height in 
   symbolic_exec' p a ops.
 
-(* Symbolic Execution Tests *)
 
-Example cs_0 : concrete_stack := [ 
-  natToWord WLen 8;
-  natToWord WLen 2;
-  natToWord WLen 3
-  ].
-
-Example p_0 : block := [
-  PUSH 1 (natToWord WLen 5); 
-  PUSH 1 (natToWord WLen 7); 
-  PUSH 1 (natToWord WLen 7); 
-  Opcode ADD;
-  POP
-].
-
-Example  a_0 := match symbolic_exec p_0 3 opmap with None => empty_asfs 0 | Some a' => a' end.
-Compute get_stack_asfs a_0.
-Compute get_map_asfs a_0. 
-
-Example cs_1 : concrete_stack := [ 
-  natToWord WLen 1;
-  natToWord WLen 2
-  ].
-
-Example p_1 : block := [
-  Opcode ADD;
-  PUSH 1 (natToWord WLen 1); 
-  PUSH 1 (natToWord WLen 2);
-  Opcode ADD
-].
-
-Example  a_1 := match symbolic_exec p_1 2 opmap with None => empty_asfs 0 | Some a' => a' end.
-Compute get_stack_asfs a_1.
-Compute get_map_asfs a_1. 
-
-
-(* Try 1: eval_asfs2_elem_list has recursive calls with smaller maps but one call with the same map
-          and a smaller list. Coq cannot detect decreasing argument because there is not one single 
-          decreasing argument.
-          The lexicographic decreasing element is de pair (length m, length l), that requires well_founded
-          and generates one proof obligation:
-
-well_founded
-  (MR lex_let_nat_pair
-     (fun
-        recarg : {_ : concrete_stack &
-                 {_ : asfs_stack &
-                 {_ : asfs_map & opm}}} =>
-      (length
-         (projT1 (projT2 (projT2 recarg))),
-      length (projT1 (projT2 recarg)))))          
-
-*)
-
-
-(* Try 2: 
-  a) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the hint that
-     m is the decreasing argument ({struct m}) -> <<Recursive call to eval_asfs2_elem 
-     has principal argument equal to "m0" instead of "rm">>.
-     
-  b) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the measure
-     (lenght m) as well-founded measure -> 5 proof obligations where I guess some of them
-     cannot be proved, for example the one for "length m < length m0"
-     
-  c) mutually recursive definition for eval_asfs2_elem and eval_asfs2 with the lexicographic 
-     measure (length m, length s) -> "s" cannot be used because is the argument of the 
-     inner eval_asfs2_elem_list recursive function
-*)
-
-(* Solution: 1) HO function to apply 'f' to a list of asfs_stack_val 
-             2) use the HO function in the definition of the function that evaluates one value
-*)
 Fixpoint apply_f_list_asfs_stack_val (f: asfs_stack_val -> option EVMWord) (l: asfs_stack) :
   option (list EVMWord) :=
 match l with 
@@ -572,7 +477,8 @@ match l with
               end
 end.
 
-Fixpoint eval_asfs2_elem (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) 
+
+Fixpoint eval_asfs2_elem (c: tstack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) 
  {struct m} : option EVMWord :=
 match elem with 
 | Val v => Some v
@@ -602,67 +508,31 @@ match elem with
 end.
 
 (* Define the evaluation of an asfs_stack in terms of the apply_f_list_asfs_stack_val *)
-Definition eval_asfs2 (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
+Definition eval_asfs2 (c: tstack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
 let f_eval_list := fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' m ops in
 apply_f_list_asfs_stack_val f_eval_list s.
 
 
 (* Trivial but useful for proofs *)
-Lemma eval_asfs2_ho: forall (c: concrete_stack) (s: asfs_stack) (m: asfs_map) (ops: opm),
+Lemma eval_asfs2_ho: forall (c: tstack) (s: asfs_stack) (m: asfs_map) (ops: opm),
 apply_f_list_asfs_stack_val (fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' m ops) s = 
 eval_asfs2 c s m ops.
 Proof. reflexivity. Qed.
 
 
 
-Definition eval_asfs (c: concrete_stack) (s: asfs) (ops: opm) : option (concrete_stack) :=
+Definition eval_asfs (c: tstack) (s: asfs) (ops: opm) : option (tstack) :=
 match s with
 | ASFSc height maxid curr_stack amap => 
     if List.length c =? height then
       eval_asfs2 c curr_stack amap ops
     else
-      None (* evalution cannot succeed if the given stack has a different size to the expected one *)
+      None (* evalution cannot succeed if the given stack has 
+              a different size to the expected one *)
 end.
 
 
-Example test_eval_asfs_1:
-let asfs := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let stack := [(natToWord WLen 5); (natToWord WLen 7)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 12)].
-Proof.
-reflexivity. Qed.
-Example test_eval_asfs_2:
-let asfs := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let stack := [(natToWord WLen 8); (natToWord WLen 3)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 11)].
-Proof.
-reflexivity. Qed.
-Example test_eval_asfs_3:
-let asfs := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let stack := [(natToWord WLen 2); (natToWord WLen 0)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 2)].
-Proof.
-reflexivity. Qed.
-Example test_eval_asfs_4:
-let asfs := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let stack := [(natToWord WLen 0); (natToWord WLen 7)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
-Proof. reflexivity. Qed.
-
-
-Lemma concr_abs_stack_same_length_eval_asfs2: forall (in_stk curr_stk: concrete_stack) 
+Lemma concr_abs_stack_same_length_eval_asfs2: forall (in_stk curr_stk: tstack) 
   (abs: asfs_stack) (m: asfs_map) (ops: opm),
 eval_asfs2 in_stk abs m ops = Some curr_stk ->
 length abs = length curr_stk.
@@ -696,7 +566,7 @@ induction curr_stk as [| h t IH].
 Qed.
 
 
-Lemma concr_abs_stack_same_length: forall (in_stk curr_stk: concrete_stack) (curr_asfs: asfs)
+Lemma concr_abs_stack_same_length: forall (in_stk curr_stk: tstack) (curr_asfs: asfs)
         (ops: opm) (curr_es: execution_state),
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -715,7 +585,7 @@ apply concr_abs_stack_same_length_eval_asfs2 with (m:= map)
 assumption.
 Qed.
 
-Lemma set_get_stack_es: forall (es: execution_state) (stk: concrete_stack),
+Lemma set_get_stack_es: forall (es: execution_state) (stk: tstack),
 get_stack_es (set_stack_es es stk) = stk.
 Proof.
 intros es stk. unfold set_stack_es. destruct es.
@@ -723,7 +593,7 @@ reflexivity.
 Qed.
 
 
-Lemma eval_eq_stack_len: forall (in_stk out_stk: concrete_stack) (height hc maxid: nat) (abs: asfs_stack)
+Lemma eval_eq_stack_len: forall (in_stk out_stk: tstack) (height hc maxid: nat) (abs: asfs_stack)
   (map: asfs_map) (ops: opm),
 length in_stk = height -> 
 eval_asfs in_stk (ASFSc hc maxid abs map) ops = Some out_stk ->
@@ -739,7 +609,7 @@ assumption.
 Qed.
 
 
-Lemma eval_const_val: forall (stk: concrete_stack) (w: EVMWord) (map: asfs_map) (ops: opm),
+Lemma eval_const_val: forall (stk: tstack) (w: EVMWord) (map: asfs_map) (ops: opm),
 eval_asfs2_elem stk (Val w) map ops = Some w.
 Proof.
 intros stk w map ops. unfold eval_asfs2_elem.
@@ -749,7 +619,7 @@ destruct map eqn: eq_m; try reflexivity.
 Qed.
 
 
-Lemma height_stack_eval: forall (in_stk curr_stk: concrete_stack) (h mx: nat) 
+Lemma height_stack_eval: forall (in_stk curr_stk: tstack) (h mx: nat) 
       (abs: asfs_stack) (map: asfs_map) (ops: opm),
 eval_asfs in_stk (ASFSc h mx abs map) ops = Some curr_stk ->
 length abs = length curr_stk.
@@ -762,77 +632,8 @@ apply concr_abs_stack_same_length_eval_asfs2 with (in_stk:= in_stk)
 assumption.
 Qed.
 
-Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
-firstn_e n l1 = Some res1 ->
-length l1 = length l2 ->
-exists (res2: list T2), firstn_e n l2 = Some res2.
-Proof.
-intros T1 T2 n l1 res1 l2 Hfirstn HeqLen.
-unfold firstn_e in Hfirstn.
-destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
-injection Hfirstn. intros eq_firstn.
-unfold firstn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
-exists (firstn n l2).
-reflexivity.
-Qed.
 
-
-Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
-skipn_e n l1 = Some res1 ->
-length l1 = length l2 ->
-exists (res2: list T2), skipn_e n l2 = Some res2.
-Proof.
-intros T1 T2 n l1 res1 l2 Hskipn HeqLen.
-unfold skipn_e in Hskipn.
-destruct (n <=? length l1) eqn: eq_n_len; try discriminate.
-injection Hskipn. intros eq_skipn.
-unfold skipn_e. rewrite <- HeqLen. rewrite -> eq_n_len.
-exists (skipn n l2).
-reflexivity.
-Qed.
-
-Lemma push_succeed: forall (T: Type) (e: T) (l1 l2: list T),
-push e l1 = Some l2 -> l2 = e::l1.
-Proof.
-intros T e l1 l2 Hpush.
-unfold push in Hpush.
-destruct (length l1 <? StackLen); try discriminate.
-symmetry in Hpush. injection Hpush.
-trivial.
-Qed.
-
-
-Lemma firstn_skipn_e: forall (T: Type) (n: nat) (l l1 l2: list T),
-firstn_e n l = Some l1 ->
-skipn_e n l = Some l2 ->
-l = l1 ++ l2.
-Proof.
-intros T n l l1 l2 Hfirst Hskip.
-unfold firstn_e in Hfirst.
-unfold skipn_e in Hskip.
-destruct (n <=? length l) eqn: eq_length_l; try discriminate.
-injection Hfirst. injection Hskip. intros eq_skip_l2 eq_firstn_l1.
-pose proof (@firstn_skipn T n l) as eq_first_skip.
-rewrite -> eq_firstn_l1 in eq_first_skip.
-rewrite -> eq_skip_l2 in eq_first_skip.
-symmetry. assumption.
-Qed.
-
-
-Lemma firstn_e_length: forall (T: Type) (n: nat) (l l2: list T),
-firstn_e n l = Some l2 ->
-length l2 = n.
-Proof.
-intros T n l l2 Hfirstne.
-unfold firstn_e in Hfirstne.
-destruct (n <=? length l) eqn: eq_n_len; try discriminate.
-injection Hfirstne. intros Hl2. rewrite <- Hl2.
-apply leb_complete in eq_n_len.
-apply firstn_length_le.
-assumption.
-Qed.
-
-Lemma eval_asfs2_compositional: forall (in_stk curr_stk args insk': concrete_stack) 
+Lemma eval_asfs2_compositional: forall (in_stk curr_stk args insk': tstack) 
   (stkc s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
 eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
 stkc = s1 ++ s2 ->
@@ -878,7 +679,7 @@ induction s1 as [| h t IH ].
   rewrite -> eq_hval. reflexivity.
 Qed.  
 
-Lemma eval_asfs2_compositional_r: forall (in_stk curr_s1 curr_s2: concrete_stack) 
+Lemma eval_asfs2_compositional_r: forall (in_stk curr_s1 curr_s2: tstack) 
   (s1 s2: asfs_stack) (mapc: asfs_map) (ops: opm),
 eval_asfs2 in_stk s1 mapc ops = Some curr_s1 ->
 eval_asfs2 in_stk s2 mapc ops = Some curr_s2 ->
@@ -918,7 +719,7 @@ induction s1 as [ | h t].
 Qed.
 
 
-Lemma eval_asfs2_compositional4: forall (in_stk curr_stk v1 v2 v3 v4: concrete_stack) 
+Lemma eval_asfs2_compositional4: forall (in_stk curr_stk v1 v2 v3 v4: tstack) 
   (stkc s1 s2 s3 s4: asfs_stack) (mapc: asfs_map) (ops: opm),
 eval_asfs2 in_stk stkc mapc ops = Some curr_stk ->
 stkc = s1 ++ s2 ++ s3 ++ s4 ->
@@ -958,16 +759,6 @@ split; try assumption.
 split; try assumption.
 Qed.
 
-Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : bool :=
-match map with 
-| nil => true
-| (k,v)::t => if idx <=? k then false else fresh_var_gt_map idx t
-end.
-
-Definition valid_asfs (sfs: asfs) : bool :=
-match sfs with 
-| ASFSc height maxid s m => fresh_var_gt_map maxid m
-end.
 
 Lemma gt_neq: forall (n m : nat), n <=? m = false -> n =? m = false.
 Proof.
@@ -980,11 +771,13 @@ Proof.
     * simpl. simpl in H. apply IHn'. apply H.
 Qed.
 
+
+
 Lemma eval_asfs2_elem_extended_map_aux: forall
-    (c: concrete_stack) (elem: nat) 
+    (c: tstack) (elem: nat) 
     (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat),
 eval_asfs2_elem c (FreshVar elem) m ops = Some w ->
-fresh_var_gt_map n m = true ->
+fresh_var_gt_map n m ->
 n =? elem = false.
 Proof.
   intros.
@@ -994,20 +787,27 @@ Proof.
     destruct x.
     + destruct (n0 =? elem) eqn:H1.
       ++ destruct (n <=? n0) eqn:H2.
-         * discriminate H0.
+         * rewrite -> Nat.eqb_eq in H1. rewrite -> H1 in H0. 
+           destruct H0 as [n_gt_elem _]. 
+           rewrite -> Nat.leb_le in H2. rewrite -> H1 in H2.
+           pose proof (gt_not_le n elem n_gt_elem).
+           contradiction.
          * apply gt_neq. apply beq_nat_true in H1. rewrite H1 in H2. apply H2.
            ++ destruct (n <=? n0) eqn:H2.
-         * discriminate H0.
+         * destruct H0 as [n_gt_n0 _]. 
+           rewrite -> Nat.leb_le in H2. 
+           pose proof (gt_not_le n n0 n_gt_n0).
+           contradiction.
          * apply IH.
            ** apply H.
            ** apply H0.
-Qed.           
+Qed.
 
-    
+
 Lemma eval_asfs2_elem_extended_map: forall
-    (c: concrete_stack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat) (val: asfs_map_val),
+    (c: tstack) (elem: asfs_stack_val) (m: asfs_map) (ops: opm) (w : EVMWord) (n: nat) (val: asfs_map_val),
 eval_asfs2_elem c elem m ops = Some w ->
-fresh_var_gt_map n m = true ->
+fresh_var_gt_map n m ->
 eval_asfs2_elem c elem ((n, val)::m) ops = Some w.
 Proof.
   intros.
@@ -1027,11 +827,13 @@ Proof.
          *** simpl in H. apply H.
 Qed.
 
-(* ++++++++++++++This is the important one+++++++++++++ *)
-Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: concrete_stack) (s: asfs_stack) (map: asfs_map)
+
+
+
+Lemma eval_asfs2_extended_map: forall (in_stk curr_stk: tstack) (s: asfs_stack) (map: asfs_map)
   (ops: opm) (n: nat) (val: asfs_map_val),
 eval_asfs2 in_stk s map ops = Some curr_stk ->
-fresh_var_gt_map n map = true ->
+fresh_var_gt_map n map ->
 eval_asfs2 in_stk s ((n, val)::map) ops = Some curr_stk.
 Proof.
   intros in_stk curr_stk s map ops n val.
@@ -1068,7 +870,7 @@ Lemma opcode_exec_asfs_update: forall (ops: opm) (OpCode: oper_label) (comm_flag
   (args insk' in_stk curr_stk: list EVMWord) (v: EVMWord) (curr_asfs out_asfs: asfs) (stkc stko s1 s2: asfs_stack)
   (mapc mapo: asfs_map),
 
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 get_stack_es curr_es = curr_stk ->
 ops OpCode = Some (Op comm_flag nb_args func) ->
 firstn_e nb_args (get_stack_es curr_es) = Some args ->
@@ -1159,13 +961,14 @@ intros ops OpCode comm_flag nb_args hec maxc heo maxo func curr_es args insk' in
             rewrite -> Heval_asfs2_s1.
             assumption.
          ++ rewrite -> Hmapo.
+            destruct Hvalid_asfs as [fresh_var_gt _].
             pose proof (eval_asfs2_extended_map in_stk insk' s2 mapc ops maxc (ASFSOp OpCode s1)
-              Heval_asfs2_s2 Hvalid_asfs) as eq_eval_asfs2_s2_mapo.
+              Heval_asfs2_s2 fresh_var_gt) as eq_eval_asfs2_s2_mapo.
             assumption.
 Qed.
 
 
-Lemma eval_asfs2_position': forall (in_stk curr_stk: concrete_stack) (pos: nat)
+Lemma eval_asfs2_position': forall (in_stk curr_stk: tstack) (pos: nat)
   (sc: asfs_stack) (mc: asfs_map) (ops: opm) (a: asfs_stack_val) (x: EVMWord),
 eval_asfs2 in_stk sc mc ops = Some curr_stk ->
 nth_error sc pos = Some a ->
@@ -1214,7 +1017,7 @@ induction pos as [| n'].
   assumption.
 Qed.
 
-Lemma eval_asfs2_position: forall (in_stk curr_stk: concrete_stack) (hc maxc pos: nat)
+Lemma eval_asfs2_position: forall (in_stk curr_stk: tstack) (hc maxc pos: nat)
   (sc: asfs_stack) (mc: asfs_map) (ops: opm) (a: asfs_stack_val) (x: EVMWord),
 eval_asfs in_stk (ASFSc hc maxc sc mc) ops = Some curr_stk ->
 nth_error sc pos = Some a ->
@@ -1354,9 +1157,9 @@ Qed.
 
 
 (* One step of execution with one instruction *)
-Theorem correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: concrete_stack) (ops:opm)
+Lemma correctness_symb_exec_step: forall (instruction: instr) (in_stk curr_stk out_stk: tstack) (ops:opm)
           (height: nat) (curr_es out_es: execution_state) (curr_asfs out_asfs: asfs),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -1416,7 +1219,7 @@ destruct instruction eqn: eq_instr.
   rewrite -> set_get_stack_es in Hes_out.
   injection Hsymbexec. intros eq_out_asfs. symmetry in eq_out_asfs. rewrite -> eq_out_asfs.
   rewrite -> Hes_curr in eq_pop_w.
-  destruct curr_stk eqn: eq_curr_stk; try discriminate.
+  destruct curr_stk as [|h'' sk''] eqn: eq_curr_stk; try discriminate.
   unfold eval_asfs in Hevalcurr.
   destruct curr_asfs as [h mx curr_stack curr_map] eqn: eq_curr_asfs.
   rewrite -> HLen in Hevalcurr.
@@ -1601,9 +1404,16 @@ destruct instruction eqn: eq_instr.
     reflexivity.
 Qed.
 
+
+Lemma gt_succ: forall (n m: nat), n > m -> S n > m.
+Proof.
+auto.
+Qed.
+
+
 Lemma fresh_var_gt_succ: forall (maxc: nat) (mc: asfs_map),
-fresh_var_gt_map maxc mc = true ->
-fresh_var_gt_map (S maxc) mc = true.
+fresh_var_gt_map maxc mc ->
+fresh_var_gt_map (S maxc) mc.
 Proof.
 intros maxc mc. revert maxc.
 induction mc as [|h t IH].
@@ -1611,24 +1421,18 @@ induction mc as [|h t IH].
 - intros maxc Hfresh_var_gt_h_t.
   unfold fresh_var_gt_map in Hfresh_var_gt_h_t.
   destruct h as [k v] eqn: eq_h.
-  destruct (maxc <=? k) eqn: eq_maxc_leq_k; try discriminate.
-  fold (fresh_var_gt_map maxc t) in Hfresh_var_gt_h_t.
-  unfold fresh_var_gt_map.
-  pose proof (leb_complete_conv k maxc eq_maxc_leq_k) as k_lt_maxc.
-  pose proof (Nat.lt_lt_succ_r k maxc k_lt_maxc) as k_lt_succ_maxc.
-  pose proof (leb_correct_conv k (S maxc) k_lt_succ_maxc) as k_succ_maxc_false.
-  rewrite -> k_succ_maxc_false.
-  fold fresh_var_gt_map.
-  apply IH.
-  assumption.
+  fold fresh_var_gt_map in Hfresh_var_gt_h_t.
+  simpl. destruct Hfresh_var_gt_h_t as [maxc_gt_k fresh_gt_maxc_t].
+  split.
+  + apply gt_succ. assumption.
+  + apply IH in fresh_gt_maxc_t. assumption.
 Qed.
 
-(* Joseba will need it for the IH, as well as the proof that the initial
-   asfs is valid by construction [the map is empty] *)
+
 Lemma valid_asfs_preservation: forall (curr_asfs out_asfs: asfs) (instruction: instr) (ops: opm),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
-valid_asfs out_asfs = true.
+valid_asfs out_asfs.
 Proof.
 intros curr_asfs out_asfs instruction ops Hvalid_curr_asfs Hsymbexec.
 destruct curr_asfs as [hc maxc absc mc] eqn: eq_curr_asfs.
@@ -1686,14 +1490,19 @@ destruct instruction eqn: eq_inst.
   pose proof (Nat.nle_succ_diag_l maxc) as Sn_not_lte_n.
   rewrite -> Nat.add_1_r.
   rewrite <- Nat.leb_nle in Sn_not_lte_n.
-  rewrite -> Sn_not_lte_n.
   fold fresh_var_gt_map.
-  apply fresh_var_gt_succ.
-  assumption.
+  destruct (Hvalid_curr_asfs) as [fresh_gt_maxc strictly_decr_mc].
+  split; try split.
+  + apply gt_Sn_n.
+  + apply fresh_var_gt_succ. assumption.
+  + simpl. destruct mc as [|h t] eqn: eq_m; try auto.
+    destruct h as [v e]. split; try assumption.
+    simpl in fresh_gt_maxc. destruct fresh_gt_maxc as [Hmaxc_gt_v _].
+    assumption.
 Qed.
 
 
-Lemma get_stack_es_ok: forall (stk: concrete_stack) (memory: tmemory)
+Lemma get_stack_es_ok: forall (stk: tstack) (memory: tmemory)
   (storage: tstorage),
 get_stack_es ((ExState stk memory storage)) = stk.
 Proof.
@@ -1701,9 +1510,9 @@ reflexivity.
 Qed.
 
 Lemma correctness_symb_exec_gen: forall (curr_asfs out_asfs: asfs) 
-  (in_stk curr_stk out_stk: concrete_stack) (height: nat) (ops: opm) 
+  (in_stk curr_stk out_stk: tstack) (height: nat) (ops: opm) 
   (curr_es out_es: execution_state) (p: block),
-valid_asfs curr_asfs = true ->
+valid_asfs curr_asfs ->
 length in_stk = height ->
 eval_asfs in_stk curr_asfs ops = Some curr_stk ->
 get_stack_es curr_es = curr_stk ->
@@ -1755,11 +1564,13 @@ Qed.
 
 
 Lemma valid_asfs_empty: forall (n: nat),
-valid_asfs (empty_asfs n) = true.
+valid_asfs (empty_asfs n).
 Proof.
 intros n.
 unfold valid_asfs. unfold empty_asfs.
-reflexivity.
+split.
+- simpl. auto.
+- simpl. auto.
 Qed.
 
 
@@ -1809,7 +1620,6 @@ pose proof (Nat.succ_pred_pos (n - i) Hni_gt_0) as Hs_pred_n_i.
 assumption.
 Qed.
 
-Search (skipn (S _)).
 
 Lemma skipn_nth: forall (T: Type) (i: nat) (l: list T) (v: T),
 nth_error l i = Some v -> 
@@ -1834,7 +1644,7 @@ Qed.
 
 (* We need to use it with i=length stk=n*)
 (* This is only true for i<=n *)
-Lemma empty_skip_eval: forall (i n: nat) (stk: concrete_stack) (ops: opm),
+Lemma empty_skip_eval: forall (i n: nat) (stk: tstack) (ops: opm),
 length stk = n ->
 i <= n -> n > 0 ->
 eval_asfs2 stk (List.map InStackVar (seq (n-i) i)) [] ops = 
@@ -1870,9 +1680,9 @@ induction i as [| i' IH].
   reflexivity.
 Qed. 
 
-Search (_ <= 0).
 
-Lemma empty_skip_eval_zero: forall (i n: nat) (stk: concrete_stack) (ops: opm),
+
+Lemma empty_skip_eval_zero: forall (i n: nat) (stk: tstack) (ops: opm),
 length stk = n ->
 i <= n -> n = 0 ->
 eval_asfs2 stk (List.map InStackVar (seq (n-i) i)) [] ops = 
@@ -1890,7 +1700,7 @@ destruct stk as [| h t] eqn: eq_stk.
 - simpl in Hlen_stk. discriminate.
 Qed.
 
-Lemma empty_asfs_concr_stk: forall (n: nat) (stk: concrete_stack) (ops: opm),
+Lemma empty_asfs_concr_stk: forall (n: nat) (stk: tstack) (ops: opm),
 length stk = n ->
 eval_asfs stk (empty_asfs n) ops = Some stk.
 Proof.
@@ -1919,8 +1729,8 @@ destruct n as [| n'] eqn: eq_n.
 Qed.
 
 
-(* A complete blockram*)
-Theorem correctness_symb_exec: forall (p: block) (in_stk out_stk: concrete_stack)
+(* A complete block*)
+Lemma correctness_symb_exec_eval: forall (p: block) (in_stk out_stk: tstack)
   (ops:opm) (height: nat) (in_es out_es: execution_state) (out_asfs: asfs),
 length in_stk = height ->
 get_stack_es in_es = in_stk ->
@@ -1943,34 +1753,474 @@ assumption.
 Qed.
 
 
-(*
+Lemma symb_exec'_strictly_decreasing: forall (p: block) (a a': asfs) 
+  (ops: opm),
+valid_asfs a ->
+symbolic_exec' p a ops = Some a' ->
+valid_asfs a'.
+Proof.
+induction p as [| ins rp IH].
+- intros. simpl in H0. injection H0 as eq_a_a'. 
+  rewrite <- eq_a_a'. assumption.
+- intros. simpl in H0. 
+  destruct (symbolic_exec'' ins a ops) as [a''|] 
+    eqn: eq_sym_exec''; try discriminate.
+  apply valid_asfs_preservation in eq_sym_exec''; try assumption.
+  apply IH in H0; try assumption.
+Qed.
 
-- We should support commutativity -> require passing the opm
-- Handle any number of arguments, woth a specific case for 2 args
-- Add a theorem SFS_EQIV
 
-    if asfs1 is equiv to asfs2, then for any concrete stack
-    'stk', eval_asfs stk asfs1 opm =  eval_asfs stk asfs2 opm
+Lemma decreasing_asfs_empty_asfs: forall (height: nat),
+valid_asfs (empty_asfs height).
+Proof.
+intros. simpl. auto.
+Qed.
 
-- The main theorem
 
-  for blockram P1, P2, height, in_stk, opm
+Lemma symb_exec_valid_asfs: forall (p: block) (height: nat) (ops: opm)
+  (sfs: asfs),
+symbolic_exec p height ops = Some sfs ->
+valid_asfs sfs.
+Proof.
+intros.
+unfold symbolic_exec in H.
+apply symb_exec'_strictly_decreasing with (p:=p) (a:=empty_asfs height)
+  (ops:=ops).
+- apply decreasing_asfs_empty_asfs.
+- assumption.
+Qed.
 
-  length in_stk = height
-  asfs1 is symblic execution of P1 with height, opm
-  asfs2 is symblic execution of P2 with height, opm
-  SFS_EQIV(asfs1,asfs2)
-  -> conc_exec in_stk P1 opm = conc_exec in_stk P2 opm
 
-*)
 
-(*
-// + a1 b1 , + a2 b2
+Lemma push_same_len: forall {X Y: Type} (e: X) (l1 l2: list X) 
+  (e': Y) (l1': list Y),
+push e l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), push e' l1' = Some l2'.
+Proof.
+intros. unfold push in H.
+destruct (length l1 <? StackLen) eqn: Hlen_ok; try discriminate.
+unfold push. rewrite -> H0 in Hlen_ok. rewrite -> Hlen_ok.
+exists (e' :: l1'). reflexivity.
+Qed.
 
-//   -> [ [[a1,a2],[b1,b2]], [[a1,b2],[b1,b2]] ]
 
-//   -> [ [[a1,a2],[b1,b2]] ]
-*)
+Lemma push_same_len2: forall {X Y: Type} (e: X) (l1 l2: list X) 
+  (e': Y) (l1' l2': list Y),
+push e l1 = Some l2 ->
+push e' l1' = Some l2' ->
+length l1 = length l1' ->
+length l2 = length l2'.
+Proof.
+intros. unfold push in H.
+destruct (length l1 <? StackLen) eqn: Hlen_ok; try discriminate.
+unfold push in H0. rewrite -> H1 in Hlen_ok. rewrite -> Hlen_ok in H0.
+injection H as H. injection H0 as H0.
+rewrite <- H0. simpl.
+symmetry in H0.
+rewrite <- H.
+apply length_cons. assumption.
+Qed.
+
+
+Lemma length_s_then_cons: forall {X: Type} (l: list X) (n: nat),
+length l = S n ->
+exists (h: X) (t: list X), l = (h::t).
+Proof.
+intros. destruct l.
+- simpl in H. discriminate.
+- exists x. exists l. reflexivity.
+Qed.
+
+
+Lemma pop_same_len: forall {X Y: Type} (l1 l2: list X) (l1': list Y),
+pop l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), pop l1' = Some l2'.
+Proof.
+induction l1 as [| h t IH].
+- intros. simpl in H. discriminate.
+- intros. simpl in H. simpl in H0. symmetry in H0. 
+  apply length_s_then_cons in H0 as [h' [t' eq_l1']].
+  rewrite eq_l1'. simpl. exists t'.
+  reflexivity.
+Qed.
+
+
+Lemma pop_len: forall {X: Type} (l1 l2: list X),
+pop l1 = Some l2 ->
+length l1 = S (length l2).
+Proof.
+intros. destruct l1 as [| h t]; try discriminate.
+simpl in H. injection H as H. rewrite <- H.
+simpl. reflexivity.
+Qed.
+
+Lemma dup_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
+  (l1': list Y),
+dup pos l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), dup pos l1' = Some l2'.
+Proof.
+intros. unfold dup in H.
+destruct ((pos =? 0) || (16 <? pos) || (StackLen <=? length l1)) 
+  eqn: cond_ok; try discriminate.
+destruct (nth_error l1) as [x|] eqn: eq_nth_error; try discriminate.
+unfold dup. rewrite -> H0 in cond_ok. rewrite -> cond_ok.
+apply some_is_not_none in eq_nth_error.
+apply nth_error_Some in eq_nth_error.
+rewrite -> H0 in eq_nth_error.
+apply nth_error_ok' in eq_nth_error.
+destruct eq_nth_error as [v eq_nth_l1'].
+rewrite -> eq_nth_l1'.
+exists (v :: l1'). reflexivity.
+Qed.
+
+Lemma dup_len: forall {X: Type} (n:nat) (l1 l2: list X),
+dup n l1 = Some l2 ->
+S (length l1) = length l2.
+Proof.
+intros. unfold dup in H.
+destruct ((n =? 0) || (16 <? n) || (StackLen <=? length l1)) eqn: cond_ok;
+  try discriminate.
+destruct (nth_error l1 n) as [x|] eqn: eq_nth_err; try discriminate.
+injection H as H.
+rewrite <- H. 
+reflexivity.
+Qed.
+
+
+Lemma swap_same_len: forall {X Y: Type} (pos: nat) (l1 l2: list X) 
+  (l1': list Y),
+swap pos l1 = Some l2 ->
+length l1 = length l1' ->
+exists (l2': list Y), swap pos l1' = Some l2'.
+Proof.
+intros. unfold swap in H.
+destruct ((pos =? 0) || (16 <? pos)) eqn: cond_ok; try discriminate.
+destruct (nth_error l1 pos) as [v|] eqn: eq_nth_error_l1; try discriminate.
+destruct (l1) as [| h t] eqn: eq_l1; try discriminate.
+unfold swap. rewrite -> cond_ok.
+apply some_is_not_none in eq_nth_error_l1.
+apply nth_error_Some in eq_nth_error_l1.
+rewrite -> H0 in eq_nth_error_l1.
+apply nth_error_ok' in eq_nth_error_l1.
+destruct eq_nth_error_l1 as [v' eq_nth_l1'].
+rewrite -> eq_nth_l1'.
+simpl in H0. symmetry in H0. apply length_s_then_cons in H0.
+destruct H0 as [h' [t' eq_l1']]. rewrite eq_l1'.
+exists ([v'] ++ firstn (pos - 1) t' ++ [h'] ++ skipn (pos + 1) (h' :: t')).
+reflexivity.
+Qed.
+
+
+Lemma swap_same_len2: forall {X Y: Type} (n:nat) (l1 l2: list X)
+  (l1' l2': list Y),
+swap n l1 = Some l2 ->
+swap n l1' = Some l2' ->
+length l1 = length l1' ->
+length l2 = length l2'.
+Proof.
+intros. unfold swap in H.
+destruct ((n =? 0) || (16 <? n)) eqn: cond_ok; try discriminate.
+destruct (nth_error l1 n) eqn: eq_nth_err; try discriminate.
+destruct l1 as [|h t] eqn: eq_l1; try discriminate.
+injection H as H.
+unfold swap in H0. rewrite -> cond_ok in H0.
+destruct (nth_error l1' n) eqn: eq_nth_err_concr; try discriminate.
+destruct (l1') as [|h' t'] eqn: eq_l1'; try discriminate.
+injection H0 as H0.
+rewrite <- H. rewrite <- H0.
+simpl.
+rewrite -> app_length. rewrite -> app_length.
+rewrite -> firstn_length. rewrite -> firstn_length.
+simpl. rewrite -> skipn_length. rewrite -> skipn_length.
+rewrite -> H1.
+simpl in H1. injection H1 as H1.
+rewrite -> H1.
+reflexivity.
+Qed.
+
+
+Lemma symb_exec_step_len_presev: forall (i: instr) 
+  (curr_asfs a': asfs) (ops: opm) (curr_es curr_es': execution_state),
+symbolic_exec'' i curr_asfs ops = Some a' ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
+concr_intpreter_instr i curr_es ops = Some curr_es' ->
+length (get_stack_asfs a') = length (get_stack_es curr_es').
+Proof.
+intros. 
+simpl in H1. destruct curr_es as [stack memory storage] eqn: eq_curr_es.
+simpl in H0.
+destruct i eqn: eq_i.
+- (* PUSH *) 
+  simpl in H. 
+  destruct (push (Val w) (get_stack_asfs curr_asfs)) 
+    as [s'|] eqn: eq_push_symb; try discriminate.
+  simpl in H1.
+  unfold push_c in H1. simpl in H1.
+  destruct (push w stack) as [sk'|] eqn: eq_push_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (push_same_len2 (Val w) (get_stack_asfs curr_asfs) s' w
+    stack sk' eq_push_symb eq_push_concr H0).
+  injection H as H.
+  rewrite <- H. simpl.
+  rewrite -> get_set_stack_idem. assumption.
+- (* POP *)
+  simpl in H. 
+  destruct (pop (get_stack_asfs curr_asfs)) 
+    as [s'|] eqn: eq_pop_symb; try discriminate.
+  unfold pop in H1. simpl in H1.
+  unfold pop_c in H1. simpl in H1.
+  destruct (pop stack) as [sk'|] eqn: eq_pop_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (pop_len (get_stack_asfs curr_asfs) s' eq_pop_symb) as
+    Hlen_symb.
+  injection H as H. rewrite <- H. 
+  rewrite -> get_set_stack_idem.
+  pose proof (pop_len stack sk' eq_pop_concr) as Hlen_concr.
+  rewrite -> Hlen_concr in H0.
+  rewrite -> Hlen_symb in H0.
+  injection H0 as H0.
+  assumption.
+- (* DUP *)
+  simpl in H. 
+  destruct (dup pos (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_dup_symb;
+    try discriminate.
+  simpl in H1. unfold dup_c in H1. simpl in H1.
+  destruct (dup pos stack) as [sk'|] eqn: eq_dup_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  apply dup_len in eq_dup_symb.
+  apply dup_len in eq_dup_concr.
+  injection H as H. rewrite <- H. rewrite get_set_stack_idem.
+  rewrite <- eq_dup_symb. rewrite <- eq_dup_concr.
+  auto.
+- (* SWAP *)
+  simpl in H. 
+  destruct (swap pos (get_stack_asfs curr_asfs)) as [s'|] eqn: eq_swap_symb;
+    try discriminate.
+  simpl in H1. unfold swap_c in H1. simpl in H1.
+  destruct (swap pos stack) as [sk'|] eqn: eq_swap_concr; try discriminate.
+  injection H1 as H1. rewrite <- H1. simpl.
+  pose proof (swap_same_len2 pos (get_stack_asfs curr_asfs) s' stack sk'
+    eq_swap_symb eq_swap_concr H0).
+  injection H as H. rewrite <- H. rewrite get_set_stack_idem.
+  assumption.
+- (* Operator *)
+  simpl in H.
+  destruct (ops label) as [oper|] eqn: eq_ops_label; try discriminate.
+  destruct oper as [comm nargs f] eqn: eq_oper.
+  destruct (firstn_e nargs (get_stack_asfs curr_asfs)) as [s1|] 
+    eqn: eq_firstn_e_symb; try discriminate.
+  destruct (skipn_e nargs (get_stack_asfs curr_asfs)) as [s2|]
+    eqn: eq_skipn_e_symb; try discriminate.
+  simpl in H.
+  apply add_val_asfs_incr in H as HH.
+  rewrite -> get_set_stack_idem in HH.
+  simpl in H1. rewrite -> eq_ops_label in H1.
+  destruct (firstn_e nargs stack) as [args|]
+    eqn: eq_firstn_e_concr; try discriminate.
+  destruct (skipn_e nargs stack) as [insk'|]
+    eqn: eq_skipn_e_concr; try discriminate.
+  destruct (f args) as [v|] eqn: eq_f_args; try discriminate.
+  injection H1 as H1. rewrite <- H1.
+  simpl.
+  pose proof (skipn_e_same_len nargs (get_stack_asfs curr_asfs) s2 
+    stack insk' eq_skipn_e_symb eq_skipn_e_concr H0)
+    as H2.
+  rewrite <- H2.
+  assumption.
+Qed.
+
+
+
+Lemma correctness_symb_success_step: forall (instruction: instr) 
+ (ops:opm) (curr_es: execution_state) (curr_asfs out_asfs: asfs),
+valid_asfs curr_asfs ->
+valid_stack_op_map ops ->
+symbolic_exec'' instruction curr_asfs ops = Some out_asfs ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es)->
+exists (out_es: execution_state), 
+  concr_intpreter_instr instruction curr_es ops = Some out_es.
+Proof.
+intros instruction ops curr_es curr_asfs out_asfs H Hvalid_ops H0 H1.
+destruct instruction eqn: eq_instr.
+- (* PUSH *)
+  simpl. unfold push_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (push (Val w) (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_push_asfs_stack; try discriminate.
+  pose proof (push_same_len (Val w) (get_stack_asfs curr_asfs) s' 
+    w curr_stk' eq_push_asfs_stack H1) as [sk'' Hpush].
+  rewrite Hpush.
+  exists (ExState sk'' memory storage).
+  reflexivity.
+- (* POP *)
+  simpl. unfold pop_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (pop (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_pop_asfs_stack; try discriminate.
+  
+  pose proof (pop_same_len (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_pop_asfs_stack H1) as [sk'' Hpop].
+  rewrite Hpop. exists (ExState sk'' memory storage).
+  reflexivity.
+- (* DUP *) 
+  simpl. unfold dup_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (dup pos (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_dup_asfs_stack; try discriminate.
+  pose proof (dup_same_len pos (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_dup_asfs_stack H1) as [sk'' Hdup].
+  rewrite Hdup. exists (ExState sk'' memory storage).
+  reflexivity.
+- (* SWAP *)
+  simpl. unfold swap_c.
+  destruct curr_es as [curr_stk' memory storage] eqn: eq_curr_es. 
+  simpl. simpl in H1. 
+  simpl in H0.
+  destruct (swap pos (get_stack_asfs curr_asfs)) as [s'|]
+    eqn: eq_swap_asfs_stack; try discriminate.
+  pose proof (swap_same_len pos (get_stack_asfs curr_asfs) s' curr_stk'
+    eq_swap_asfs_stack H1) as [sk'' Hswap].
+  rewrite Hswap. exists (ExState sk'' memory storage).
+  reflexivity.
+- (* opcode *)
+  simpl in H0. destruct (ops label) as [oper|] eqn: eq_ops_label; 
+    try discriminate.
+  destruct oper as [comm nargs f] eqn: eq_oper.
+  simpl. rewrite eq_ops_label.
+  destruct (firstn_e nargs (get_stack_asfs curr_asfs)) as [s1|] 
+    eqn: eq_firstn_e_curr_asfs; try discriminate.
+  destruct (skipn_e nargs (get_stack_asfs curr_asfs)) as [s2|]
+    eqn: eq_skipn_e_curr_asfs; try discriminate.
+  pose proof (same_length_firstn_e asfs_stack_val EVMWord nargs
+    (get_stack_asfs curr_asfs) s1 (get_stack_es curr_es)
+    eq_firstn_e_curr_asfs H1) as [vargs Hfirstn_e_es].
+  rewrite -> Hfirstn_e_es.
+  pose proof (same_length_skip_e asfs_stack_val EVMWord nargs
+    (get_stack_asfs curr_asfs) s2 (get_stack_es curr_es)
+    eq_skipn_e_curr_asfs H1) as [sk'' Hskipn_e_es].
+  rewrite -> Hskipn_e_es.
+  unfold valid_stack_op_map in Hvalid_ops.
+  destruct Hvalid_ops as [_ Hcoherent_ops].
+  unfold coherent_stack_op_map in Hcoherent_ops.
+  apply Hcoherent_ops with (l:=vargs) in eq_ops_label.
+  + destruct (eq_ops_label) as [v Hfvargs].
+    rewrite -> Hfvargs.
+    exists (set_stack_es curr_es (v :: sk'')).
+    reflexivity.
+  + apply firstn_e_length with (l:=get_stack_es curr_es).
+    assumption.
+Qed.
+
+
+
+Lemma correctness_symb_success_gen: forall (p: block) 
+  (curr_asfs out_asfs: asfs) (ops: opm) (curr_es: execution_state),
+valid_asfs curr_asfs ->
+valid_stack_op_map ops ->
+symbolic_exec' p curr_asfs ops = Some out_asfs ->
+length (get_stack_asfs curr_asfs) = length (get_stack_es curr_es) ->
+exists (out_es: execution_state),
+  concr_interpreter p curr_es ops = Some out_es.
+Proof.
+induction p as [| instr t IH].
+- intros. simpl. exists curr_es. reflexivity.
+- intros curr_asfs out_asfs ops curr_es H Hvalid_ops H0 H1. simpl in H0.
+  destruct (symbolic_exec'' instr curr_asfs ops) as [a'|] eqn: eq_symb_instr;
+    try discriminate.
+  pose proof (correctness_symb_success_step instr ops curr_es curr_asfs
+    a' H Hvalid_ops eq_symb_instr H1) as [curr_es' HH].
+  pose proof (valid_asfs_preservation curr_asfs a' instr ops H eq_symb_instr)
+    as valid_a'.
+  pose proof (symb_exec_step_len_presev instr curr_asfs a' ops curr_es
+    curr_es' eq_symb_instr H1 HH) as eq_len_curr_es'.
+  pose proof (IH a' out_asfs ops curr_es' valid_a' Hvalid_ops H0 
+    eq_len_curr_es') as [out_es eq_concr_exec].
+  exists out_es. simpl. rewrite -> HH.
+  assumption.
+Qed.
+
+
+Lemma correctness_symb_success: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+valid_stack_op_map ops ->
+exists (out_es: execution_state), 
+   concr_interpreter p in_es ops = Some out_es.
+Proof.
+intros.
+unfold symbolic_exec in H1.
+pose proof (valid_asfs_empty height) as valid_empty_height.
+assert (length (get_stack_asfs (empty_asfs height)) = height) as eq_len.
+- simpl. unfold gen_initial_stack. 
+  rewrite -> map_length.
+  apply seq_length.
+- rewrite <- eq_len in H0.
+  rewrite <- H in H0.
+  symmetry in H0.
+  pose proof (correctness_symb_success_gen p (empty_asfs height) out_asfs
+  ops in_es valid_empty_height H2 H1 H0).
+  assumption.
+Qed.
+
+
+Theorem correctness_symb_exec: forall (p: block) (in_stk : tstack)
+  (ops:opm) (height: nat) (in_es : execution_state) (out_asfs: asfs),
+get_stack_es in_es = in_stk ->
+length in_stk = height ->
+symbolic_exec p height ops = Some out_asfs ->
+valid_stack_op_map ops ->
+exists (out_es: execution_state), 
+   concr_interpreter p in_es ops = Some out_es /\ 
+   eval_asfs in_stk out_asfs ops = Some (get_stack_es out_es).
+Proof.
+intros.
+pose proof (correctness_symb_success p in_stk ops height in_es out_asfs
+  H H0 H1 H2) as [out_es Hsucess].
+exists out_es. split; try assumption.
+assert (get_stack_es out_es = get_stack_es out_es) as HH; try reflexivity.
+pose proof (correctness_symb_exec_eval p in_stk (get_stack_es out_es) ops
+  height in_es out_es out_asfs H0 H Hsucess HH H1).
+ assumption.
+Qed.
+
+
+Theorem sym_exec_snd: forall (p: block) (k: nat) (ops: opm)
+  (sst: asfs),
+valid_stack_op_map ops ->
+symbolic_exec p k ops = Some sst ->
+valid_asfs sst /\
+ forall (in_st : execution_state) (in_stk : tstack),
+   get_stack_es in_st = in_stk ->
+   length in_stk = k ->
+   exists (out_st : execution_state),
+     concr_interpreter p in_st ops = Some out_st /\
+     eval_asfs in_stk sst ops = Some (get_stack_es out_st).
+Proof.
+intros. split.
+- apply symb_exec_valid_asfs with (p:=p) (height:=k) (ops:=ops).
+  assumption.
+- intros. apply correctness_symb_exec with (height:=k); try assumption.
+Qed.
+
+
+
+
+
+
+
+
+
 
 Definition is_comm_op (opcode: oper_label) (ops: opm) : bool :=
   match (ops opcode) with
@@ -1980,7 +2230,7 @@ Definition is_comm_op (opcode: oper_label) (ops: opm) : bool :=
 
 
 
-
+(*
 Fixpoint apply_f_opt_list {X Y: Type} (f: X -> option Y) (l: list X) :
   option (list Y) :=
 match l with 
@@ -1991,28 +2241,83 @@ match l with
               | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
               | _ => None
               end
+end.*)
+
+
+Definition apply_f_opt_list {A B: Type} (f : A -> option B) :=
+fix apply_f_opt_list_fix (v : list A) : option (list B) :=
+    match v with
+    | [] => Some []
+    |vh::vt =>   let felem := f vh in
+                 let frs := apply_f_opt_list_fix vt in
+                 match (felem, frs) with 
+                 | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+                 | _ => None
+                 end
+    end.
+
+
+Definition apply_f_list_fixed {X Y: Type} (f: X -> option Y) (l: list X): 
+  option (list Y) :=
+match l with
+| [] => Some []
+| [a1] => match f a1 with
+          | Some v1 => Some [v1]
+          | _ => None
+          end
+| [a1; a2] => match f a1, f a2 with
+              | Some v1, Some v2 => Some [v1; v2]
+              | _, _ => None
+              end
+| [a1; a2; a3] => match f a1, f a2, f a3 with
+                  | Some v1, Some v2, Some v3 => Some [v1; v2; v3]
+                  | _, _, _ => None
+                  end
+| _ => None
 end.
-  
+
+
+
+(* Evaluation of complete stack expressions (trees withouth fresh variables *)
+Fixpoint eval_stack_expr (e: stack_expr) (s: tstack) (ops: opm) {struct e}: 
+  option EVMWord :=
+match e with
+ | UVal val => Some val
+ | UInStackVar idx => nth_error s idx
+ | UOp label args => match ops label with
+                     | None => None
+                     | Some (Op comm nargs func) =>
+                         if (List.length args =? nargs) then 
+                           let f := fun (e: stack_expr) => 
+                                      eval_stack_expr e s ops in
+                           match apply_f_opt_list f args with
+                           | Some args' => func args'
+                           | _ => None
+                           end
+                         else None
+                     end
+end.
+
 
 (* Creates the AST version of an asfs_stack_value (follows FreshVar links *)
 Fixpoint flat_stack_elem (e: asfs_stack_val) (m: asfs_map) {struct m} 
-  : option flat_asfs_map_val :=
+  : option stack_expr :=
 match e with
-| Val v => Some (FASFSBasicVal (Val v))
-| InStackVar n => Some (FASFSBasicVal (InStackVar n))
+| Val v => Some (UVal v)
+| InStackVar n => Some (UInStackVar n)
 | FreshVar n => 
     match m with 
     | (idx, mv)::rm => 
          if idx =? n then
          match mv with
-             | ASFSBasicVal (Val v) => Some (FASFSBasicVal (Val v))
-             | ASFSBasicVal (InStackVar n) => Some (FASFSBasicVal (InStackVar n))
+             | ASFSBasicVal (Val v) => Some (UVal v)
+             | ASFSBasicVal (InStackVar n) => Some (UInStackVar n)
              | ASFSBasicVal (FreshVar n) => flat_stack_elem (FreshVar n) rm
              | ASFSOp opcode args =>
                  let f := fun (elem': asfs_stack_val) => 
                           flat_stack_elem elem' rm in
                  match apply_f_opt_list f args with
-                 | Some fargs => Some (FASFSOp opcode fargs)
+                 | Some fargs => Some (UOp opcode fargs)
                  | _ => None
                  end
              end
@@ -2020,6 +2325,46 @@ match e with
     | _ => None
     end
 end.
+
+
+
+Definition fold_left {A B: Type} (f : A -> B -> bool) :=
+fix fold_left_fix (v : list A) : list B -> bool :=
+    match v with
+    | [] => fun w =>  match w with
+                      | [] => true
+                      | _ => false
+                      end
+    |vh::vt =>
+        fun w => match w with
+                      | [] => false
+                      | wh::wt => (andb (f vh wh) (fold_left_fix vt wt))
+                      end
+end.
+
+
+Fixpoint compare_flat_asfs_map_val (e1 e2 : stack_expr) (ops: opm) {struct e1}
+  : bool :=
+match e1, e2 with
+| UVal v1, UVal v2 => weqb v1 v2
+| UInStackVar var1, UInStackVar var2 => var1 =? var2 
+| UOp opcode [a1;a2], UOp opcode' [a1';a2'] => 
+  (opcode =?i opcode') && 
+    ((compare_flat_asfs_map_val a1 a1' ops) &&
+     (compare_flat_asfs_map_val a2 a2' ops) 
+    ||
+     (is_comm_op opcode ops) &&
+     (compare_flat_asfs_map_val a1 a2' ops) &&
+     (compare_flat_asfs_map_val a2 a1' ops)
+    )
+| UOp opcode1 args1, UOp opcode2 args2 => 
+  if (eq_oper_label opcode1 opcode2) then
+    fold_left (fun a b => compare_flat_asfs_map_val a b ops) args1 args2
+  else
+    false
+| _,_ => false
+end.
+
 
 
 Fixpoint apply_pred_lists {X: Type} (f: X -> X -> bool) (l1 l2: list X) 
@@ -2049,15 +2394,16 @@ match (e1, e2) with
 end.
 *)
 
-Fixpoint compare_flat_asfs_map_val (e1 e2: flat_asfs_map_val) (ops: opm)
+(*
+Fixpoint compare_flat_asfs_map_val (e1 e2: stack_expr) (ops: opm)
  {struct e1}: bool :=
 match e1, e2 with
-| FASFSBasicVal (Val v1), FASFSBasicVal (Val v2) => weqb v1 v2
-| FASFSBasicVal (InStackVar v1), FASFSBasicVal (InStackVar v2) => v1 =? v2
-| FASFSOp opcode [], FASFSOp opcode' [] => opcode =?i opcode'
-| FASFSOp opcode [arg], FASFSOp opcode' [arg'] => 
+| UVal v1, UVal v2 => weqb v1 v2
+| UInStackVar v1, UInStackVar v2 => v1 =? v2
+| UOp opcode [], UOp opcode' [] => opcode =?i opcode'
+| UOp opcode [arg], UOp opcode' [arg'] => 
     (opcode =?i opcode') && (compare_flat_asfs_map_val arg arg' ops)
-| FASFSOp opcode [arg1;arg2], FASFSOp opcode' [arg1';arg2'] => 
+| UOp opcode [arg1;arg2], UOp opcode' [arg1';arg2'] => 
   (* Binary case to consider commutativity *)
   (opcode =?i opcode') && 
     ((compare_flat_asfs_map_val arg1 arg1' ops) &&
@@ -2073,7 +2419,8 @@ match e1, e2 with
                    compare_flat_asfs_map_val a b ops in
       (eq_oper_label opcode opcode') && (apply_pred_lists f args args')*)
 | _, _ => false
-end.
+end.*)
+
 
 
 Definition asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
@@ -2083,163 +2430,302 @@ match (flat_stack_elem e1 m1, flat_stack_elem e2 m2) with
 | _ => false
 end.
 
+
+Lemma eval_tree_asfs_val: forall (e: asfs_stack_val) (m: asfs_map) 
+  (fe: stack_expr) (s: tstack) (ops: opm),
+flat_stack_elem e m = Some fe ->
+eval_asfs2_elem s e m ops = eval_stack_expr fe s ops.
+Proof.
+Admitted.
+
 (*
-(* Overkill: 22 obligations remaining!!! *)
-Program Fixpoint asfs_eq_stack_elem (e1 e2: asfs_stack_val) (m1 m2: asfs_map) 
-  (ops: opm) {measure (List.length m1 + List.length m2)} : bool :=
-match e1, e2 with 
-| Val v1, Val v2 => weqb v1 v2
-| InStackVar i1, InStackVar i2 => i1 =? i2
-| FreshVar i1, FreshVar i2 => 
-    match m1, m2 with 
-    | (idx1, mv1)::rm1, (idx2, mv2)::rm2 => 
-        if (idx1 =? i1) && (idx2 =? i2) then
-          match mv1, mv2 with 
-          | ASFSBasicVal av1, ASFSBasicVal av2 => asfs_eq_stack_elem av1 av2 rm1 rm2 ops
-          | ASFSOp opcode1 args1, ASFSOp opcode2 args2 => 
-              if eq_oper_label opcode1 opcode2 then 
-                match args1, args2 with 
-                | [], [] => true
-                | [a1], [b1] => asfs_eq_stack_elem a1 b1 rm1 rm2 ops
-                | [a1;a2], [b1;b2] =>
-                    ((asfs_eq_stack_elem a1 b1 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b2 rm1 rm2 ops) ) ||
-                    ( (is_comm_op opcode1 ops) && (asfs_eq_stack_elem a1 b2 rm1 rm2 ops) && (asfs_eq_stack_elem a2 b1 rm1 rm2 ops))
-                | _, _  => false
-                end
-              else false
-          | _, _ => false
-          end
-        else if idx1 =? i1 then
-          asfs_eq_stack_elem e1 e2 m1 rm2 ops
-        else if idx2 =? i2 then
-          asfs_eq_stack_elem e1 e2 rm1 m2 ops
-        else false
-    | _, _ => false
-    end
-|_, _ => false
-end.
-
-(* Proof od obligations *)
-Lemma length_s: forall (X: Type) (l : list X) (x : X),
-    length (x::l) = S (length l).
-Proof.
-  intros. simpl. reflexivity.
-Qed.
+Lemma 
 
 
-Lemma plus_s: forall (a b : nat),
-    S a + S b = S (S a + b).
-Proof.
-  intros.
-  rewrite <- plus_n_Sm.
-  reflexivity. 
-Qed.
-
-Lemma a_lt_SSa: forall (a : nat), a < S (S a).
-Proof.
-  intros.
-  apply le_lt_n_Sm.
-  apply Nat.le_succ_diag_r.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  rewrite -> length_s. rewrite -> length_s.
-  rewrite -> plus_s.   rewrite -> plus_Sn_m.
-  simpl. apply a_lt_SSa.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-Next Obligation.
-  intuition; try discriminate.
-Qed.
-
-Next Obligation.
-  intuition; try discriminate.
-Qed.
+fold_left (fun a b : stack_expr => compare_flat_asfs_map_val a b ops)
+           l1 l2 = true ->
+let f := fun (e: stack_expr) => 
+                                      eval_stack_expr e s ops in
+                           match apply_f_opt_list f args with           
 *)
 
+
+Section All.
+  Variable T : Type.
+  Variable P : T -> Prop.
+  Fixpoint All (ls : list T ) : Prop :=
+  match ls with
+  | [] => True
+  | h::t => P h /\ All t
+  end.
+End All.
+
+Section stack_expr_ind'.
+  Variable P : stack_expr -> Prop.
+  Hypothesis UVal_case: forall (v: EVMWord), P (UVal v).
+  Hypothesis UInStackVar_case: forall (n: nat), P (UInStackVar n).
+  Hypothesis UOp_case : forall (opcode: oper_label)
+                               (args : list stack_expr),
+                           All stack_expr P args -> P (UOp opcode args).
+                           
+  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
+  match e with
+  | UVal v => UVal_case v
+  | UInStackVar n => UInStackVar_case n
+  | UOp opcode args => UOp_case opcode args
+  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
+    match args with
+    | [] => I
+    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
+    end) args)
+  end.
+End stack_expr_ind'.
+
+
+
+Lemma fold_left_len: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool),
+fold_left f l1 l2 = true ->
+length l1 = length l2.
+Proof.
+induction l1 as [|h t IH].
+- intros. simpl in H. destruct l2 eqn: eq_l2; try discriminate.
+  reflexivity.
+- intros. simpl in H. destruct l2 as [| h' t'] eqn: eq_l2; try discriminate.
+  apply andb_prop in H as [_ Hfold].
+  apply IH in Hfold. simpl. rewrite Hfold. reflexivity.
+Qed.
+
+
+Lemma fold_left_pos_ex: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool),
+fold_left f l1 l2 = true ->
+forall (pos: nat), (nth_error l1 pos = None /\ nth_error l2 pos = None) \/
+                   (exists (v1: A) (v2: B), nth_error l1 pos = Some v1 /\ 
+                                            nth_error l2 pos = Some v2 /\
+                                            f v1 v2 = true).
+Proof.
+Admitted.
+(*intros. apply fold_left_len in H.
+apply some_is_not_none in H0.
+apply nth_error_Some in H0.
+rewrite -> H in H0.
+apply nth_error_ok' in H0. auto.
+Qed.*)
+
+Search (_ && _ = true).
+Lemma fold_left_pos_f: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool) (pos: nat) (e1: A) (e2: B),
+fold_left f l1 l2 = true ->
+nth_error l1 pos = Some e1 ->
+nth_error l2 pos = Some e2 ->
+f e1 e2 = true.
+Proof.
+intros A B. induction l1 as [|h t IH].
+- intros. destruct pos as [|n'] eqn: eq_pos; try discriminate.
+- intros. destruct pos as [|n'] eqn: eq_pos.
+  + simpl in H0.
+    destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
+    simpl in H1. simpl in H.
+    destruct (f h h') eqn: f_h_h'; try discriminate.
+    injection H0 as H0. rewrite <- H0.
+    injection H1 as H1. rewrite <- H1.
+    assumption.
+  + destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
+    simpl in H0. simpl in H1. simpl in H.
+    apply andb_prop in H as [eq_f_h eq_fold_t].
+    pose proof (IH t' f n' e1 e2 eq_fold_t H0 H1).
+    assumption.
+Qed.
+
+
+Lemma all_pred_all_nth: forall {A: Type} (p: A -> Prop) (l: list A),
+All A p l -> forall (n: nat) (v: A), nth_error l n = Some v -> p v.
+Proof.
+Admitted.
+
+
+Search (List.map).
+Lemma apply_f_opt_list_ext: forall {A B: Type} (l1 l2: list A)
+  (f: A -> option B),
+(forall n:nat, (nth_error l1 n = None /\ nth_error l2 n = None) \/
+                exists (v1 v2: A), nth_error l1 n = Some v1 /\ 
+                                   nth_error l2 n = Some v2 /\
+                                   f v1 = f v2) ->
+apply_f_opt_list f l1 = apply_f_opt_list f l2.
+Proof.
+Admitted.
+
+Check (apply_f_opt_list_ext).
+
+
+
+Lemma compare_flat_eval: forall (e1 e2 : stack_expr) (ops: opm),
+compare_flat_asfs_map_val e1 e2 ops = true ->
+valid_stack_op_map ops ->
+forall (s: tstack), eval_stack_expr e1 s ops = 
+                    eval_stack_expr e2 s ops.
+Proof.
+induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
+- intros. unfold compare_flat_asfs_map_val in H.
+  destruct e2 as [v2|var2|opcode2 args2] eqn: eq_v2; try discriminate.
+  simpl. apply weqb_sound in H. rewrite -> H.
+  reflexivity.
+- intros. unfold compare_flat_asfs_map_val in H.
+  destruct e2 as [v2|var2|opcode2 args2] eqn: eq_v2; try discriminate.
+  simpl. apply Nat.eqb_eq in H. rewrite -> H.
+  reflexivity.
+- intros. unfold compare_flat_asfs_map_val in H.
+  destruct args as [|h1 t1] eqn: eq_args; try discriminate.
+  + (* args = [] *)
+    destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+    destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+    fold compare_flat_asfs_map_val in H.
+    unfold fold_left in H. destruct args2; try discriminate.
+    apply eq_oper_label_correct in eq_opcodes.
+    rewrite -> eq_opcodes.
+    reflexivity.
+  + destruct t1 as [|h2 t2] eqn: eq_t1.
+    * (* args = [h1] *)
+      destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+      destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+      fold compare_flat_asfs_map_val in H.
+      unfold fold_left in H.
+      destruct args2 as [|h1' t1'] eqn: eq_arg2; try discriminate.
+      destruct (compare_flat_asfs_map_val h1 h1' ops) eqn: eq_compare_h_wh;
+        try discriminate.
+      destruct t1' eqn: eq_wt; try discriminate.
+      apply eq_oper_label_correct in eq_opcodes.
+      rewrite -> eq_opcodes.
+      simpl in IH. destruct IH as [IH' _].
+      pose proof (IH' h1' ops eq_compare_h_wh H0 s) as Heval_h1_h1'.
+      simpl. rewrite -> Heval_h1_h1'.
+      reflexivity.
+    * destruct t2 as [|h3 t3] eqn: eq_t2.
+      -- (* args = [h1, h2] *)
+         destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+         fold compare_flat_asfs_map_val in H.
+         unfold fold_left in H.
+         destruct args2 as [|h1' t1'] eqn: eq_arg2.
+         ++ destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+         ++ destruct t1' as [|h2' t2'] eqn: eq_t1'; try (
+              (destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate);
+               rewrite -> andb_false_r in H; discriminate).
+            destruct t2' as [|h3' t3'] eqn: eq_t2'; try (
+              (destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate);
+               rewrite -> andb_false_r in H;
+               rewrite -> andb_false_r in H;
+               discriminate
+            ).
+            destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate.
+            simpl in H.
+            destruct (compare_flat_asfs_map_val h1 h1' ops &&
+                      compare_flat_asfs_map_val h2 h2' ops)
+              eqn: eq_compare_h1_h2; try discriminate.
+            ** apply andb_true_iff in eq_compare_h1_h2
+                 as [comp_h1 comp_h2].
+               apply eq_oper_label_correct in eq_opcodes. 
+               rewrite -> eq_opcodes.
+               simpl in IH. destruct IH as [IH_h1 [IH_h2 _]].
+               pose proof (IH_h1 h1' ops comp_h1 H0 s) as eq_eval_h1.
+               pose proof (IH_h2 h2' ops comp_h2 H0 s) as eq_eval_h2.
+               simpl. rewrite -> eq_eval_h1. rewrite -> eq_eval_h2.
+               reflexivity.
+            ** (* Commutative case *)
+               destruct (is_comm_op opcode ops && 
+                         compare_flat_asfs_map_val h1 h2' ops &&
+                         compare_flat_asfs_map_val h2 h1' ops) 
+                 eqn: eq_comm; try discriminate.
+                 apply andb_true_iff in eq_comm as [eq_comm' comp_h2].
+                 apply andb_true_iff in eq_comm' as [eq_comm comp_h1].
+                 apply eq_oper_label_correct in eq_opcodes.
+                 rewrite <- eq_opcodes.
+                 simpl in IH. destruct IH as [IH_h1 [IH_h2 _]].
+                 pose proof (IH_h1 h2' ops comp_h1 H0 s) as eq_eval_h1.
+                 pose proof (IH_h2 h1' ops comp_h2 H0 s) as eq_eval_h2.
+                 simpl. 
+                 destruct (ops opcode) as [oper|] eqn: eq_opcode; 
+                   try reflexivity.
+                 destruct oper as [comm nargs func] eqn: eq_oper; 
+                   try discriminate.
+                 destruct nargs as [|nargs']; try reflexivity.
+                 destruct nargs' as [|nargs'']; try reflexivity.
+                 destruct nargs'' as [|nargs''']; try reflexivity.
+                 destruct (eval_stack_expr h1 s ops) as [v1|] eqn: eval_h1.
+                 --- rewrite <- eq_eval_h1. 
+                     destruct (eval_stack_expr h2 s ops) as [v2|]
+                       eqn: eval_h2.
+                     +++ rewrite <- eq_eval_h2.
+                         unfold valid_stack_op_map in H0.
+                         destruct H0 as [Hcomm _].
+                         unfold stack_op_map_comm in Hcomm.
+                         unfold is_comm_op in eq_comm.
+                         rewrite -> eq_opcode in eq_comm.
+                         destruct comm eqn: eq_comm_true; try discriminate.
+                         pose proof (Hcomm opcode func eq_opcode) as Hcomm_f.
+                         rewrite -> Hcomm_f.
+                         reflexivity.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+                 --- rewrite <- eq_eval_h1.
+                     destruct (eval_stack_expr h2 s ops) as [v2|]
+                       eqn: eval_h2.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+      -- (* General case: args = h1::h2::h3::t3 *)
+         destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+         destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+         fold compare_flat_asfs_map_val in H.
+         apply eq_oper_label_correct in eq_opcodes. 
+         rewrite <- eq_opcodes.
+         unfold eval_stack_expr.
+         destruct (ops opcode) as [oper|] eqn: eq_ops_opcode; try reflexivity.
+         destruct oper as [comm nargs func] eqn: eq_oper.
+         fold eval_stack_expr.
+         apply fold_left_len in H as eq_lens.
+         rewrite -> eq_lens.
+         destruct (length args2 =? nargs); try reflexivity.
+         pose proof (all_pred_all_nth 
+           ((fun e1 : stack_expr =>
+               forall (e2 : stack_expr) (ops : opm),
+               compare_flat_asfs_map_val e1 e2 ops = true ->
+               valid_stack_op_map ops ->
+               forall s : tstack,
+               eval_stack_expr e1 s ops = eval_stack_expr e2 s ops))
+           (h1 :: h2 :: h3 :: t3) IH) as IH_nth.     
+         pose proof (fold_left_pos_ex (h1 :: h2 :: h3 :: t3) args2
+           ((fun a b : stack_expr => compare_flat_asfs_map_val a b ops)) H)
+             as Hall_elems_compare.
+         simpl in Hall_elems_compare.
+         pose proof (apply_f_opt_list_ext (h1 :: h2 :: h3 :: t3) args2
+           (fun e : stack_expr => eval_stack_expr e s ops)) as Happly.
+         simpl in Happly.
+         
+         admit.
+Admitted.
+
+
+
+
+(* Main lemma for comparing ASFS values *)
+Lemma compare_expr_eq_eval: forall (e1 e2: asfs_stack_val) (ops: opm) 
+  (m1 m2: asfs_map),
+asfs_eq_stack_elem e1 e2 m1 m2 ops = true ->
+valid_stack_op_map ops ->
+forall (s: tstack), eval_asfs2_elem s e1 m1 ops = eval_asfs2_elem s e2 m2 ops.
+Proof.
+intros. unfold asfs_eq_stack_elem in H.
+destruct (flat_stack_elem e1 m1) as [fe1|] eqn: tree_e1; try discriminate.
+destruct (flat_stack_elem e2 m2) as [fe2|] eqn: tree_e2; try discriminate.
+pose proof (compare_flat_eval fe1 fe2 ops H H0 s).
+apply eval_tree_asfs_val with (s:=s)(ops:=ops) in tree_e1.
+rewrite -> tree_e1.
+apply eval_tree_asfs_val with (s:=s)(ops:=ops) in tree_e2.
+rewrite -> tree_e2.
+assumption.
+Qed.
 
 
 Fixpoint asfs_eq_stack (s1 s2: asfs_stack) (m1 m2: asfs_map) (ops: opm) : bool :=
@@ -2260,236 +2746,56 @@ match a1, a2 with
     eq_size && eq_stack
 end.
 
-Example test_eval_asfs_eq_1:
-let asfs := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs asfs opmap = true.
-Proof.
-reflexivity. Qed.
-Example test_eval_asfs_eq_2:
-let asfs1 := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let asfs2 := ASFSc 3 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs1 asfs2 opmap = false.
-Proof.
-reflexivity. Qed.
-Example test_eval_asfs_eq_3:
-let asfs1 := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-let asfs2 := ASFSc 2 2 [FreshVar 2] 
-            [(2, ASFSOp NOT [FreshVar 1]);
-             (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
-             (0, ASFSOp ADD [InStackVar 1; InStackVar 0])] in
-asfs_eq asfs1 asfs2 opmap = true.
-Proof.
-reflexivity. Qed.
-
 
 Definition eq_ss (ss1 ss2: asfs) (ops: opm) : Prop :=
 forall (s: tstack), eval_asfs s ss1 ops = eval_asfs s ss2 ops.
 
+Lemma asfs_eq_stack_correct: forall (s1 s2: asfs_stack) (m1 m2: asfs_map) 
+  (ops: opm),
+asfs_eq_stack s1 s2 m1 m2 ops = true -> 
+valid_stack_op_map ops ->
+forall (s: tstack), eval_asfs2 s s1 m1 ops = eval_asfs2 s s2 m2 ops.
+Proof.
+induction s1 as [| h t IH].
+- intros. unfold asfs_eq_stack in H. 
+  destruct s2 as [|h' t']; try discriminate.
+  reflexivity.
+- intros s2 m1 m2 ops H H0 s. unfold asfs_eq_stack in H. 
+  destruct s2 as [|h' t']; try discriminate.
+  fold asfs_eq_stack in H.
+  destruct (asfs_eq_stack_elem h h' m1 m2 ops) eqn: eq_stack_elem;
+    try discriminate.
+  destruct (asfs_eq_stack t t' m1 m2 ops) eqn: eq_stack_t;
+    try discriminate.
+  unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
+  pose proof (compare_expr_eq_eval h h' ops m1 m2 eq_stack_elem H0 s)
+    as eq_eval_h_h'.
+  rewrite -> eq_eval_h_h'.
+  destruct (eval_asfs2_elem s h m1 ops) as [v1|] eqn: eval_h.
+  + fold apply_f_list_asfs_stack_val. rewrite eval_asfs2_ho.
+    fold apply_f_list_asfs_stack_val. rewrite eval_asfs2_ho.
+    pose proof (IH t' m1 m2 ops eq_stack_t H0 s) as IHc.
+    rewrite -> IHc. reflexivity.
+  + rewrite <- eq_eval_h_h'. reflexivity.
+Qed.
+
 
 Theorem asfs_eq_correctness:
-  forall (a1 a2: asfs) (ops: opm) (s : concrete_stack),
+  forall (a1 a2: asfs) (ops: opm),
   asfs_eq a1 a2 ops = true ->
-  (* eq_ss a1 a2 ops. *)
-  eval_asfs s a1 ops = eval_asfs s a2 ops.
+  valid_stack_op_map ops ->
+  eq_ss a1 a2 ops.
 Proof.
-Admitted.
-
+intros.
+unfold asfs_eq in H.
+destruct a1 as [h1 mx1 s1 m1] eqn: eq_a1.
+destruct a2 as [h2 mx2 s2 m2] eqn: eq_a2.
+destruct (h1 =? h2) eqn: eq_h1_h2; try discriminate.
+destruct (asfs_eq_stack s1 s2 m1 m2 ops) eqn: eq_stack; try discriminate.
+unfold eq_ss. intros. simpl.
+rewrite -> Nat.eqb_eq in eq_h1_h2. rewrite -> eq_h1_h2.
+destruct (length s =? h2 ); try reflexivity.
+apply asfs_eq_stack_correct; try assumption.
+Qed.
 
 End SFS.
-
-(*
-
-asfs_eq asfs1 asfs2 opmap ->
-asfs_eq asfs2 asfs3 opmap ->
-asfs_eq asfs1 asfs3 opmap
-
-asfs_eq asfs1 asfs2 opmap ->
-  asfs_eq asfs2 asfs1 opmap
-
-check_block_eq b1 b2 opt -> bool
-
-  asfs1 = sym_exec b1 opmap
-  asfs2 = sym_exec b2 opmap
-  asfs3 = opt asfs2 opmap
-  return asfs_eq asfs1 asfs3 opmap
-
-
- *lemma*
-  forall b1 b2
-   asfs1 = sym_exec b1 opmap ->
-   asfs2 = sym_exec b2 opmap ->
-   asfs_eq asfs1 asfs2 opmap ->
-     foall all in_stk conc in_stk b1 = conc in_stk b2
-
-
-
-theorem:
-forsll in_stk b1 b2 opt
-  some requirment on 'opt' ->
-   check_block_eq b1 b2 opt = true ->
-    conc in_state in_stk b1 = conc in_stk b2
-
-proof.
-
- - we know that asfs1 and asfs3 are equivalent
- - by requirement of 'opt' -> asfs1 and asfs2 are equiv
- 
-   which mean for any concrete stack, they eval to the same thing
-
-*)
-
-
-
-(*
-Plan:
-
-Phase 1: handle block with no memory, and some optimizations
-
- - to go back to the add(x,0) optimization and rewrite in terms of
-   the new representation (Enrique)
-
- - opfunc SFS => (SFS,bool): func SFS => SFS: add(x,0) ...
-
- - apply_all_op [opfunc1,...,optfuncn] SFS => (SFS,bool)   
-
- - opt_scheme SFS => SFS 
-
- - equiv_blocks p1 p2 height opt_scheme (Joseba)
-
-     p1 -> SFS1
-     p2 -> SFS2
-     SFS2 -> opt_scheme -> SFS3
-     equiv SFS1 SFS3
-
-   equiv_gas ....
- 
-    -> equiv p1 p2 height opt_scheme_gas
-
-  equiv_size ....
- 
-    -> equiv p1 p2 height opt_scheme_gas
-
- - f1, f2, f2 --> P(fi)  P is preservation of SFS
-
-   l = [f1,f2,f3] 
-
-   Plist(l) \for x \ in l. P(x)
-
-   Prop Plist(l)
-    nil | l=[]
-    rec | l=x::l' && P(x) && Plist(l')
-
- - Generation of executable (Joseba)
-
-    1. Coq -> OCaml (simple translation)
-    2. Execute Coq
-
-******
-Enrique:
-
-  - Look at simple optimiztions, ...
-
-Joseba:
-
-  - write a trivial optimizaer in=out
-  - write equiv_blocks and proof correctness
-  - look at code generation
-
-Samir:
-
-  - missing proof
-
-
-Phase 2
-
-Samir:
-
-  - how we handle memory
-
-Mem
-[y,x,y,b4,b5,..x]
-
-  STORE 9 (x,y)
-  LOAD 0 -> (b1,x)
-
-Store:
-
-*)
-
-
-  
-  
-              
-(*
-
-
-\forall opcode:instr, instk:list EVMword, currstk:list EVMword, ops: opm, height : nat, out_sfs, in_sfs : asfs
-
-  length instk = height,
-  eval_asfs instk in_sfs opm = Some currstk,
-  conc_exec' opcode curr ops = Some out_stk,
-  sym_exec' opcode in_sfs ops = Some out_asfs
- 
-  ->
- 
-  eval_asfs instk out_sfs opm = Some out_stk
-
-
-\forall p:block, instk:list EVMword, ops: opm, height : nat, out_sfs : asfs
-
-  length instk = height,
-  conc_exec p instk ops = Some out_stk,
-  sym_exec height p ops = Some out_asfs 
-  -> 
-  eval_asfs instk out_asfs opm = Some out_stk
-
-*)
-
-
-
-
-
-
-
-(*
-
-Store -> Easy -- map from addr to word 
-Mem -> Diff -- map from add to bytes
-
-Store is a list
-
- get add store -> if add is not in store return orig(add), otherwise return the value mapped to
- update add val store -> if store has add, morift its value, otherwise add addr->val
-
-bbv
-
- w2b: Word -> List of bytes
- b2w: List of bytes -> Word
-
- (b2w (w2b w)) = w
- (w2b (b2w l)) = l
-
-           
- update mem add val
-  
-  val -> list of bytes
-  add->b1
-  add+1 -> b2
-  add+2 -> b3       
-  ...           
-       
-
-
-*)
