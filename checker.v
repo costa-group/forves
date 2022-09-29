@@ -27,6 +27,7 @@ match symbolic_exec opt_p height opmap with
 end.
 
 
+Search (valid_stack_op_map).
 Theorem equiv_checker_correct: forall (opt_p p: block) (height: nat) 
   (opt: optimization) (in_es: execution_state) 
   (in_stk: tstack),
@@ -54,7 +55,8 @@ pose proof (correctness_symb_exec p in_stk opmap height in_es sfs_p H1
 exists out_es1. exists out_es2.
 split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
-pose proof (asfs_eq_correctness sfsopt_p p_with_opt opmap H0 in_stk).
+pose proof (asfs_eq_correctness sfsopt_p p_with_opt opmap H0 
+  evm_stack_opm_validity in_stk).
 unfold safe_optimization in H.
 apply symb_exec_valid_asfs in eq_symb_exec_p as Hdecr_sfs_p.
 pose proof (H in_stk (get_stack_es out_es2) sfs_p p_with_opt flag

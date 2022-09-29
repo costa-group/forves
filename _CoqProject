@@ -5,4 +5,5 @@ optimizations.v
 checker.v
 examples.v
 tests.v
+test_ind.v
 

@@ -2450,13 +2450,73 @@ let f := fun (e: stack_expr) =>
 *)
 
 
+Section All.
+  Variable T : Set.
+  Variable P : T -> Prop.
+  Fixpoint All (ls : list T ) : Prop :=
+  match ls with
+  | [] => True
+  | h::t => P h /\ All t
+  end.
+End All.
+
+Section stack_expr_ind'.
+  Variable P : stack_expr -> Prop.
+  Hypothesis UVal_case: forall (v: EVMWord), P (UVal v).
+  Hypothesis UInStackVar_case: forall (n: nat), P (UInStackVar n).
+  Hypothesis UOp_case : forall (opcode: oper_label)
+                               (args : list stack_expr),
+                           All stack_expr P args -> P (UOp opcode args).
+                           
+  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
+  match e with
+  | UVal v => UVal_case v
+  | UInStackVar n => UInStackVar_case n
+  | UOp opcode args => UOp_case opcode args
+  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
+    match args with
+    | [] => I
+    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
+    end) args)
+  end.
+End stack_expr_ind'.
+
+
+
+Lemma fold_left_len: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool),
+fold_left f l1 l2 = true ->
+length l1 = length l2.
+Proof.
+induction l1 as [|h t IH].
+- intros. simpl in H. destruct l2 eqn: eq_l2; try discriminate.
+  reflexivity.
+- intros. simpl in H. destruct l2 as [| h' t'] eqn: eq_l2; try discriminate.
+  apply andb_prop in H as [_ Hfold].
+  apply IH in Hfold. simpl. rewrite Hfold. reflexivity.
+Qed.
+
+Lemma fold_left_pos: forall {A B: Type} (pos: nat) (l1: list A) (l2: list B)
+  (f : A -> B -> bool) (e1: A) (e2: B),
+fold_left f l1 l2 = true ->
+nth_error l1 pos = Some e1 ->
+nth_error l2 pos = Some e2 ->
+f e1 e2 = true.
+Proof.
+intros A B. induction pos as [|n' IH].
+- admit.
+- admit.
+Admitted.
+  
+
+
 Lemma compare_flat_eval: forall (e1 e2 : stack_expr) (ops: opm),
 compare_flat_asfs_map_val e1 e2 ops = true ->
 valid_stack_op_map ops ->
 forall (s: tstack), eval_stack_expr e1 s ops = 
                     eval_stack_expr e2 s ops.
 Proof.
-destruct e1 as [v|var|opcode args].
+induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
 - intros. unfold compare_flat_asfs_map_val in H.
   destruct e2 as [v2|var2|opcode2 args2] eqn: eq_v2; try discriminate.
   simpl. apply weqb_sound in H. rewrite -> H.
@@ -2466,20 +2526,125 @@ destruct e1 as [v|var|opcode args].
   simpl. apply Nat.eqb_eq in H. rewrite -> H.
   reflexivity.
 - intros. unfold compare_flat_asfs_map_val in H.
-  destruct args as [|h t] eqn: eq_args; try discriminate.
-  + destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+  destruct args as [|h1 t1] eqn: eq_args; try discriminate.
+  + (* args = [] *)
+    destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
     destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
     fold compare_flat_asfs_map_val in H.
-    admit.
-  + destruct t as [|h'' t''] eqn: eq_t.
-    * destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+    unfold fold_left in H. destruct args2; try discriminate.
+    apply eq_oper_label_correct in eq_opcodes.
+    rewrite -> eq_opcodes.
+    reflexivity.
+  + destruct t1 as [|h2 t2] eqn: eq_t1.
+    * (* args = [h1] *)
+      destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
       destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
       fold compare_flat_asfs_map_val in H.
-  
+      unfold fold_left in H.
+      destruct args2 as [|h1' t1'] eqn: eq_arg2; try discriminate.
+      destruct (compare_flat_asfs_map_val h1 h1' ops) eqn: eq_compare_h_wh;
+        try discriminate.
+      destruct t1' eqn: eq_wt; try discriminate.
+      apply eq_oper_label_correct in eq_opcodes.
+      rewrite -> eq_opcodes.
+      simpl in IH. destruct IH as [IH' _].
+      pose proof (IH' h1' ops eq_compare_h_wh H0 s) as Heval_h1_h1'.
+      simpl. rewrite -> Heval_h1_h1'.
+      reflexivity.
+    * destruct t2 as [|h3 t3] eqn: eq_t2.
+      -- (* args = [h1, h2] *)
+         destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+         fold compare_flat_asfs_map_val in H.
+         unfold fold_left in H.
+         destruct args2 as [|h1' t1'] eqn: eq_arg2.
+         ++ destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+         ++ destruct t1' as [|h2' t2'] eqn: eq_t1'; try (
+              (destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate);
+               rewrite -> andb_false_r in H; discriminate).
+            destruct t2' as [|h3' t3'] eqn: eq_t2'; try (
+              (destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate);
+               rewrite -> andb_false_r in H;
+               rewrite -> andb_false_r in H;
+               discriminate
+            ).
+            destruct (opcode =?i opcode2) eqn: eq_opcodes; 
+                 try discriminate.
+            simpl in H.
+            destruct (compare_flat_asfs_map_val h1 h1' ops &&
+                      compare_flat_asfs_map_val h2 h2' ops)
+              eqn: eq_compare_h1_h2; try discriminate.
+            ** apply andb_true_iff in eq_compare_h1_h2
+                 as [comp_h1 comp_h2].
+               apply eq_oper_label_correct in eq_opcodes. 
+               rewrite -> eq_opcodes.
+               simpl in IH. destruct IH as [IH_h1 [IH_h2 _]].
+               pose proof (IH_h1 h1' ops comp_h1 H0 s) as eq_eval_h1.
+               pose proof (IH_h2 h2' ops comp_h2 H0 s) as eq_eval_h2.
+               simpl. rewrite -> eq_eval_h1. rewrite -> eq_eval_h2.
+               reflexivity.
+            ** (* Commutative case *)
+               destruct (is_comm_op opcode ops && 
+                         compare_flat_asfs_map_val h1 h2' ops &&
+                         compare_flat_asfs_map_val h2 h1' ops) 
+                 eqn: eq_comm; try discriminate.
+                 apply andb_true_iff in eq_comm as [eq_comm' comp_h2].
+                 apply andb_true_iff in eq_comm' as [eq_comm comp_h1].
+                 apply eq_oper_label_correct in eq_opcodes.
+                 rewrite <- eq_opcodes.
+                 simpl in IH. destruct IH as [IH_h1 [IH_h2 _]].
+                 pose proof (IH_h1 h2' ops comp_h1 H0 s) as eq_eval_h1.
+                 pose proof (IH_h2 h1' ops comp_h2 H0 s) as eq_eval_h2.
+                 simpl. 
+                 destruct (ops opcode) as [oper|] eqn: eq_opcode; 
+                   try reflexivity.
+                 destruct oper as [comm nargs func] eqn: eq_oper; 
+                   try discriminate.
+                 destruct nargs as [|nargs']; try reflexivity.
+                 destruct nargs' as [|nargs'']; try reflexivity.
+                 destruct nargs'' as [|nargs''']; try reflexivity.
+                 destruct (eval_stack_expr h1 s ops) as [v1|] eqn: eval_h1.
+                 --- rewrite <- eq_eval_h1. 
+                     destruct (eval_stack_expr h2 s ops) as [v2|]
+                       eqn: eval_h2.
+                     +++ rewrite <- eq_eval_h2.
+                         unfold valid_stack_op_map in H0.
+                         destruct H0 as [Hcomm _].
+                         unfold stack_op_map_comm in Hcomm.
+                         unfold is_comm_op in eq_comm.
+                         rewrite -> eq_opcode in eq_comm.
+                         destruct comm eqn: eq_comm_true; try discriminate.
+                         pose proof (Hcomm opcode func eq_opcode) as Hcomm_f.
+                         rewrite -> Hcomm_f.
+                         reflexivity.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+                 --- rewrite <- eq_eval_h1.
+                     destruct (eval_stack_expr h2 s ops) as [v2|]
+                       eqn: eval_h2.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+                     +++ rewrite <- eq_eval_h2. reflexivity.
+      -- (* General case: args = h1::h2::h3::t3 *)
+         destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
+         destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+         fold compare_flat_asfs_map_val in H.
+         apply eq_oper_label_correct in eq_opcodes. 
+         rewrite <- eq_opcodes.
+         unfold eval_stack_expr.
+         destruct (ops opcode) as [oper|] eqn: eq_ops_opcode; try reflexivity.
+         destruct oper as [comm nargs func] eqn: eq_oper.
+         fold eval_stack_expr.
+         apply fold_left_len in H as eq_lens.
+         rewrite -> eq_lens.
+         destruct (length args2 =? nargs); try reflexivity.
+         simpl in IH.
+         admit.
 Admitted.
 
 
-(* Main lemma for compare ASFS values *)
+
+
+(* Main lemma for comparing ASFS values *)
 Lemma compare_expr_eq_eval: forall (e1 e2: asfs_stack_val) (ops: opm) 
   (m1 m2: asfs_map),
 asfs_eq_stack_elem e1 e2 m1 m2 ops = true ->
@@ -2553,6 +2718,7 @@ Qed.
 Theorem asfs_eq_correctness:
   forall (a1 a2: asfs) (ops: opm),
   asfs_eq a1 a2 ops = true ->
+  valid_stack_op_map ops ->
   eq_ss a1 a2 ops.
 Proof.
 intros.
@@ -2564,8 +2730,7 @@ destruct (asfs_eq_stack s1 s2 m1 m2 ops) eqn: eq_stack; try discriminate.
 unfold eq_ss. intros. simpl.
 rewrite -> Nat.eqb_eq in eq_h1_h2. rewrite -> eq_h1_h2.
 destruct (length s =? h2 ); try reflexivity.
-apply asfs_eq_stack_correct.
-assumption.
+apply asfs_eq_stack_correct; try assumption.
 Qed.
 
 End SFS.
