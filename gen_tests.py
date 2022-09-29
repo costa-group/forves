@@ -185,7 +185,10 @@ def gen_tests(path):
                     print_test(block_info, block_sfs)
 
 
-
+# Usage example:
+#
+#   python3 gen_tests.py /path-to/results_coq_evm/no_rl_gas_opt > no_rl_gas_opt_tests.v
+#
 if __name__ == "__main__":
     path=sys.argv[1]
     gen_tests(path)
