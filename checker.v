@@ -5,7 +5,7 @@ Require Import bbv.Word.
 Require Import List.
 Require Import Coq_EVM.optimizations.
 Import Optimizations.
-Require Import Coq_EVM.datatypes.
+Require Import Coq_EVM.definitions.
 Import EVM_Def Concrete Abstract Optimizations.
 Require Import Coq_EVM.interpreter.
 Import Interpreter SFS.

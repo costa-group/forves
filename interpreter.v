@@ -4,7 +4,7 @@ Require Import Bool.
 Require Import bbv.Word.
 Require Import List.
 Require Import Program.Wf.
-Require Import Coq_EVM.datatypes.
+Require Import Coq_EVM.definitions.
 Import EVM_Def Concrete Abstract.
 Import ListNotations.
 
