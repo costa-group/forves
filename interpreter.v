@@ -2451,7 +2451,7 @@ let f := fun (e: stack_expr) =>
 
 
 Section All.
-  Variable T : Set.
+  Variable T : Type.
   Variable P : T -> Prop.
   Fixpoint All (ls : list T ) : Prop :=
   match ls with
@@ -2496,18 +2496,68 @@ induction l1 as [|h t IH].
   apply IH in Hfold. simpl. rewrite Hfold. reflexivity.
 Qed.
 
-Lemma fold_left_pos: forall {A B: Type} (pos: nat) (l1: list A) (l2: list B)
-  (f : A -> B -> bool) (e1: A) (e2: B),
+
+Lemma fold_left_pos_ex: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool),
+fold_left f l1 l2 = true ->
+forall (pos: nat), (nth_error l1 pos = None /\ nth_error l2 pos = None) \/
+                   (exists (v1: A) (v2: B), nth_error l1 pos = Some v1 /\ 
+                                            nth_error l2 pos = Some v2 /\
+                                            f v1 v2 = true).
+Proof.
+Admitted.
+(*intros. apply fold_left_len in H.
+apply some_is_not_none in H0.
+apply nth_error_Some in H0.
+rewrite -> H in H0.
+apply nth_error_ok' in H0. auto.
+Qed.*)
+
+Search (_ && _ = true).
+Lemma fold_left_pos_f: forall {A B: Type} (l1: list A) (l2: list B)
+  (f : A -> B -> bool) (pos: nat) (e1: A) (e2: B),
 fold_left f l1 l2 = true ->
 nth_error l1 pos = Some e1 ->
 nth_error l2 pos = Some e2 ->
 f e1 e2 = true.
 Proof.
-intros A B. induction pos as [|n' IH].
-- admit.
-- admit.
+intros A B. induction l1 as [|h t IH].
+- intros. destruct pos as [|n'] eqn: eq_pos; try discriminate.
+- intros. destruct pos as [|n'] eqn: eq_pos.
+  + simpl in H0.
+    destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
+    simpl in H1. simpl in H.
+    destruct (f h h') eqn: f_h_h'; try discriminate.
+    injection H0 as H0. rewrite <- H0.
+    injection H1 as H1. rewrite <- H1.
+    assumption.
+  + destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
+    simpl in H0. simpl in H1. simpl in H.
+    apply andb_prop in H as [eq_f_h eq_fold_t].
+    pose proof (IH t' f n' e1 e2 eq_fold_t H0 H1).
+    assumption.
+Qed.
+
+
+Lemma all_pred_all_nth: forall {A: Type} (p: A -> Prop) (l: list A),
+All A p l -> forall (n: nat) (v: A), nth_error l n = Some v -> p v.
+Proof.
 Admitted.
-  
+
+
+Search (List.map).
+Lemma apply_f_opt_list_ext: forall {A B: Type} (l1 l2: list A)
+  (f: A -> option B),
+(forall n:nat, (nth_error l1 n = None /\ nth_error l2 n = None) \/
+                exists (v1 v2: A), nth_error l1 n = Some v1 /\ 
+                                   nth_error l2 n = Some v2 /\
+                                   f v1 = f v2) ->
+apply_f_opt_list f l1 = apply_f_opt_list f l2.
+Proof.
+Admitted.
+
+Check (apply_f_opt_list_ext).
+
 
 
 Lemma compare_flat_eval: forall (e1 e2 : stack_expr) (ops: opm),
@@ -2637,7 +2687,22 @@ induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
          apply fold_left_len in H as eq_lens.
          rewrite -> eq_lens.
          destruct (length args2 =? nargs); try reflexivity.
-         simpl in IH.
+         pose proof (all_pred_all_nth 
+           ((fun e1 : stack_expr =>
+               forall (e2 : stack_expr) (ops : opm),
+               compare_flat_asfs_map_val e1 e2 ops = true ->
+               valid_stack_op_map ops ->
+               forall s : tstack,
+               eval_stack_expr e1 s ops = eval_stack_expr e2 s ops))
+           (h1 :: h2 :: h3 :: t3) IH) as IH_nth.     
+         pose proof (fold_left_pos_ex (h1 :: h2 :: h3 :: t3) args2
+           ((fun a b : stack_expr => compare_flat_asfs_map_val a b ops)) H)
+             as Hall_elems_compare.
+         simpl in Hall_elems_compare.
+         pose proof (apply_f_opt_list_ext (h1 :: h2 :: h3 :: t3) args2
+           (fun e : stack_expr => eval_stack_expr e s ops)) as Happly.
+         simpl in Happly.
+         
          admit.
 Admitted.
 
