@@ -5,6 +5,7 @@ import os
 import csv
 import json
 
+include_identical = False
 
 #
 #
@@ -139,6 +140,9 @@ def str_to_list(bytecode_str):
 def print_test(block_info, block_sfs):
     try:
         if not block_info["model_found"]=="True":
+            return
+
+        if not include_identical and block_info["previous_solution"].lower() == block_info["solution_found"].lower():
             return
         
         bytecode = str_to_list(block_info["previous_solution"])
