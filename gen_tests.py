@@ -99,7 +99,7 @@ def bin_to_word(b : str) :
     return word
 
 def encode_num(n_hex : str):
-    return f'(posToWord WLen {n_hex}%positive)'
+    return f'(NToWord WLen {n_hex}%N)'
 
 def str_to_list(bytecode_str):
     bytecode_seq =  split_bytecode(bytecode_str)
