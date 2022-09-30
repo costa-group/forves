@@ -2500,7 +2500,7 @@ Qed.
 Lemma fold_left_pos_ex: forall {A B: Type} (l1: list A) (l2: list B)
   (f : A -> B -> bool),
 fold_left f l1 l2 = true ->
-forall (pos: nat), (nth_error l1 pos = None /\ nth_error l2 pos = None) \/
+forall (pos: nat), pos < length(l1) -> 
                    (exists (v1: A) (v2: B), nth_error l1 pos = Some v1 /\ 
                                             nth_error l2 pos = Some v2 /\
                                             f v1 v2 = true).
