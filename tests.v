@@ -16,6 +16,52 @@ Import ListNotations.
 
 Module Tests_interpreter.
 
+
+Example swap_1: 
+(* Exchanges first and second stack elements *)
+swap 1 [1;2;3;4] = Some [2;1;3;4].
+Proof. reflexivity. Qed.
+Example swap_2: 
+(* Exchanges first and third stack elements *)
+swap 2 [1;2;3;4] = Some [3;2;1;4].
+Proof. reflexivity. Qed.
+(* Exchanges first and fourth stack elements *)
+Example swap_3: 
+swap 3 [1;2;3;4] = Some [4;2;3;1].
+Proof. reflexivity. Qed.
+Example swap_4: 
+(* Must fail, no 5th element *) 
+swap 4 [1;2;3;4] = None.
+Proof. reflexivity. Qed.
+Example swap_16: 
+(* Exchanges first and 17th stack elements *)
+swap 16 [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17] = 
+   Some [17;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;1].
+Proof. reflexivity. Qed.
+Example swap_17: 
+(* Exchanges first and 17th stack elements *)
+swap 17 [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20] = None.
+Proof. reflexivity. Qed.
+
+Example dup_1:
+dup 1 [1;2;3;4] = Some [1;1;2;3;4].
+Proof. reflexivity. Qed.
+Example dup_2:
+dup 2 [1;2;3;4] = Some [2;1;2;3;4].
+Proof. reflexivity. Qed.
+Example dup_0:
+dup 0 [1;2;3;4] = None.
+Proof. reflexivity. Qed.
+Example dup_16:
+dup 16 [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17] = 
+  Some [16;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17].
+Proof. reflexivity. Qed.
+Example dup_17: 
+dup 17 [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20] = None.
+Proof. reflexivity. Qed.
+
+
+
 Example test_swap0:
 let state0 := ExState [(natToWord WLen 1);(natToWord WLen 2);(natToWord WLen 3)] empty_nmap empty_nmap in
 swap_c 0 state0 = None.

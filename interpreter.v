@@ -259,7 +259,7 @@ end.
 
 Definition dup {T: Type} (k : nat) (sk: list T) : option (list T) :=
 if ((k =? 0) || (16 <? k) || (StackLen <=? List.length(sk))) then None
-else match nth_error sk k with
+else match nth_error sk (pred k) with
   | None => None
   | Some x => Some (x::sk)
   end.
@@ -1255,7 +1255,7 @@ destruct instruction eqn: eq_instr.
   + unfold dup in eq_dup_pos_sc.
     destruct ((pos =? 0) || (16 <? pos) || (StackLen <=? length sc))
       eqn: eq_cond_push; try discriminate.
-    destruct (nth_error sc pos) eqn: eq_nth_error_sc; try discriminate.
+    destruct (nth_error sc (pred pos)) eqn: eq_nth_error_sc; try discriminate.
     injection eq_dup_pos_sc. intros eq_s'. symmetry in eq_s'.
     rewrite -> eq_s'.
     unfold dup in eq_dup_pos_curr_stk.
@@ -1263,13 +1263,13 @@ destruct instruction eqn: eq_instr.
     Hevalcurr) as eq_length_sc_curr_stk.
     rewrite <- eq_length_sc_curr_stk in eq_dup_pos_curr_stk.
     rewrite -> eq_cond_push in eq_dup_pos_curr_stk.
-    destruct (nth_error curr_stk pos) as [x|] eqn: eq_nth_error_curr_stk;
+    destruct (nth_error curr_stk (pred pos)) as [x|] eqn: eq_nth_error_curr_stk;
       try discriminate.
     injection eq_dup_pos_curr_stk. intros eq_sk'. symmetry in eq_sk'.
     rewrite -> eq_sk'.
     unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
     fold apply_f_list_asfs_stack_val.
-    pose proof (eval_asfs2_position in_stk curr_stk hc maxc pos sc mc
+    pose proof (eval_asfs2_position in_stk curr_stk hc maxc (pred pos) sc mc
       ops a x Hevalcurr eq_nth_error_sc eq_nth_error_curr_stk) 
       as eq_eval_asfs2_elem_a.
     rewrite -> eq_eval_asfs2_elem_a.
@@ -1883,7 +1883,7 @@ Proof.
 intros. unfold dup in H.
 destruct ((n =? 0) || (16 <? n) || (StackLen <=? length l1)) eqn: cond_ok;
   try discriminate.
-destruct (nth_error l1 n) as [x|] eqn: eq_nth_err; try discriminate.
+destruct (nth_error l1 (pred n)) as [x|] eqn: eq_nth_err; try discriminate.
 injection H as H.
 rewrite <- H. 
 reflexivity.
@@ -2687,6 +2687,8 @@ induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
          apply fold_left_len in H as eq_lens.
          rewrite -> eq_lens.
          destruct (length args2 =? nargs); try reflexivity.
+         
+         
          pose proof (all_pred_all_nth 
            ((fun e1 : stack_expr =>
                forall (e2 : stack_expr) (ops : opm),
