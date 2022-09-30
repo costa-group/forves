@@ -5,7 +5,6 @@ import os
 import csv
 import json
 
-use_bin = False
 
 #
 #
@@ -100,12 +99,7 @@ def bin_to_word(b : str) :
     return word
 
 def encode_num(n_hex : str):
-    n = int(n_hex, 16)
-
-    if use_bin:
-       return bin_to_word(bin(n)[2:].zfill(256))
-    else:
-       return f'(natToWord WLen {n})'
+    return f'(posToWord WLen {n_hex}%positive)'
 
 def str_to_list(bytecode_str):
     bytecode_seq =  split_bytecode(bytecode_str)
