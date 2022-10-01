@@ -132,12 +132,11 @@ def str_to_list(bytecode_str):
             out_seq.append(f'Opcode {instr}')
 
         i = i + 1
-    out_seq_coq = ';'.join(out_seq)
-    return f'[{out_seq_coq}]'
+    return out_seq
 
 #
 #
-def print_test(block_info, block_sfs):
+def print_test(bench_id,block_info, block_sfs):
     try:
         if not block_info["model_found"]=="True":
             return
@@ -145,31 +144,51 @@ def print_test(block_info, block_sfs):
         if not include_identical and block_info["previous_solution"].lower() == block_info["solution_found"].lower():
             return
         
-        bytecode = str_to_list(block_info["previous_solution"])
-        opt_bytecode = str_to_list(block_info["solution_found"])
+        bytecode_as_list = str_to_list(block_info["previous_solution"])
+        opt_bytecode_as_list = str_to_list(block_info["solution_found"])
+
+        bytecode = '; '.join(bytecode_as_list)
+        opt_bytecode = '; '.join(opt_bytecode_as_list)
+
         stack_size = len(block_sfs["src_ws"])
         block_id = block_info["block_id"]
 
         print('(*')
         print(f' I: {block_info["previous_solution"]}')
         print(f' O: {block_info["solution_found"]}')
+        print(f' k: {stack_size}')
+        print(f' l: {len(bytecode_as_list),len(opt_bytecode_as_list)}')
+        
         print('*)')
-        print(f'Compute ( "{block_id}"%string, (equiv_checker {opt_bytecode} {bytecode} {stack_size} optimize_id) ).')
+        print(f'Compute ( "B{bench_id}_{block_id}"%string, ')
+        print(f'          equiv_checker')
+        print(f'           [{opt_bytecode}]')
+        print(f'           [{bytecode}]')
+        print(f'           {stack_size} optimize_id).')
+        print()
+        # print(f'Example B{bench_id}_{block_id}: ')
+        # print(f'          equiv_checker')
+        # print(f'           [{opt_bytecode}]')
+        # print(f'           [{bytecode}]')
+        # print(f'           {stack_size} optimize_id = true.')
+        # print(f'Proof. reflexivity. Qed.')
         print()
     except Exception as e:
         print('(*')
         print(f' I: {block_info["previous_solution"]}')
         print(f' O: {block_info["solution_found"]}')
-        print('  ERROR OCCURRED')
+        print(f' B{bench_id}_{block_info["block_id"]} ')
         print()
-        print(e)
+        print('  Error occured while translating to Coq')
+        print()
+        print(f'  Exception: {e}')
         print('*)')
         print()
 
 
 #
 #
-def gen_tests(path):
+def gen_tests(paths):
 
     print('Require Import Arith.')
     print('Require Import Nat.')
@@ -190,17 +209,23 @@ def gen_tests(path):
     print()
     print('Definition optimize_id (a: asfs) : asfs*bool := (a, false).')
     print()
-    
-    csv_dir = f'{path}/csv'
-    for csv_filename in os.listdir(csv_dir):
-        csv_filename_noext = os.path.splitext(csv_filename)[0]
-        with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
-            csv_reader = csv.DictReader(csvfile)
-            for block_info in csv_reader:
-                block_id = block_info['block_id']
-                with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
-                    block_sfs = json.load(f)
-                    print_test(block_info, block_sfs)
+
+    i = 0
+    for path in paths:
+        print()
+        print(f'(* Examples from {path} *)')
+        print()
+        csv_dir = f'{path}/csv'
+        for csv_filename in os.listdir(csv_dir):
+            csv_filename_noext = os.path.splitext(csv_filename)[0]
+            with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
+                csv_reader = csv.DictReader(csvfile)
+                for block_info in csv_reader:
+                    block_id = block_info['block_id']
+                    with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
+                        block_sfs = json.load(f)
+                        print_test(i, block_info, block_sfs)
+                        i = i + 1
 
 
 # Usage example:
@@ -208,5 +233,5 @@ def gen_tests(path):
 #   python3 gen_tests.py /path-to/results_coq_evm/no_rl_gas_opt > no_rl_gas_opt_tests.v
 #
 if __name__ == "__main__":
-    path=sys.argv[1]
-    gen_tests(path)
+    paths=sys.argv[1:]
+    gen_tests(paths)
