@@ -215,8 +215,6 @@ match args with
 end.
 
 
-
-
 Definition uninterp0 (args: list EVMWord) : option EVMWord :=
 match args with
  | [] => Some WZero
