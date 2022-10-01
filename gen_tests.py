@@ -126,7 +126,7 @@ def str_to_list(bytecode_str):
         elif instr.startswith("SWAP"):
             match = re.fullmatch("SWAP([0-9]+)",instr)
             size = match.groups()[0]
-            out_seq.append(f'DUP {size}')
+            out_seq.append(f'SWAP {size}')
         else:
             idx = bytecode_vocab.index(instr) # just check the instruction is supported
             out_seq.append(f'Opcode {instr}')
@@ -154,7 +154,7 @@ def print_test(block_info, block_sfs):
         print(f' I: {block_info["previous_solution"]}')
         print(f' O: {block_info["solution_found"]}')
         print('*)')
-        print(f'Compute pair "{block_id}"%string (equiv_checker {opt_bytecode} {bytecode} {stack_size} optimize_id).')
+        print(f'Compute ( "{block_id}"%string, (equiv_checker {opt_bytecode} {bytecode} {stack_size} optimize_id) ).')
         print()
     except Exception as e:
         print('(*')
@@ -170,6 +170,27 @@ def print_test(block_info, block_sfs):
 #
 #
 def gen_tests(path):
+
+    print('Require Import Arith.')
+    print('Require Import Nat.')
+    print('Require Import Bool.')
+    print('Require Import bbv.Word.')
+    print('Require Import List.')
+    print('Require Import Coq_EVM.optimizations.')
+    print('Import Optimizations.')
+    print('Require Import Coq_EVM.definitions.')
+    print('Import EVM_Def Concrete Abstract Optimizations.')
+    print('Require Import Coq_EVM.interpreter.')
+    print('Import Interpreter SFS.')
+    print('Require Import Coq_EVM.checker.')
+    print('Import Checker.')
+    print('Import ListNotations.')
+    print('Require Import Coq.Arith.Arith Coq.Arith.Div2 Coq.NArith.NArith Coq.Bool.Bool Coq.ZArith.ZArith.')
+    print('From Coq Require Export String.')
+    print()
+    print('Definition optimize_id (a: asfs) : asfs*bool := (a, false).')
+    print()
+    
     csv_dir = f'{path}/csv'
     for csv_filename in os.listdir(csv_dir):
         csv_filename_noext = os.path.splitext(csv_filename)[0]
