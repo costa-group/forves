@@ -2612,12 +2612,161 @@ match (flat_stack_elem e1 m1, flat_stack_elem e2 m2) with
 end.
 
 
+Section All.
+  Variable T : Type.
+  Variable P : T -> Prop.
+  Fixpoint All (ls : list T ) : Prop :=
+  match ls with
+  | [] => True
+  | h::t => P h /\ All t
+  end.
+End All.
+
+Section stack_expr_ind'.
+  Variable P : stack_expr -> Prop.
+  Hypothesis UVal_case: forall (v: EVMWord), P (UVal v).
+  Hypothesis UInStackVar_case: forall (n: nat), P (UInStackVar n).
+  Hypothesis UOp_case : forall (opcode: oper_label)
+                               (args : list stack_expr),
+                           All stack_expr P args -> P (UOp opcode args).
+                           
+  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
+  match e with
+  | UVal v => UVal_case v
+  | UInStackVar n => UInStackVar_case n
+  | UOp opcode args => UOp_case opcode args
+  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
+    match args with
+    | [] => I
+    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
+    end) args)
+  end.
+End stack_expr_ind'.
+
+
+(*Section asfs_stack_val_ind'.
+  Variable P : asfs_stack_val -> Prop.
+  Hypothesis Val_case: forall (v: EVMWord), P (Val v).
+  Hypothesis InStackVar_case: forall (n: nat), P (InStackVar n).
+  Hypothesis FreshVarUOp_case : forall (opcode: oper_label)
+                               (args : list stack_expr),
+                           All stack_expr P args -> P (UOp opcode args).
+                           
+  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
+  match e with
+  | UVal v => UVal_case v
+  | UInStackVar n => UInStackVar_case n
+  | UOp opcode args => UOp_case opcode args
+  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
+    match args with
+    | [] => I
+    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
+    end) args)
+  end.
+End asfs_stack_val_ind'.*)
+
+
+Lemma eval_asfs2_val: forall (s: tstack) (val: EVMWord) (m: asfs_map) 
+  (ops: opm),
+eval_asfs2_elem s (Val val) m ops = Some val.
+Proof.
+intros.
+destruct m; try reflexivity.
+Qed.
+
+Lemma flat_stack_val: forall (val: EVMWord) (m: asfs_map),
+flat_stack_elem (Val val) m = Some (UVal val).
+Proof.
+intros. destruct m; try reflexivity.
+Qed.
+
+Lemma eval_asfs2_instackvar: forall (s: tstack) (var: nat) (m: asfs_map) 
+  (ops: opm),
+eval_asfs2_elem s (InStackVar var) m ops = nth_error s var.
+Proof.
+intros.
+destruct m; try reflexivity.
+Qed.
+
+Lemma flat_stack_instackvar: forall (n: nat) (m: asfs_map),
+flat_stack_elem (InStackVar n) m = Some (UInStackVar n).
+Proof.
+intros. destruct m; try reflexivity.
+Qed.
+
+
 Lemma eval_tree_asfs_val: forall (e: asfs_stack_val) (m: asfs_map) 
   (fe: stack_expr) (s: tstack) (ops: opm),
 flat_stack_elem e m = Some fe ->
 eval_asfs2_elem s e m ops = eval_stack_expr fe s ops.
 Proof.
-Admitted.
+intros e m. revert e. induction m as [|h t IH].
+- intros.
+  destruct e as [val|var|var] eqn: eq_e.
+  + simpl in H. injection H as H.
+    rewrite <- H. reflexivity.
+  + simpl in H. injection H as H.
+    rewrite <- H. reflexivity.
+  + simpl in H. discriminate. 
+- intros. destruct e as [val|var|var] eqn: eq_e.
+  + simpl in H. injection H as H. rewrite <- H.
+    reflexivity.
+  + simpl in H. injection H as H. rewrite <- H.
+    reflexivity.
+  + simpl in H. destruct h as [idx mv] eqn: eq_h.
+    destruct (idx =? var) eqn: eq_idx_var.
+    * destruct mv as [basic|opcode args] eqn: eq_mv.
+      -- destruct basic as [val'|var'|var'] eqn: eq_basic.
+         ++ injection H as H. rewrite <- H. simpl.
+            rewrite -> eq_idx_var. rewrite -> eval_asfs2_val.
+            reflexivity.
+         ++ injection H as H. rewrite <- H. simpl.
+            rewrite -> eq_idx_var. rewrite -> eval_asfs2_instackvar.
+            reflexivity.
+         ++ simpl. rewrite -> eq_idx_var. 
+            apply IH. assumption.
+      -- unfold apply_f_opt_list in H.
+         destruct args as [|h1 t1].
+         ++ (* args = [] *)
+            injection H as H. rewrite <- H. simpl.
+            rewrite -> eq_idx_var. reflexivity.
+         ++ destruct t1 as [|h2 t2].
+            ** (* args = [a1] *)
+               destruct (flat_stack_elem h1) as [v1|] eqn: flat_h1; 
+                 try discriminate.
+               injection H as H. rewrite <- H.
+               simpl. rewrite -> eq_idx_var.
+               apply IH with (s:=s)(ops:=ops) in flat_h1.
+               rewrite -> flat_h1.
+               reflexivity.
+            ** destruct t2 as [|h3 t3]. 
+               --- (* args = [a1;a2] *)
+                   destruct (flat_stack_elem h1) as [v1|] eqn: flat_h1; 
+                     try discriminate.
+                   destruct (flat_stack_elem h2) as [v2|] eqn: flat_h2; 
+                     try discriminate.
+                   injection H as H. rewrite <- H.
+                   simpl. rewrite -> eq_idx_var.
+                   apply IH with (s:=s)(ops:=ops) in flat_h1.
+                   apply IH with (s:=s)(ops:=ops) in flat_h2.
+                   rewrite -> flat_h1.
+                   rewrite -> flat_h2.
+                   destruct (ops opcode) as [oper|]; try reflexivity.
+                   destruct oper as [comm nargs f]; try reflexivity.
+                   destruct nargs; try reflexivity.
+                   destruct nargs; try reflexivity.
+                   destruct nargs; try reflexivity.
+                   destruct (eval_stack_expr v1 s ops); try reflexivity.
+                   destruct (eval_stack_expr v2 s ops); try reflexivity.
+               --- destruct t3 as [|h4 t4].
+                   +++ (* args = [a1;a2;a3] *) 
+                       admit.
+                   +++ destruct t4 as [|h5 t5]; try discriminate.
+                       (* args = [a1;a2;a3;a4] *)
+                       admit.
+    * simpl. rewrite -> eq_idx_var. 
+      apply IH. assumption.
+Qed.
 
 
 Section All.
