@@ -2612,60 +2612,6 @@ match (flat_stack_elem e1 m1, flat_stack_elem e2 m2) with
 end.
 
 
-Section All.
-  Variable T : Type.
-  Variable P : T -> Prop.
-  Fixpoint All (ls : list T ) : Prop :=
-  match ls with
-  | [] => True
-  | h::t => P h /\ All t
-  end.
-End All.
-
-Section stack_expr_ind'.
-  Variable P : stack_expr -> Prop.
-  Hypothesis UVal_case: forall (v: EVMWord), P (UVal v).
-  Hypothesis UInStackVar_case: forall (n: nat), P (UInStackVar n).
-  Hypothesis UOp_case : forall (opcode: oper_label)
-                               (args : list stack_expr),
-                           All stack_expr P args -> P (UOp opcode args).
-                           
-  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
-  match e with
-  | UVal v => UVal_case v
-  | UInStackVar n => UInStackVar_case n
-  | UOp opcode args => UOp_case opcode args
-  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
-    match args with
-    | [] => I
-    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
-    end) args)
-  end.
-End stack_expr_ind'.
-
-
-(*Section asfs_stack_val_ind'.
-  Variable P : asfs_stack_val -> Prop.
-  Hypothesis Val_case: forall (v: EVMWord), P (Val v).
-  Hypothesis InStackVar_case: forall (n: nat), P (InStackVar n).
-  Hypothesis FreshVarUOp_case : forall (opcode: oper_label)
-                               (args : list stack_expr),
-                           All stack_expr P args -> P (UOp opcode args).
-                           
-  Fixpoint stack_expr_ind' (e : stack_expr) : P e :=
-  match e with
-  | UVal v => UVal_case v
-  | UInStackVar n => UInStackVar_case n
-  | UOp opcode args => UOp_case opcode args
-  ((fix list_stack_expr_ind (args : list stack_expr) : All stack_expr P args :=
-    match args with
-    | [] => I
-    | h::t => conj (stack_expr_ind' h) (list_stack_expr_ind t)
-    end) args)
-  end.
-End asfs_stack_val_ind'.*)
-
-
 Lemma eval_asfs2_val: forall (s: tstack) (val: EVMWord) (m: asfs_map) 
   (ops: opm),
 eval_asfs2_elem s (Val val) m ops = Some val.
@@ -2694,6 +2640,22 @@ Proof.
 intros. destruct m; try reflexivity.
 Qed.
 
+
+Lemma rew_match: forall {T: Type} (x: option T) (v0: T),
+(match
+   match x with
+   | Some v => Some [v]
+   | None => None
+   end
+ with
+   | Some rs_val => Some (v0 :: rs_val)
+   | None => None
+ end) = (
+match x with
+           | Some v => Some [v0; v]
+           | None => None
+           end).
+Proof. intros. destruct x; try reflexivity. Qed.
 
 Lemma eval_tree_asfs_val: forall (e: asfs_stack_val) (m: asfs_map) 
   (fe: stack_expr) (s: tstack) (ops: opm),
@@ -2749,6 +2711,7 @@ intros e m. revert e. induction m as [|h t IH].
                    simpl. rewrite -> eq_idx_var.
                    apply IH with (s:=s)(ops:=ops) in flat_h1.
                    apply IH with (s:=s)(ops:=ops) in flat_h2.
+                   (* rewrite -> rew_match with (x:=eval_asfs2_elem s h2 t ops). *)
                    rewrite -> flat_h1.
                    rewrite -> flat_h2.
                    destruct (ops opcode) as [oper|]; try reflexivity.
@@ -2760,10 +2723,60 @@ intros e m. revert e. induction m as [|h t IH].
                    destruct (eval_stack_expr v2 s ops); try reflexivity.
                --- destruct t3 as [|h4 t4].
                    +++ (* args = [a1;a2;a3] *) 
-                       admit.
+                       destruct (flat_stack_elem h1) as [v1|] eqn: flat_h1; 
+                         try discriminate.
+                       destruct (flat_stack_elem h2) as [v2|] eqn: flat_h2; 
+                         try discriminate.
+                       destruct (flat_stack_elem h3) as [v3|] eqn: flat_h3; 
+                         try discriminate.
+                       injection H as H. rewrite <- H.
+                       simpl. rewrite -> eq_idx_var.
+                       apply IH with (s:=s)(ops:=ops) in flat_h1.
+                       apply IH with (s:=s)(ops:=ops) in flat_h2.
+                       apply IH with (s:=s)(ops:=ops) in flat_h3.
+                       rewrite -> flat_h1.
+                       rewrite -> flat_h2.
+                       rewrite -> flat_h3.
+                       destruct (ops opcode) as [oper|]; try reflexivity.
+                       destruct oper as [comm nargs f]; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct (eval_stack_expr v1 s ops); try reflexivity.
+                       destruct (eval_stack_expr v2 s ops); try reflexivity.
+                       destruct (eval_stack_expr v3 s ops); try reflexivity.
                    +++ destruct t4 as [|h5 t5]; try discriminate.
                        (* args = [a1;a2;a3;a4] *)
-                       admit.
+                       destruct (flat_stack_elem h1) as [v1|] eqn: flat_h1; 
+                         try discriminate.
+                       destruct (flat_stack_elem h2) as [v2|] eqn: flat_h2; 
+                         try discriminate.
+                       destruct (flat_stack_elem h3) as [v3|] eqn: flat_h3; 
+                         try discriminate.
+                       destruct (flat_stack_elem h4) as [v4|] eqn: flat_h4; 
+                         try discriminate.
+                       injection H as H. rewrite <- H.
+                       simpl. rewrite -> eq_idx_var.
+                       apply IH with (s:=s)(ops:=ops) in flat_h1.
+                       apply IH with (s:=s)(ops:=ops) in flat_h2.
+                       apply IH with (s:=s)(ops:=ops) in flat_h3.
+                       apply IH with (s:=s)(ops:=ops) in flat_h4.
+                       rewrite -> flat_h1.
+                       rewrite -> flat_h2.
+                       rewrite -> flat_h3.
+                       rewrite -> flat_h4.
+                       destruct (ops opcode) as [oper|]; try reflexivity.
+                       destruct oper as [comm nargs f]; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct nargs; try reflexivity.
+                       destruct (eval_stack_expr v1 s ops); try reflexivity.
+                       destruct (eval_stack_expr v2 s ops); try reflexivity.
+                       destruct (eval_stack_expr v3 s ops); try reflexivity.
+                       destruct (eval_stack_expr v4 s ops); try reflexivity.
     * simpl. rewrite -> eq_idx_var. 
       apply IH. assumption.
 Qed.

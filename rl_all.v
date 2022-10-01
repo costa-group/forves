@@ -15,8 +15,6 @@ Import ListNotations.
 Require Import Coq.Arith.Arith Coq.Arith.Div2 Coq.NArith.NArith Coq.Bool.Bool Coq.ZArith.ZArith.
 From Coq Require Export String.
 
-Definition optimize_id (a: asfs) : asfs*bool := (a, false).
-
 
 (* Examples from /Users/genaim/Downloads/results_coq_evm/rl_gas_notopt *)
 

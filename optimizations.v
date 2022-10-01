@@ -557,6 +557,23 @@ Qed.
 
 
 (*******************************************
+       Identity optimization 
+*******************************************)
+Definition optimize_id (a: asfs) : asfs*bool := (a, false).
+
+Theorem optimize_id_safe:
+safe_optimization optimize_id.
+Proof.
+unfold safe_optimization. intros.
+unfold optimize_id in H0.
+injection H0 as eq_a_opta _.
+rewrite <- eq_a_opta.
+auto.
+Qed.
+
+
+
+(*******************************************
   Optimization ADD(0,X) or ADD(X,0) --> X 
 ********************************************)
 Fixpoint optimize_map_add_zero (fresh_var: nat) (map: asfs_map): 
