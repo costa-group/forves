@@ -2244,7 +2244,7 @@ match l with
 end.*)
 
 
-Definition apply_f_opt_list {A B: Type} (f : A -> option B) :=
+Definition apply_f_opt_list2 {A B: Type} (f : A -> option B) :=
 fix apply_f_opt_list_fix (v : list A) : option (list B) :=
     match v with
     | [] => Some []
@@ -2256,8 +2256,9 @@ fix apply_f_opt_list_fix (v : list A) : option (list B) :=
                  end
     end.
 
-
-Definition apply_f_list_fixed {X Y: Type} (f: X -> option Y) (l: list X): 
+(* Definition apply_f_list_fixed {X Y: Type} (f: X -> option Y) (l: list X): *)
+(* For lists of at most 4 elements *)
+Definition apply_f_opt_list {X Y: Type} (f: X -> option Y) (l: list X): 
   option (list Y) :=
 match l with
 | [] => Some []
@@ -2273,9 +2274,13 @@ match l with
                   | Some v1, Some v2, Some v3 => Some [v1; v2; v3]
                   | _, _, _ => None
                   end
+| [a1; a2; a3; a4] => match f a1, f a2, f a3, f a4 with
+                      | Some v1, Some v2, Some v3, Some v4 => 
+                            Some [v1; v2; v3; v4]
+                      | _, _, _, _ => None
+                      end                  
 | _ => None
 end.
-
 
 
 (* Evaluation of complete stack expressions (trees withouth fresh variables *)
@@ -2327,6 +2332,19 @@ match e with
 end.
 
 
+(* For lists with at most 4 elements *)
+Definition compare_lists_pred {X Y: Type} (f: X -> Y -> bool) 
+  (l1: list X) (l2: list Y): bool :=
+match l1,l2 with
+| [], [] => true
+| [h1], [h1'] => f h1 h1'
+| [h1;h2], [h1';h2'] => f h1 h1' && f h2 h2'
+| [h1;h2;h3], [h1';h2';h3'] => f h1 h1' && f h2 h2' && f h3 h3'
+| [h1;h2;h3;h4], [h1';h2';h3';h4'] => f h1 h1' && f h2 h2' && 
+                                      f h3 h3' && f h4 h4'
+|_, _ => false
+end.
+
 
 Definition fold_left {A B: Type} (f : A -> B -> bool) :=
 fix fold_left_fix (v : list A) : list B -> bool :=
@@ -2359,7 +2377,7 @@ match e1, e2 with
     )
 | UOp opcode1 args1, UOp opcode2 args2 => 
   if (eq_oper_label opcode1 opcode2) then
-    fold_left (fun a b => compare_flat_asfs_map_val a b ops) args1 args2
+    compare_lists_pred (fun a b => compare_flat_asfs_map_val a b ops) args1 args2
   else
     false
 | _,_ => false
@@ -2438,17 +2456,6 @@ eval_asfs2_elem s e m ops = eval_stack_expr fe s ops.
 Proof.
 Admitted.
 
-(*
-Lemma 
-
-
-fold_left (fun a b : stack_expr => compare_flat_asfs_map_val a b ops)
-           l1 l2 = true ->
-let f := fun (e: stack_expr) => 
-                                      eval_stack_expr e s ops in
-                           match apply_f_opt_list f args with           
-*)
-
 
 Section All.
   Variable T : Type.
@@ -2481,8 +2488,6 @@ Section stack_expr_ind'.
   end.
 End stack_expr_ind'.
 
-
-
 Lemma fold_left_len: forall {A B: Type} (l1: list A) (l2: list B)
   (f : A -> B -> bool),
 fold_left f l1 l2 = true ->
@@ -2495,68 +2500,6 @@ induction l1 as [|h t IH].
   apply andb_prop in H as [_ Hfold].
   apply IH in Hfold. simpl. rewrite Hfold. reflexivity.
 Qed.
-
-
-Lemma fold_left_pos_ex: forall {A B: Type} (l1: list A) (l2: list B)
-  (f : A -> B -> bool),
-fold_left f l1 l2 = true ->
-forall (pos: nat), pos < length(l1) -> 
-                   (exists (v1: A) (v2: B), nth_error l1 pos = Some v1 /\ 
-                                            nth_error l2 pos = Some v2 /\
-                                            f v1 v2 = true).
-Proof.
-Admitted.
-(*intros. apply fold_left_len in H.
-apply some_is_not_none in H0.
-apply nth_error_Some in H0.
-rewrite -> H in H0.
-apply nth_error_ok' in H0. auto.
-Qed.*)
-
-Search (_ && _ = true).
-Lemma fold_left_pos_f: forall {A B: Type} (l1: list A) (l2: list B)
-  (f : A -> B -> bool) (pos: nat) (e1: A) (e2: B),
-fold_left f l1 l2 = true ->
-nth_error l1 pos = Some e1 ->
-nth_error l2 pos = Some e2 ->
-f e1 e2 = true.
-Proof.
-intros A B. induction l1 as [|h t IH].
-- intros. destruct pos as [|n'] eqn: eq_pos; try discriminate.
-- intros. destruct pos as [|n'] eqn: eq_pos.
-  + simpl in H0.
-    destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
-    simpl in H1. simpl in H.
-    destruct (f h h') eqn: f_h_h'; try discriminate.
-    injection H0 as H0. rewrite <- H0.
-    injection H1 as H1. rewrite <- H1.
-    assumption.
-  + destruct l2 as [|h' t'] eqn: eq_l2; try discriminate.
-    simpl in H0. simpl in H1. simpl in H.
-    apply andb_prop in H as [eq_f_h eq_fold_t].
-    pose proof (IH t' f n' e1 e2 eq_fold_t H0 H1).
-    assumption.
-Qed.
-
-
-Lemma all_pred_all_nth: forall {A: Type} (p: A -> Prop) (l: list A),
-All A p l -> forall (n: nat) (v: A), nth_error l n = Some v -> p v.
-Proof.
-Admitted.
-
-
-Search (List.map).
-Lemma apply_f_opt_list_ext: forall {A B: Type} (l1 l2: list A)
-  (f: A -> option B),
-(forall n:nat, (nth_error l1 n = None /\ nth_error l2 n = None) \/
-                exists (v1 v2: A), nth_error l1 n = Some v1 /\ 
-                                   nth_error l2 n = Some v2 /\
-                                   f v1 = f v2) ->
-apply_f_opt_list f l1 = apply_f_opt_list f l2.
-Proof.
-Admitted.
-
-Check (apply_f_opt_list_ext).
 
 
 
@@ -2586,26 +2529,23 @@ induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
     rewrite -> eq_opcodes.
     reflexivity.
   + destruct t1 as [|h2 t2] eqn: eq_t1.
-    * (* args = [h1] *)
+    * (* args = h1::t1 *)
       destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
       destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
       fold compare_flat_asfs_map_val in H.
-      unfold fold_left in H.
+      unfold compare_lists_pred in H.
       destruct args2 as [|h1' t1'] eqn: eq_arg2; try discriminate.
-      destruct (compare_flat_asfs_map_val h1 h1' ops) eqn: eq_compare_h_wh;
-        try discriminate.
-      destruct t1' eqn: eq_wt; try discriminate.
-      apply eq_oper_label_correct in eq_opcodes.
-      rewrite -> eq_opcodes.
+      destruct t1'; try discriminate.
       simpl in IH. destruct IH as [IH' _].
-      pose proof (IH' h1' ops eq_compare_h_wh H0 s) as Heval_h1_h1'.
-      simpl. rewrite -> Heval_h1_h1'.
+      pose proof (IH' h1' ops H H0 s) as Heval_h1_h1'.
+      simpl. apply eq_oper_label_correct in eq_opcodes.
+      rewrite <- eq_opcodes.
+      rewrite -> Heval_h1_h1'.
       reflexivity.
     * destruct t2 as [|h3 t3] eqn: eq_t2.
-      -- (* args = [h1, h2] *)
+      -- (* args = h1::h2::t2 *)
          destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
          fold compare_flat_asfs_map_val in H.
-         unfold fold_left in H.
          destruct args2 as [|h1' t1'] eqn: eq_arg2.
          ++ destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
          ++ destruct t1' as [|h2' t2'] eqn: eq_t1'; try (
@@ -2674,41 +2614,54 @@ induction e1 as [v|var|opcode args IH] using stack_expr_ind'.
                        eqn: eval_h2.
                      +++ rewrite <- eq_eval_h2. reflexivity.
                      +++ rewrite <- eq_eval_h2. reflexivity.
-      -- (* General case: args = h1::h2::h3::t3 *)
+      -- (* args = h1::h2::h3::t3 *)
          destruct e2 as [v2|var2|opcode2 args2] eqn: eq_e2; try discriminate.
          destruct (opcode =?i opcode2) eqn: eq_opcodes; try discriminate.
+         simpl in H.
          fold compare_flat_asfs_map_val in H.
-         apply eq_oper_label_correct in eq_opcodes. 
-         rewrite <- eq_opcodes.
-         unfold eval_stack_expr.
-         destruct (ops opcode) as [oper|] eqn: eq_ops_opcode; try reflexivity.
-         destruct oper as [comm nargs func] eqn: eq_oper.
-         fold eval_stack_expr.
-         apply fold_left_len in H as eq_lens.
-         rewrite -> eq_lens.
-         destruct (length args2 =? nargs); try reflexivity.
-         
-         
-         pose proof (all_pred_all_nth 
-           ((fun e1 : stack_expr =>
-               forall (e2 : stack_expr) (ops : opm),
-               compare_flat_asfs_map_val e1 e2 ops = true ->
-               valid_stack_op_map ops ->
-               forall s : tstack,
-               eval_stack_expr e1 s ops = eval_stack_expr e2 s ops))
-           (h1 :: h2 :: h3 :: t3) IH) as IH_nth.     
-         pose proof (fold_left_pos_ex (h1 :: h2 :: h3 :: t3) args2
-           ((fun a b : stack_expr => compare_flat_asfs_map_val a b ops)) H)
-             as Hall_elems_compare.
-         simpl in Hall_elems_compare.
-         pose proof (apply_f_opt_list_ext (h1 :: h2 :: h3 :: t3) args2
-           (fun e : stack_expr => eval_stack_expr e s ops)) as Happly.
-         simpl in Happly.
-         
-         admit.
-Admitted.
-
-
+         destruct t3 as [|h4 t4] eqn: eq_t3.
+         ++ destruct args2 as [|h1' t1'] eqn: eq_arg2; try discriminate.
+            destruct t1' as [|h2' t2'] eqn: eq_t1'; try discriminate.
+            destruct t2' as [|h3' t3'] eqn: eq_t2'; try discriminate.
+            destruct t3' as [|h4' t4'] eqn: eq_t3'; try discriminate.
+            apply andb_true_iff in H as [H comp_h3].
+            apply andb_true_iff in H as [comp_h1 comp_h2].
+            simpl in IH. destruct IH as [IH_h1 [IH_h2 [IH_h3 _]]].
+            pose proof (IH_h1 h1' ops comp_h1 H0 s) as eq_eval_h1.
+            pose proof (IH_h2 h2' ops comp_h2 H0 s) as eq_eval_h2.
+            pose proof (IH_h3 h3' ops comp_h3 H0 s) as eq_eval_h3.
+            simpl.
+            apply eq_oper_label_correct in eq_opcodes.
+            rewrite <- eq_opcodes.
+            rewrite -> eq_eval_h1.
+            rewrite -> eq_eval_h2.
+            rewrite -> eq_eval_h3.
+            reflexivity.
+         ++ (* args = h1::h2::h3::h4::t4 *)
+            destruct t4 as [|h5 t5] eqn: eq_t4; try discriminate.
+            destruct args2 as [|h1' t1'] eqn: eq_arg2; try discriminate.
+            destruct t1' as [|h2' t2'] eqn: eq_t1'; try discriminate.
+            destruct t2' as [|h3' t3'] eqn: eq_t2'; try discriminate.
+            destruct t3' as [|h4' t4'] eqn: eq_t3'; try discriminate.
+            destruct t4' as [|h5' t5'] eqn: eq_t4'; try discriminate.
+            apply andb_true_iff in H as [H comp_h4].
+            apply andb_true_iff in H as [H comp_h3].
+            apply andb_true_iff in H as [comp_h1 comp_h2].
+            simpl in IH.
+            simpl in IH. destruct IH as [IH_h1 [IH_h2 [IH_h3 [IH_h4 _]]]].
+            pose proof (IH_h1 h1' ops comp_h1 H0 s) as eq_eval_h1.
+            pose proof (IH_h2 h2' ops comp_h2 H0 s) as eq_eval_h2.
+            pose proof (IH_h3 h3' ops comp_h3 H0 s) as eq_eval_h3.
+            pose proof (IH_h4 h4' ops comp_h4 H0 s) as eq_eval_h4.
+            simpl.
+            apply eq_oper_label_correct in eq_opcodes.
+            rewrite <- eq_opcodes.
+            rewrite -> eq_eval_h1.
+            rewrite -> eq_eval_h2.
+            rewrite -> eq_eval_h3.
+            rewrite -> eq_eval_h4.
+            reflexivity.
+Qed.
 
 
 (* Main lemma for comparing ASFS values *)
