@@ -121,11 +121,12 @@ Definition valid_stack_op_map (ops: opm) : Prop :=
   stack_op_map_comm ops /\ coherent_stack_op_map ops.
 
 
-
 Lemma evm_stack_opm_comm: stack_op_map_comm opmap.
 Proof.
 unfold stack_op_map_comm. intros i f H a b.
-destruct i eqn: eq_i.
+destruct i eqn: eq_i; try (
+  unfold opmap in H; unfold updatei in H; simpl in H;
+  injection H; intros; discriminate).
 - (* ADD *) 
   unfold opmap in H. unfold updatei in H. simpl in H.
   injection H as eq_func. rewrite <- eq_func. simpl.
@@ -134,67 +135,229 @@ destruct i eqn: eq_i.
   unfold opmap in H. unfold updatei in H. simpl in H.
   injection H as eq_func. rewrite <- eq_func. simpl.
   rewrite -> wmult_comm. reflexivity.
-- (* NOT *)
+- (* EQ *)
   unfold opmap in H. unfold updatei in H. simpl in H.
-  injection H. intros. discriminate.
+  injection H as eq_f. rewrite <- eq_f.
+  simpl. destruct (weqb a b) eqn: weqb_a_b.
+  + apply weqb_sound in weqb_a_b as eq_a_b.
+    rewrite <- eq_a_b in weqb_a_b. 
+    rewrite -> eq_a_b in weqb_a_b at 1.
+    rewrite -> weqb_a_b.
+    reflexivity.
+  + apply weqb_false in weqb_a_b as neq_a_b.
+    apply not_eq_sym in neq_a_b.
+    apply weqb_ne in neq_a_b.
+    rewrite neq_a_b.
+    reflexivity.
+- (* AND *)
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wand_comm. reflexivity.
+- (* OR *)
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wor_comm. reflexivity.
+- (* XOR *)
+  unfold opmap in H. unfold updatei in H. simpl in H.
+  injection H as eq_func. rewrite <- eq_func. simpl.
+  rewrite -> wxor_comm. reflexivity.
 Qed.
 
-(* Create strategy to simplify very similar proofs *)
-Lemma add_coherent: forall (l: list EVMWord),
-length l = 2 -> exists (v: EVMWord), add l = Some v.
-Proof.
-intros.
-destruct l as [|a r1].
-- simpl in H. discriminate.
-- destruct r1 as [|b r2].
-  + simpl in H. discriminate.
-  + destruct r2 as [|c r3].
-    * exists (wplus a b). reflexivity.
-    * simpl in H. discriminate.
-Qed.
 
-Lemma mul_coherent: forall (l: list EVMWord),
-length l = 2 -> exists (v: EVMWord), mul l = Some v.
-Proof.
-intros.
-destruct l as [|a r1].
-- simpl in H. discriminate.
-- destruct r1 as [|b r2].
-  + simpl in H. discriminate.
-  + destruct r2 as [|c r3].
-    * exists (wmult a b). reflexivity.
-    * simpl in H. discriminate.
-Qed.
+Ltac oper_uninterpret0_coherent_tac l H :=
+let a := fresh in
+let r1 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ exists WZero; reflexivity
+    |
+    simpl in H; discriminate
+  ].
 
-Lemma not_coherent: forall (l: list EVMWord),
-length l = 1 -> exists (v: EVMWord), not l = Some v.
-Proof.
-intros.
-destruct l as [|a r1].
-- simpl in H. discriminate.
-- destruct r1 as [|b r2].
-  + exists (wnot a). reflexivity.
-  + simpl in H. discriminate.
-Qed.
+Ltac oper_uninterpret1_coherent_tac l H :=
+let a := fresh in
+let r1 := fresh in
+let b := fresh in
+let r2 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r2;
+      [ simpl; 
+        exists WZero; reflexivity
+      |
+        simpl in H; discriminate
+      ]
+  ].
+
+
+Ltac oper_1_coherent_tac l H woper :=
+let a := fresh in
+let r1 := fresh in
+let b := fresh in
+let r2 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r2;
+      [ simpl; 
+        exists (woper a); reflexivity
+      |
+        simpl in H; discriminate
+      ]
+  ].
+  
+Ltac oper_uninterpret2_coherent_tac l H :=
+let a := fresh in
+let r1 := fresh in
+let b := fresh in
+let r2 := fresh in
+let c := fresh in
+let r3 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r2;
+      [simpl in H; discriminate
+      |
+      destruct r2 as [|c r3] eqn: eq_r3;
+        [ simpl;
+          exists WZero; reflexivity
+        |
+          simpl in H; discriminate
+        ]
+      ]
+  ].
+
+Ltac oper_2_coherent_tac l H woper :=
+let a := fresh in
+let r1 := fresh in
+let b := fresh in
+let r2 := fresh in
+let c := fresh in
+let r3 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r2;
+      [simpl in H; discriminate
+      |
+      destruct r2 as [|c r3] eqn: eq_r3;
+        [ simpl;
+          exists (woper a b); reflexivity
+        |
+          simpl in H; discriminate
+        ]
+      ]
+  ].
+  
+Ltac oper_uninterpret3_coherent_tac l H :=
+let a := fresh in let r1 := fresh in
+let b := fresh in let r2 := fresh in
+let c := fresh in let r3 := fresh in
+let d := fresh in let r4 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r1;
+      [simpl in H; discriminate
+      |
+      destruct r2 as [|c r3] eqn: eq_r2;
+        [ simpl in H; discriminate
+          |
+          destruct r3 as [| d r4] eqn: eq_r4;
+          [ simpl;
+            exists WZero; reflexivity
+            |
+            simpl in H; discriminate
+          ]
+        ]
+      ]
+  ].
+  
+Ltac oper_uninterpret4_coherent_tac l H :=
+let a := fresh in let r1 := fresh in
+let b := fresh in let r2 := fresh in
+let c := fresh in let r3 := fresh in
+let d := fresh in let r4 := fresh in
+let e := fresh in let r5 := fresh in
+destruct l as [|a r1] eqn: eq_l; 
+  [ simpl in H; discriminate
+    |
+    destruct r1 as [|b r2] eqn: eq_r1;
+      [simpl in H; discriminate
+      |
+      destruct r2 as [|c r3] eqn: eq_r2;
+        [ simpl in H; discriminate
+          |
+          destruct r3 as [| d r4] eqn: eq_r4;
+          [ simpl in H; discriminate
+            |
+            destruct r4 as [|e r5] eqn: eq_r5;
+            [ simpl;
+              exists WZero; reflexivity
+              |
+              simpl in H; discriminate
+            ]
+          ]
+        ]
+      ]
+  ].   
+  
+Ltac rw_coherent H eq_func H0 eq_nb_args :=
+unfold opmap in H; unfold updatei in H; simpl in H;
+injection H as eq_flag eq_nb_args eq_func;
+rewrite <- eq_func; rewrite <- eq_nb_args in H0.
 
 
 Lemma evm_stack_opm_coherent: coherent_stack_op_map opmap.
 Proof.
 unfold coherent_stack_op_map. 
 intros instr comm n f l H H0.
-destruct instr eqn: eq_instr.
-- unfold opmap in H. unfold updatei in H. simpl in H.
-  injection H as eq_flag eq_nb_args eq_func.
-  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
-  apply add_coherent. assumption.
-- unfold opmap in H. unfold updatei in H. simpl in H.
-  injection H as eq_flag eq_nb_args eq_func.
-  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
-  apply mul_coherent. assumption.
-- unfold opmap in H. unfold updatei in H. simpl in H.
-  injection H as eq_flag eq_nb_args eq_func.
-  rewrite <- eq_func. rewrite <- eq_nb_args in H0.
-  apply not_coherent. assumption.
+destruct instr eqn: eq_instr; 
+try (
+  rw_coherent H eq_func H0 eq_nb_args;
+  oper_uninterpret0_coherent_tac l H0);
+try (
+  rw_coherent H eq_func H0 eq_nb_args;
+  oper_uninterpret1_coherent_tac l H0);
+try (
+  rw_coherent H eq_func H0 eq_nb_args;
+  oper_uninterpret2_coherent_tac l H0
+);
+try (
+  rw_coherent H eq_func H0 eq_nb_args;
+  oper_uninterpret3_coherent_tac l H0
+);
+try (
+  rw_coherent H eq_func H0 eq_nb_args;
+  oper_uninterpret4_coherent_tac l H0
+).
+- (* ADD *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wplus WLen).
+- (* MUL *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wmult WLen).
+- (* NOT *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_1_coherent_tac l H0 (@wnot WLen).
+- (* EQ*)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl.
+  exists ((if weqb a b then WOne else WZero)).
+  reflexivity.
+- (* AND *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wand WLen).
+- (* OR *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wor WLen).
+- (* XOR *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wxor WLen).  
 Qed.
 
 Theorem evm_stack_opm_validity: valid_stack_op_map opmap.

@@ -31,7 +31,59 @@ Module Concrete.
 Inductive oper_label :=
   | ADD
   | MUL
-  | NOT.
+  | NOT
+  | SUB
+  | DIV
+  | SDIV
+  | MOD
+  | SMOD
+  | ADDMOD
+  | MULMOD
+  | EXP
+  | SIGNEXTEND
+  | LT
+  | GT
+  | SLT
+  | SGT
+  | EQ
+  | ISZERO
+  | AND
+  | OR
+  | XOR
+  | BYTE
+  | SHL
+  | SHR
+  | SAR
+  | SHA3
+  | KECCAK256
+  | ADDRESS
+  | BALANCE
+  | ORIGIN
+  | CALLER
+  | CALLVALUE
+  | CALLDATALOAD
+  | CALLDATASIZE 
+  | CODESIZE
+  | GASPRICE
+  | EXTCODESIZE
+  | RETURNDATASIZE
+  | EXTCODEHASH
+  | BLOCKHASH
+  | COINBASE
+  | TIMESTAMP
+  | NUMBER
+  | DIFFICULTY
+  | GASLIMIT
+  | CHAINID
+  | SELFBALANCE
+  | BASEFEE
+  | SLOAD
+  | MLOAD
+  | PC
+  | MSIZE
+  | GAS
+  | CREATE
+  | CREATE2.
   
 (** PUSH, POP, DUP and SWAP are hardcoded, and the other opcodes are operators *)
 Inductive instr :=
@@ -52,6 +104,58 @@ match (a, b) with
  | (ADD, ADD) => true
  | (MUL, MUL) => true
  | (NOT, NOT) => true 
+ | (SUB,SUB) => true
+ | (DIV,DIV) => true
+ | (SDIV,SDIV) => true
+ | (MOD,MOD) => true
+ | (SMOD,SMOD) => true
+ | (ADDMOD,ADDMOD) => true
+ | (MULMOD,MULMOD) => true
+ | (EXP,EXP) => true
+ | (SIGNEXTEND,SIGNEXTEND) => true
+ | (LT,LT) => true
+ | (GT,GT) => true
+ | (SLT,SLT) => true
+ | (SGT,SGT) => true
+ | (EQ,EQ) => true
+ | (ISZERO,ISZERO) => true
+ | (AND,AND) => true
+ | (OR,OR) => true
+ | (XOR,XOR) => true
+ | (BYTE,BYTE) => true
+ | (SHL,SHL) => true
+ | (SHR,SHR) => true
+ | (SAR,SAR) => true
+ | (SHA3,SHA3) => true
+ | (KECCAK256,KECCAK256) => true
+ | (ADDRESS,ADDRESS) => true
+ | (BALANCE,BALANCE) => true
+ | (ORIGIN,ORIGIN) => true
+ | (CALLER,CALLER) => true
+ | (CALLVALUE,CALLVALUE) => true
+ | (CALLDATALOAD,CALLDATALOAD) => true
+ | (CALLDATASIZE ,CALLDATASIZE ) => true
+ | (CODESIZE,CODESIZE) => true
+ | (GASPRICE,GASPRICE) => true
+ | (EXTCODESIZE,EXTCODESIZE) => true
+ | (RETURNDATASIZE,RETURNDATASIZE) => true
+ | (EXTCODEHASH,EXTCODEHASH) => true
+ | (BLOCKHASH,BLOCKHASH) => true
+ | (COINBASE,COINBASE) => true
+ | (TIMESTAMP,TIMESTAMP) => true
+ | (NUMBER,NUMBER) => true
+ | (DIFFICULTY,DIFFICULTY) => true
+ | (GASLIMIT,GASLIMIT) => true
+ | (CHAINID,CHAINID) => true
+ | (SELFBALANCE,SELFBALANCE) => true
+ | (BASEFEE,BASEFEE) => true
+ | (SLOAD,SLOAD) => true
+ | (MLOAD,MLOAD) => true
+ | (PC,PC) => true
+ | (MSIZE,MSIZE) => true
+ | (GAS,GAS) => true
+ | (CREATE,CREATE) => true
+ | (CREATE2,CREATE2) => true
  | _ => false
 end.
 Notation "m '=?i' n" := (eq_oper_label m n) (at level 100).
@@ -84,6 +188,63 @@ Definition not (args: list EVMWord) : option EVMWord :=
 match args with
  | [a] => Some (wnot a)
  | _ => None
+end.
+
+Definition eq (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a; b] => Some (if weqb a b then WOne else WZero)
+ | _ => None
+end.
+
+Definition and (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a; b] => Some (wand a b)
+ | _ => None
+end.
+
+Definition or (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a; b] => Some (wor a b)
+ | _ => None
+end.
+
+Definition xor (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a; b] => Some (wxor a b)
+ | _ => None
+end.
+
+
+
+
+Definition uninterp0 (args: list EVMWord) : option EVMWord :=
+match args with
+ | [] => Some WZero
+ | _ => None
+ end.
+
+Definition uninterp1 (args: list EVMWord) : option EVMWord :=
+match args with
+ | [_] => Some WZero
+ | _ => None
+ end.
+
+Definition uninterp2 (args: list EVMWord) : option EVMWord :=
+match args with
+ | [_;_] => Some WZero
+ | _ => None
+ end.
+
+Definition uninterp3 (args: list EVMWord) : option EVMWord :=
+match args with
+ | [_;_;_] => Some WZero
+ | _ => None
+ end.
+
+ Definition uninterp4 (args: list EVMWord) : option EVMWord :=
+match args with
+ | [_;_;_;_] => Some WZero
+ | _ => None
  end.
 
 (* ================================================================= *)
@@ -114,7 +275,59 @@ Definition opm := map oper_label operator.
 Definition opmap : opm :=
   ADD |->i Op true 2 add;
   MUL |->i Op true 2 mul;
-  NOT |->i Op false 1 not.
+  NOT |->i Op false 1 not;
+  SUB |->i Op false 2 uninterp2;
+  DIV |->i Op false 2 uninterp2;
+  SDIV |->i Op false 2 uninterp2;
+  MOD |->i Op false 2 uninterp2;
+  SMOD |->i Op false 2 uninterp2;
+  ADDMOD |->i Op false 3 uninterp3;
+  MULMOD |->i Op false 3 uninterp3;
+  EXP |->i Op false 2 uninterp2;
+  SIGNEXTEND |->i Op false 2 uninterp2;
+  LT |->i Op false 2 uninterp2;
+  GT |->i Op false 2 uninterp2;
+  SLT |->i Op false 2 uninterp2;
+  SGT |->i Op false 2 uninterp2;
+  EQ |->i Op true 2 eq;
+  ISZERO |->i Op false 1 uninterp1;
+  AND |->i Op true 2 and;
+  OR |->i Op true 2 or;
+  XOR |->i Op true 2 xor;
+  BYTE |->i Op false 2 uninterp2;
+  SHL |->i Op false 2 uninterp2;
+  SHR |->i Op false 2 uninterp2;
+  SAR |->i Op false 2 uninterp2;
+  SHA3 |->i Op false 2 uninterp2;
+  KECCAK256 |->i Op false 2 uninterp2;
+  ADDRESS |->i Op false 0 uninterp0;
+  BALANCE |->i Op false 1 uninterp1;
+  ORIGIN |->i Op false 0 uninterp0;
+  CALLER |->i Op false 0 uninterp0;
+  CALLVALUE |->i Op false 0 uninterp0;
+  CALLDATALOAD |->i Op false 1 uninterp1;
+  CALLDATASIZE  |->i Op false 0 uninterp0;
+  CODESIZE |->i Op false 0 uninterp0;
+  GASPRICE |->i Op false 0 uninterp0;
+  EXTCODESIZE |->i Op false 1 uninterp1;
+  RETURNDATASIZE |->i Op false 0 uninterp0;
+  EXTCODEHASH |->i Op false 1 uninterp1;
+  BLOCKHASH |->i Op false 0 uninterp0;
+  COINBASE |->i Op false 0 uninterp0;
+  TIMESTAMP |->i Op false 0 uninterp0;
+  NUMBER |->i Op false 0 uninterp0;
+  DIFFICULTY |->i Op false 0 uninterp0;
+  GASLIMIT |->i Op false 0 uninterp0;
+  CHAINID |->i Op false 0 uninterp0;
+  SELFBALANCE |->i Op false 0 uninterp0;
+  BASEFEE |->i Op false 0 uninterp0;
+  SLOAD |->i Op false 1 uninterp1;
+  MLOAD |->i Op false 1 uninterp1;
+  PC |->i Op false 0 uninterp0;
+  MSIZE |->i Op false 0 uninterp0;
+  GAS |->i Op false 0 uninterp0;
+  CREATE |->i Op false 3 uninterp3;
+  CREATE2 |->i Op false 4 uninterp4. 
 
 
 (* ================================================================= *)

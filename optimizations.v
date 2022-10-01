@@ -1685,7 +1685,7 @@ Import Optimizations.
 
 
 
-
+(*
 
 (* Joseba *)
 
@@ -2229,3 +2229,4 @@ Definition extract_asfs (a: option asfs) : asfs :=
   | Some a' => a'
   end.
 
+*)
