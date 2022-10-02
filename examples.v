@@ -149,7 +149,7 @@ let optimized_p := [PUSH 32 W5] in
 let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex2:
@@ -157,7 +157,7 @@ let optimized_p := [PUSH 32 W6] in
 let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker' opt optimized_p p stack_size = false.
+evm_eq_block_chkr' opt optimized_p p stack_size = false.
 Proof. auto. Qed.
 
 Example checker_ex3:
@@ -167,7 +167,7 @@ let p := [PUSH 32 W5;
           POP] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex3_comm:
@@ -179,7 +179,7 @@ let p := [PUSH 32 W5;
           Opcode ADD] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex4:
@@ -189,7 +189,7 @@ let p := [PUSH 32 W0;
           Opcode ADD] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex4b:
@@ -200,7 +200,7 @@ let p := [PUSH 32 W0;
           Opcode ADD] in
 let stack_size := 1 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex5:
@@ -212,7 +212,7 @@ let p := [PUSH 32 W5;
           Opcode MUL] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex6:
@@ -224,7 +224,7 @@ let p := [PUSH 32 W1;
           Opcode MUL] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 Example checker_ex_real:
@@ -233,7 +233,7 @@ let p := [DUP 2; Opcode ADD; SWAP 1; PUSH 32 W4; SWAP 2; SWAP 1; PUSH 32 W5] in
 let optimized_p := [DUP 2; Opcode ADD; PUSH 32 W4; SWAP 2; PUSH 32 W5] in
 let stack_size := 5 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size = true.
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 
@@ -247,14 +247,14 @@ let optimized_p := [PUSH 32 W5] in
 let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex2_bool :=
 let optimized_p := [PUSH 32 W6] in
 let p := [PUSH 32 W5] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex3_bool :=
 let optimized_p := [PUSH 32 W5] in
@@ -263,7 +263,7 @@ let p := [PUSH 32 W5;
           POP] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex3_comm_bool :=
 let optimized_p := [PUSH 32 W6;
@@ -274,7 +274,7 @@ let p := [PUSH 32 W5;
           Opcode ADD] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex4_bool :=
 let optimized_p := [PUSH 32 W5] in
@@ -283,7 +283,7 @@ let p := [PUSH 32 W0;
           Opcode ADD] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex4b_bool :=
 let optimized_p := [PUSH 32 W5; Opcode ADD] in
@@ -293,7 +293,7 @@ let p := [PUSH 32 W0;
           Opcode ADD] in
 let stack_size := 1 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex5_bool :=
 let optimized_p := [PUSH 32 W5] in
@@ -304,7 +304,7 @@ let p := [PUSH 32 W5;
           Opcode MUL] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex6_bool :=
 let optimized_p := [PUSH 32 W5] in
@@ -315,7 +315,7 @@ let p := [PUSH 32 W1;
           Opcode MUL] in
 let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 Example checker_ex_real_bool :=
 (* BottleCastle_initial_block_3_2*)
@@ -323,6 +323,6 @@ let p := [DUP 2; Opcode ADD; SWAP 1; PUSH 32 W4; SWAP 2; SWAP 1; PUSH 32 W5] in
 let optimized_p := [DUP 2; Opcode ADD; PUSH 32 W4; SWAP 2; PUSH 32 W5] in
 let stack_size := 5 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-equiv_checker' opt optimized_p p stack_size.
+evm_eq_block_chkr' opt optimized_p p stack_size.
 
 End Examples.

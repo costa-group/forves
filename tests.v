@@ -180,7 +180,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs asfs opmap = true.
+eq_sstate_chkr asfs asfs opmap = true.
 Proof.
 reflexivity. Qed.
 
@@ -193,7 +193,7 @@ let asfs2 := ASFSc 3 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-asfs_eq asfs1 asfs2 opmap = false.
+eq_sstate_chkr asfs1 asfs2 opmap = false.
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_eq_3:
@@ -205,7 +205,7 @@ let asfs2 := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 1; InStackVar 0])] in
-asfs_eq asfs1 asfs2 opmap = true.
+eq_sstate_chkr asfs1 asfs2 opmap = true.
 Proof.
 reflexivity. Qed.
 

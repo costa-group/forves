@@ -3072,7 +3072,7 @@ match s1, s2 with
 end.
 
 
-Definition asfs_eq (a1 a2: asfs) (ops: opm) : bool :=
+Definition eq_sstate_chkr (a1 a2: asfs) (ops: opm) : bool :=
 match a1, a2 with
 | ASFSc height1 maxid1 curr_stack1 amap1, 
   ASFSc height2 maxid2 curr_stack2 amap2 => 
@@ -3118,12 +3118,12 @@ Qed.
 
 Theorem asfs_eq_correctness:
   forall (a1 a2: asfs) (ops: opm),
-  asfs_eq a1 a2 ops = true ->
+  eq_sstate_chkr a1 a2 ops = true ->
   valid_stack_op_map ops ->
   eq_ss a1 a2 ops.
 Proof.
 intros.
-unfold asfs_eq in H.
+unfold eq_sstate_chkr in H.
 destruct a1 as [h1 mx1 s1 m1] eqn: eq_a1.
 destruct a2 as [h2 mx2 s2 m2] eqn: eq_a2.
 destruct (h1 =? h2) eqn: eq_h1_h2; try discriminate.
@@ -3144,7 +3144,7 @@ Theorem eq_sstate_chkr_snd: forall (sst1 sst2: asfs) (ops : opm),
 valid_stack_op_map ops ->
 (*valid_asfs sst1 ->
 valid_asfs sst2 ->*)
-asfs_eq sst1 sst2 ops = true ->
+eq_sstate_chkr sst1 sst2 ops = true ->
 eq_sstate sst1 sst2 ops.
 Proof.
 intros sst1 sst2 ops Hvalidops. (* Hvalid_sst1 Hvalid_sst2. *)

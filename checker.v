@@ -27,19 +27,19 @@ forall (p1 p2: block) (k: nat),
 chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k opmap.
 
 
-Definition equiv_checker (opt_p p: block) (height: nat)
+Definition evm_eq_block_chkr (opt_p p: block) (height: nat)
   : bool :=
 match symbolic_exec opt_p height opmap with
 | None => false
 | Some sfs1 => 
     match symbolic_exec p height opmap with 
     | None => false
-    | Some sfs2 => asfs_eq sfs1 sfs2 opmap
+    | Some sfs2 => eq_sstate_chkr sfs1 sfs2 opmap
     end
 end.
 
 
-Definition equiv_checker' (opt: optimization) (opt_p p: block) (height: nat) 
+Definition evm_eq_block_chkr' (opt: optimization) (opt_p p: block) (height: nat) 
   : bool :=
 match symbolic_exec opt_p height opmap with
 | None => false
@@ -47,7 +47,7 @@ match symbolic_exec opt_p height opmap with
     match symbolic_exec p height opmap with 
     | None => false
     | Some sfs2 => let (sfs3, _) := opt sfs2 in 
-                   asfs_eq sfs1 sfs3 opmap
+                   eq_sstate_chkr sfs1 sfs3 opmap
     end
 end.
 
@@ -56,7 +56,7 @@ Theorem equiv_checker'_correct: forall (opt_p p: block) (height: nat)
   (opt: optimization) (in_es: execution_state) 
   (in_stk: tstack),
 safe_optimization opt ->
-equiv_checker' opt opt_p p height = true ->
+evm_eq_block_chkr' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 exists (out_es_opt out_es_p: execution_state),
@@ -65,7 +65,7 @@ exists (out_es_opt out_es_p: execution_state),
  get_stack_es out_es_opt = get_stack_es out_es_p).
 Proof.
 intros.
-unfold equiv_checker' in H0.
+unfold evm_eq_block_chkr' in H0.
 destruct (symbolic_exec p height opmap) as [sfs_p|] eqn: eq_symb_exec_p;
   try (destruct (symbolic_exec opt_p height opmap); discriminate). 
 destruct (symbolic_exec opt_p height opmap) as [sfsopt_p|] eqn: eq_symb_exec_opt;
@@ -92,7 +92,7 @@ Qed.
 
 
 Theorem evm_eq_block_chkr'_snd: forall (opt: optimization), 
-safe_optimization opt -> eq_block_chkr_snd (equiv_checker' opt).
+safe_optimization opt -> eq_block_chkr_snd (evm_eq_block_chkr' opt).
 Proof.
 intros. unfold eq_block_chkr_snd. intros. unfold sem_eq_blocks. intros.
 pose proof (equiv_checker'_correct p1 p2 k opt in_st in_stk H H0 H1 H2)
@@ -114,13 +114,13 @@ Qed.
 
 
 Lemma eq_equiv_checker_optimize_ed:
-equiv_checker' optimize_id = equiv_checker.
+evm_eq_block_chkr' optimize_id = evm_eq_block_chkr.
 Proof.
 auto.
 Qed.
 
 
-Theorem evm_eq_block_chkr_snd: eq_block_chkr_snd equiv_checker.
+Theorem evm_eq_block_chkr_snd: eq_block_chkr_snd evm_eq_block_chkr.
 Proof.
 rewrite <- eq_equiv_checker_optimize_ed.
 apply evm_eq_block_chkr'_snd.
