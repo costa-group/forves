@@ -13,8 +13,33 @@ Import ListNotations.
 
 Module Checker.
 
+Definition sem_eq_blocks (p1 p2: block) (k: nat) (ops: opm) : Prop :=
+forall (in_st: execution_state) (in_stk: tstack),
+get_stack_es in_st = in_stk ->
+length in_stk = k ->
+exists (out_st : execution_state),
+concr_interpreter p1 in_st ops = Some out_st /\
+concr_interpreter p2 in_st ops = Some out_st.
 
-Definition equiv_checker (opt_p p: block) (height: nat) (opt: optimization) 
+
+Definition eq_block_chkr_snd (chkr : block -> block -> nat -> bool) : Prop :=
+forall (p1 p2: block) (k: nat),
+chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k opmap.
+
+
+Definition equiv_checker (opt_p p: block) (height: nat)
+  : bool :=
+match symbolic_exec opt_p height opmap with
+| None => false
+| Some sfs1 => 
+    match symbolic_exec p height opmap with 
+    | None => false
+    | Some sfs2 => asfs_eq sfs1 sfs2 opmap
+    end
+end.
+
+
+Definition equiv_checker' (opt: optimization) (opt_p p: block) (height: nat) 
   : bool :=
 match symbolic_exec opt_p height opmap with
 | None => false
@@ -27,12 +52,11 @@ match symbolic_exec opt_p height opmap with
 end.
 
 
-Search (valid_stack_op_map).
-Theorem equiv_checker_correct: forall (opt_p p: block) (height: nat) 
+Theorem equiv_checker'_correct: forall (opt_p p: block) (height: nat) 
   (opt: optimization) (in_es: execution_state) 
   (in_stk: tstack),
 safe_optimization opt ->
-equiv_checker opt_p p height opt = true ->
+equiv_checker' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 exists (out_es_opt out_es_p: execution_state),
@@ -41,7 +65,7 @@ exists (out_es_opt out_es_p: execution_state),
  get_stack_es out_es_opt = get_stack_es out_es_p).
 Proof.
 intros.
-unfold equiv_checker in H0.
+unfold equiv_checker' in H0.
 destruct (symbolic_exec p height opmap) as [sfs_p|] eqn: eq_symb_exec_p;
   try (destruct (symbolic_exec opt_p height opmap); discriminate). 
 destruct (symbolic_exec opt_p height opmap) as [sfsopt_p|] eqn: eq_symb_exec_opt;
@@ -65,6 +89,44 @@ rewrite -> eq_eval_p_with_opt in H3.
 rewrite -> eq_eval_sfs_opt in H3.
 injection H3. trivial.
 Qed.
+
+
+Theorem evm_eq_block_chkr'_snd: forall (opt: optimization), 
+safe_optimization opt -> eq_block_chkr_snd (equiv_checker' opt).
+Proof.
+intros. unfold eq_block_chkr_snd. intros. unfold sem_eq_blocks. intros.
+pose proof (equiv_checker'_correct p1 p2 k opt in_st in_stk H H0 H1 H2)
+  as [out_es_opt [out_es [Hconcr_p1 [Hconcr_p2 Heq_stacks]]]].
+exists out_es.
+destruct in_st as [stack mem storage] eqn: eq_in_st.
+destruct out_es as [stack_o mem_o storage_o] eqn: eq_out_st.
+destruct out_es_opt as [stack_op mem_op storage_op] eqn: eq_out_opt.
+apply concr_mem_storage_eq in Hconcr_p1 as HH. simpl in HH.
+apply concr_mem_storage_eq in Hconcr_p2 as HH'. simpl in HH'.
+rewrite -> Hconcr_p1. rewrite -> Hconcr_p2.
+destruct HH as [eq_mem_o eq_storage_o].
+destruct HH' as [eq_mem_op eq_storage_op].
+rewrite <- eq_mem_op. rewrite <- eq_mem_o. 
+rewrite <- eq_storage_op. rewrite <- eq_storage_o.
+simpl in Heq_stacks. rewrite -> Heq_stacks.
+auto.
+Qed.
+
+
+Lemma eq_equiv_checker_optimize_ed:
+equiv_checker' optimize_id = equiv_checker.
+Proof.
+auto.
+Qed.
+
+
+Theorem evm_eq_block_chkr_snd: eq_block_chkr_snd equiv_checker.
+Proof.
+rewrite <- eq_equiv_checker_optimize_ed.
+apply evm_eq_block_chkr'_snd.
+apply optimize_id_safe.
+Qed.
+
 
 End Checker.
 Import Checker.
