@@ -3142,12 +3142,12 @@ forall (st: execution_state), eval_sstate st sst1 ops =
 
 Theorem eq_sstate_chkr_snd: forall (sst1 sst2: asfs) (ops : opm),
 valid_stack_op_map ops ->
-(*valid_asfs sst1 ->
-valid_asfs sst2 ->*)
+valid_asfs sst1 ->
+valid_asfs sst2 ->
 eq_sstate_chkr sst1 sst2 ops = true ->
 eq_sstate sst1 sst2 ops.
 Proof.
-intros sst1 sst2 ops Hvalidops. (* Hvalid_sst1 Hvalid_sst2. *)
+intros sst1 sst2 ops Hvalidops Hvalid_sst1 Hvalid_sst2.
 unfold eq_sstate. intros.
 destruct sst1 as [h1 mx1 stack1 map1] eqn: eq_sst1.
 destruct sst2 as [h2 mx2 stack2 map2] eqn: eq_sst2.
