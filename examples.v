@@ -179,8 +179,21 @@ let p := [PUSH 32 W5;
           Opcode ADD] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
-evm_eq_block_chkr' opt optimized_p p stack_size = true.
+evm_eq_block_chkr optimized_p p stack_size = true.
 Proof. auto. Qed.
+
+
+(* TODO FIX *)
+Example checker_ex3_comm':
+let optimized_p := [PUSH 32 W6;
+                    PUSH 32 W5;
+                    Opcode ADD] in
+let p := [PUSH 32 (natToWord WLen 11)] in
+let stack_size := 10 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. simpl. unfold evm_eq_block_chkr'. 
+simpl (symbolic_exec [PUSH 32 W6; PUSH 32 W5; Opcode ADD] 10 opmap).  simpl. auto. Qed.
 
 Example checker_ex4:
 let optimized_p := [PUSH 32 W5] in

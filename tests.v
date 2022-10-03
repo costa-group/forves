@@ -215,6 +215,210 @@ End Tests_interpreter.
 Module Tests_optimizations.
 
 
+Example add_0_X_0:
+let map: asfs_map := [(100, ASFSOp ADD [Val WZero; FreshVar 50]); 
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_add_zero 100 map = Some (expected_map).
+Proof.
+reflexivity.
+Qed.
+
+Example add_0_X_0comm:
+let map: asfs_map := [(100, ASFSOp ADD [FreshVar 50; Val WZero]); 
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_add_zero 100 map = Some (expected_map).
+Proof.
+reflexivity.
+Qed.
+
+Example add_0_X_1:
+let map: asfs_map := [(100, ASFSOp ADD [FreshVar 75; FreshVar 50]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_add_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example add_0_X_1comm:
+let map: asfs_map := [(100, ASFSOp ADD [FreshVar 50;FreshVar 75]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_add_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+
+Example mul_1_X_0:
+let map: asfs_map := [(100, ASFSOp MUL [Val WOne; FreshVar 50]); 
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_one 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example mul_1_X_0comm:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 50; Val WOne]); 
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_one 100 map = Some (expected_map).
+Proof.
+reflexivity.
+Qed.
+
+Example mul_1_X_1:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 75; FreshVar 50]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WOne));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WOne));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_one 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+
+Example mul_1_X_1comm:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 50; FreshVar 75]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WOne));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WOne));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_one 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+
+
+Example mul_0_X_0:
+let map: asfs_map := [(100, ASFSOp MUL [Val WZero; FreshVar 50]); 
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (Val WZero)); 
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example mul_0_X_0comm:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 50; Val WZero]); 
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (Val WZero)); 
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example mul_0_X_1:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 75; FreshVar 50]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (Val WZero)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example mul_0_X_1comm:
+let map: asfs_map := [(100, ASFSOp MUL [FreshVar 50; FreshVar 75]); 
+                      (75,  ASFSBasicVal (FreshVar 60));
+                      (60,  ASFSBasicVal (Val WZero));
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map : asfs_map := [(100, ASFSBasicVal (Val WZero)); 
+                                (75,  ASFSBasicVal (FreshVar 60));
+                                (60,  ASFSBasicVal (Val WZero));
+                                (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_mul_zero 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+
+Example notnot_0:
+let map: asfs_map := [(100, ASFSOp NOT [FreshVar 75]); 
+                      (75,  ASFSOp NOT [FreshVar 50]);
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map: asfs_map := [(100, ASFSBasicVal (FreshVar 50)); 
+                               (75,  ASFSOp NOT [FreshVar 50]);
+                               (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_not_not 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
+Example notnot_1:
+let map: asfs_map := [(100, ASFSOp NOT [FreshVar 75]); 
+                      (75,  ASFSOp NOT [InStackVar 19]);
+                      (50,  ASFSBasicVal (InStackVar 8))] in
+let expected_map: asfs_map := [(100, ASFSBasicVal (InStackVar 19)); 
+                               (75,  ASFSOp NOT [InStackVar 19]);
+                               (50,  ASFSBasicVal (InStackVar 8))] in
+optimize_map_not_not 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
+
+Example eval_0:
+let map: asfs_map := 
+  [(100, ASFSOp MUL [Val (natToWord WLen 10); Val (natToWord WLen 10)])] in
+let expected_map : asfs_map := 
+  [(100, ASFSBasicVal (Val (natToWord WLen 100)))] in
+optimize_map_eval opmap 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
+Example eval_1:
+let map: asfs_map := 
+  [(100, ASFSOp MUL [FreshVar 75; Val (natToWord WLen 10)]);
+   (75, ASFSBasicVal (Val (natToWord WLen 2)))] in
+let expected_map : asfs_map := 
+  [(100, ASFSBasicVal (Val (natToWord WLen 20)));
+   (75, ASFSBasicVal (Val (natToWord WLen 2)))] in
+optimize_map_eval opmap 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
+Example eval_2:
+let map: asfs_map := 
+  [(100, ASFSOp ADD [FreshVar 75; FreshVar 50]);
+   (75, ASFSBasicVal (Val (natToWord WLen 2)));
+   (50, ASFSBasicVal (Val (natToWord WLen 7)))
+  ] in
+let expected_map : asfs_map := 
+  [(100, ASFSBasicVal (Val (natToWord WLen 9)));
+   (75, ASFSBasicVal (Val (natToWord WLen 2)));
+   (50, ASFSBasicVal (Val (natToWord WLen 7)))
+  ] in
+optimize_map_eval opmap 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
+Example eval_3:
+let map: asfs_map := 
+  [(100, ASFSOp ADD [FreshVar 75; FreshVar 50]);
+   (75, ASFSBasicVal (Val (natToWord WLen 2)));
+   (50, ASFSBasicVal (FreshVar 25));
+   (25, ASFSBasicVal (Val (natToWord WLen 15)))
+  ] in
+let expected_map : asfs_map := 
+  [(100, ASFSBasicVal (Val (natToWord WLen 17)));
+   (75, ASFSBasicVal (Val (natToWord WLen 2)));
+   (50, ASFSBasicVal (FreshVar 25));
+   (25, ASFSBasicVal (Val (natToWord WLen 15)))
+  ] in
+optimize_map_eval opmap 100 map = Some (expected_map).
+Proof. simpl. reflexivity. Qed.
+
 (* Counterexample for the NOT_NOT optimization with an arbitrary map with
    repetitions *)
 Example counterexample_notnot_any_ASFS:

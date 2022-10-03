@@ -39,7 +39,8 @@ rewrite -> H. rewrite -> H0. rewrite -> H1.
 reflexivity.
 Qed.
 
-Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+Lemma same_length_firstn_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1)
+  (l2: list T2),
 firstn_e n l1 = Some res1 ->
 length l1 = length l2 ->
 exists (res2: list T2), firstn_e n l2 = Some res2.
@@ -54,7 +55,8 @@ reflexivity.
 Qed.
 
 
-Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1) (l2: list T2),
+Lemma same_length_skip_e: forall (T1 T2: Type) (n: nat) (l1 res1: list T1)
+  (l2: list T2),
 skipn_e n l1 = Some res1 ->
 length l1 = length l2 ->
 exists (res2: list T2), skipn_e n l2 = Some res2.
@@ -378,7 +380,8 @@ match es with
 | ExState stack _ _ => stack
 end.
 
-Definition set_stack_es (es: execution_state) (stack: tstack) : execution_state :=
+Definition set_stack_es (es: execution_state) (stack: tstack) 
+  : execution_state :=
 match es with
 | ExState _ memory storage => ExState stack memory storage
 end.
@@ -388,7 +391,8 @@ match es with
 | ExState _ memory _ => memory
 end.
 
-Definition set_memory_es (es: execution_state) (memory: tmemory) : execution_state :=
+Definition set_memory_es (es: execution_state) (memory: tmemory) 
+  : execution_state :=
 match es with
 | ExState stack _ storage => ExState stack memory storage
 end.
@@ -398,7 +402,8 @@ match es with
 | ExState _ _ storage => storage
 end.
 
-Definition set_storage_es (es: execution_state) (storage: tstorage) : execution_state :=
+Definition set_storage_es (es: execution_state) (storage: tstorage)
+  : execution_state :=
 match es with
 | ExState stack memory _ => ExState stack memory storage
 end.
@@ -430,12 +435,14 @@ else match nth_error sk (pred k) with
 Definition swap {T: Type} (k : nat) (sk: list T) : option (list T) :=
 if ((k =? 0) || (16 <? k)) then None
 else match (nth_error sk k, sk) with
-     | (Some v, h::t) => Some ([v] ++ ((firstn (k-1) t)) ++ [h] ++ (skipn (k+1) sk))
+     | (Some v, h::t) => Some ([v] ++ ((firstn (k-1) t)) 
+                               ++ [h] ++ (skipn (k+1) sk))
      | _  => None
      end.
 
 (* version operating on execution states *)
-Definition push_c (v : EVMWord) (es : execution_state) : option execution_state :=
+Definition push_c (v : EVMWord) (es : execution_state)
+  : option execution_state :=
 let sk := get_stack_es es in
 match push v sk with
 | None => None
@@ -477,7 +484,8 @@ Qed.
 
 
 
-Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) (sk: tstack) : option execution_state :=
+Definition build_es_opt_stack (es: execution_state) (h: option EVMWord) 
+  (sk: tstack) : option execution_state :=
 match h with
 | None => None
 | Some v => Some (set_stack_es es (v :: sk))
@@ -499,7 +507,8 @@ match inst with
           match firstn_e nb_args insk with
           | Some args => match skipn_e nb_args insk with 
                          | Some insk' => match func args with 
-                                         | Some v => Some (set_stack_es es (v :: insk'))
+                                         | Some v => Some (set_stack_es es 
+                                                             (v :: insk'))
                                          | None => None
                                          end 
                          | None => None
@@ -527,10 +536,14 @@ End Interpreter.
 Module SFS.
 Include Interpreter.
 
-Definition get_height_asfs (a: asfs) : nat        := match a with ASFSc h _ _ _ => h end.
-Definition get_maxid_asfs  (a: asfs) : nat        := match a with ASFSc _ i _ _ => i end.
-Definition get_stack_asfs  (a: asfs) : asfs_stack := match a with ASFSc _ _ s _ => s end.
-Definition get_map_asfs    (a: asfs) : asfs_map   := match a with ASFSc _ _ _ m => m end.
+Definition get_height_asfs (a: asfs) : nat := 
+  match a with ASFSc h _ _ _ => h end.
+Definition get_maxid_asfs  (a: asfs) : nat :=
+  match a with ASFSc _ i _ _ => i end.
+Definition get_stack_asfs  (a: asfs) : asfs_stack := 
+  match a with ASFSc _ _ s _ => s end.
+Definition get_map_asfs (a: asfs) : asfs_map := 
+  match a with ASFSc _ _ _ m => m end.
 
 Definition set_height_asfs (a: asfs) (h': nat) : asfs := 
   match a with ASFSc h maxid s m => ASFSc h' maxid  s  m end.
