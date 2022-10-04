@@ -2,6 +2,7 @@ Require Import Arith.
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
+Require Import Coq.NArith.NArith.
 Require Import List.
 Import ListNotations.
 
@@ -195,6 +196,12 @@ match args with
  | _ => None
 end.
 
+Definition iszero (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a] => eq [a; WZero]
+ | _ => None
+end.
+
 Definition and (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wand a b)
@@ -213,6 +220,35 @@ match args with
  | _ => None
 end.
 
+Definition shl (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (wlshift' b (wordToNat a))
+| _ => None
+end.
+
+Definition shr (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (wrshift' b (wordToNat a))
+| _ => None
+end.
+
+Definition sub (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (wminus a b)
+| _ => None
+end.
+
+Definition exp (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (NToWord WLen (N.pow (wordToN a) (wordToN b)))
+| _ => None
+end.
+
+Definition div (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (wdiv a b)
+| _ => None
+end.
 
 Definition uninterp0 (args: list EVMWord) : option EVMWord :=
 match args with
@@ -273,27 +309,27 @@ Definition opmap : opm :=
   ADD |->i Op true 2 add;
   MUL |->i Op true 2 mul;
   NOT |->i Op false 1 not;
-  SUB |->i Op false 2 uninterp2;
-  DIV |->i Op false 2 uninterp2;
+  SUB |->i Op false 2 sub;
+  DIV |->i Op false 2 div;
   SDIV |->i Op false 2 uninterp2;
   MOD |->i Op false 2 uninterp2;
   SMOD |->i Op false 2 uninterp2;
   ADDMOD |->i Op false 3 uninterp3;
   MULMOD |->i Op false 3 uninterp3;
-  EXP |->i Op false 2 uninterp2;
+  EXP |->i Op false 2 exp;
   SIGNEXTEND |->i Op false 2 uninterp2;
   LT |->i Op false 2 uninterp2;
   GT |->i Op false 2 uninterp2;
   SLT |->i Op false 2 uninterp2;
   SGT |->i Op false 2 uninterp2;
   EQ |->i Op true 2 eq;
-  ISZERO |->i Op false 1 uninterp1;
+  ISZERO |->i Op false 1 iszero;
   AND |->i Op true 2 and;
   OR |->i Op true 2 or;
   XOR |->i Op true 2 xor;
   BYTE |->i Op false 2 uninterp2;
-  SHL |->i Op false 2 uninterp2;
-  SHR |->i Op false 2 uninterp2;
+  SHL |->i Op false 2 shl;
+  SHR |->i Op false 2 shr;
   SAR |->i Op false 2 uninterp2;
   SHA3 |->i Op false 2 uninterp2;
   KECCAK256 |->i Op false 2 uninterp2;
