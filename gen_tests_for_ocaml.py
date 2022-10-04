@@ -21,6 +21,7 @@ def is_pseudo_keyword(opcode: str) -> bool:
         return True
 
 
+
 def split_bytecode(raw_instruction_str: str) -> List[str]:
     raw_instruction_str = raw_instruction_str.replace("PUSH [tag]", "PUSHt" )
     ops = raw_instruction_str.split(' ')
@@ -90,6 +91,7 @@ def split_bytecode(raw_instruction_str: str) -> List[str]:
 
 
 
+
 def bin_to_word(b : str) :
     word = 'WO'
     for d in b:
@@ -116,20 +118,20 @@ def str_to_list(bytecode_str):
             out_seq.append(f'POP')
         elif instr == "PUSH":
             size = bytecode_seq[i+1]
-            value = encode_num(bytecode_seq[i+2])
-            out_seq.append(f'PUSH {size} {value}')
+            value = bytecode_seq[i+2]
+            out_seq.append(f'PUSH{size} {value}')
             i = i + 2
         elif re.fullmatch("DUP([0-9]+)",instr):
             match = re.fullmatch("DUP([0-9]+)",instr)
             size = match.groups()[0]
-            out_seq.append(f'DUP {size}')
+            out_seq.append(f'DUP{size}')
         elif instr.startswith("SWAP"):
             match = re.fullmatch("SWAP([0-9]+)",instr)
             size = match.groups()[0]
-            out_seq.append(f'SWAP {size}')
+            out_seq.append(f'SWAP{size}')
         else:
             idx = bytecode_vocab.index(instr) # just check the instruction is supported
-            out_seq.append(f'Opcode {instr}')
+            out_seq.append(instr)
 
         i = i + 1
     return out_seq
@@ -147,86 +149,22 @@ def print_test(bench_id,block_info, block_sfs):
         bytecode_as_list = str_to_list(block_info["previous_solution"])
         opt_bytecode_as_list = str_to_list(block_info["solution_found"])
 
-        bytecode = '; '.join(bytecode_as_list)
-        opt_bytecode = '; '.join(opt_bytecode_as_list)
-
+        bytecode = ' '.join(bytecode_as_list)
+        opt_bytecode = ' '.join(opt_bytecode_as_list)
         stack_size = len(block_sfs["src_ws"])
-        block_id = block_info["block_id"]
 
-        print('(*')
-        print(f' I: {block_info["previous_solution"]}')
-        print(f' O: {block_info["solution_found"]}')
-        print(f' k: {stack_size}')
-        print(f' l: {len(bytecode_as_list),len(opt_bytecode_as_list)}')
-        
-#        print(f' r: {block_sfs["rules"]}')
-        
-        print('*)')
-        # print(f'Compute ( "B{bench_id}_{block_id}"%string, ')
-        # print("          evm_eq_block_chkr'")
-        # print("          optimize_id")
-        # print(f'           [{opt_bytecode}]')
-        # print(f'           [{bytecode}]')
-        # print(f'           {stack_size}).')
-        # print()
-        print(f'Example B{bench_id}_{block_id} := ')
-        print("          evm_eq_block_chkr'")
-        print("          optimize_id")
-        print(f'           [{opt_bytecode}]')
-        print(f'           [{bytecode}]')
-        print(f'           {stack_size}.')
-        # print(f'Example B{bench_id}_{block_id}: ')
-        # print(f'          equiv_checker')
-        # print(f'           [{opt_bytecode}]')
-        # print(f'           [{bytecode}]')
-        # print(f'           {stack_size} optimize_id = true.')
-        # print(f'Proof. reflexivity. Qed.')
-        print()
-        return f"B{bench_id}_{block_id}"
+        print(opt_bytecode)
+        print(bytecode)
+        print(stack_size)
     except Exception as e:
-        print('(*')
-        print(f' I: {block_info["previous_solution"]}')
-        print(f' O: {block_info["solution_found"]}')
-        print(f' B{bench_id}_{block_info["block_id"]} ')
-        print()
-        print('  Error occured while translating to Coq')
-        print()
-        print(f'  Exception: {e}')
-        print('*)')
-        print()
         return None
-
 
 #
 #
 def gen_tests(paths):
-
-    print('Require Import Arith.')
-    print('Require Import Nat.')
-    print('Require Import Bool.')
-    print('Require Import bbv.Word.')
-    print('Require Import List.')
-    print('Require Import Coq_EVM.optimizations.')
-    print('Import Optimizations.')
-    print('Require Import Coq_EVM.definitions.')
-    print('Import EVM_Def Concrete Abstract Optimizations.')
-    print('Require Import Coq_EVM.interpreter.')
-    print('Import Interpreter SFS.')
-    print('Require Import Coq_EVM.checker.')
-    print('Import Checker.')
-    print('Import ListNotations.')
-    print('Require Import Coq.Arith.Arith Coq.Arith.Div2 Coq.NArith.NArith Coq.Bool.Bool Coq.ZArith.ZArith.')
-    print('From Coq Require Export String.')
-    print()
-    print('Definition optimize_id (a: asfs) : asfs*bool := (a, false).')
-    print()
-
     all_ex = []
     i = 0
     for path in paths:
-        print()
-        print(f'(* Examples from {path} *)')
-        print()
         csv_dir = f'{path}/csv'
         for csv_filename in os.listdir(csv_dir):
             csv_filename_noext = os.path.splitext(csv_filename)[0]
@@ -236,17 +174,8 @@ def gen_tests(paths):
                     block_id = block_info['block_id']
                     with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
                         block_sfs = json.load(f)
-                        ex_id = print_test(i, block_info, block_sfs)
-                        if ex_id is not None:
-                            all_ex.append(ex_id)  
-                        # for r in block_sfs["rules"]:
-                        #     if len(r)>0:
-                        #         print(f'> {r}')
+                        print_test(i, block_info, block_sfs)
                         i = i + 1
-
-    print()
-    all_ex = '; '.join(all_ex)
-    print(f'Example all_ex := [{all_ex}]. ')
 
 
 # Usage example:

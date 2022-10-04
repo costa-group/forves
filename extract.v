@@ -21,25 +21,14 @@
     - Extract bbv library Word into an efficient type. *)
 
 
-(* Standar Library *)
+From Coq Require Import Strings.String.
 Require Import List.
 Import ListNotations.
-
-(* Our Modules *)
-Require Import Coq_EVM.definitions. 
-Import EVM_Def Concrete Abstract Optimizations.
-Require Import Coq_EVM.interpreter.
-Import Interpreter SFS.
-Require Import Coq_EVM.optimizations.
-Import Optimizations. (* JOSEBA: Change module names to avoid naming collision*)
-Require Import Coq_EVM.checker.
-Import Checker. 
-Require Import Coq_EVM.examples.
-Import Examples.
-
-(* Program Extraction: OCaml as default *) 
+Require Import Coq_EVM.parser.
+Import Parser.
 Import Extraction.
-
+From Coq Require Import extraction.ExtrOcamlString.
+Import ExtrOcamlString.
 
 (** Type Extractions **)
 Extract Inductive bool => "bool" [ "true" "false" ].
@@ -50,5 +39,5 @@ Extract Inductive prod => "( * )" [ "( , )" ].
 (*  Examples from example.v are extracted and directly tested.
     After running the next line, use "make run" in order to compile and
     run the test_examples.ml file. *)
-Extraction Examples.
-Extraction "extraction/examples.ml" Examples. 
+Extraction Parser.
+Extraction "ocaml_interface/checker.ml" Parser. 
