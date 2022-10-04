@@ -20,7 +20,6 @@
     - Extract nat into an efficient type.
     - Extract bbv library Word into an efficient type. *)
 
-
 From Coq Require Import Strings.String.
 Require Import List.
 Import ListNotations.
