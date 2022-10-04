@@ -52,6 +52,20 @@ match symbolic_exec opt_p height opmap with
 end.
 
 
+Definition evm_eq_block_chkr'' (opt: optimization) (opt_p p: block) (height: nat) 
+  : bool :=
+match symbolic_exec opt_p height opmap with
+| None => false
+| Some sfs1 => 
+    match symbolic_exec p height opmap with 
+    | None => false
+    | Some sfs2 => let (sfs3, _) := opt sfs2 in 
+                   let (sfs4, _) := opt sfs1 in
+                   eq_sstate_chkr sfs4 sfs3 opmap
+    end
+end.
+
+
 Theorem equiv_checker'_correct: forall (opt_p p: block) (height: nat) 
   (opt: optimization) (in_es: execution_state) 
   (in_stk: tstack),
