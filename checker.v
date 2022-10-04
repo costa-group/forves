@@ -51,6 +51,65 @@ match symbolic_exec opt_p height opmap with
     end
 end.
 
+(* Debugging version *)
+Require Import Coq.NArith.NArith.
+Inductive hasfs_stack_val : Type :=
+  | HVal (val: N)
+  | HInStackVar (var: nat)
+  | HFreshVar (var: nat).
+Inductive hasfs_map_val : Type :=
+  | HASFSBasicVal (val: hasfs_stack_val)
+  | HASFSOp (opcode : oper_label) (args : list hasfs_stack_val).
+Definition hasfs_stack  := list hasfs_stack_val.
+Definition hasfs_map    := list (nat*hasfs_map_val).
+Inductive hasfs : Type :=
+  | HASFSc (height maxid: nat) (s: hasfs_stack) (m: hasfs_map).
+
+Definition asfs_stack_val_to_human (h: asfs_stack_val) : hasfs_stack_val :=
+match h with
+| Val v => HVal (wordToN v)
+| InStackVar n => HInStackVar n
+| FreshVar n => HFreshVar n
+end.
+Fixpoint s_to_human (s: asfs_stack) : hasfs_stack :=
+match s with
+| [] => []
+| h::t => (asfs_stack_val_to_human h)::(s_to_human t)
+end.
+Definition asfs_map_val_to_human (v: asfs_map_val) : hasfs_map_val :=
+match v with
+| ASFSBasicVal v => HASFSBasicVal (asfs_stack_val_to_human v)
+| ASFSOp opcode args => HASFSOp opcode 
+    (List.map asfs_stack_val_to_human args)
+end.
+Fixpoint map_to_human (m: asfs_map) : hasfs_map :=
+match m with
+| [] => []
+| (k,v)::t => (k,asfs_map_val_to_human v)::(map_to_human t)
+end.
+Definition asfs_to_human (a: asfs) : hasfs :=
+match a with
+| ASFSc he mx s m => HASFSc he mx (s_to_human s) (map_to_human m)
+end.
+  
+Definition evm_eq_block_chkr'_dbg (opt: optimization) (opt_p p: block) 
+  (height: nat) : hasfs*hasfs*bool :=
+match symbolic_exec opt_p height opmap with
+| None => (asfs_to_human (empty_asfs height),
+           asfs_to_human (empty_asfs height),
+           false)
+| Some sfs1 => 
+    match symbolic_exec p height opmap with 
+    | None => (asfs_to_human sfs1,
+               asfs_to_human (empty_asfs height),
+               false)
+    | Some sfs2 => let (sfs3, _) := opt sfs2 in 
+                   (asfs_to_human sfs1, 
+                    asfs_to_human sfs3,
+                    eq_sstate_chkr sfs1 sfs3 opmap)
+    end
+end.
+
 
 Definition evm_eq_block_chkr'' (opt: optimization) (opt_p p: block) (height: nat) 
   : bool :=
