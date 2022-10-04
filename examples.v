@@ -183,17 +183,32 @@ evm_eq_block_chkr optimized_p p stack_size = true.
 Proof. auto. Qed.
 
 
-(* TODO FIX *)
-Example checker_ex3_comm':
-let optimized_p := [PUSH 32 W6;
-                    PUSH 32 W5;
-                    Opcode ADD] in
-let p := [PUSH 32 (natToWord WLen 11)] in
+Example checker_ex3_comm_eval:
+let p := [PUSH 32 W6; PUSH 32 W5; Opcode ADD] in
+let optimized_p := [PUSH 32 (natToWord WLen 11)] in
 let stack_size := 10 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
 evm_eq_block_chkr' opt optimized_p p stack_size = true.
-Proof. simpl. unfold evm_eq_block_chkr'. 
-simpl (symbolic_exec [PUSH 32 W6; PUSH 32 W5; Opcode ADD] 10 opmap).  simpl. auto. Qed.
+Proof. reflexivity. Qed.
+
+Example checker_eval1:
+let p := [PUSH 32 W5; PUSH 32 W5; Opcode ADD;
+          PUSH 32 W2; Opcode MUL] in
+let optimized_p := [PUSH 32 (natToWord WLen 20)] in
+let stack_size := 3 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_eval1':
+let p := [PUSH 32 W4; PUSH 32 W5; Opcode ADD;
+          PUSH 32 W2; DUP 1; Opcode MUL] in
+let optimized_p := [PUSH 32 W9; PUSH 32 W4] in
+let stack_size := 4 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
 
 Example checker_ex4:
 let optimized_p := [PUSH 32 W5] in
@@ -239,6 +254,238 @@ let stack_size := 0 in
 let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
 evm_eq_block_chkr' opt optimized_p p stack_size = true.
 Proof. auto. Qed.
+
+Example checker_ex_div1:
+let optimized_p := [PUSH 32 W6] in
+let p := [PUSH 32 W1;
+          PUSH 32 W6;
+          Opcode DIV] in
+let stack_size := 1 in
+evm_eq_block_chkr' optimize_div_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_div2:
+let optimized_p := [] in
+let p := [PUSH 32 W1; SWAP 1; Opcode DIV] in
+let stack_size := 1 in
+evm_eq_block_chkr' optimize_div_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_div2':
+let optimized_p := [] in
+let p := [PUSH 32 W1; SWAP 1; Opcode DIV] in
+let stack_size := 1 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+Example checker_ex_eq0_1:
+let p := [PUSH 32 W0; PUSH 32 W5; Opcode EQ] in
+let optimized_p := [PUSH 32 W5; Opcode ISZERO] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_eq_zero optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_eq0_2:
+let p := [PUSH 32 W5; PUSH 32 W0; Opcode EQ] in
+let optimized_p := [PUSH 32 W5; Opcode ISZERO] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_eq_zero optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_eq0_3:
+let p := [PUSH 32 W0; Opcode EQ] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 2 in
+evm_eq_block_chkr' optimize_eq_zero optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_eq0_4:
+let p := [PUSH 32 W0; Opcode MUL; Opcode EQ] in
+let optimized_p := [POP; Opcode ISZERO] in
+let stack_size := 2 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+Example checker_ex_gt1_1:
+let p := [PUSH 32 W5; PUSH 32 W1; Opcode GT] in
+let optimized_p := [PUSH 32 W5; Opcode ISZERO] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_gt_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_gt1_2:
+let p := [PUSH 32 W1; Opcode GT] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 2 in
+evm_eq_block_chkr' optimize_gt_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_gt1_3:
+let p := [PUSH 32 W1; PUSH 32 W0; Opcode ADD; Opcode GT] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 2 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+
+Example checker_ex_or0_1:
+let p := [PUSH 32 W0; PUSH 32 W5; Opcode OR] in
+let optimized_p := [PUSH 32 W5] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_or_zero optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_or0_1':
+let p := [PUSH 32 W5; PUSH 32 W0; Opcode OR] in
+let optimized_p := [PUSH 32 W5] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_or_zero optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_or0_2:
+let p := [PUSH 32 W0; Opcode OR] in
+let optimized_p := [] in
+let stack_size := 5 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_or0_3:
+let p := [PUSH 32 W0; Opcode MUL; Opcode OR] in
+let optimized_p := [POP] in
+let stack_size := 5 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+Example checker_ex_subxx_0:
+let p := [PUSH 32 W5; PUSH 32 W5; Opcode SUB] in
+let optimized_p := [PUSH 32 W0] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_sub_x_x optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_subxx_1:
+let p := [PUSH 32 W3; PUSH 32 W2; Opcode ADD;
+          PUSH 32 W2; PUSH 32 W3; Opcode ADD;
+          Opcode SUB] in
+let optimized_p := [PUSH 32 W0] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_sub_x_x optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_subxx_2:
+let p := [PUSH 32 W3; PUSH 32 W2; Opcode ADD;
+          PUSH 32 W5; PUSH 32 W1; Opcode MUL;
+          Opcode SUB] in
+let optimized_p := [PUSH 32 W0] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+
+Example checker_ex_iszero3_0:
+let p := [Opcode ISZERO; Opcode ISZERO; Opcode ISZERO] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 7 in
+evm_eq_block_chkr' optimize_iszero3 optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_iszero3_1:
+let p := [PUSH 32 WZero; Opcode ISZERO; Opcode ISZERO; Opcode ISZERO] in
+let optimized_p := [PUSH 32 WOne] in
+let stack_size := 3 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. simpl. reflexivity. Qed.
+
+Example checker_counterex_iszero3_2:
+(* REASON: optimized_p is optimized applying "iszero3" but it does not apply the
+   last possible "eval" optimization *)
+let p := [PUSH 32 WZero; Opcode ISZERO; Opcode ISZERO; Opcode ISZERO] in
+let optimized_p := [PUSH 32 WZero; Opcode ISZERO] in
+let stack_size := 3 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = false.
+Proof. simpl. reflexivity. Qed.
+
+
+
+Example checker_ex_and_and_l_0:
+let p := [DUP 2; Opcode AND; Opcode AND] in
+let optimized_p := [Opcode AND] in
+let stack_size := 2 in
+evm_eq_block_chkr' optimize_and_and_l optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_l_1:
+let p := [PUSH 32 W5; PUSH 32 W1; PUSH 32 W5; Opcode AND; Opcode AND] in
+let optimized_p := [PUSH 32 W1; PUSH 32 W5; Opcode AND] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_and_and_l optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_l_2:
+let p := [PUSH 32 W5; PUSH 32 W1; PUSH 32 W5; Opcode AND; Opcode AND] in
+let optimized_p := [PUSH 32 W1] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_l_3:
+let p := [DUP 2; PUSH 32 W1; Opcode MUL; Opcode AND; Opcode AND] in
+let optimized_p := [Opcode AND] in
+let stack_size := 2 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+
+Example checker_ex_and_and_r_0:
+let p := [DUP 2; Opcode AND; SWAP 1; Opcode AND] in
+let optimized_p := [Opcode AND] in
+let stack_size := 2 in
+evm_eq_block_chkr' optimize_and_and_r optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_r_1:
+let p := [PUSH 32 W5; PUSH 32 W1; Opcode AND; PUSH 32 W5; Opcode AND] in
+let optimized_p := [PUSH 32 W5; PUSH 32 W1; Opcode AND] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_and_and_r optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_r_2:
+let p := [PUSH 32 W5; PUSH 32 W1; Opcode AND; PUSH 32 W5; Opcode AND] in
+let optimized_p := [PUSH 32 W1] in
+let stack_size := 0 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_and_and_r_3:
+let p := [DUP 2; PUSH 32 W1; Opcode MUL; Opcode AND; SWAP 1; Opcode AND] in
+let optimized_p := [Opcode AND] in
+let stack_size := 2 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 20 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+
+
+
 
 Example checker_ex_real:
 (* BottleCastle_initial_block_3_2*)

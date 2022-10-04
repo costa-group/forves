@@ -343,6 +343,20 @@ try (
 - (* NOT *)
   rw_coherent H eq_func H0 eq_nb_args.
   oper_1_coherent_tac l H0 (@wnot WLen).
+- (* SUB *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wminus WLen).
+- (* DIV *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  oper_2_coherent_tac l H0 (@wdiv WLen).
+- (* EXP *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl.
+  exists (NToWord WLen (BinNat.N.pow (wordToN a) (wordToN b))).
+  reflexivity.
 - (* EQ*)
   rw_coherent H eq_func H0 eq_nb_args.
   destruct l as [|a r1]; try (simpl in H0; discriminate).
@@ -351,6 +365,12 @@ try (
   simpl.
   exists ((if weqb a b then WOne else WZero)).
   reflexivity.
+- (* ISZERO *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate).
+  simpl. 
+  exists (if weqb a WZero then WOne else WZero). reflexivity.
 - (* AND *)
   rw_coherent H eq_func H0 eq_nb_args.
   oper_2_coherent_tac l H0 (@wand WLen).
@@ -359,7 +379,21 @@ try (
   oper_2_coherent_tac l H0 (@wor WLen).
 - (* XOR *)
   rw_coherent H eq_func H0 eq_nb_args.
-  oper_2_coherent_tac l H0 (@wxor WLen).  
+  oper_2_coherent_tac l H0 (@wxor WLen).
+- (* SHL *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl.
+  exists (wlshift' b (wordToNat a)). reflexivity.
+- (* SHR *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl.
+  exists (wrshift' b (wordToNat a)). reflexivity.
 Qed.
 
 Theorem evm_stack_opm_validity: valid_stack_op_map opmap.

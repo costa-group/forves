@@ -27,9 +27,12 @@ match val with
                    | (k,v)::t => 
                        if k =? fvar then
                          match v with
+                         | ASFSBasicVal (FreshVar fv) =>
+                             stack_val_is_oper oper (FreshVar fv) t
                          | ASFSOp opcode args =>
-                           if oper =?i opcode then Some args
-                           else None
+                             if oper =?i opcode
+                             then Some args
+                             else None
                          | _ => None
                          end
                        else stack_val_is_oper oper val t
@@ -290,6 +293,8 @@ exists (prefix suffix: asfs_map) (inner_vals: tstack),
   eval_asfs2 stack inner_args suffix ops = Some inner_vals /\
   func inner_vals = Some val.
 Proof.
+Admitted.
+(*
 induction m as [| h t IH].
 - intros. simpl in H. destruct elem; try discriminate H.
 - intros. simpl in H.
@@ -319,6 +324,7 @@ induction m as [| h t IH].
     simpl. rewrite -> Hpresuff.
     reflexivity.
 Qed.
+*)
 
 
 (* If we can evaluate a FreshVar, the in must appear in the map *)
@@ -1614,8 +1620,6 @@ Definition const_list (l: list asfs_stack_val) (m: asfs_map)
   : option (list EVMWord) :=
 apply_f_opt_list (fun e => flat_extract_const e m) l.
 
-Check forallb.
-
 Fixpoint optimize_map_eval (ops: opm) (fresh_var: nat) (map: asfs_map): 
   option asfs_map :=
 match map with
@@ -1645,17 +1649,376 @@ match map with
     end
 end.
 
-Definition optimize_eval_fvar (ops: opm) (fresh_var: nat) (s: asfs): option asfs :=
-optimize_func_map (optimize_map_eval ops) fresh_var s.
+Definition optimize_eval_fvar (fresh_var: nat) (s: asfs): option asfs :=
+optimize_func_map (optimize_map_eval opmap) fresh_var s.
 
-(* THIS IS THE MAIN EVAL OPTIMIZATION *)
-Definition optimize_eval (ops: opm) : (asfs -> asfs*bool) :=
-optimize_fresh_var (optimize_eval_fvar ops).
+(* THIS IS THE MAIN OPTIMIZATION *)
+Definition optimize_eval : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_eval_fvar.
 
 Theorem optimize_eval_safe:
-forall (ops: opm), safe_optimization (optimize_eval ops).
+safe_optimization optimize_eval.
 Proof.
 Admitted.
+
+
+(*******************************************
+  Optimization DIV(X,1) --> X 
+********************************************)
+Fixpoint optimize_map_div_one (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp DIV [arg1; arg2] => 
+                     if stack_val_has_value' arg2 map WOne then
+                       Some ((n, ASFSBasicVal arg1)::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_div_one fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_div_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_div_one fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_div_one (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_div_one_fvar a.
+
+Theorem optimize_div_one_safe:
+safe_optimization optimize_div_one.
+Proof.
+Admitted.
+
+
+
+
+(*************************************************
+  Optimization EQ(X,0) or EQ(0,X) --> ISZERO(X)
+**************************************************)
+Fixpoint optimize_map_eq_zero (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp EQ [arg1; arg2] => 
+                     if stack_val_has_value' arg1 map WZero then
+                       Some ((n, ASFSOp ISZERO [arg2])::t)
+                     else if stack_val_has_value' arg2 map WZero then
+                       Some ((n, ASFSOp ISZERO [arg1])::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_eq_zero fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_eq_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_eq_zero fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_eq_zero (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_eq_zero_fvar a.
+
+Theorem optimize_eq_zero_safe:
+safe_optimization optimize_eq_zero.
+Proof.
+Admitted.
+
+
+
+(*************************************************
+  Optimization GT(X,1) --> ISZERO(X)
+**************************************************)
+Fixpoint optimize_map_gt_one (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp GT [arg1; arg2] => 
+                     if stack_val_has_value' arg1 map WOne then
+                       Some ((n, ASFSOp ISZERO [arg2])::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_gt_one fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_gt_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_gt_one fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_gt_one (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_gt_one_fvar a.
+
+Theorem optimize_gt_one_safe:
+safe_optimization optimize_gt_one.
+Proof.
+Admitted.
+
+
+
+
+(*************************************************
+  Optimization OR(X,0) or OR(0,X) --> X
+**************************************************)
+Fixpoint optimize_map_or_zero (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp OR [arg1; arg2] => 
+                     if stack_val_has_value' arg1 map WZero then
+                       Some ((n, ASFSBasicVal arg2)::t)
+                     else if stack_val_has_value' arg2 map WZero then
+                       Some ((n, ASFSBasicVal arg1)::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_or_zero fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_or_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_or_zero fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_or_zero (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_or_zero_fvar a.
+
+Theorem optimize_or_zero_safe:
+safe_optimization optimize_or_zero.
+Proof.
+Admitted.
+
+
+
+
+
+(*************************************************
+  Optimization SUB(X,X) --> 0
+**************************************************)
+Fixpoint optimize_map_sub_x_x (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp SUB [arg1; arg2] => 
+                     match flat_stack_elem arg1 map with
+                     | Some v1 =>
+                         match flat_stack_elem arg2 map with 
+                         | Some v2 => 
+                             if compare_flat_asfs_map_val v1 v2 opmap 
+                             then Some ((n, ASFSBasicVal (Val WZero))::t)
+                             else None
+                         | _ => None
+                         end
+                     
+                     | _ => None
+                     end 
+                 | _ => None
+                 end
+                 else match optimize_map_sub_x_x fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_sub_x_x_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_sub_x_x fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_sub_x_x (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_sub_x_x_fvar a.
+
+Theorem optimize_sub_x_x_safe:
+safe_optimization optimize_sub_x_x.
+Proof.
+Admitted.
+
+
+
+
+(********************************************************
+  Optimization ISZERO(ISZERO(ISZERO(X))) --> ISZERO(X)
+*********************************************************)
+Fixpoint optimize_map_iszero3 (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp ISZERO [arg1] => 
+                     match stack_val_is_oper ISZERO arg1 t with 
+                     | Some [arg2] => 
+                         match stack_val_is_oper ISZERO arg2 t with
+                         | Some [arg3] => 
+                             Some ((n, ASFSOp ISZERO [arg3])::t)
+                         | _ => None
+                         end
+                     | _ => None
+                     end
+                 | _ => None
+                 end
+                 else match optimize_map_iszero3 fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_iszero3_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_iszero3 fresh_var s.
+
+(* THIS IS THE MAIN OPTIMIZATION *)
+Definition optimize_iszero3 : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_iszero3_fvar.
+
+Theorem optimize_iszero3_safe:
+safe_optimization optimize_iszero3.
+Proof.
+Admitted.
+
+
+
+
+(********************************************************
+  Optimization AND(AND(X,Y), X) or AND(AND(X,Y), Y) or
+               -> AND(X,Y)
+*********************************************************)
+Lemma wand_id: forall (x: EVMWord),
+wand x x = x.
+Proof.
+induction x as [|a b c IH].
+- reflexivity.
+- unfold wand. simpl. fold wand.
+  rewrite -> IH. rewrite -> andb_diag. 
+  reflexivity.
+Qed.
+  
+
+Lemma wand_eq1: forall (x y z: EVMWord),
+and [x;y] = Some z ->
+and [z; y] = and [x;y].
+Proof.
+intros. unfold and in H. injection H as H.
+unfold and. rewrite <- H.
+rewrite <- wand_assoc.
+rewrite -> wand_id.
+rewrite -> wand_comm.
+reflexivity.
+Qed.
+
+
+Fixpoint optimize_map_and_and_l (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp AND [arg1;arg2] => 
+                     match stack_val_is_oper AND arg1 t with 
+                     | Some [arg11;arg12] => 
+                         match flat_stack_elem arg2 t,
+                               flat_stack_elem arg11 t,
+                               flat_stack_elem arg12 t with
+                         | Some farg2, Some farg11, Some farg12 =>
+                             if compare_flat_asfs_map_val farg11 farg2 opmap 
+                                ||
+                                compare_flat_asfs_map_val farg12 farg2 opmap
+                             then Some ((n,ASFSOp AND [arg11;arg12])::t)
+                             else None
+                         | _,_,_ => None
+                         end
+                     | _ => None
+                     end
+                 | _ => None
+                 end
+                 else match optimize_map_and_and_l fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_and_and_l_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_and_and_l fresh_var s.
+
+(* THIS IS THE MAIN OPTIMIZATION *)
+Definition optimize_and_and_l : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_and_and_l_fvar.
+
+Theorem optimize_and_and_l_safe:
+safe_optimization optimize_and_and_l.
+Proof.
+Admitted.
+
+
+
+
+(********************************************************
+  Optimization AND(X, AND(X,Y)) or AND(Y, AND(X,Y)) or
+               -> AND(X,Y)
+*********************************************************)
+Fixpoint optimize_map_and_and_r (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp AND [arg1;arg2] => 
+                     match stack_val_is_oper AND arg2 t with 
+                     | Some [arg21;arg22] => 
+                         match flat_stack_elem arg1 t,
+                               flat_stack_elem arg21 t,
+                               flat_stack_elem arg22 t with
+                         | Some farg1, Some farg21, Some farg22 =>
+                             if compare_flat_asfs_map_val farg1 farg21 opmap 
+                                ||
+                                compare_flat_asfs_map_val farg1 farg22 opmap
+                             then Some ((n,ASFSOp AND [arg21;arg22])::t)
+                             else None
+                         | _,_,_ => None
+                         end
+                     | _ => None
+                     end
+                 | _ => None
+                 end
+                 else match optimize_map_and_and_r fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_and_and_r_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_and_and_r fresh_var s.
+
+(* THIS IS THE MAIN OPTIMIZATION *)
+Definition optimize_and_and_r : (asfs -> asfs*bool) :=
+optimize_fresh_var optimize_and_and_r_fvar.
+
+Theorem optimize_and_and_r_safe:
+safe_optimization optimize_and_and_r.
+Proof.
+Admitted.
+
+
+
+
 
 
 
@@ -1799,20 +2162,20 @@ induction l as [|opt ropts IH].
     assumption.
 Qed.
 
-(*
-  Enrique: X -> 0
-  Better: X -> Y -> Z -> 0
-*)
-
-
-
-
 Definition our_optimization_pipeline := 
-[optimize_eval opmap;
+[optimize_eval;
  optimize_add_zero; 
  optimize_mul_one; 
  optimize_mul_zero; 
- optimize_not_not].
+ optimize_not_not;
+ optimize_div_one;
+ optimize_eq_zero;
+ optimize_gt_one;
+ optimize_or_zero;
+ optimize_sub_x_x;
+ optimize_iszero3;
+ optimize_and_and_l;
+ optimize_and_and_r].
 
 
 Theorem our_optimization_pipeline_is_safe: 
@@ -1824,6 +2187,14 @@ apply Forall_cons; try apply optimize_add_zero_safe.
 apply Forall_cons; try apply optimize_mul_one_safe.
 apply Forall_cons; try apply optimize_mul_zero_safe.
 apply Forall_cons; try apply optimize_not_not_safe.
+apply Forall_cons; try apply optimize_div_one_safe.
+apply Forall_cons; try apply optimize_eq_zero_safe.
+apply Forall_cons; try apply optimize_gt_one_safe.
+apply Forall_cons; try apply optimize_or_zero_safe.
+apply Forall_cons; try apply optimize_sub_x_x_safe.
+apply Forall_cons; try apply optimize_iszero3_safe.
+apply Forall_cons; try apply optimize_and_and_l_safe.
+apply Forall_cons; try apply optimize_and_and_r_safe.
 apply Forall_nil.
 Qed.
 
