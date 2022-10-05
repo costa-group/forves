@@ -1627,19 +1627,21 @@ match map with
 | (n, val)::t => 
     if n =? fresh_var then
     match val with
-    | ASFSOp oper args => 
-        match const_list args t with
-        | Some wargs => 
-            match ops oper with
-            | Some (Op comm nargs f) => 
-                match f wargs with
-                | Some v => Some ((n, ASFSBasicVal (Val v))::t)
-                | None => None
-                end
-            | None => None
-            end
-        | None => None
-        end
+    | ASFSOp oper args =>
+        if (is_fully_defined oper) then
+          match const_list args t with
+          | Some wargs => 
+              match ops oper with
+              | Some (Op comm nargs f) => 
+                  match f wargs with
+                  | Some v => Some ((n, ASFSBasicVal (Val v))::t)
+                  | None => None
+                  end
+              | None => None
+              end
+          | None => None
+          end
+        else None
     | _ => None
     end
     else

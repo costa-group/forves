@@ -285,6 +285,38 @@ Definition block_eq (p_opt p k : string) :=
                end
   end.
 
+Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
+Definition opt2 := (apply_pipeline_n_times [optimize_eval;optimize_eval;optimize_eval;optimize_or_zero] 50).
 
+
+Definition block_eq_1 (p_opt p k : string) :=
+  match (parse_block p_opt) with
+  | None => None
+  | Some b1 => match (parse_block p) with
+               | None => None
+               | Some b2 => match (parse_block p) with
+                            | None => None
+                            | Some b2 => match (parseDecNumber k) with
+                                         | Some v => Some (evm_eq_block_chkr' opt b1 b2 v)
+                                         | None => None
+                                         end
+                            end
+               end
+  end.
+
+Definition block_eq_2 (p_opt p k : string) :=
+  match (parse_block p_opt) with
+  | None => None
+  | Some b1 => match (parse_block p) with
+               | None => None
+               | Some b2 => match (parse_block p) with
+                            | None => None
+                            | Some b2 => match (parseDecNumber k) with
+                                         | Some v => Some (evm_eq_block_chkr'' opt b1 b2 v)
+                                         | None => None
+                                         end
+                            end
+               end
+  end.
 
 End Parser.

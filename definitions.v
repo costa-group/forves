@@ -168,7 +168,6 @@ destruct a; try (destruct b; intuition).
 Qed.
 
 
-
 (* ================================================================= *)
 (** ** Implementation of current instructions *)
 
@@ -304,6 +303,33 @@ Notation "x '|->n' v" := (updaten empty_nmap x v)
   (at level 100).
   
 Definition opm := map oper_label operator.
+  
+
+Definition fully_defined := [
+  ADD;
+  MUL;
+  NOT;
+  SUB;
+  DIV;
+  EXP;
+  EQ ;
+  ISZERO;
+  AND;
+  OR;
+  XOR;
+  SHL;
+  SHR
+  ].
+                                           
+Definition is_fully_defined (i : oper_label) :=
+  let  fix f ( l : list oper_label) :=
+            match l with
+            | [] => false
+            | x::xs => if (eq_oper_label i x) then true else (f xs)
+            end
+  in
+  f fully_defined.
+
   
 Definition opmap : opm :=
   ADD |->i Op true 2 add;

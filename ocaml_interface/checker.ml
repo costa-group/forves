@@ -21,6 +21,11 @@ type 'a option =
 | Some of 'a
 | None
 
+(** val fst : ('a1 * 'a2) -> 'a1 **)
+
+let fst = function
+| x , _ -> x
+
 (** val length : 'a1 list -> nat **)
 
 let rec length = function
@@ -33,6 +38,16 @@ let rec app l m =
   match l with
   | [] -> m
   | a::l1 -> a::(app l1 m)
+
+type comparison =
+| Eq
+| Lt
+| Gt
+
+(** val id : 'a1 -> 'a1 **)
+
+let id x =
+  x
 
 type uint =
 | Nil
@@ -116,6 +131,13 @@ let eqb0 b1 b2 =
 
 module Nat =
  struct
+  (** val add : nat -> nat -> nat **)
+
+  let rec add n0 m =
+    match n0 with
+    | O -> m
+    | S p -> S (add p m)
+
   (** val leb : nat -> nat -> bool **)
 
   let rec leb n0 m =
@@ -144,6 +166,14 @@ type n =
 | Npos of positive
 
 module Pos =
+ struct
+  type mask =
+  | IsNul
+  | IsPos of positive
+  | IsNeg
+ end
+
+module Coq_Pos =
  struct
   (** val succ : positive -> positive **)
 
@@ -191,6 +221,72 @@ module Pos =
        | XO q -> XO (succ q)
        | XH -> XI XH)
 
+  (** val pred_double : positive -> positive **)
+
+  let rec pred_double = function
+  | XI p -> XI (XO p)
+  | XO p -> XI (pred_double p)
+  | XH -> XH
+
+  type mask = Pos.mask =
+  | IsNul
+  | IsPos of positive
+  | IsNeg
+
+  (** val succ_double_mask : mask -> mask **)
+
+  let succ_double_mask = function
+  | IsNul -> IsPos XH
+  | IsPos p -> IsPos (XI p)
+  | IsNeg -> IsNeg
+
+  (** val double_mask : mask -> mask **)
+
+  let double_mask = function
+  | IsPos p -> IsPos (XO p)
+  | x0 -> x0
+
+  (** val double_pred_mask : positive -> mask **)
+
+  let double_pred_mask = function
+  | XI p -> IsPos (XO (XO p))
+  | XO p -> IsPos (XO (pred_double p))
+  | XH -> IsNul
+
+  (** val sub_mask : positive -> positive -> mask **)
+
+  let rec sub_mask x y =
+    match x with
+    | XI p ->
+      (match y with
+       | XI q -> double_mask (sub_mask p q)
+       | XO q -> succ_double_mask (sub_mask p q)
+       | XH -> IsPos (XO p))
+    | XO p ->
+      (match y with
+       | XI q -> succ_double_mask (sub_mask_carry p q)
+       | XO q -> double_mask (sub_mask p q)
+       | XH -> IsPos (pred_double p))
+    | XH -> (match y with
+             | XH -> IsNul
+             | _ -> IsNeg)
+
+  (** val sub_mask_carry : positive -> positive -> mask **)
+
+  and sub_mask_carry x y =
+    match x with
+    | XI p ->
+      (match y with
+       | XI q -> succ_double_mask (sub_mask_carry p q)
+       | XO q -> double_mask (sub_mask p q)
+       | XH -> IsPos (pred_double p))
+    | XO p ->
+      (match y with
+       | XI q -> double_mask (sub_mask_carry p q)
+       | XO q -> succ_double_mask (sub_mask_carry p q)
+       | XH -> double_pred_mask p)
+    | XH -> IsNeg
+
   (** val mul : positive -> positive -> positive **)
 
   let rec mul x y =
@@ -198,6 +294,41 @@ module Pos =
     | XI p -> add y (XO (mul p y))
     | XO p -> XO (mul p y)
     | XH -> y
+
+  (** val iter : ('a1 -> 'a1) -> 'a1 -> positive -> 'a1 **)
+
+  let rec iter f x = function
+  | XI n' -> f (iter f (iter f x n') n')
+  | XO n' -> iter f (iter f x n') n'
+  | XH -> f x
+
+  (** val pow : positive -> positive -> positive **)
+
+  let pow x =
+    iter (mul x) XH
+
+  (** val compare_cont : comparison -> positive -> positive -> comparison **)
+
+  let rec compare_cont r x y =
+    match x with
+    | XI p ->
+      (match y with
+       | XI q -> compare_cont r p q
+       | XO q -> compare_cont Gt p q
+       | XH -> Gt)
+    | XO p ->
+      (match y with
+       | XI q -> compare_cont Lt p q
+       | XO q -> compare_cont r p q
+       | XH -> Gt)
+    | XH -> (match y with
+             | XH -> r
+             | _ -> Lt)
+
+  (** val compare : positive -> positive -> comparison **)
+
+  let compare =
+    compare_cont Eq
 
   (** val eqb : positive -> positive -> bool **)
 
@@ -229,11 +360,23 @@ module Pos =
 
 module N =
  struct
+  (** val succ_double : n -> n **)
+
+  let succ_double = function
+  | N0 -> Npos XH
+  | Npos p -> Npos (XI p)
+
+  (** val double : n -> n **)
+
+  let double = function
+  | N0 -> N0
+  | Npos p -> Npos (XO p)
+
   (** val succ : n -> n **)
 
   let succ = function
   | N0 -> Npos XH
-  | Npos p -> Npos (Pos.succ p)
+  | Npos p -> Npos (Coq_Pos.succ p)
 
   (** val add : n -> n -> n **)
 
@@ -242,7 +385,20 @@ module N =
     | N0 -> m
     | Npos p -> (match m with
                  | N0 -> n0
-                 | Npos q -> Npos (Pos.add p q))
+                 | Npos q -> Npos (Coq_Pos.add p q))
+
+  (** val sub : n -> n -> n **)
+
+  let sub n0 m =
+    match n0 with
+    | N0 -> N0
+    | Npos n' ->
+      (match m with
+       | N0 -> n0
+       | Npos m' ->
+         (match Coq_Pos.sub_mask n' m' with
+          | Coq_Pos.IsPos p -> Npos p
+          | _ -> N0))
 
   (** val mul : n -> n -> n **)
 
@@ -251,7 +407,18 @@ module N =
     | N0 -> N0
     | Npos p -> (match m with
                  | N0 -> N0
-                 | Npos q -> Npos (Pos.mul p q))
+                 | Npos q -> Npos (Coq_Pos.mul p q))
+
+  (** val compare : n -> n -> comparison **)
+
+  let compare n0 m =
+    match n0 with
+    | N0 -> (match m with
+             | N0 -> Eq
+             | Npos _ -> Lt)
+    | Npos n' -> (match m with
+                  | N0 -> Gt
+                  | Npos m' -> Coq_Pos.compare n' m')
 
   (** val eqb : n -> n -> bool **)
 
@@ -262,13 +429,61 @@ module N =
              | Npos _ -> false)
     | Npos p -> (match m with
                  | N0 -> false
-                 | Npos q -> Pos.eqb p q)
+                 | Npos q -> Coq_Pos.eqb p q)
+
+  (** val leb : n -> n -> bool **)
+
+  let leb x y =
+    match compare x y with
+    | Gt -> false
+    | _ -> true
+
+  (** val pow : n -> n -> n **)
+
+  let pow n0 = function
+  | N0 -> Npos XH
+  | Npos p0 -> (match n0 with
+                | N0 -> N0
+                | Npos q -> Npos (Coq_Pos.pow q p0))
+
+  (** val pos_div_eucl : positive -> n -> n * n **)
+
+  let rec pos_div_eucl a b =
+    match a with
+    | XI a' ->
+      let q , r = pos_div_eucl a' b in
+      let r' = succ_double r in
+      if leb b r' then (succ_double q) , (sub r' b) else (double q) , r'
+    | XO a' ->
+      let q , r = pos_div_eucl a' b in
+      let r' = double r in
+      if leb b r' then (succ_double q) , (sub r' b) else (double q) , r'
+    | XH ->
+      (match b with
+       | N0 -> N0 , (Npos XH)
+       | Npos p -> (match p with
+                    | XH -> (Npos XH) , N0
+                    | _ -> N0 , (Npos XH)))
+
+  (** val div_eucl : n -> n -> n * n **)
+
+  let div_eucl a b =
+    match a with
+    | N0 -> N0 , N0
+    | Npos na -> (match b with
+                  | N0 -> N0 , a
+                  | Npos _ -> pos_div_eucl na b)
+
+  (** val div : n -> n -> n **)
+
+  let div a b =
+    fst (div_eucl a b)
 
   (** val to_nat : n -> nat **)
 
   let to_nat = function
   | N0 -> O
-  | Npos p -> Pos.to_nat p
+  | Npos p -> Coq_Pos.to_nat p
  end
 
 (** val nth_error : 'a1 list -> nat -> 'a1 option **)
@@ -355,9 +570,36 @@ let rec mod2 = function
            | O -> true
            | S n' -> mod2 n')
 
+(** val npow2 : nat -> n **)
+
+let rec npow2 = function
+| O -> Npos XH
+| S n' -> N.mul (Npos (XO XH)) (npow2 n')
+
+(** val nat_cast : nat -> nat -> 'a1 -> 'a1 **)
+
+let rec nat_cast n0 m x =
+  match n0 with
+  | O -> (match m with
+          | O -> id x
+          | S _ -> assert false (* absurd case *))
+  | S n1 ->
+    (match m with
+     | O -> assert false (* absurd case *)
+     | S m0 -> nat_cast n1 m0 x)
+
 type word =
 | WO
 | WS of bool * nat * word
+
+(** val wordToNat : nat -> word -> nat **)
+
+let rec wordToNat _ = function
+| WO -> O
+| WS (b, n0, w') ->
+  if b
+  then S (mul (wordToNat n0 w') (S (S O)))
+  else mul (wordToNat n0 w') (S (S O))
 
 (** val natToWord : nat -> nat -> word **)
 
@@ -374,6 +616,11 @@ let rec wordToN _ = function
   if b
   then N.succ (N.mul (Npos (XO XH)) (wordToN n0 w'))
   else N.mul (Npos (XO XH)) (wordToN n0 w')
+
+(** val wzero : nat -> word **)
+
+let wzero sz =
+  natToWord sz O
 
 (** val wzero' : nat -> word **)
 
@@ -418,6 +665,53 @@ let rec weqb _ x x0 =
   | WS (b, n0, x') ->
     if eqb0 b (whd n0 x0) then weqb n0 x' (wtl n0 x0) else false
 
+(** val combine : nat -> word -> nat -> word -> word **)
+
+let rec combine _ w sz2 w' =
+  match w with
+  | WO -> w'
+  | WS (b, n0, w'0) -> WS (b, (add n0 sz2), (combine n0 w'0 sz2 w'))
+
+(** val split1 : nat -> nat -> word -> word **)
+
+let rec split1 sz1 sz2 x =
+  match sz1 with
+  | O -> WO
+  | S sz1' ->
+    WS
+      ((whd
+         (let rec add0 n0 m =
+            match n0 with
+            | O -> m
+            | S p -> S (add0 p m)
+          in add0 sz1' sz2) x), sz1',
+      (split1 sz1' sz2
+        (wtl
+          (let rec add0 n0 m =
+             match n0 with
+             | O -> m
+             | S p -> S (add0 p m)
+           in add0 sz1' sz2) x)))
+
+(** val split2 : nat -> nat -> word -> word **)
+
+let rec split2 sz1 sz2 w =
+  match sz1 with
+  | O -> w
+  | S sz1' ->
+    split2 sz1' sz2
+      (wtl
+        (let rec add0 n0 m =
+           match n0 with
+           | O -> m
+           | S p -> S (add0 p m)
+         in add0 sz1' sz2) w)
+
+(** val wneg : nat -> word -> word **)
+
+let wneg sz x =
+  nToWord sz (N.sub (npow2 sz) (wordToN sz x))
+
 (** val wordBin : (n -> n -> n) -> nat -> word -> word -> word **)
 
 let wordBin f sz x y =
@@ -432,6 +726,16 @@ let wplus =
 
 let wmult =
   wordBin N.mul
+
+(** val wdiv : nat -> word -> word -> word **)
+
+let wdiv =
+  wordBin N.div
+
+(** val wminus : nat -> word -> word -> word **)
+
+let wminus sz x y =
+  wplus sz x (wneg sz y)
 
 (** val wnot : nat -> word -> word **)
 
@@ -460,6 +764,18 @@ let wand =
 
 let wxor =
   bitwp xorb
+
+(** val wlshift' : nat -> word -> nat -> word **)
+
+let wlshift' sz w n0 =
+  split1 sz n0
+    (nat_cast (Nat.add n0 sz) (add sz n0) (combine n0 (wzero n0) sz w))
+
+(** val wrshift' : nat -> word -> nat -> word **)
+
+let wrshift' sz w n0 =
+  split2 n0 sz
+    (nat_cast (Nat.add sz n0) (add n0 sz) (combine sz w n0 (wzero n0)))
 
 module EVM_Def =
  struct
@@ -834,6 +1150,15 @@ module Concrete =
              else EVM_Def.coq_WZero)
         | _::_ -> None))
 
+  (** val iszero : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let iszero = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> eq (a::(EVM_Def.coq_WZero::[]))
+     | _::_ -> None)
+
   (** val coq_and :
       EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
 
@@ -869,6 +1194,72 @@ module Concrete =
      | b::l0 ->
        (match l0 with
         | [] -> Some (wxor EVM_Def.coq_WLen a b)
+        | _::_ -> None))
+
+  (** val shl : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let shl = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> None
+     | b::l0 ->
+       (match l0 with
+        | [] ->
+          Some (wlshift' EVM_Def.coq_WLen b (wordToNat EVM_Def.coq_WLen a))
+        | _::_ -> None))
+
+  (** val shr : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let shr = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> None
+     | b::l0 ->
+       (match l0 with
+        | [] ->
+          Some (wrshift' EVM_Def.coq_WLen b (wordToNat EVM_Def.coq_WLen a))
+        | _::_ -> None))
+
+  (** val sub : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let sub = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> None
+     | b::l0 ->
+       (match l0 with
+        | [] -> Some (wminus EVM_Def.coq_WLen a b)
+        | _::_ -> None))
+
+  (** val exp : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let exp = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> None
+     | b::l0 ->
+       (match l0 with
+        | [] ->
+          Some
+            (nToWord EVM_Def.coq_WLen
+              (N.pow (wordToN EVM_Def.coq_WLen a)
+                (wordToN EVM_Def.coq_WLen b)))
+        | _::_ -> None))
+
+  (** val div : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option **)
+
+  let div = function
+  | [] -> None
+  | a::l ->
+    (match l with
+     | [] -> None
+     | b::l0 ->
+       (match l0 with
+        | [] -> Some (wdiv EVM_Def.coq_WLen a b)
         | _::_ -> None))
 
   (** val uninterp0 :
@@ -948,6 +1339,19 @@ module Concrete =
     if eq_oper_label x x' then Some v else m x'
 
   type opm = (oper_label, operator) map
+
+  (** val fully_defined : oper_label list **)
+
+  let fully_defined =
+    ADD::(MUL::(NOT::(SUB::(DIV::(EXP::(EQ::(ISZERO::(AND::(OR::(XOR::(SHL::(SHR::[]))))))))))))
+
+  (** val is_fully_defined : oper_label -> bool **)
+
+  let is_fully_defined i =
+    let rec f = function
+    | [] -> false
+    | x::xs -> if eq_oper_label i x then true else f xs
+    in f fully_defined
 
   (** val opmap : opm **)
 
@@ -1145,30 +1549,27 @@ module Concrete =
                                                       SAR (Op (false, (S (S
                                                       O)), uninterp2))) SHR
                                                     (Op (false, (S (S O)),
-                                                    uninterp2))) SHL (Op
-                                                  (false, (S (S O)),
-                                                  uninterp2))) BYTE (Op
+                                                    shr))) SHL (Op (false,
+                                                  (S (S O)), shl))) BYTE (Op
                                                 (false, (S (S O)),
                                                 uninterp2))) XOR (Op (true,
                                               (S (S O)), xor))) OR (Op
                                             (true, (S (S O)), coq_or))) AND
                                           (Op (true, (S (S O)), coq_and)))
-                                        ISZERO (Op (false, (S O),
-                                        uninterp1))) EQ (Op (true, (S (S
-                                      O)), eq))) SGT (Op (false, (S (S O)),
-                                    uninterp2))) SLT (Op (false, (S (S O)),
-                                  uninterp2))) GT (Op (false, (S (S O)),
-                                uninterp2))) LT (Op (false, (S (S O)),
-                              uninterp2))) SIGNEXTEND (Op (false, (S (S O)),
-                            uninterp2))) EXP (Op (false, (S (S O)),
-                          uninterp2))) MULMOD (Op (false, (S (S (S O))),
-                        uninterp3))) ADDMOD (Op (false, (S (S (S O))),
+                                        ISZERO (Op (false, (S O), iszero)))
+                                      EQ (Op (true, (S (S O)), eq))) SGT (Op
+                                    (false, (S (S O)), uninterp2))) SLT (Op
+                                  (false, (S (S O)), uninterp2))) GT (Op
+                                (false, (S (S O)), uninterp2))) LT (Op
+                              (false, (S (S O)), uninterp2))) SIGNEXTEND (Op
+                            (false, (S (S O)), uninterp2))) EXP (Op (false,
+                          (S (S O)), exp))) MULMOD (Op (false, (S (S (S
+                        O))), uninterp3))) ADDMOD (Op (false, (S (S (S O))),
                       uninterp3))) SMOD (Op (false, (S (S O)), uninterp2)))
                   MOD (Op (false, (S (S O)), uninterp2))) SDIV (Op (false,
-                (S (S O)), uninterp2))) DIV (Op (false, (S (S O)),
-              uninterp2))) SUB (Op (false, (S (S O)), uninterp2))) NOT (Op
-          (false, (S O), not))) MUL (Op (true, (S (S O)), mul))) ADD (Op
-      (true, (S (S O)), add))
+                (S (S O)), uninterp2))) DIV (Op (false, (S (S O)), div)))
+            SUB (Op (false, (S (S O)), sub))) NOT (Op (false, (S O), not)))
+        MUL (Op (true, (S (S O)), mul))) ADD (Op (true, (S (S O)), add))
  end
 
 module Abstract =
@@ -1304,8 +1705,8 @@ module SFS =
   (** val asfs_map_add :
       Abstract.asfs_map -> nat -> Abstract.asfs_map_val -> Abstract.asfs_map **)
 
-  let asfs_map_add m id a =
-    (id , a)::m
+  let asfs_map_add m id0 a =
+    (id0 , a)::m
 
   (** val add_val_asfs :
       Concrete.opm -> Abstract.asfs -> Abstract.asfs_map_val ->
@@ -1657,10 +2058,767 @@ module SFS =
 
 module Coq_Optimizations =
  struct
+  (** val stack_val_is_oper :
+      Concrete.oper_label -> Abstract.asfs_stack_val -> Abstract.asfs_map ->
+      Abstract.asfs_stack_val list option **)
+
+  let rec stack_val_is_oper oper val0 m =
+    match val0 with
+    | Abstract.FreshVar fvar ->
+      (match m with
+       | [] -> None
+       | p::t ->
+         let k , v = p in
+         if eqb k fvar
+         then (match v with
+               | Abstract.ASFSBasicVal val1 ->
+                 (match val1 with
+                  | Abstract.FreshVar fv ->
+                    stack_val_is_oper oper (Abstract.FreshVar fv) t
+                  | _ -> None)
+               | Abstract.ASFSOp (opcode, args) ->
+                 if Concrete.eq_oper_label oper opcode
+                 then Some args
+                 else None)
+         else stack_val_is_oper oper val0 t)
+    | _ -> None
+
+  (** val optimize_fresh_var2 :
+      Abstract.asfs -> Abstract.asfs_map -> (nat -> Abstract.asfs ->
+      Abstract.asfs option) -> Abstract.asfs * bool **)
+
+  let rec optimize_fresh_var2 a m opt0 =
+    match m with
+    | [] -> a , false
+    | p::t ->
+      let n0 , _ = p in
+      (match opt0 n0 a with
+       | Some a' -> a' , true
+       | None -> optimize_fresh_var2 a t opt0)
+
+  (** val optimize_fresh_var :
+      (nat -> Abstract.asfs -> Abstract.asfs option) -> Abstract.asfs ->
+      Abstract.asfs * bool **)
+
+  let optimize_fresh_var opt0 a = match a with
+  | Abstract.ASFSc (_, _, _, m) -> optimize_fresh_var2 a m opt0
+
+  (** val stack_val_has_value' :
+      Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord ->
+      bool **)
+
+  let stack_val_has_value' av m v =
+    match SFS.flat_stack_elem av m with
+    | Some s ->
+      (match s with
+       | Abstract.UVal x -> weqb EVM_Def.coq_WLen x v
+       | _ -> false)
+    | None -> false
+
+  (** val optimize_func_map :
+      (nat -> Abstract.asfs_map -> Abstract.asfs_map option) -> nat ->
+      Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_func_map f fresh_var = function
+  | Abstract.ASFSc (height, maxid, stack, map0) ->
+    (match f fresh_var map0 with
+     | Some map' -> Some (Abstract.ASFSc (height, maxid, stack, map'))
+     | None -> None)
+
   (** val optimize_id : Abstract.asfs -> Abstract.asfs * bool **)
 
   let optimize_id a =
     a , false
+
+  (** val optimize_map_add_zero :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_add_zero fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.ADD ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
+                        else if stack_val_has_value' arg2 map0
+                                  EVM_Def.coq_WZero
+                             then Some ((n0 , (Abstract.ASFSBasicVal
+                                    arg1))::t)
+                             else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_add_zero fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_add_zero_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_add_zero_fvar fresh_var s =
+    optimize_func_map optimize_map_add_zero fresh_var s
+
+  (** val optimize_add_zero : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_add_zero a =
+    optimize_fresh_var optimize_add_zero_fvar a
+
+  (** val optimize_map_mul_one :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_mul_one fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.MUL ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WOne
+                        then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
+                        else if stack_val_has_value' arg2 map0
+                                  EVM_Def.coq_WOne
+                             then Some ((n0 , (Abstract.ASFSBasicVal
+                                    arg1))::t)
+                             else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_mul_one fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_mul_one_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_mul_one_fvar fresh_var s =
+    optimize_func_map optimize_map_mul_one fresh_var s
+
+  (** val optimize_mul_one : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_mul_one a =
+    optimize_fresh_var optimize_mul_one_fvar a
+
+  (** val optimize_map_mul_zero :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_mul_zero fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.MUL ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        then Some ((n0 , (Abstract.ASFSBasicVal
+                               (Abstract.Val EVM_Def.coq_WZero)))::t)
+                        else if stack_val_has_value' arg2 map0
+                                  EVM_Def.coq_WZero
+                             then Some ((n0 , (Abstract.ASFSBasicVal
+                                    (Abstract.Val EVM_Def.coq_WZero)))::t)
+                             else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_mul_zero fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_mul_zero_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_mul_zero_fvar fresh_var s =
+    optimize_func_map optimize_map_mul_zero fresh_var s
+
+  (** val optimize_mul_zero : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_mul_zero =
+    optimize_fresh_var optimize_mul_zero_fvar
+
+  (** val optimize_map_not_not :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_not_not fresh_var = function
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.NOT ->
+               (match args with
+                | [] -> None
+                | arg::l ->
+                  (match l with
+                   | [] ->
+                     (match stack_val_is_oper Concrete.NOT arg t with
+                      | Some l0 ->
+                        (match l0 with
+                         | [] -> None
+                         | arg'::l1 ->
+                           (match l1 with
+                            | [] ->
+                              Some ((n0 , (Abstract.ASFSBasicVal arg'))::t)
+                            | _::_ -> None))
+                      | None -> None)
+                   | _::_ -> None))
+             | _ -> None))
+    else (match optimize_map_not_not fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_not_not_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_not_not_fvar fresh_var s =
+    optimize_func_map optimize_map_not_not fresh_var s
+
+  (** val optimize_not_not : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_not_not =
+    optimize_fresh_var optimize_not_not_fvar
+
+  (** val flat_extract_const :
+      Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord
+      option **)
+
+  let flat_extract_const v m =
+    match SFS.flat_stack_elem v m with
+    | Some s -> (match s with
+                 | Abstract.UVal x -> Some x
+                 | _ -> None)
+    | None -> None
+
+  (** val const_list :
+      Abstract.asfs_stack_val list -> Abstract.asfs_map ->
+      EVM_Def.coq_EVMWord list option **)
+
+  let const_list l m =
+    SFS.apply_f_opt_list (fun e -> flat_extract_const e m) l
+
+  (** val optimize_map_eval :
+      Concrete.opm -> nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_eval ops fresh_var = function
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (oper, args) ->
+            if Concrete.is_fully_defined oper
+            then (match const_list args t with
+                  | Some wargs ->
+                    (match ops oper with
+                     | Some o ->
+                       let Concrete.Op (_, _, f) = o in
+                       (match f wargs with
+                        | Some v ->
+                          Some ((n0 , (Abstract.ASFSBasicVal (Abstract.Val
+                            v)))::t)
+                        | None -> None)
+                     | None -> None)
+                  | None -> None)
+            else None)
+    else (match optimize_map_eval ops fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_eval_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_eval_fvar fresh_var s =
+    optimize_func_map (optimize_map_eval Concrete.opmap) fresh_var s
+
+  (** val optimize_eval : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_eval =
+    optimize_fresh_var optimize_eval_fvar
+
+  (** val optimize_map_div_one :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_div_one fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.DIV ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg2 map0 EVM_Def.coq_WOne
+                        then Some ((n0 , (Abstract.ASFSBasicVal arg1))::t)
+                        else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_div_one fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_div_one_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_div_one_fvar fresh_var s =
+    optimize_func_map optimize_map_div_one fresh_var s
+
+  (** val optimize_div_one : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_div_one a =
+    optimize_fresh_var optimize_div_one_fvar a
+
+  (** val optimize_map_eq_zero :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_eq_zero fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.EQ ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
+                               (arg2::[]))))::t)
+                        else if stack_val_has_value' arg2 map0
+                                  EVM_Def.coq_WZero
+                             then Some ((n0 , (Abstract.ASFSOp
+                                    (Concrete.ISZERO, (arg1::[]))))::t)
+                             else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_eq_zero fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_eq_zero_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_eq_zero_fvar fresh_var s =
+    optimize_func_map optimize_map_eq_zero fresh_var s
+
+  (** val optimize_eq_zero : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_eq_zero a =
+    optimize_fresh_var optimize_eq_zero_fvar a
+
+  (** val optimize_map_gt_one :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_gt_one fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.GT ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WOne
+                        then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
+                               (arg2::[]))))::t)
+                        else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_gt_one fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_gt_one_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_gt_one_fvar fresh_var s =
+    optimize_func_map optimize_map_gt_one fresh_var s
+
+  (** val optimize_gt_one : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_gt_one a =
+    optimize_fresh_var optimize_gt_one_fvar a
+
+  (** val optimize_map_or_zero :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_or_zero fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.OR ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
+                        else if stack_val_has_value' arg2 map0
+                                  EVM_Def.coq_WZero
+                             then Some ((n0 , (Abstract.ASFSBasicVal
+                                    arg1))::t)
+                             else None
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_or_zero fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_or_zero_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_or_zero_fvar fresh_var s =
+    optimize_func_map optimize_map_or_zero fresh_var s
+
+  (** val optimize_or_zero : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_or_zero a =
+    optimize_fresh_var optimize_or_zero_fvar a
+
+  (** val optimize_map_sub_x_x :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_sub_x_x fresh_var map0 = match map0 with
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.SUB ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        (match SFS.flat_stack_elem arg1 map0 with
+                         | Some v1 ->
+                           (match SFS.flat_stack_elem arg2 map0 with
+                            | Some v2 ->
+                              if SFS.compare_flat_asfs_map_val v1 v2
+                                   Concrete.opmap
+                              then Some ((n0 , (Abstract.ASFSBasicVal
+                                     (Abstract.Val EVM_Def.coq_WZero)))::t)
+                              else None
+                            | None -> None)
+                         | None -> None)
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_sub_x_x fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_sub_x_x_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_sub_x_x_fvar fresh_var s =
+    optimize_func_map optimize_map_sub_x_x fresh_var s
+
+  (** val optimize_sub_x_x : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_sub_x_x a =
+    optimize_fresh_var optimize_sub_x_x_fvar a
+
+  (** val optimize_map_iszero3 :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_iszero3 fresh_var = function
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.ISZERO ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] ->
+                     (match stack_val_is_oper Concrete.ISZERO arg1 t with
+                      | Some l0 ->
+                        (match l0 with
+                         | [] -> None
+                         | arg2::l1 ->
+                           (match l1 with
+                            | [] ->
+                              (match stack_val_is_oper Concrete.ISZERO arg2 t with
+                               | Some l2 ->
+                                 (match l2 with
+                                  | [] -> None
+                                  | arg3::l3 ->
+                                    (match l3 with
+                                     | [] ->
+                                       Some ((n0 , (Abstract.ASFSOp
+                                         (Concrete.ISZERO, (arg3::[]))))::t)
+                                     | _::_ -> None))
+                               | None -> None)
+                            | _::_ -> None))
+                      | None -> None)
+                   | _::_ -> None))
+             | _ -> None))
+    else (match optimize_map_iszero3 fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_iszero3_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_iszero3_fvar fresh_var s =
+    optimize_func_map optimize_map_iszero3 fresh_var s
+
+  (** val optimize_iszero3 : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_iszero3 =
+    optimize_fresh_var optimize_iszero3_fvar
+
+  (** val optimize_map_and_and_l :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_and_and_l fresh_var = function
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.AND ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        (match stack_val_is_oper Concrete.AND arg1 t with
+                         | Some l1 ->
+                           (match l1 with
+                            | [] -> None
+                            | arg11::l2 ->
+                              (match l2 with
+                               | [] -> None
+                               | arg12::l3 ->
+                                 (match l3 with
+                                  | [] ->
+                                    (match SFS.flat_stack_elem arg2 t with
+                                     | Some farg2 ->
+                                       (match SFS.flat_stack_elem arg11 t with
+                                        | Some farg11 ->
+                                          (match SFS.flat_stack_elem arg12 t with
+                                           | Some farg12 ->
+                                             if if SFS.compare_flat_asfs_map_val
+                                                     farg11 farg2
+                                                     Concrete.opmap
+                                                then true
+                                                else SFS.compare_flat_asfs_map_val
+                                                       farg12 farg2
+                                                       Concrete.opmap
+                                             then Some
+                                                    ((n0 , (Abstract.ASFSOp
+                                                    (Concrete.AND,
+                                                    (arg11::(arg12::[])))))::t)
+                                             else None
+                                           | None -> None)
+                                        | None -> None)
+                                     | None -> None)
+                                  | _::_ -> None)))
+                         | None -> None)
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_and_and_l fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_and_and_l_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_and_and_l_fvar fresh_var s =
+    optimize_func_map optimize_map_and_and_l fresh_var s
+
+  (** val optimize_and_and_l : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_and_and_l =
+    optimize_fresh_var optimize_and_and_l_fvar
+
+  (** val optimize_map_and_and_r :
+      nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
+
+  let rec optimize_map_and_and_r fresh_var = function
+  | [] -> None
+  | p::t ->
+    let n0 , val0 = p in
+    if eqb n0 fresh_var
+    then (match val0 with
+          | Abstract.ASFSBasicVal _ -> None
+          | Abstract.ASFSOp (opcode, args) ->
+            (match opcode with
+             | Concrete.AND ->
+               (match args with
+                | [] -> None
+                | arg1::l ->
+                  (match l with
+                   | [] -> None
+                   | arg2::l0 ->
+                     (match l0 with
+                      | [] ->
+                        (match stack_val_is_oper Concrete.AND arg2 t with
+                         | Some l1 ->
+                           (match l1 with
+                            | [] -> None
+                            | arg21::l2 ->
+                              (match l2 with
+                               | [] -> None
+                               | arg22::l3 ->
+                                 (match l3 with
+                                  | [] ->
+                                    (match SFS.flat_stack_elem arg1 t with
+                                     | Some farg1 ->
+                                       (match SFS.flat_stack_elem arg21 t with
+                                        | Some farg21 ->
+                                          (match SFS.flat_stack_elem arg22 t with
+                                           | Some farg22 ->
+                                             if if SFS.compare_flat_asfs_map_val
+                                                     farg1 farg21
+                                                     Concrete.opmap
+                                                then true
+                                                else SFS.compare_flat_asfs_map_val
+                                                       farg1 farg22
+                                                       Concrete.opmap
+                                             then Some
+                                                    ((n0 , (Abstract.ASFSOp
+                                                    (Concrete.AND,
+                                                    (arg21::(arg22::[])))))::t)
+                                             else None
+                                           | None -> None)
+                                        | None -> None)
+                                     | None -> None)
+                                  | _::_ -> None)))
+                         | None -> None)
+                      | _::_ -> None)))
+             | _ -> None))
+    else (match optimize_map_and_and_r fresh_var t with
+          | Some map' -> Some ((n0 , val0)::map')
+          | None -> None)
+
+  (** val optimize_and_and_r_fvar :
+      nat -> Abstract.asfs -> Abstract.asfs option **)
+
+  let optimize_and_and_r_fvar fresh_var s =
+    optimize_func_map optimize_map_and_and_r fresh_var s
+
+  (** val optimize_and_and_r : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let optimize_and_and_r =
+    optimize_fresh_var optimize_and_and_r_fvar
+
+  (** val apply_n_times :
+      Optimizations.optimization -> nat -> Abstract.asfs ->
+      Abstract.asfs * bool **)
+
+  let rec apply_n_times opt0 n0 a =
+    match n0 with
+    | O -> a , true
+    | S n' -> let a' , _ = opt0 a in apply_n_times opt0 n' a'
+
+  (** val apply_all_possible_opt :
+      Optimizations.optimization list -> Abstract.asfs ->
+      Abstract.asfs * bool **)
+
+  let rec apply_all_possible_opt l_opt a =
+    match l_opt with
+    | [] -> a , true
+    | opt0::ropts -> let a' , _ = opt0 a in apply_all_possible_opt ropts a'
+
+  (** val apply_pipeline_n_times :
+      Optimizations.optimization list -> nat -> Abstract.asfs ->
+      Abstract.asfs * bool **)
+
+  let apply_pipeline_n_times l_opt n0 a =
+    apply_n_times (apply_all_possible_opt l_opt) n0 a
+
+  (** val our_optimization_pipeline :
+      (Abstract.asfs -> Abstract.asfs * bool) list **)
+
+  let our_optimization_pipeline =
+    optimize_eval::(optimize_add_zero::(optimize_mul_one::(optimize_mul_zero::(optimize_not_not::(optimize_div_one::(optimize_eq_zero::(optimize_gt_one::(optimize_or_zero::(optimize_sub_x_x::(optimize_iszero3::(optimize_and_and_l::(optimize_and_and_r::[]))))))))))))
  end
 
 module Checker =
@@ -1669,13 +2827,28 @@ module Checker =
       Optimizations.optimization -> Concrete.block -> Concrete.block -> nat
       -> bool **)
 
-  let evm_eq_block_chkr' opt opt_p p height =
+  let evm_eq_block_chkr' opt0 opt_p p height =
     match SFS.symbolic_exec opt_p height Concrete.opmap with
     | Some sfs1 ->
       (match SFS.symbolic_exec p height Concrete.opmap with
        | Some sfs2 ->
-         let sfs3 , _ = opt sfs2 in
+         let sfs3 , _ = opt0 sfs2 in
          SFS.eq_sstate_chkr sfs1 sfs3 Concrete.opmap
+       | None -> false)
+    | None -> false
+
+  (** val evm_eq_block_chkr'' :
+      Optimizations.optimization -> Concrete.block -> Concrete.block -> nat
+      -> bool **)
+
+  let evm_eq_block_chkr'' opt0 opt_p p height =
+    match SFS.symbolic_exec opt_p height Concrete.opmap with
+    | Some sfs1 ->
+      (match SFS.symbolic_exec p height Concrete.opmap with
+       | Some sfs2 ->
+         let sfs3 , _ = opt0 sfs2 in
+         let sfs4 , _ = opt0 sfs1 in
+         SFS.eq_sstate_chkr sfs4 sfs3 Concrete.opmap
        | None -> false)
     | None -> false
  end
@@ -10385,6 +11558,56 @@ module Parser =
                Some
                  (Checker.evm_eq_block_chkr' Coq_Optimizations.optimize_id
                    b1 b2 v)
+             | None -> None)
+          | None -> None)
+       | None -> None)
+    | None -> None
+
+  (** val opt : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let opt =
+    Coq_Optimizations.apply_pipeline_n_times
+      Coq_Optimizations.our_optimization_pipeline (S (S (S (S (S (S (S (S (S
+      (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+      (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+      O))))))))))))))))))))))))))))))))))))))))))))))))))
+
+  (** val opt2 : Abstract.asfs -> Abstract.asfs * bool **)
+
+  let opt2 =
+    Coq_Optimizations.apply_pipeline_n_times
+      (Coq_Optimizations.optimize_eval::(Coq_Optimizations.optimize_eval::(Coq_Optimizations.optimize_eval::(Coq_Optimizations.optimize_or_zero::[]))))
+      (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+      (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S
+      (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))
+
+  (** val block_eq_1 : char list -> char list -> char list -> bool option **)
+
+  let block_eq_1 p_opt p k =
+    match parse_block p_opt with
+    | Some b1 ->
+      (match parse_block p with
+       | Some _ ->
+         (match parse_block p with
+          | Some b2 ->
+            (match parseDecNumber k with
+             | Some v -> Some (Checker.evm_eq_block_chkr' opt b1 b2 v)
+             | None -> None)
+          | None -> None)
+       | None -> None)
+    | None -> None
+
+  (** val block_eq_2 : char list -> char list -> char list -> bool option **)
+
+  let block_eq_2 p_opt p k =
+    match parse_block p_opt with
+    | Some b1 ->
+      (match parse_block p with
+       | Some _ ->
+         (match parse_block p with
+          | Some b2 ->
+            (match parseDecNumber k with
+             | Some v -> Some (Checker.evm_eq_block_chkr'' opt b1 b2 v)
              | None -> None)
           | None -> None)
        | None -> None)
