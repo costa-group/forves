@@ -14,7 +14,7 @@ Import ListNotations.
 Module Optimizations.
 
 
-(* General definitions to define different optimizations and useful common
+(* General definitions to implement different optimizations and useful common
    lemmas *)
 
 Fixpoint stack_val_is_oper (oper: oper_label) (val: asfs_stack_val) 
@@ -293,27 +293,35 @@ exists (prefix suffix: asfs_map) (inner_vals: tstack),
   eval_asfs2 stack inner_args suffix ops = Some inner_vals /\
   func inner_vals = Some val.
 Proof.
-Admitted.
-(*
 induction m as [| h t IH].
 - intros. simpl in H. destruct elem; try discriminate H.
 - intros. simpl in H.
   destruct elem as [| |fvar] eqn: eq_elem; try discriminate H.
   destruct h as [k e] eqn: eq_h.
   destruct (k =? fvar) eqn: eq_k_fvar.
-  + destruct e as [basicval| opcode args] eqn: eq_e; try discriminate H.
-    destruct (oper =?i opcode) eqn: eq_oper; try discriminate H.
-    simpl in H1. rewrite -> eq_k_fvar in H1.
-    apply eq_oper_label_correct in eq_oper.
-    rewrite <- eq_oper in H1. rewrite -> H0 in H1.
-    destruct (length args =? nbargs) eqn: eq_len_args; try discriminate H1.
-    rewrite -> eval_asfs2_ho in H1.
-    injection H as eq_args_inner. rewrite -> eq_args_inner in H1.
-    destruct (eval_asfs2 stack inner_args t ops) as [vargs|] 
-      eqn: eq_eval_inner_args; try discriminate H1.
-    exists [(k, ASFSOp opcode args)]. exists t. exists vargs.
+  + destruct e as [basicval| opcode args] eqn: eq_e.
+    * destruct basicval as [ | |fvar'] eqn: eqbasicval; try discriminate.
+      simpl in H1. rewrite -> eq_k_fvar in H1.
+      pose proof (IH nbargs (FreshVar fvar') inner_args comm func val oper
+        ops stack H H0 H1) as 
+        [eprefix [esuffix [einner_vals [Ht [Heval Hfunc]]]]].
+      exists ((k, ASFSBasicVal (FreshVar fvar'))::eprefix).
+      exists esuffix. exists einner_vals.
+      rewrite -> Ht.
+      split; try auto.
+    * destruct (oper =?i opcode) eqn: eq_opers; try discriminate.
+      simpl in H1. rewrite -> eq_k_fvar in H1.
+      apply eq_oper_label_correct in eq_opers.
+      rewrite <- eq_opers in H1. rewrite -> H0 in H1.
+      destruct (length args =? nbargs) eqn: eq_len; try discriminate.
+      rewrite -> eval_asfs2_ho in H1.
+      destruct (eval_asfs2 stack args t ops) as [vargs|] eqn: eq_eval_args;
+        try discriminate.
+      exists [(k, ASFSOp opcode args)]. exists t. exists vargs.
+    injection H as H.
     split; try reflexivity.
     split; try assumption.
+    rewrite  <- H. assumption.
   + unfold eval_asfs2_elem in H1. rewrite -> eq_k_fvar in H1.
     fold eval_asfs2_elem in H1.
     pose proof (IH nbargs (FreshVar fvar) inner_args comm func val oper ops stack H
@@ -324,10 +332,10 @@ induction m as [| h t IH].
     simpl. rewrite -> Hpresuff.
     reflexivity.
 Qed.
-*)
 
 
-(* If we can evaluate a FreshVar, the in must appear in the map *)
+
+(* If we can evaluate a FreshVar, then it must appear in the map *)
 Lemma eval_fvar_then_in_map: forall (stack: tstack) (fvar: nat)
   (m: asfs_map) (ops: opm) (v: EVMWord),
 eval_asfs2_elem stack (FreshVar fvar) m ops = Some v ->
@@ -644,9 +652,9 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp ADD [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WZero then
+                     if stack_val_has_value' arg1 t WZero then
                        Some ((n, ASFSBasicVal arg2)::t)
-                     else if stack_val_has_value' arg2 map WZero then
+                     else if stack_val_has_value' arg2 t WZero then
                        Some ((n, ASFSBasicVal arg1)::t)
                      else None
                  | _ => None
@@ -687,8 +695,6 @@ optimize_map_add_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
 Proof.
-Admitted.
-(*
 induction m1 as [|h t IH].
 - intros. simpl in H0. discriminate.
 - intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
@@ -700,7 +706,7 @@ induction m1 as [|h t IH].
       destruct args as [| arg1 ta]; try discriminate.
       destruct ta as [| arg2 tta]; try discriminate.
       destruct tta; try discriminate.
-      destruct (stack_val_has_value arg1 WZero) eqn: eq_arg1_zero.
+      destruct (stack_val_has_value' arg1 t WZero ) eqn: eq_arg1_zero.
       -- (* arg1 is WZero *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -708,14 +714,14 @@ induction m1 as [|h t IH].
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
-               rewrite -> stack_val_has_value_eval with (v:=WZero);
+               rewrite -> stack_val_has_value_eval' with (v:=WZero);
                  try assumption.
                destruct (eval_asfs2_elem stack arg2 t ops) as [arg2_val|]
                  eqn: eq_eval_arg2; try reflexivity.
                rewrite -> word_add_0_x_is_x. reflexivity.
             ** fold eval_asfs2_elem. reflexivity.
       -- (* arg2 is WZero *)
-         destruct (stack_val_has_value arg2 WZero) eqn: eq_arg2_zero;
+         destruct (stack_val_has_value' arg2 t WZero) eqn: eq_arg2_zero;
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -725,7 +731,7 @@ induction m1 as [|h t IH].
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
                destruct (eval_asfs2_elem stack arg1 t ops) as [arg1_val|]
                  eqn: eq_eval_arg2; try reflexivity.
-               rewrite -> stack_val_has_value_eval with (v:=WZero);
+               rewrite -> stack_val_has_value_eval' with (v:=WZero);
                  try assumption.
                rewrite -> word_add_x_0_is_x.
                reflexivity.
@@ -744,7 +750,7 @@ induction m1 as [|h t IH].
            eq_eval_t_map'.
          rewrite -> eq_eval_t_map'. reflexivity.
     * apply IH with (n:=n); try assumption.
-Qed.*)
+Qed.
 
 Theorem optimize_add_zero_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
@@ -773,8 +779,6 @@ Lemma opt_add_zero_same_fvar_in_maps: forall (n: nat)
 optimize_map_add_zero n m1 = Some m2 ->
 same_fvar_in_maps m1 m2.
 Proof.
-Admitted.
-(*
 intros n m1. revert n.
 induction m1 as [| h t IH].
 - intros n m2 Hopt. simpl in Hopt. discriminate.
@@ -787,11 +791,11 @@ induction m1 as [| h t IH].
     destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
     destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
     destruct targs2 eqn: eq_args2; try discriminate.
-    destruct (stack_val_has_value arg1 WZero).
+    destruct (stack_val_has_value' arg1 t WZero).
     * injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
-    * destruct (stack_val_has_value arg2 WZero); try discriminate.
+    * destruct (stack_val_has_value' arg2 t WZero); try discriminate.
       injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
@@ -803,7 +807,6 @@ induction m1 as [| h t IH].
     simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
     split; try reflexivity. assumption.
 Qed.
-*)
 
 
 Lemma opt_add_zero_decreasingness_preservation: forall (n: nat)
@@ -870,9 +873,9 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp MUL [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WOne then
+                     if stack_val_has_value' arg1 t WOne then
                        Some ((n, ASFSBasicVal arg2)::t)
-                     else if stack_val_has_value' arg2 map WOne then
+                     else if stack_val_has_value' arg2 t WOne then
                        Some ((n, ASFSBasicVal arg1)::t)
                      else None
                  | _ => None
@@ -1102,9 +1105,9 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp MUL [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WZero then
+                     if stack_val_has_value' arg1 t WZero then
                        Some ((n, ASFSBasicVal (Val WZero))::t)
-                     else if stack_val_has_value' arg2 map WZero then
+                     else if stack_val_has_value' arg2 t WZero then
                        Some ((n, ASFSBasicVal (Val WZero))::t)
                      else None
                  | _ => None
@@ -1674,7 +1677,7 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp DIV [arg1; arg2] => 
-                     if stack_val_has_value' arg2 map WOne then
+                     if stack_val_has_value' arg2 t WOne then
                        Some ((n, ASFSBasicVal arg1)::t)
                      else None
                  | _ => None
@@ -1710,9 +1713,9 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp EQ [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WZero then
+                     if stack_val_has_value' arg1 t WZero then
                        Some ((n, ASFSOp ISZERO [arg2])::t)
-                     else if stack_val_has_value' arg2 map WZero then
+                     else if stack_val_has_value' arg2 t WZero then
                        Some ((n, ASFSOp ISZERO [arg1])::t)
                      else None
                  | _ => None
@@ -1747,7 +1750,7 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp GT [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WOne then
+                     if stack_val_has_value' arg1 t WOne then
                        Some ((n, ASFSOp ISZERO [arg2])::t)
                      else None
                  | _ => None
@@ -1782,7 +1785,7 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp LT [arg1; arg2] => 
-                     if stack_val_has_value' arg2 map WOne then
+                     if stack_val_has_value' arg2 t WOne then
                        Some ((n, ASFSOp ISZERO [arg1])::t)
                      else None
                  | _ => None
@@ -1818,9 +1821,9 @@ match map with
 | (n, val)::t => if n =? fresh_var then
                  match val with
                  | ASFSOp OR [arg1; arg2] => 
-                     if stack_val_has_value' arg1 map WZero then
+                     if stack_val_has_value' arg1 t WZero then
                        Some ((n, ASFSBasicVal arg2)::t)
-                     else if stack_val_has_value' arg2 map WZero then
+                     else if stack_val_has_value' arg2 t WZero then
                        Some ((n, ASFSBasicVal arg1)::t)
                      else None
                  | _ => None
