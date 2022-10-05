@@ -918,8 +918,7 @@ optimize_map_mul_one n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
 Proof.
-Admitted.
-(*induction m1 as [|h t IH].
+induction m1 as [|h t IH].
 - intros. simpl in H0. discriminate.
 - intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
   destruct (hn =? n) eqn: eq_hn_n.
@@ -930,7 +929,7 @@ Admitted.
       destruct args as [| arg1 ta]; try discriminate.
       destruct ta as [| arg2 tta]; try discriminate.
       destruct tta; try discriminate.
-      destruct (stack_val_has_value arg1 WOne) eqn: eq_arg1_one.
+      destruct (stack_val_has_value' arg1 t WOne) eqn: eq_arg1_one.
       -- (* arg1 is WOne *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -938,14 +937,14 @@ Admitted.
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
-               rewrite -> stack_val_has_value_eval with (v:=WOne);
+               rewrite -> stack_val_has_value_eval' with (v:=WOne);
                  try assumption.
                destruct (eval_asfs2_elem stack arg2 t ops) as [arg2_val|]
                  eqn: eq_eval_arg2; try reflexivity.
                rewrite -> word_mul_1_x_is_x. reflexivity.
             ** fold eval_asfs2_elem. reflexivity.
       -- (* arg2 is One *)
-         destruct (stack_val_has_value arg2 WOne) eqn: eq_arg2_one;
+         destruct (stack_val_has_value' arg2 t WOne) eqn: eq_arg2_one;
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -955,7 +954,7 @@ Admitted.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
                destruct (eval_asfs2_elem stack arg1 t ops) as [arg1_val|]
                  eqn: eq_eval_arg2; try reflexivity.
-               rewrite -> stack_val_has_value_eval with (v:=WOne);
+               rewrite -> stack_val_has_value_eval' with (v:=WOne);
                  try assumption.
                rewrite -> word_mul_x_1_is_x.
                reflexivity.
@@ -975,7 +974,6 @@ Admitted.
          rewrite -> eq_eval_t_map'. reflexivity.
     * apply IH with (n:=n); try assumption.
 Qed.
-*)
 
 
 Theorem optimize_mul_one_eq: forall (a1 a2: asfs) (fresh_var: nat)
@@ -1005,8 +1003,6 @@ Lemma opt_mul_one_same_fvar_in_maps: forall (n: nat)
 optimize_map_mul_one n m1 = Some m2 ->
 same_fvar_in_maps m1 m2.
 Proof.
-Admitted.
-(*
 intros n m1. revert n.
 induction m1 as [| h t IH].
 - intros n m2 Hopt. simpl in Hopt. discriminate.
@@ -1019,11 +1015,11 @@ induction m1 as [| h t IH].
     destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
     destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
     destruct targs2 eqn: eq_args2; try discriminate.
-    destruct (stack_val_has_value arg1 WOne).
+    destruct (stack_val_has_value' arg1 t WOne).
     * injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
-    * destruct (stack_val_has_value arg2 WOne); try discriminate.
+    * destruct (stack_val_has_value' arg2 t WOne); try discriminate.
       injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
@@ -1035,7 +1031,6 @@ induction m1 as [| h t IH].
     simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
     split; try reflexivity. assumption.
 Qed.
-*)
 
 
 Lemma opt_mul_one_decreasingness_preservation: forall (n: nat)
@@ -1154,8 +1149,6 @@ forall (elem: asfs_stack_val) (v: EVMWord),
   eval_asfs2_elem stack elem m1 ops = Some v ->
   eval_asfs2_elem stack elem m2 ops = Some v.
 Proof.
-Admitted.
-(*
 induction m1 as [|h t IH].
 - intros. simpl in H0. discriminate.
 - intros. simpl in H0. destruct h as [hn hv] eqn: eq_h.
@@ -1167,7 +1160,7 @@ induction m1 as [|h t IH].
       destruct args as [| arg1 ta]; try discriminate.
       destruct ta as [| arg2 tta]; try discriminate.
       destruct tta; try discriminate.
-      destruct (stack_val_has_value arg1 WZero) eqn: eq_arg1_zero.
+      destruct (stack_val_has_value' arg1 t WZero) eqn: eq_arg1_zero.
       -- (* arg1 is WZero *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -1180,7 +1173,7 @@ induction m1 as [|h t IH].
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** fold eval_asfs2_elem. simpl in H1.
                rewrite -> eq_vame_fvar in H1. rewrite -> H in H1.
-               pose proof (stack_val_has_value_eval stack arg1 WZero t ops
+               pose proof (stack_val_has_value_eval' stack arg1 WZero t ops
                  eq_arg1_zero) as eq_eval_arg1.
                rewrite -> eq_eval_arg1 in H1.
                destruct (eval_asfs2_elem stack arg2 t ops) as [arg2_val|]
@@ -1191,7 +1184,7 @@ induction m1 as [|h t IH].
             ** fold eval_asfs2_elem. simpl in H1. rewrite -> eq_vame_fvar in H1.
                assumption.
       -- (* arg2 is WZero *)
-         destruct (stack_val_has_value arg2 WZero) eqn: eq_arg2_zero;
+         destruct (stack_val_has_value' arg2 t WZero) eqn: eq_arg2_zero;
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
@@ -1206,7 +1199,7 @@ induction m1 as [|h t IH].
                rewrite -> eq_vame_fvar in H1. rewrite -> H in H1.
                destruct (eval_asfs2_elem stack arg1 t ops) as [arg1_val|]
                  eqn: eq_eval_arg1; try discriminate.
-                pose proof (stack_val_has_value_eval stack arg2 WZero t ops
+                pose proof (stack_val_has_value_eval' stack arg2 WZero t ops
                  eq_arg2_zero) as eq_eval_arg2.
                rewrite -> eq_eval_arg2 in H1.
                rewrite -> word_mul_x_0_is_0 in H1.
@@ -1243,7 +1236,6 @@ induction m1 as [|h t IH].
          rewrite -> eq_succ_eval_elem_t_map'.
          reflexivity.
 Qed.
-*)
 
 Theorem optimize_mul_zero_safe_success: forall (a1 a2: asfs) (fresh_var: nat)
   (c s: tstack) (ops: opm),
@@ -1273,8 +1265,6 @@ Lemma opt_mul_zero_same_fvar_in_maps: forall (n: nat)
 optimize_map_mul_zero n m1 = Some m2 ->
 same_fvar_in_maps m1 m2.
 Proof.
-Admitted.
-(*
 intros n m1. revert n.
 induction m1 as [| h t IH].
 - intros n m2 Hopt. simpl in Hopt. discriminate.
@@ -1287,11 +1277,11 @@ induction m1 as [| h t IH].
     destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
     destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
     destruct targs2 eqn: eq_args2; try discriminate.
-    destruct (stack_val_has_value arg1 WZero).
+    destruct (stack_val_has_value' arg1 t WZero).
     * injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
-    * destruct (stack_val_has_value arg2 WZero); try discriminate.
+    * destruct (stack_val_has_value' arg2 t WZero); try discriminate.
       injection Hopt as eq_m2. rewrite <- eq_m2.
       simpl. split; try reflexivity.
       apply same_fvar_refl.
@@ -1303,7 +1293,6 @@ induction m1 as [| h t IH].
     simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
     split; try reflexivity. assumption.
 Qed.
-*)
 
 Lemma opt_mul_zero_decreasingness_preservation: forall (n: nat)
   (m1 m2: asfs_map),
@@ -1661,10 +1650,54 @@ optimize_func_map (optimize_map_eval opmap) fresh_var s.
 Definition optimize_eval : (asfs -> asfs*bool) :=
 optimize_fresh_var optimize_eval_fvar.
 
+(* Main lemma: every stack value is evaluated to the same value in the 
+   original map and also in the optimized one with EVAL *)
+Lemma eq_eval_opt_eval: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
+  (stack: tstack),
+optimize_map_eval ops n m1 = Some m2 ->
+forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
+                               eval_asfs2_elem stack elem m2 ops.
+Proof.
+Admitted.
+
+
+Theorem optimize_eval_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
+  (c: tstack) (ops: opm),
+optimize_eval_fvar fresh_var a1 = Some a2 ->
+eval_asfs c a1 ops = eval_asfs c a2 ops.
+Proof.
+Admitted.
+
+
+Lemma opt_eval_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map) (ops: opm),
+optimize_map_eval ops n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+Admitted.
+
+
+Lemma opt_eval_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map) (ops: opm),
+strictly_decreasing_map m1 ->
+optimize_map_eval ops n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+Admitted.
+
+
+
+Lemma optimize_eval_fvar_safe:
+safe_optimization_fvar optimize_eval_fvar.
+Proof.
+Admitted.
+
 Theorem optimize_eval_safe:
 safe_optimization optimize_eval.
 Proof.
 Admitted.
+
+
 
 
 (*******************************************
