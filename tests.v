@@ -698,6 +698,24 @@ optimize_map_and_and_r 100 map = Some (expected_map).
 Proof. reflexivity. Qed.
 
 
+Example lt1_0:
+let map: asfs_map := 
+  [(100, ASFSOp LT [InStackVar 5;Val WOne])] in
+let expected_map : asfs_map := 
+  [(100, ASFSOp ISZERO [InStackVar 5])] in
+optimize_map_lt_one 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
+Example lt1_1:
+let map: asfs_map := 
+  [(100, ASFSOp LT [InStackVar 5;FreshVar 4]);
+   (4, ASFSBasicVal (Val WOne))] in
+let expected_map : asfs_map := 
+  [(100, ASFSOp ISZERO [InStackVar 5]);
+   (4, ASFSBasicVal (Val WOne))] in
+optimize_map_lt_one 100 map = Some (expected_map).
+Proof. reflexivity. Qed.
+
 
 
 (* Counterexample for the NOT_NOT optimization with an arbitrary map with

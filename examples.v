@@ -334,6 +334,34 @@ Proof. reflexivity. Qed.
 
 
 
+
+Example checker_ex_lt1_1:
+let p := [PUSH 32 W1; PUSH 32 W5; Opcode LT] in
+let optimized_p := [PUSH 32 W5; Opcode ISZERO] in
+let stack_size := 0 in
+evm_eq_block_chkr' optimize_lt_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_lt1_2:
+let p := [PUSH 32 W1; SWAP 1; Opcode LT] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 2 in
+evm_eq_block_chkr' optimize_lt_one optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+Example checker_ex_lt1_3:
+let p := [PUSH 32 W1; PUSH 32 W0; Opcode ADD; SWAP 1; Opcode LT] in
+let optimized_p := [Opcode ISZERO] in
+let stack_size := 2 in
+let opt := apply_pipeline_n_times our_optimization_pipeline 10 in
+evm_eq_block_chkr' opt optimized_p p stack_size = true.
+Proof. reflexivity. Qed.
+
+
+
+
+
+
 Example checker_ex_or0_1:
 let p := [PUSH 32 W0; PUSH 32 W5; Opcode OR] in
 let optimized_p := [PUSH 32 W5] in

@@ -1738,7 +1738,7 @@ Admitted.
 
 
 (*************************************************
-  Optimization GT(X,1) --> ISZERO(X)
+  Optimization GT(1,X) --> ISZERO(X)
 **************************************************)
 Fixpoint optimize_map_gt_one (fresh_var: nat) (map: asfs_map): 
   option asfs_map :=
@@ -1767,6 +1767,41 @@ optimize_fresh_var optimize_gt_one_fvar a.
 
 Theorem optimize_gt_one_safe:
 safe_optimization optimize_gt_one.
+Proof.
+Admitted.
+
+
+
+(*************************************************
+  Optimization LT(X,1) --> ISZERO(X)
+**************************************************)
+Fixpoint optimize_map_lt_one (fresh_var: nat) (map: asfs_map): 
+  option asfs_map :=
+match map with
+| [] => None
+| (n, val)::t => if n =? fresh_var then
+                 match val with
+                 | ASFSOp LT [arg1; arg2] => 
+                     if stack_val_has_value' arg2 map WOne then
+                       Some ((n, ASFSOp ISZERO [arg1])::t)
+                     else None
+                 | _ => None
+                 end
+                 else match optimize_map_lt_one fresh_var t with 
+                      | None => None
+                      | Some map' => Some ((n, val)::map')
+                      end
+end.
+
+Definition optimize_lt_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
+optimize_func_map optimize_map_lt_one fresh_var s.
+
+(* This is the main optimization *)
+Definition optimize_lt_one (a: asfs) : asfs*bool :=
+optimize_fresh_var optimize_lt_one_fvar a.
+
+Theorem optimize_lt_one_safe:
+safe_optimization optimize_lt_one.
 Proof.
 Admitted.
 
@@ -2173,6 +2208,7 @@ Definition our_optimization_pipeline :=
  optimize_div_one;
  optimize_eq_zero;
  optimize_gt_one;
+ optimize_lt_one;
  optimize_or_zero;
  optimize_sub_x_x;
  optimize_iszero3;
@@ -2192,6 +2228,7 @@ apply Forall_cons; try apply optimize_not_not_safe.
 apply Forall_cons; try apply optimize_div_one_safe.
 apply Forall_cons; try apply optimize_eq_zero_safe.
 apply Forall_cons; try apply optimize_gt_one_safe.
+apply Forall_cons; try apply optimize_lt_one_safe.
 apply Forall_cons; try apply optimize_or_zero_safe.
 apply Forall_cons; try apply optimize_sub_x_x_safe.
 apply Forall_cons; try apply optimize_iszero3_safe.

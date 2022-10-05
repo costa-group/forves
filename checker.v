@@ -10,6 +10,7 @@ Import EVM_Def Concrete Abstract Optimizations.
 Require Import Coq_EVM.interpreter.
 Import Interpreter SFS.
 Import ListNotations.
+Require Import Coq.NArith.NArith.
 
 Module Checker.
 
@@ -51,8 +52,7 @@ match symbolic_exec opt_p height opmap with
     end
 end.
 
-(* Debugging version *)
-Require Import Coq.NArith.NArith.
+(* Pretty printing of symbolic states for debugging *)
 Inductive hasfs_stack_val : Type :=
   | HVal (val: N)
   | HInStackVar (var: nat)
@@ -91,7 +91,7 @@ Definition asfs_to_human (a: asfs) : hasfs :=
 match a with
 | ASFSc he mx s m => HASFSc he mx (s_to_human s) (map_to_human m)
 end.
-  
+(* Debugging version of chkr' *)
 Definition evm_eq_block_chkr'_dbg (opt: optimization) (opt_p p: block) 
   (height: nat) : hasfs*hasfs*bool :=
 match symbolic_exec opt_p height opmap with
@@ -109,6 +109,7 @@ match symbolic_exec opt_p height opmap with
                     eq_sstate_chkr sfs1 sfs3 opmap)
     end
 end.
+(*************************************)
 
 
 Definition evm_eq_block_chkr'' (opt: optimization) (opt_p p: block) (height: nat) 
