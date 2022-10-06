@@ -2098,7 +2098,7 @@ module Coq_Optimizations =
   (** val optimize_map_add_zero :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_add_zero fresh_var map0 = match map0 with
+  let rec optimize_map_add_zero fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2116,9 +2116,9 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WZero
                         then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
-                        else if stack_val_has_value' arg2 map0 EVM_Def.coq_WZero
+                        else if stack_val_has_value' arg2 t EVM_Def.coq_WZero
                              then Some ((n0 , (Abstract.ASFSBasicVal arg1))::t)
                              else None
                       | _::_ -> None)))
@@ -2141,7 +2141,7 @@ module Coq_Optimizations =
   (** val optimize_map_mul_one :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_mul_one fresh_var map0 = match map0 with
+  let rec optimize_map_mul_one fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2159,9 +2159,9 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WOne
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WOne
                         then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
-                        else if stack_val_has_value' arg2 map0 EVM_Def.coq_WOne
+                        else if stack_val_has_value' arg2 t EVM_Def.coq_WOne
                              then Some ((n0 , (Abstract.ASFSBasicVal arg1))::t)
                              else None
                       | _::_ -> None)))
@@ -2184,7 +2184,7 @@ module Coq_Optimizations =
   (** val optimize_map_mul_zero :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_mul_zero fresh_var map0 = match map0 with
+  let rec optimize_map_mul_zero fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2202,10 +2202,10 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WZero
                         then Some ((n0 , (Abstract.ASFSBasicVal (Abstract.Val
                                EVM_Def.coq_WZero)))::t)
-                        else if stack_val_has_value' arg2 map0 EVM_Def.coq_WZero
+                        else if stack_val_has_value' arg2 t EVM_Def.coq_WZero
                              then Some ((n0 , (Abstract.ASFSBasicVal
                                     (Abstract.Val EVM_Def.coq_WZero)))::t)
                              else None
@@ -2303,12 +2303,14 @@ module Coq_Optimizations =
                   | Some wargs ->
                     (match ops oper with
                      | Some o ->
-                       let Concrete.Op (_, _, f) = o in
-                       (match f wargs with
-                        | Some v ->
-                          Some ((n0 , (Abstract.ASFSBasicVal (Abstract.Val
-                            v)))::t)
-                        | None -> None)
+                       let Concrete.Op (_, nargs, f) = o in
+                       if eqb (length args) nargs
+                       then (match f wargs with
+                             | Some v ->
+                               Some ((n0 , (Abstract.ASFSBasicVal (Abstract.Val
+                                 v)))::t)
+                             | None -> None)
+                       else None
                      | None -> None)
                   | None -> None)
             else None)
@@ -2329,7 +2331,7 @@ module Coq_Optimizations =
   (** val optimize_map_div_one :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_div_one fresh_var map0 = match map0 with
+  let rec optimize_map_div_one fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2347,7 +2349,7 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg2 map0 EVM_Def.coq_WOne
+                        if stack_val_has_value' arg2 t EVM_Def.coq_WOne
                         then Some ((n0 , (Abstract.ASFSBasicVal arg1))::t)
                         else None
                       | _::_ -> None)))
@@ -2370,7 +2372,7 @@ module Coq_Optimizations =
   (** val optimize_map_eq_zero :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_eq_zero fresh_var map0 = match map0 with
+  let rec optimize_map_eq_zero fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2388,10 +2390,10 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WZero
                         then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
                                (arg2::[]))))::t)
-                        else if stack_val_has_value' arg2 map0 EVM_Def.coq_WZero
+                        else if stack_val_has_value' arg2 t EVM_Def.coq_WZero
                              then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
                                     (arg1::[]))))::t)
                              else None
@@ -2415,7 +2417,7 @@ module Coq_Optimizations =
   (** val optimize_map_gt_one :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_gt_one fresh_var map0 = match map0 with
+  let rec optimize_map_gt_one fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2433,7 +2435,7 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WOne
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WOne
                         then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
                                (arg2::[]))))::t)
                         else None
@@ -2456,7 +2458,7 @@ module Coq_Optimizations =
   (** val optimize_map_lt_one :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_lt_one fresh_var map0 = match map0 with
+  let rec optimize_map_lt_one fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2474,7 +2476,7 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg2 map0 EVM_Def.coq_WOne
+                        if stack_val_has_value' arg2 t EVM_Def.coq_WOne
                         then Some ((n0 , (Abstract.ASFSOp (Concrete.ISZERO,
                                (arg1::[]))))::t)
                         else None
@@ -2497,7 +2499,7 @@ module Coq_Optimizations =
   (** val optimize_map_or_zero :
       nat -> Abstract.asfs_map -> Abstract.asfs_map option **)
 
-  let rec optimize_map_or_zero fresh_var map0 = match map0 with
+  let rec optimize_map_or_zero fresh_var = function
   | [] -> None
   | p::t ->
     let n0 , val0 = p in
@@ -2515,9 +2517,9 @@ module Coq_Optimizations =
                    | arg2::l0 ->
                      (match l0 with
                       | [] ->
-                        if stack_val_has_value' arg1 map0 EVM_Def.coq_WZero
+                        if stack_val_has_value' arg1 t EVM_Def.coq_WZero
                         then Some ((n0 , (Abstract.ASFSBasicVal arg2))::t)
-                        else if stack_val_has_value' arg2 map0 EVM_Def.coq_WZero
+                        else if stack_val_has_value' arg2 t EVM_Def.coq_WZero
                              then Some ((n0 , (Abstract.ASFSBasicVal arg1))::t)
                              else None
                       | _::_ -> None)))
@@ -11495,9 +11497,9 @@ module Parser =
   let parse_block block0 =
     parse_block' (tokenize block0)
 
-  (** val block_eq : char list -> char list -> char list -> bool option **)
+  (** val block_eq_0 : char list -> char list -> char list -> bool option **)
 
-  let block_eq p_opt p k =
+  let block_eq_0 p_opt p k =
     match parse_block p_opt with
     | Some b1 ->
       (match parse_block p with

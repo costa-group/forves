@@ -666,7 +666,7 @@ module Parser :
 
   val parse_block : char list -> Concrete.instr list option
 
-  val block_eq : char list -> char list -> char list -> bool option
+  val block_eq_0 : char list -> char list -> char list -> bool option
 
   val opt : Abstract.asfs -> Abstract.asfs * bool
 

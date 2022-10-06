@@ -34,7 +34,7 @@ Compute ( "B4_BottleCastle_initial_block_0_4"%string,
            2).
 
 
-(*
+(* 
  I: PUSH 0 PUSH 10 PUSH 0 PUSH 100 EXP DUP2 SLOAD DUP2 PUSH FF MUL NOT AND SWAP1 DUP4 ISZERO ISZERO MUL OR SWAP1
  O: PUSH 0 PUSH 10 SLOAD PUSH ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00 AND PUSH 10
  k: 0
@@ -14350,8 +14350,8 @@ Compute ( "B2387_BottleCastle_run_code_of_0_block_353_3"%string,
  r: ['GT(1,X)']
 *)
 Compute ( "B2389_BottleCastle_run_code_of_0_block_354_0"%string, 
-          evm_eq_block_chkr'
-          optimize_id
+          evm_eq_block_chkr'_dbg
+          (apply_pipeline_n_times [optimize_gt_one] 50)
            [PUSH 1 (NToWord WLen 0x0%N); DUP 2; Opcode ISZERO; Opcode ISZERO; DUP 1; Opcode ISZERO; PUSH 2 (NToWord WLen 0x1bf%N)]
            [PUSH 1 (NToWord WLen 0x0%N); DUP 2; PUSH 1 (NToWord WLen 0x1%N); Opcode GT; Opcode ISZERO; DUP 1; Opcode ISZERO; PUSH 2 (NToWord WLen 0x1bf%N)]
            1).
