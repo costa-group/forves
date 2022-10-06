@@ -7,6 +7,7 @@ Require Import Coq_EVM.definitions.
 Import EVM_Def Concrete Abstract Optimizations.
 Require Import Coq_EVM.interpreter.
 Import Interpreter SFS.
+Require Import Coq.Logic.FunctionalExtensionality.
 Import ListNotations.
 
 
@@ -186,7 +187,7 @@ assumption.
 Qed.
 
 
-Lemma eval_value: forall (stack: tstack) (val: EVMWord) (m: asfs_map)
+Lemma eval_asfs2_val: forall (stack: tstack) (val: EVMWord) (m: asfs_map)
   (ops: opm),
 eval_asfs2_elem stack (Val val) m ops = Some val.
 Proof.
@@ -199,9 +200,10 @@ Lemma eval_var: forall (stack: tstack) (var: nat) (m1 m2: asfs_map)
 eval_asfs2_elem stack (InStackVar var) m1 ops =
 eval_asfs2_elem stack (InStackVar var) m2 ops.
 Proof.
-intros. destruct m1.
-- destruct m2; try reflexivity.
-- destruct m2; try reflexivity.
+intros. 
+rewrite -> eval_asfs2_instackvar.
+rewrite -> eval_asfs2_instackvar.
+reflexivity.
 Qed.
 
 
@@ -406,10 +408,10 @@ eval_asfs2_elem stack elem m ops = Some v.
 Proof.
 intros stack elem n e suffix m ops v Heval_suffix Hmcons Hdecreasing.
 destruct elem as [val|var|fvar] eqn: eq_elem.
-- pose proof (eval_value stack val suffix ops) as Heval_suffix_val.
+- pose proof (eval_asfs2_val stack val suffix ops) as Heval_suffix_val.
   rewrite -> Heval_suffix  in Heval_suffix_val.
   rewrite -> Heval_suffix_val.
-  apply eval_value.
+  apply eval_asfs2_val.
 - pose proof (eval_var stack var suffix m ops) as eq_eval_var.
   rewrite <- eq_eval_var. assumption.
 - pose proof (eval_fvar_then_in_map stack fvar suffix ops v Heval_suffix)
@@ -439,10 +441,10 @@ induction prefix as [|h t IH].
 - intros stack elem suffix m ops v Hevalsuffix Hmprefixsuffix Hdecreasing.
   simpl in Hmprefixsuffix. 
   destruct elem as [val|var|fvar] eqn: eq_elem.
-  + pose proof (eval_value stack val suffix ops) as Heval_suffix_val.
+  + pose proof (eval_asfs2_val stack val suffix ops) as Heval_suffix_val.
     rewrite -> Hevalsuffix  in Heval_suffix_val.
     rewrite -> Heval_suffix_val.
-    apply eval_value.
+    apply eval_asfs2_val.
   + pose proof (eval_var stack var suffix m ops) as eq_eval_var.
     rewrite <- eq_eval_var. assumption.
   + destruct h as [n e] eqn: eq_h.
@@ -710,7 +712,7 @@ induction m1 as [|h t IH].
       -- (* arg1 is WZero *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ apply eval_value.
+         ++ apply eval_asfs2_val.
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
@@ -725,7 +727,7 @@ induction m1 as [|h t IH].
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ apply eval_value.
+         ++ apply eval_asfs2_val.
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
@@ -933,7 +935,7 @@ induction m1 as [|h t IH].
       -- (* arg1 is WOne *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ apply eval_value.
+         ++ apply eval_asfs2_val.
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
@@ -948,7 +950,7 @@ induction m1 as [|h t IH].
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ apply eval_value.
+         ++ apply eval_asfs2_val.
          ++ apply eval_var.
          ++ unfold eval_asfs2_elem. destruct (hn =? fvar) eqn: eq_vame_fvar.
             ** rewrite -> H. simpl. fold eval_asfs2_elem.
@@ -1164,9 +1166,9 @@ induction m1 as [|h t IH].
       -- (* arg1 is WZero *)
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ rewrite -> eval_value in H1. injection H1 as H1.
+         ++ rewrite -> eval_asfs2_val in H1. injection H1 as H1.
             rewrite <- H1.
-            rewrite -> eval_value. reflexivity.
+            rewrite -> eval_asfs2_val. reflexivity.
          ++ pose proof (eval_var stack var ((hn, ASFSOp MUL [arg1; arg2]) :: t)
              ((hn, ASFSBasicVal (Val WZero)) :: t) ops) as Hsameeval.
             rewrite <- Hsameeval. assumption.
@@ -1188,9 +1190,9 @@ induction m1 as [|h t IH].
            try discriminate.
          injection H0 as eq_m2. rewrite <- eq_m2.
          destruct elem as [val|var|fvar] eqn: eq_elem.
-         ++ rewrite -> eval_value in H1. injection H1 as H1.
+         ++ rewrite -> eval_asfs2_val in H1. injection H1 as H1.
             rewrite <- H1.
-            rewrite -> eval_value. reflexivity.
+            rewrite -> eval_asfs2_val. reflexivity.
          ++ pose proof (eval_var stack var ((hn, ASFSOp MUL [arg1; arg2]) :: t)
              ((hn, ASFSBasicVal (Val WZero)) :: t) ops) as Hsameeval.
             rewrite <- Hsameeval. assumption.
@@ -1212,7 +1214,7 @@ induction m1 as [|h t IH].
       try discriminate.
     injection H0 as H0. rewrite <- H0. 
     destruct elem as [val|var|fvar] eqn: eq_elem.
-    * rewrite -> eval_value. rewrite -> eval_value in H1. assumption.
+    * rewrite -> eval_asfs2_val. rewrite -> eval_asfs2_val in H1. assumption.
     * pose proof (eval_var stack var ((hn, hv) :: t) ((hn, hv) :: map')
         ops) as eq_eval_instack.
       rewrite <- eq_eval_instack. assumption.
@@ -1419,7 +1421,7 @@ induction m1 as [|h t IH].
       destruct inner_t eqn: eq_inner_t; try discriminate.
       injection Hopt_m1 as eq_m2. rewrite <- eq_m2.
       destruct elem as [val|var|fvar] eqn: eq_elem.
-      -- rewrite -> eval_value. rewrite -> eval_value. intuition.
+      -- rewrite -> eval_asfs2_val. rewrite -> eval_asfs2_val. intuition.
       -- rewrite -> eval_var with (m2 := ((hn, ASFSBasicVal inner_arg) :: t)). 
          intuition. 
       -- intros Heval_in_m1. 
@@ -1458,7 +1460,7 @@ induction m1 as [|h t IH].
       try discriminate.
     injection Hopt_m1 as Hopt_m1. rewrite <- Hopt_m1. 
     destruct elem as [val|var|fvar] eqn: eq_elem.
-    * rewrite -> eval_value. rewrite -> eval_value. intuition.
+    * rewrite -> eval_asfs2_val. rewrite -> eval_asfs2_val. intuition.
     * rewrite -> eval_var with (m2 := ((hn, hv) :: map')). intuition.
     * intros Heval_in_m1. 
       simpl. simpl in Heval_in_m1. 
@@ -1625,10 +1627,13 @@ match map with
           | Some wargs => 
               match ops oper with
               | Some (Op comm nargs f) => 
-                  match f wargs with
-                  | Some v => Some ((n, ASFSBasicVal (Val v))::t)
-                  | None => None
-                  end
+                  if length args =? nargs
+                  then
+                    match f wargs with
+                    | Some v => Some ((n, ASFSBasicVal (Val v))::t)
+                    | None => None
+                    end
+                  else None
               | None => None
               end
           | None => None
@@ -1650,6 +1655,30 @@ optimize_func_map (optimize_map_eval opmap) fresh_var s.
 Definition optimize_eval : (asfs -> asfs*bool) :=
 optimize_fresh_var optimize_eval_fvar.
 
+
+Lemma eval_elem_fun: forall (stack: tstack) (t map': asfs_map) (ops: opm),
+(forall elem : asfs_stack_val, eval_asfs2_elem stack elem t ops = eval_asfs2_elem stack elem map' ops) ->
+forall elem : asfs_stack_val, (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' t ops) elem = 
+                              (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' map' ops) elem.
+Proof.
+intros. simpl. rewrite -> H. reflexivity.
+Qed.
+
+
+Lemma const_list_apply_f: forall (args: list asfs_stack_val) (t: asfs_map)
+  (wargs: list EVMWord) (stack: tstack) (ops: opm),
+const_list args t = Some wargs -> 
+apply_f_list_asfs_stack_val 
+  (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' t ops) args
+  = Some wargs.
+Proof.
+(* Complete destruct args len <= 4 *)
+induction args as [|hh tt IH].
+- intros. simpl. simpl in H. assumption.
+- intros. simpl in H.
+Admitted.  
+
+
 (* Main lemma: every stack value is evaluated to the same value in the 
    original map and also in the optimized one with EVAL *)
 Lemma eq_eval_opt_eval: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
@@ -1658,14 +1687,61 @@ optimize_map_eval ops n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
 Proof.
-Admitted.
+intro m1. induction m1 as [|h t IH].
+- intros. destruct elem as [val|var|fvar] eqn: eq_elem.
+  + rewrite -> eval_asfs2_val. rewrite -> eval_asfs2_val. reflexivity.
+  + rewrite -> eval_asfs2_instackvar. rewrite -> eval_asfs2_instackvar.
+    reflexivity.
+  + simpl optimize_map_eval in H. discriminate.
+- intros. destruct elem as [val|var|fvar] eqn: eq_elem.
+  + rewrite -> eval_asfs2_val. rewrite -> eval_asfs2_val. reflexivity.
+  + rewrite -> eval_asfs2_instackvar. rewrite -> eval_asfs2_instackvar.
+    reflexivity.
+  + simpl in H. destruct h as [mn mv] eqn: eq_h.
+    destruct (mn =? n) eqn: eq_mn_n.
+    * destruct mv as [basicv|op args] eqn: eq_mv; try discriminate.
+      destruct (is_fully_defined op) eqn: eq_fully_def_op; try discriminate.
+      destruct (const_list args t) as [wargs|] eqn: eq_const_list; 
+        try discriminate.
+      destruct (ops op) as [o|] eqn: eq_ops_op; try discriminate.
+      destruct o as [comm nargs func] eqn: eq_o.
+      destruct (length args =? nargs) eqn: eq_len_args; try discriminate.
+      destruct (func wargs) as [v|] eqn: eq_func; try discriminate.
+      injection H as H. rewrite <- H.
+      simpl. destruct (mn =? fvar) eqn: eq_mn_fvar; try reflexivity.
+      rewrite -> eq_ops_op.
+      rewrite -> eval_asfs2_val.
+      apply const_list_apply_f with (stack:=stack)(ops:=ops) in 
+        eq_const_list as Happly_f.
+      rewrite -> Happly_f. rewrite -> eq_len_args.
+      assumption.
+    * destruct (optimize_map_eval ops n t) as [map'|] eqn: eq_opt_n_t;
+        try discriminate.
+      injection H as H. rewrite <- H.
+      simpl. destruct (mn =? fvar) eqn: eq_mn_fvar.
+      -- destruct mv as [basicv|op args] eqn: eq_mv.
+         ++ apply IH with (n:=n); try assumption.
+         ++ destruct (ops op) as [o|] eqn: eq_ops_op; try reflexivity.
+            destruct o as [comm nargs func] eqn: eq_o.
+            destruct (length args =? nargs) eqn: eq_len_args; try reflexivity.
+            pose proof (IH map' ops n stack eq_opt_n_t) as IHelem.
+            pose proof (eval_elem_fun stack t map' ops IHelem) as HH.
+            pose proof (@functional_extensionality asfs_stack_val 
+              (option EVMWord)
+              (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' t ops)
+              (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' map' ops)
+              HH) as eq_funs.
+            rewrite -> eq_funs.
+            reflexivity.
+      -- apply IH with (n:=n); try assumption.
+Qed.
 
 
 Theorem optimize_eval_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
 optimize_eval_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
-Proof.
+Proof. 
 Admitted.
 
 
@@ -2469,7 +2545,7 @@ Lemma th_opt_add_0_val: forall (m1 m2: asfs_map) (ops: opm) (e: asfs_stack_val)
     - intros m2 ops e c val H1 H2 H3.
       cbn in H2. rewrite <- H2. reflexivity.
     - intros m2 ops e c val H1 H2 H3.
-      cbn. rewrite H3. rewrite eval_value. reflexivity.
+      cbn. rewrite H3. rewrite eval_asfs2_val. reflexivity.
   Qed.
 
 
@@ -2501,7 +2577,7 @@ Proof.
                 destruct (stack_val_has_value arg1 WZero) eqn:Eq7.
                 ----- assert (Eq7' := stack_val_has_value_eval c arg1 WZero m1' ops Eq7).
                       destruct e as [val|var|fvar] eqn:Eq8.
-                      + rewrite <- H2. apply eval_value.
+                      + rewrite <- H2. apply eval_asfs2_val.
                       + rewrite <- H2. apply eval_var.
                       + 
                         simpl. 
@@ -2518,7 +2594,7 @@ Proof.
                 ----- destruct (stack_val_has_value arg2 WZero) eqn:Eq8.
                       + assert (Eq8' := stack_val_has_value_eval c arg2 WZero m1' ops Eq8).
                         destruct e as [val|var|fvar] eqn:Eq9.
-                        ++ rewrite <- H2. apply eval_value.
+                        ++ rewrite <- H2. apply eval_asfs2_val.
                         ++ rewrite <- H2. apply eval_var.
                         ++ simpl. destruct (id =? fvar) eqn:Eq10.
                            +++ rewrite H1. rewrite Eq8'.
@@ -2550,7 +2626,7 @@ Proof.
            ---- rewrite <- H2. rewrite Eq1'. reflexivity.
            ---- rewrite <- H2. rewrite Eq1'. reflexivity.
     -- destruct e as [val|var|fvar] eqn:Eq2.
-       --- rewrite <- H2. rewrite eval_value. rewrite eval_value. reflexivity.
+       --- rewrite <- H2. rewrite eval_asfs2_val. rewrite eval_asfs2_val. reflexivity.
        --- rewrite <- H2. apply eval_var.
        --- rewrite <- H2. simpl. destruct (id' =? fvar) eqn:Eq3.
            ---- destruct v as [bv|opval] eqn:Eq4.

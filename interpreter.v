@@ -717,6 +717,22 @@ match elem with
      end
 end.
 
+Lemma eval_asfs2_val: forall (s: tstack) (val: EVMWord) (m: asfs_map) 
+  (ops: opm),
+eval_asfs2_elem s (Val val) m ops = Some val.
+Proof.
+intros.
+destruct m; try reflexivity.
+Qed.
+
+Lemma eval_asfs2_instackvar: forall (s: tstack) (var: nat) (m: asfs_map) 
+  (ops: opm),
+eval_asfs2_elem s (InStackVar var) m ops = nth_error s var.
+Proof.
+intros.
+destruct m; try reflexivity.
+Qed.
+
 (* Define the evaluation of an asfs_stack in terms of the apply_f_list_asfs_stack_val *)
 Definition eval_asfs2 (c: tstack) (s: asfs_stack) (m: asfs_map) (ops: opm) : option (list EVMWord) :=
 let f_eval_list := fun (elem': asfs_stack_val) => eval_asfs2_elem c elem' m ops in
@@ -827,16 +843,6 @@ symmetry in eq_len_hc.
 apply beq_nat_eq in eq_len_hc.
 rewrite -> Hlen in eq_len_hc.
 assumption.
-Qed.
-
-
-Lemma eval_const_val: forall (stk: tstack) (w: EVMWord) (map: asfs_map) (ops: opm),
-eval_asfs2_elem stk (Val w) map ops = Some w.
-Proof.
-intros stk w map ops. unfold eval_asfs2_elem.
-destruct map eqn: eq_m; try reflexivity.
-(* unneeded unfolding, required by Coq to simplify because the map is the
-   decreasing argument *)
 Qed.
 
 
@@ -1421,7 +1427,7 @@ destruct instruction eqn: eq_instr.
     HLen Hevalcurr) as eq_height_hc.
   rewrite -> eq_height_hc. rewrite Nat.eqb_refl.
   unfold eval_asfs2. unfold apply_f_list_asfs_stack_val.
-  rewrite -> eval_const_val.
+  rewrite -> eval_asfs2_val.
   fold apply_f_list_asfs_stack_val.
   rewrite -> eval_asfs2_ho.
   simpl in Hevalcurr. rewrite -> HLen in Hevalcurr. rewrite -> eq_height_hc in Hevalcurr.
@@ -2713,27 +2719,10 @@ match (flat_stack_elem e1 m1, flat_stack_elem e2 m2) with
 | _ => false
 end.
 
-
-Lemma eval_asfs2_val: forall (s: tstack) (val: EVMWord) (m: asfs_map) 
-  (ops: opm),
-eval_asfs2_elem s (Val val) m ops = Some val.
-Proof.
-intros.
-destruct m; try reflexivity.
-Qed.
-
 Lemma flat_stack_val: forall (val: EVMWord) (m: asfs_map),
 flat_stack_elem (Val val) m = Some (UVal val).
 Proof.
 intros. destruct m; try reflexivity.
-Qed.
-
-Lemma eval_asfs2_instackvar: forall (s: tstack) (var: nat) (m: asfs_map) 
-  (ops: opm),
-eval_asfs2_elem s (InStackVar var) m ops = nth_error s var.
-Proof.
-intros.
-destruct m; try reflexivity.
 Qed.
 
 Lemma flat_stack_instackvar: forall (n: nat) (m: asfs_map),
