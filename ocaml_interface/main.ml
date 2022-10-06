@@ -14,7 +14,7 @@ let main () =
       let p = input_line stdin in     (* read the original block *)
       let k = input_line stdin in     (* read input statck size *)
       (* call the checker -- converting ocaml strings to corresponding lists of chars *)
-      let r = Checker.Parser.block_eq_1 (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
+      let r = Checker.Parser.block_eq_2 (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
       (* print the result *)
       match r with
       | None -> Printf.printf "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;

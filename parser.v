@@ -15,6 +15,7 @@ Require Import bbv.Word.
 
 
 Module Parser.
+
   
 (* ################################################################# *)
 (** * Internals *)
@@ -268,9 +269,7 @@ Fixpoint parse_block' (l : list string) : option (list instr) :=
 Definition parse_block (block : string) : option (list instr) :=
   parse_block' (tokenize block).
 
-Compute (parse_block "PUSH3 0x1 ADD PUSH2 0xff SWAP1 ADD SUB").
-
-Definition block_eq (p_opt p k : string) :=
+Definition block_eq_0 (p_opt p k : string) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
@@ -278,7 +277,7 @@ Definition block_eq (p_opt p k : string) :=
                | Some b2 => match (parse_block p) with
                             | None => None
                             | Some b2 => match (parseDecNumber k) with
-                                         | Some v => Some (evm_eq_block_chkr' optimize_id b1 b2 v)
+                                         | Some v => Some (evm_eq_block_chkr optimize_id b1 b2 v)
                                          | None => None
                                          end
                             end
@@ -286,7 +285,6 @@ Definition block_eq (p_opt p k : string) :=
   end.
 
 Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
-Definition opt2 := (apply_pipeline_n_times [optimize_eval;optimize_eval;optimize_eval;optimize_or_zero] 50).
 
 
 Definition block_eq_1 (p_opt p k : string) :=
