@@ -277,7 +277,7 @@ Definition block_eq_0 (p_opt p k : string) :=
                | Some b2 => match (parse_block p) with
                             | None => None
                             | Some b2 => match (parseDecNumber k) with
-                                         | Some v => Some (evm_eq_block_chkr optimize_id b1 b2 v)
+                                         | Some v => Some (evm_eq_block_chkr b1 b2 v)
                                          | None => None
                                          end
                             end
