@@ -745,8 +745,6 @@ apply_f_list_asfs_stack_val (fun (elem': asfs_stack_val) => eval_asfs2_elem c el
 eval_asfs2 c s m ops.
 Proof. reflexivity. Qed.
 
-
-
 Definition eval_asfs (c: tstack) (s: asfs) (ops: opm) : option (tstack) :=
 match s with
 | ASFSc height maxid curr_stack amap => 

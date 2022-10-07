@@ -1610,6 +1610,20 @@ match flat_stack_elem v m with
 | _ => None
 end.
 
+Lemma flat_extract_const_eval: forall (elem: asfs_stack_val) (m: asfs_map)
+  (v: EVMWord) (stack: tstack) (ops: opm),
+flat_extract_const elem m = Some v ->
+eval_asfs2_elem stack elem m ops = Some v.
+Proof.
+intros. unfold flat_extract_const in H.
+destruct (flat_stack_elem elem m) as [s|] eqn: flat_stack; try discriminate.
+destruct s as [x|var|fvar]; try discriminate.
+pose proof (eval_tree_asfs_val elem m (UVal x) stack ops flat_stack) as HH.
+rewrite -> HH. simpl.
+assumption.
+Qed.
+
+
 Definition const_list (l: list asfs_stack_val) (m: asfs_map) 
   : option (list EVMWord) :=
 apply_f_opt_list (fun e => flat_extract_const e m) l.
@@ -1664,7 +1678,6 @@ Proof.
 intros. simpl. rewrite -> H. reflexivity.
 Qed.
 
-
 Lemma const_list_apply_f: forall (args: list asfs_stack_val) (t: asfs_map)
   (wargs: list EVMWord) (stack: tstack) (ops: opm),
 const_list args t = Some wargs -> 
@@ -1672,11 +1685,44 @@ apply_f_list_asfs_stack_val
   (fun elem' : asfs_stack_val => eval_asfs2_elem stack elem' t ops) args
   = Some wargs.
 Proof.
-(* Complete destruct args len <= 4 *)
-induction args as [|hh tt IH].
-- intros. simpl. simpl in H. assumption.
-- intros. simpl in H.
-Admitted.  
+intros. destruct args as [|h1 t1] eqn: eq_args.
+- simpl. simpl in H. assumption.
+- simpl in H. destruct t1 as [|h2 t2].
+  + destruct (flat_extract_const h1 t) eqn: flat_h1; try discriminate.
+    simpl.
+    apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h1.
+    rewrite -> flat_h1.
+    assumption.
+  + destruct t2 as [|h3 t3].
+    * destruct (flat_extract_const h1 t) eqn: flat_h1; try discriminate.
+      apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h1.
+      destruct (flat_extract_const h2 t) eqn: flat_h2; try discriminate.
+      apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h2.
+      simpl. rewrite -> flat_h1. rewrite -> flat_h2.
+      assumption. 
+    * destruct t3 as [|h4 t4].
+      -- destruct (flat_extract_const h1 t) eqn: flat_h1; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h1.
+         destruct (flat_extract_const h2 t) eqn: flat_h2; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h2.
+         destruct (flat_extract_const h3 t) eqn: flat_h3; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h3.
+         simpl. rewrite -> flat_h1. rewrite -> flat_h2. rewrite -> flat_h3.
+         assumption.
+      -- destruct t4 as [|h5 t5]; try discriminate.
+         destruct (flat_extract_const h1 t) eqn: flat_h1; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h1.
+         destruct (flat_extract_const h2 t) eqn: flat_h2; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h2.
+         destruct (flat_extract_const h3 t) eqn: flat_h3; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h3.
+         destruct (flat_extract_const h4 t) eqn: flat_h4; try discriminate.
+         apply flat_extract_const_eval with (stack:=stack)(ops:=ops) in flat_h4.
+         simpl.
+         rewrite -> flat_h1. rewrite -> flat_h2. 
+         rewrite -> flat_h3. rewrite -> flat_h4.            
+         assumption.
+Qed. 
 
 
 (* Main lemma: every stack value is evaluated to the same value in the 
@@ -1736,12 +1782,61 @@ intro m1. induction m1 as [|h t IH].
       -- apply IH with (n:=n); try assumption.
 Qed.
 
+Lemma optimize_eval_height: forall (n h1 mx1 h2 mx2: nat) (s1 s2: asfs_stack)
+  (m1 m2: asfs_map),
+optimize_eval_fvar n (ASFSc h1 mx1 s1 m1) = Some (ASFSc h2 mx2 s2 m2)
+-> h1 = h2.
+Proof.
+intros. simpl in H. destruct m1 as [|hh tt] eqn: eq_m1.
+- simpl in H. discriminate. 
+- simpl in H. destruct hh as [fvar val].
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct val as [basic|oper args]; try discriminate.
+    destruct (is_fully_defined oper); try discriminate.
+    destruct (const_list args tt); try discriminate.
+    destruct (opmap oper); try discriminate.
+    destruct o; try discriminate.
+    destruct (length args =? nb_args); try discriminate.
+    destruct (func l); try discriminate.
+    injection H as Hhh. assumption.
+  + destruct (optimize_map_eval opmap n tt) ; try discriminate.
+    injection H as Hhh. assumption.
+  Qed.
 
-Theorem optimize_eval_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
-  (c: tstack) (ops: opm),
+Search (eval_asfs2).
+Theorem optimize_eval_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat),
 optimize_eval_fvar fresh_var a1 = Some a2 ->
-eval_asfs c a1 ops = eval_asfs c a2 ops.
-Proof. 
+forall (c: tstack), eval_asfs c a1 opmap = eval_asfs c a2 opmap.
+Proof.
+intros.
+destruct a1 as [h1 mx1 s1 m1] eqn: eq_a1.
+destruct a2 as [h2 mx2 s2 m2] eqn: eq_a2.
+induction s1 as [|hh tt IH].
+- admit.
+- simpl in H. destruct (optimize_map_eval opmap fresh_var m1) as [map'|]
+  eqn: optimize_map; try discriminate.
+  simpl. injection H as Hh Hmx Hs Hm. rewrite <- Hh.
+  destruct (length c =? h1); try reflexivity.
+  rewrite <- Hm. rewrite <- Hs.
+  unfold eval_asfs2. simpl. rewrite -> eval_asfs2_ho. 
+  rewrite -> eval_asfs2_ho.
+  apply eq_eval_opt_eval with (stack:=c)(elem:=hh) in optimize_map as Hevalhh.
+  rewrite <- Hevalhh.
+  
+(*
+destruct (optimize_map_eval opmap fresh_var m1) as [map'|]
+  eqn: optimize_map; try discriminate.
+simpl. injection H as Hh Hmx Hs Hm. rewrite <- Hh.
+destruct (length c =? h1); try reflexivity.
+rewrite <- Hm.
+induction s1 as [|hh tt IH].
+- unfold eval_asfs2. rewrite <- Hs. reflexivity.
+- 
+
+- simpl. apply optimize_eval_height in H.
+  rewrite -> H. 
+  destruct h2; try reflexivity. simpl.
+  simpl (eval_asfs2 [] s2 m2 opmap). reflexivity. unfold eval_asfs.*)
 Admitted.
 
 

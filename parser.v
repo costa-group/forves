@@ -235,8 +235,8 @@ Definition parse_non_push_instr (s : string) : option instr :=
                        | "PC"%string => Some (Opcode PC)
                        | "MSIZE"%string => Some (Opcode MSIZE)
                        | "GAS"%string => Some (Opcode GAS)
-                       | "CREATE"%string => Some (Opcode CREATE)
-                       | "CREATE2"%string => Some (Opcode CREATE2)
+                      (* | "CREATE"%string => Some (Opcode CREATE)
+                       | "CREATE2"%string => Some (Opcode CREATE2)*)
                        | _ => None
                        end
              end

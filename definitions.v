@@ -81,9 +81,7 @@ Inductive oper_label :=
   | MLOAD
   | PC
   | MSIZE
-  | GAS
-  | CREATE
-  | CREATE2.
+  | GAS.
   
 (** PUSH, POP, DUP and SWAP are hardcoded, and the other opcodes are operators *)
 Inductive instr :=
@@ -154,8 +152,6 @@ match (a, b) with
  | (PC,PC) => true
  | (MSIZE,MSIZE) => true
  | (GAS,GAS) => true
- | (CREATE,CREATE) => true
- | (CREATE2,CREATE2) => true
  | _ => false
 end.
 Notation "m '=?i' n" := (eq_oper_label m n) (at level 100).
@@ -384,9 +380,7 @@ Definition opmap : opm :=
   MLOAD |->i Op false 1 uninterp1;
   PC |->i Op false 0 uninterp0;
   MSIZE |->i Op false 0 uninterp0;
-  GAS |->i Op false 0 uninterp0;
-  CREATE |->i Op false 3 uninterp3;
-  CREATE2 |->i Op false 4 uninterp4. 
+  GAS |->i Op false 0 uninterp0.
 
 
 (* ================================================================= *)
