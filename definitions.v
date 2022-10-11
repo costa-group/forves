@@ -245,6 +245,20 @@ match args with
 | _ => None
 end.
 
+Definition evmlt (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => Some (if (N.ltb (wordToN a) (wordToN b)) then WOne else WZero)
+| _ => None
+end.
+
+Definition evmgt (args: list EVMWord) : option EVMWord :=
+match args with
+| [a; b] => evmlt [b; a]
+| _ => None
+end.
+
+
+
 Definition uninterp0 (args: list EVMWord) : option EVMWord :=
 match args with
  | [] => Some WZero
@@ -340,8 +354,8 @@ Definition opmap : opm :=
   MULMOD |->i Op false 3 uninterp3;
   EXP |->i Op false 2 exp;
   SIGNEXTEND |->i Op false 2 uninterp2;
-  LT |->i Op false 2 uninterp2;
-  GT |->i Op false 2 uninterp2;
+  LT |->i Op false 2 evmlt;
+  GT |->i Op false 2 evmgt;
   SLT |->i Op false 2 uninterp2;
   SGT |->i Op false 2 uninterp2;
   EQ |->i Op true 2 eq;

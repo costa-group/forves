@@ -357,6 +357,23 @@ try (
   simpl.
   exists (NToWord WLen (BinNat.N.pow (wordToN a) (wordToN b))).
   reflexivity.
+- (* LT *)  
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl. exists (if BinNat.N.ltb (wordToN a) (wordToN b) 
+                 then WOne else WZero).
+  reflexivity.
+- (* GT *)  
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate). 
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate).
+  simpl.
+  exists (if BinNat.N.ltb (wordToN b) (wordToN a) 
+          then WOne else WZero).
+  reflexivity.  
 - (* EQ*)
   rw_coherent H eq_func H0 eq_nb_args.
   destruct l as [|a r1]; try (simpl in H0; discriminate).

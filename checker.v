@@ -266,6 +266,8 @@ simpl in Heq_stacks. rewrite -> Heq_stacks.
 auto.
 Qed.
 
+Print Assumptions our_optimization_pipeline_is_safe.
+
 
 End Checker.
 Import Checker.
