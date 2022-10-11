@@ -2663,10 +2663,9 @@ induction x as [|a b c IH].
   rewrite -> IH. rewrite -> andb_diag. 
   reflexivity.
 Qed.
-  
 
 Lemma wand_eq1: forall (x y z: EVMWord),
-and [x;y] = Some z ->
+and [x; y] = Some z ->
 and [z; y] = and [x;y].
 Proof.
 intros. unfold and in H. injection H as H.
@@ -2675,6 +2674,32 @@ rewrite <- wand_assoc.
 rewrite -> wand_id.
 rewrite -> wand_comm.
 reflexivity.
+Qed.
+
+Lemma and_comm: forall (x y: EVMWord),
+and [x;y] = and [y;x].
+Proof. 
+intros. simpl. rewrite -> wand_comm. reflexivity.
+Qed.
+
+Lemma and_and_1: forall (val11 val12 val1 v: EVMWord),
+and [val11; val12] = Some val1 ->
+and [val1; val11] = Some v ->
+and [val11; val12] = Some v.
+Proof.
+intros. rewrite -> and_comm in H. apply wand_eq1 in H.
+rewrite -> H in H0. rewrite -> and_comm in H0.
+assumption.
+Qed.
+
+Lemma and_and_2: forall (val11 val12 val1 v: EVMWord),
+and [val11; val12] = Some val1 ->
+and [val1; val12] = Some v ->
+and [val11; val12] = Some v.
+Proof.
+intros. apply wand_eq1 in H.
+rewrite -> H in H0. 
+assumption.
 Qed.
 
 
@@ -2715,10 +2740,234 @@ optimize_func_map optimize_map_and_and_l fresh_var s.
 Definition optimize_and_and_l : (asfs -> asfs*bool) :=
 optimize_fresh_var optimize_and_and_l_fvar.
 
+Lemma eq_eval_opt_and_and_l: forall (m1 m2: asfs_map) (n: nat)
+  (stack: tstack),
+optimize_map_and_and_l n m1 = Some m2 ->
+strictly_decreasing_map m1 ->
+forall (elem: asfs_stack_val) (v: EVMWord), 
+  eval_asfs2_elem stack elem m1 opmap = Some v ->
+  eval_asfs2_elem stack elem m2 opmap = Some v.
+Proof.
+induction m1 as [|h t IH].
+- intros. simpl in H. discriminate.
+- intros. simpl in H. destruct h as [hn hv] eqn: eq_h.
+  apply strictly_decreasing_preserv in H0.
+  destruct elem as [val|var|fv].
+  + rewrite -> eval_asfs2_val. assumption.
+  + rewrite -> eval_asfs2_instackvar. assumption.
+  + destruct (hn =? n) eqn: eq_hn_n.
+    * (* We have found the fresh variable to optimize in the map *)
+      destruct (hv) as [basicval|opval] eqn: eq_hv; try discriminate.
+      destruct (opval) eqn: eq_opval; try discriminate.
+      destruct args as [| arg1 ta]; try discriminate.
+      destruct ta as [| arg2 tta]; try discriminate.
+      destruct tta; try discriminate.
+      destruct (stack_val_is_oper AND arg1 t) as [inner_args1|] 
+        eqn: eq_stack_val_arg1; try discriminate.
+      destruct inner_args1 as [|arg11 tinner_args1]; try discriminate.
+      destruct tinner_args1 as [|arg12 tinner_args1']; try discriminate.
+      destruct tinner_args1'; try discriminate.
+      destruct (flat_stack_elem arg2 t) as [farg2|] eqn: flat_arg2;
+        try discriminate.
+      destruct (flat_stack_elem arg11 t) as [farg11|] eqn: flat_arg11;
+        try discriminate.
+      destruct (flat_stack_elem arg12 t) as [farg12|] eqn: flat_arg12;
+        try discriminate.
+      destruct (compare_flat_asfs_map_val farg11 farg2 opmap
+                || compare_flat_asfs_map_val farg12 farg2 opmap)
+        eqn: eq_compare_flat; try discriminate.
+      injection H as Hm2. rewrite <- Hm2.
+      apply orb_prop in eq_compare_flat.
+      simpl in H1.
+      destruct (hn =? fv) eqn: eq_hn_fv.
+      -- destruct (eval_asfs2_elem stack arg1 t opmap) as [val1|] 
+           eqn: eq_eval_arg1; try discriminate.
+         destruct (eval_asfs2_elem stack arg2 t opmap) as [val2|] 
+           eqn: eq_eval_arg2; try discriminate.
+         simpl. rewrite -> eq_hn_fv.
+         assert (opmap AND = Some (Op true 2 and)) as eq_opmap_AND; 
+           try reflexivity.
+         pose proof (evaluation_sufix_map t 2 arg1 [arg11; arg12] true
+           and val1 AND opmap stack eq_stack_val_arg1 eq_opmap_AND
+           eq_eval_arg1) as [pre1 [suf1 [inner1 [eq_t [
+             eval_arg11_arg12 and_inner]]]]].
+         unfold eval_asfs2 in eval_arg11_arg12. 
+         simpl in eval_arg11_arg12.
+         destruct (eval_asfs2_elem stack arg11 suf1 opmap) as [val11|]
+           eqn: eval_arg11_suf; try discriminate.
+         destruct (eval_asfs2_elem stack arg12 suf1 opmap) as [val12|]
+           eqn: eval_arg12_suf; try discriminate.
+         pose proof (eval_elem_bigger_decreasing_map stack arg11 pre1
+           suf1 t opmap val11 eval_arg11_suf eq_t H0) as eval_arg11_t.
+         rewrite -> eval_arg11_t.
+           pose proof (eval_elem_bigger_decreasing_map stack arg12 pre1
+           suf1 t opmap val12 eval_arg12_suf eq_t H0) as eval_arg12_t.
+         rewrite -> eval_arg12_t.
+         injection eval_arg11_arg12 as eq_inner1.
+         rewrite <- eq_inner1 in and_inner.
+         destruct eq_compare_flat as [equiv_farg11_farg2|equiv_farg12_farg2].
+         ++ (* arg11 ~ arg2 *)
+            apply compare_flat_eval with (s:=stack) in equiv_farg11_farg2;
+              try (apply evm_stack_opm_validity).
+            apply eval_tree_asfs_val with (s:=stack)(ops:=opmap) in 
+              flat_arg11.
+            rewrite <- flat_arg11 in equiv_farg11_farg2.
+            apply eval_tree_asfs_val with (s:=stack)(ops:=opmap) in 
+              flat_arg2.
+            rewrite <- flat_arg2 in equiv_farg11_farg2.
+            rewrite -> eq_eval_arg2 in equiv_farg11_farg2.
+            rewrite -> equiv_farg11_farg2 in eval_arg11_t.
+            injection eval_arg11_t as eq_vall2_val11.
+            rewrite -> eq_vall2_val11 in H1.
+            apply and_and_1 with (val1:=val1); try assumption.
+         ++ (* arg12 ~ arg2 *)
+              apply compare_flat_eval with (s:=stack) in equiv_farg12_farg2;
+                try (apply evm_stack_opm_validity).
+              apply eval_tree_asfs_val with (s:=stack)(ops:=opmap) in 
+                flat_arg12.
+              rewrite <- flat_arg12 in equiv_farg12_farg2.
+              apply eval_tree_asfs_val with (s:=stack)(ops:=opmap) in 
+                flat_arg2.
+              rewrite <- flat_arg2 in equiv_farg12_farg2.
+              rewrite -> eq_eval_arg2 in equiv_farg12_farg2.
+              rewrite -> equiv_farg12_farg2 in eval_arg12_t.
+              injection eval_arg12_t as eq_vall2_val12.
+              rewrite -> eq_vall2_val12 in H1.
+              apply and_and_2 with (val1:=val1); try assumption.
+      -- simpl. rewrite -> eq_hn_fv. assumption.
+    * (* This is not yet the fresh variable to optimize*) 
+      destruct (optimize_map_and_and_l n t) as [map'|] eqn: eq_optimize_t; 
+        try discriminate.
+      injection H as Hm2. rewrite <- Hm2. 
+      simpl. destruct (hn =? fv) eqn: eq_hn_fv. simpl in H1.
+      -- destruct hv eqn: eq_hv.
+         ++ rewrite -> eq_hn_fv in H1. 
+            apply IH with (n:=n); try assumption.
+         ++ rewrite -> eq_hn_fv in H1. 
+            destruct (opmap opcode) as [op|]; try discriminate.
+            destruct op as [comm nargs func]; try discriminate.
+            destruct (length args =? nargs); try discriminate.
+            destruct (apply_f_list_asfs_stack_val
+                       (fun elem' : asfs_stack_val =>
+                          eval_asfs2_elem stack elem' t opmap) args)
+            eqn: eq_apply_f; try discriminate.
+            pose proof (IH map' n stack eq_optimize_t H0) as IHc.
+            pose proof (apply_f_equiv_funct args l stack t map' eq_apply_f IHc)
+              as eq_apply_f_map'.
+            rewrite -> eq_apply_f_map'. assumption.
+      -- simpl in H1. rewrite -> eq_hn_fv in H1.
+         apply IH with (n:=n); try assumption.
+Qed.
+
+Lemma eq_succ_eval_opt_and_and_l_eq_abs: forall (m1 m2: asfs_map) 
+  (n: nat) (stack: tstack),
+optimize_map_and_and_l n m1 = Some m2 ->
+strictly_decreasing_map m1 ->
+forall (abs: asfs_stack) (v: tstack), 
+  eval_asfs2 stack abs m1 opmap = Some v ->
+  eval_asfs2 stack abs m2 opmap = Some v.
+Proof.
+induction abs as [| h t IH].
+- intros. unfold eval_asfs2 in H1. simpl in H1. 
+  unfold eval_asfs2. simpl. assumption.
+- intros. 
+  pose proof (eval_asfs2_cons h t m1 opmap stack v H1) 
+    as [hval [tval [eq_v [eval_h_m1 eval_t_m1]]]].
+  pose proof (eq_eval_opt_and_and_l m1 m2 n stack H H0 h hval
+    eval_h_m1) as eval_h_m2.
+  pose proof (IH tval eval_t_m1) as eval_t_m2.
+  rewrite -> eq_v.
+  apply eval_asfs2_cons_r; try assumption.
+Qed.
+
+Lemma opt_and_and_l_same_fvar_in_maps: forall (n: nat)
+  (m1 m2: asfs_map),
+optimize_map_and_and_l n m1 = Some m2 ->
+same_fvar_in_maps m1 m2.
+Proof.
+intros n m1. revert n.
+induction m1 as [| h t IH].
+- intros n m2 Hopt. simpl in Hopt. discriminate.
+- intros n m2 Hopt.
+  simpl in Hopt.
+  destruct h as [fvar efvar] eqn: eq_h.
+  destruct (fvar =? n) eqn: eq_fvar_n.
+  + destruct efvar eqn: eq_efvar; try discriminate.
+    destruct opcode eqn: eq_opcode; try discriminate.
+    destruct args as [| arg1 targs1] eqn: eq_args; try discriminate.
+    destruct targs1 as [| arg2 targs2] eqn: eq_args1; try discriminate.
+    destruct targs2 eqn: eq_args2; try discriminate.
+    destruct (stack_val_is_oper AND arg1 t) as [inner_args|]; try discriminate.
+    destruct (inner_args) as [|arg11 ri]; try discriminate.
+    destruct ri as [|arg12 ri']; try discriminate.
+    destruct ri'; try discriminate.
+    destruct (flat_stack_elem arg2 t) as [farg2|]; try discriminate.
+    destruct (flat_stack_elem arg11 t) as [farg11|]; try discriminate.
+    destruct (flat_stack_elem arg12 t) as [farg12|]; try discriminate.
+    destruct (compare_flat_asfs_map_val farg11 farg2 opmap
+              || compare_flat_asfs_map_val farg12 farg2 opmap);
+      try discriminate.
+    injection Hopt as Hm2. rewrite <- Hm2.
+    simpl. split; try reflexivity.
+    apply same_fvar_refl.
+  + destruct (optimize_map_and_and_l n t) as [t_opt|] eqn: optimize_t;
+      try discriminate.
+    pose proof (strictly_decreasing_preserv fvar efvar t) 
+      as Hdecr_t.
+    pose proof (IH n t_opt optimize_t).
+    simpl. injection Hopt as eq_m2. rewrite <- eq_m2.
+    split; try reflexivity. assumption.
+Qed.
+
+
+Lemma opt_and_and_l_decreasingness_preservation: forall (n: nat)
+  (m1 m2: asfs_map),
+strictly_decreasing_map m1 ->
+optimize_map_and_and_l n m1 = Some m2 ->
+strictly_decreasing_map m2.
+Proof.
+intros.
+apply opt_and_and_l_same_fvar_in_maps in H0.
+apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
+  try assumption.
+Qed.
+
+
+Lemma optimize_and_and_l_fvar_safe:
+safe_optimization_fvar optimize_and_and_l_fvar.
+Proof.
+unfold safe_optimization_fvar. intros.
+unfold eval_asfs in H.
+destruct a as [ha maxa absa ma] eqn: eq_a.
+destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
+destruct (length c =? ha) eqn: eq_len; try discriminate.
+assert (opmap AND = Some (Op true 2 and)) as eq_opmap; 
+  try reflexivity.
+simpl in H0. destruct (optimize_map_and_and_l n ma) as [ma' |] 
+  eqn: eq_optmize_ma; try discriminate.
+injection H0 as eq_h eq_max eq_abs eq_m.
+rewrite -> eq_m in eq_optmize_ma.
+simpl in H1. destruct H1 as [fresh_var_gt strictly_decr].
+simpl. rewrite <- eq_h. rewrite -> eq_len.
+split; try split.
+- rewrite -> eq_abs in H.
+  pose proof (eq_succ_eval_opt_and_and_l_eq_abs ma mopt n c eq_optmize_ma 
+    strictly_decr absopt cf H).
+  assumption.
+- apply opt_and_and_l_same_fvar_in_maps in eq_optmize_ma.
+  apply same_fvar_in_map_preserves_fresh_var_gt with (m1:=ma).
+  + rewrite <- eq_max. assumption.
+  + assumption.
+- apply opt_and_and_l_decreasingness_preservation with (n:=n) (m1:=ma);
+    try assumption.
+Qed.
+
 Theorem optimize_and_and_l_safe:
 safe_optimization optimize_and_and_l.
 Proof.
-Admitted.
+apply optimize_fresh_var_preservation.
+apply optimize_and_and_l_fvar_safe.
+Qed.
 
 
 
