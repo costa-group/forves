@@ -745,6 +745,10 @@ apply_f_list_asfs_stack_val (fun (elem': asfs_stack_val) => eval_asfs2_elem c el
 eval_asfs2 c s m ops.
 Proof. reflexivity. Qed.
 
+Lemma eval_asfs2_empty: forall (stack: tstack) (m: asfs_map) (ops: opm),
+eval_asfs2 stack [] m ops = Some [].
+Proof. destruct m; try auto. Qed.
+
 Definition eval_asfs (c: tstack) (s: asfs) (ops: opm) : option (tstack) :=
 match s with
 | ASFSc height maxid curr_stack amap => 
