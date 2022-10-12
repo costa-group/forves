@@ -1980,6 +1980,15 @@ match map with
                       end
 end.
 
+Lemma evm_div_one: forall (x: EVMWord),
+  div [x; WOne] = Some x.
+Proof.
+intros. simpl. unfold wdiv. unfold wordBin. simpl. 
+rewrite -> N.div_1_r. rewrite -> NToWord_wordToN.
+reflexivity.
+Qed.
+ 
+
 Definition optimize_div_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_div_one fresh_var s.
 
@@ -2018,6 +2027,26 @@ match map with
                       end
 end.
 
+Lemma eq_zero_iszero1: forall (x: EVMWord),
+eq [WZero; x] = iszero [x].
+Proof.
+intros. unfold eq.
+destruct (weqb WZero x) eqn: H.
+- apply weqb_sound in H. rewrite <- H. reflexivity.
+- unfold iszero. unfold eq.
+  apply weqb_false in H. apply not_eq_sym in H. apply weqb_ne in H.
+  rewrite -> H. reflexivity.
+Qed.
+
+Lemma eq_zero_iszero2: forall (x: EVMWord),
+eq [x; WZero] = iszero [x].
+Proof.
+intros. unfold eq.
+destruct (weqb WZero x) eqn: H.
+- apply weqb_sound in H. rewrite <- H. reflexivity.
+- unfold iszero. unfold eq. reflexivity.
+Qed.
+
 Definition optimize_eq_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_eq_zero fresh_var s.
 
@@ -2053,7 +2082,7 @@ match map with
                       end
 end.
 
-Lemma gt_iszero_nat: forall (x: nat),
+Lemma gt_iszero_natb: forall (x: nat),
 x <? 1 = true <-> x = 0.
 Proof.
 split.
@@ -2063,8 +2092,13 @@ split.
 - intros. rewrite -> H. auto.
 Qed.
 
-Search(_ <> _).
-Lemma gt_iszero_nat': forall (x: nat),
+Lemma gt_iszero_nat: forall (x: nat),
+x < 1 <-> x = 0.
+Proof.
+intros. rewrite <- Nat.ltb_lt. apply gt_iszero_natb.
+Qed.
+
+Lemma gt_iszero_nat'b: forall (x: nat),
 x <? 1 = false <-> x <> 0.
 Proof.
 split.
@@ -2076,22 +2110,52 @@ split.
   + unfold ltb. simpl. reflexivity.
 Qed.
 
-Search (N.to_nat).
-Lemma gt_N_nat: forall (x y: N) (b: bool),
-(x <? y)%N = b -> (N.to_nat x) <? (N.to_nat y) = b.
+Lemma gt_iszero_natb': forall (x: nat),
+x <? 1 = false <-> x <> 0.
 Proof.
-Admitted.
+split.
+- intros. destruct x as [|x'].
+  + unfold ltb in H. rewrite -> Nat.leb_refl in H. discriminate.
+  + auto.
+- intros. destruct x as [|x']. 
+  + unfold not in H. exfalso. auto.
+  + unfold ltb. simpl. reflexivity.
+Qed.
 
-Check Logic.not.
-Lemma word_eq_zero: forall (x: EVMWord),
-N.to_nat (wordToN x) = 0 -> x = WZero.
+Lemma gt_lt_symm: forall (x y: nat), x >= y <-> y <= x.
 Proof.
-intros. destruct (weqb x WZero) eqn: eq_x_wzero.
-- apply weqb_sound. assumption.
-- apply weqb_false in eq_x_wzero.
-  admit.
-Admitted.
+intros. unfold ge. split; try auto.
+Qed.
 
+Lemma gte_not_ltb: forall (x: nat),
+x <? 1 = false <-> x >= 1.
+Proof.
+intros. rewrite -> gt_lt_symm. split.
+- rewrite -> Nat.ltb_ge. auto. 
+- rewrite -> Nat.ltb_nlt. apply le_not_lt. 
+Qed.
+
+Lemma gt_iszero_nat': forall (x: nat),
+x >= 1 <-> x <> 0.
+Proof.
+intros. rewrite <- gte_not_ltb. apply gt_iszero_natb'.
+Qed.
+
+
+(* 
+   N.ltb_lt: forall n m : N, (n <? m)%N = true <-> (n < m)%N
+   N.ltb_ge: forall x y : N, (x <? y)%N = false <-> (y <= x)%N
+  
+   Nlt_in: forall n m : N, N.to_nat n < N.to_nat m -> (n < m)%N
+   Nlt_out: forall n m : N, (n < m)%N -> N.to_nat n < N.to_nat m
+   N.le_ge: forall n m : N, (n <= m)%N -> (m >= n)%N 
+   Nge_out: forall n m : N, (n >= m)%N -> N.to_nat n >= N.to_nat m   
+   
+   Nneq_out: forall n m : N, n <> m -> N.to_nat n <> N.to_nat m
+   Nneq_in: forall n m : N, N.to_nat n <> N.to_nat m -> n <> m
+   
+   nat_of_N_eq: forall n m : N, N.to_nat n = N.to_nat m -> n = m
+*)
 Lemma word_neq_zero: forall (x: EVMWord),
 N.to_nat (wordToN x) <> 0 -> x <> WZero.
 Proof.
@@ -2104,19 +2168,29 @@ Qed.
 Lemma Ntonat_1: (N.to_nat 1)%N = S 0.
 Proof. auto. Qed.
 
-Search (weqb).
+Lemma Ntonat_0: (N.to_nat 0)%N = 0.
+Proof. auto. Qed.
+
+Lemma one_as_N:
+N.to_nat (1)%N = 1.
+Proof. auto. Qed.
+
 Lemma gt_iszero: forall (x: EVMWord),
 evmgt [WOne; x] = iszero [x].
 Proof.
-intros. simpl. destruct ((wordToN x <? 1)%N) eqn: oneN.
-- apply gt_N_nat in oneN. rewrite -> Ntonat_1 in oneN.
-  apply gt_iszero_nat in oneN. 
-  apply word_eq_zero in oneN. rewrite oneN.
-  rewrite -> weqb_reflex. reflexivity.
-- apply gt_N_nat in oneN. rewrite -> Ntonat_1 in oneN.
-  apply gt_iszero_nat' in oneN. 
-  pose proof (word_neq_zero x oneN).
-  apply weqb_ne in H. rewrite -> H.
+intros. simpl. destruct ((wordToN x <? 1)%N) eqn: H1.
+- apply N.ltb_lt in H1.
+  apply Nlt_out in H1. rewrite -> one_as_N in H1.
+  apply gt_iszero_nat in H1.
+  rewrite -> wordToN_to_nat in H1.
+  apply wordToNat_eq_natToWord in H1. 
+  rewrite -> H1. reflexivity.
+- apply N.ltb_ge in H1.
+  apply N.le_ge in H1.
+  apply Nge_out in H1. rewrite -> one_as_N in H1.
+  apply gt_iszero_nat' in H1.
+  apply word_neq_zero in H1.
+  simpl. apply weqb_ne in H1. rewrite -> H1.
   reflexivity.
 Qed.
 
@@ -2306,6 +2380,19 @@ match map with
                       end
 end.
 
+Lemma evmgt_evmlt: forall (x y: EVMWord),
+evmgt [x;y] = evmlt [y;x].
+Proof.
+intros. unfold evmgt. reflexivity.
+Qed.
+
+Lemma lt_iszero: forall (x: EVMWord),
+evmlt [x; WOne] = iszero [x].
+Proof.
+intros. rewrite <- evmgt_evmlt. 
+apply gt_iszero. 
+Qed.
+
 Definition optimize_lt_one_fvar (fresh_var: nat) (s: asfs) : option asfs :=
 optimize_func_map optimize_map_lt_one fresh_var s.
 
@@ -2344,7 +2431,6 @@ match map with
                       end
 end.
 
-Search (wor).
 Lemma or_comm: forall (x y: EVMWord),
 or [x;y] = or [y;x].
 Proof.
