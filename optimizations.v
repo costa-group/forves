@@ -728,14 +728,14 @@ Definition optimize_add_zero (a: asfs) : asfs*bool :=
 optimize_fresh_var optimize_add_zero_fvar a.
 
 Lemma word_add_0_x_is_x: forall (x: EVMWord),
-add [WZero; x] = Some x.
+evm_add [WZero; x] = Some x.
 Proof.
 intros x. simpl.
 rewrite -> wplus_wzero_2. reflexivity.
 Qed.
 
 Lemma word_add_x_0_is_x: forall (x: EVMWord),
-add [x; WZero] = Some x.
+evm_add [x; WZero] = Some x.
 Proof.
 intros x. simpl.
 rewrite -> wplus_wzero_1. reflexivity.
@@ -745,7 +745,7 @@ Qed.
    original map and also in the optimized one for ADD_0 *)
 Lemma eq_eval_opt_add_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops ADD = Some (Op true 2 add) ->
+ops ADD = Some (Op true 2 evm_add) ->
 optimize_map_add_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
@@ -809,7 +809,7 @@ Qed.
 
 Theorem optimize_add_zero_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
-ops ADD = Some (Op true 2 add) ->
+ops ADD = Some (Op true 2 evm_add) ->
 optimize_add_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
@@ -882,7 +882,7 @@ safe_optimization_fvar optimize_add_zero_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
 split.
-- assert (opmap ADD = Some (Op true 2 add)) as Hopmap_add; try reflexivity.
+- assert (opmap ADD = Some (Op true 2 evm_add)) as Hopmap_add; try reflexivity.
   pose proof (optimize_add_zero_fvar_eq a opt_a n c opmap Hopmap_add H0)
     as Heq_eval_a_opta.
   rewrite -> Heq_eval_a_opta in H.
@@ -952,14 +952,14 @@ Definition optimize_mul_one (a: asfs) : asfs*bool :=
 optimize_fresh_var optimize_mul_one_fvar a.
 
 Lemma word_mul_1_x_is_x: forall (x: EVMWord),
-mul [WOne; x] = Some x.
+evm_mul [WOne; x] = Some x.
 Proof.
 intros x. simpl.
 rewrite -> wmult_unit. reflexivity.
 Qed.
 
 Lemma word_mul_x_1_is_x: forall (x: EVMWord),
-mul [x; WOne] = Some x.
+evm_mul [x; WOne] = Some x.
 Proof.
 intros x. simpl.
 rewrite -> wmult_comm. rewrite -> wmult_unit. 
@@ -971,7 +971,7 @@ Qed.
    original map and also in the optimized one for MUL_1 *)
 Lemma eq_eval_opt_mul_one_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops MUL = Some (Op true 2 mul) ->
+ops MUL = Some (Op true 2 evm_mul) ->
 optimize_map_mul_one n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
@@ -1036,7 +1036,7 @@ Qed.
 
 Theorem optimize_mul_one_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
-ops MUL = Some (Op true 2 mul) ->
+ops MUL = Some (Op true 2 evm_mul) ->
 optimize_mul_one_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
@@ -1109,7 +1109,7 @@ safe_optimization_fvar optimize_mul_one_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
 split.
-- assert (opmap MUL = Some (Op true 2 mul)) as Hopmap_mul; try reflexivity.
+- assert (opmap MUL = Some (Op true 2 evm_mul)) as Hopmap_mul; try reflexivity.
   pose proof (optimize_mul_one_eq a opt_a n c opmap Hopmap_mul H0)
     as Heq_eval_a_opta.
   rewrite -> Heq_eval_a_opta in H.
@@ -1180,14 +1180,14 @@ optimize_fresh_var optimize_mul_zero_fvar.
 
 
 Lemma word_mul_0_x_is_0: forall (x: EVMWord),
-mul [WZero; x] = Some WZero.
+evm_mul [WZero; x] = Some WZero.
 Proof.
 intros x. simpl.
 rewrite -> wmult_neut_l. reflexivity.
 Qed.
 
 Lemma word_mul_x_0_is_0: forall (x: EVMWord),
-mul [x; WZero] = Some WZero.
+evm_mul [x; WZero] = Some WZero.
 Proof.
 intros x. simpl.
 rewrite -> wmult_neut_r. reflexivity.
@@ -1201,7 +1201,7 @@ Qed.
    one, so THEY ARE NOT EQUAL FOR EVERY POSSIBLE stack_val *)
 Lemma eq_succ_eval_opt_mul_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops MUL = Some (Op true 2 mul) ->
+ops MUL = Some (Op true 2 evm_mul) ->
 optimize_map_mul_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val) (v: EVMWord), 
   eval_asfs2_elem stack elem m1 ops = Some v ->
@@ -1297,7 +1297,7 @@ Qed.
 
 Theorem optimize_mul_zero_safe_success: forall (a1 a2: asfs) (fresh_var: nat)
   (c s: tstack) (ops: opm),
-ops MUL = Some (Op true 2 mul) ->
+ops MUL = Some (Op true 2 evm_mul) ->
 optimize_mul_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = Some s ->
 eval_asfs c a2 ops = Some s.
@@ -1370,7 +1370,7 @@ safe_optimization_fvar optimize_mul_zero_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
 split.
-- assert (opmap MUL = Some (Op true 2 mul)) as Hopmap_mul; try reflexivity.
+- assert (opmap MUL = Some (Op true 2 evm_mul)) as Hopmap_mul; try reflexivity.
   pose proof (optimize_mul_zero_safe_success a opt_a n c cf opmap Hopmap_mul
      H0 H) as Heq_eval_a_opta.
   assumption.
@@ -1452,7 +1452,7 @@ Qed.
    original map and also in the optimized one for NOT_NOT *)
 Lemma eq_succ_eval_opt_not_not_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops NOT = Some (Op false 1 not) ->
+ops NOT = Some (Op false 1 evm_not) ->
 optimize_map_not_not n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
 forall (elem: asfs_stack_val) (v: EVMWord), 
@@ -1488,7 +1488,7 @@ induction m1 as [|h t IH].
             fold eval_asfs2_elem in Heval_in_m1.
             destruct (eval_asfs2_elem stack arg1 t ops) eqn: eq_eval_arg1;
               try discriminate.
-            pose proof (evaluation_sufix_map t 1 arg1 [inner_arg] false not
+            pose proof (evaluation_sufix_map t 1 arg1 [inner_arg] false evm_not
               e NOT ops stack eq_arg_is_NOT Hops_not eq_eval_arg1)
               as [prefix [suffix [inner_vals [eq_t_prefix [eq_eval_inner_arg
                  Hnot_inner]]]]].
@@ -1551,7 +1551,7 @@ Qed.
 
 Lemma eq_succ_eval_opt_not_not_eq_abs: forall (m1 m2: asfs_map) (ops: opm) 
   (n: nat) (stack: tstack),
-ops NOT = Some (Op false 1 not) ->
+ops NOT = Some (Op false 1 evm_not) ->
 optimize_map_not_not n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
 forall (abs: asfs_stack) (v: tstack), 
@@ -1627,7 +1627,7 @@ unfold eval_asfs in H.
 destruct a as [ha maxa absa ma] eqn: eq_a.
 destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
 destruct (length c =? ha) eqn: eq_len; try discriminate.
-assert (opmap NOT = Some (Op false 1 not)) as eq_opmap_NOT; try reflexivity.
+assert (opmap NOT = Some (Op false 1 evm_not)) as eq_opmap_NOT; try reflexivity.
 simpl in H0. destruct (optimize_map_not_not n ma) as [ma' |] 
   eqn: eq_optmize_ma; try discriminate.
 injection H0 as eq_h eq_max eq_abs eq_m.
@@ -1980,8 +1980,7 @@ match map with
                       end
 end.
 
-Lemma evm_div_one: forall (x: EVMWord),
-  div [x; WOne] = Some x.
+Lemma evm_div_one: forall (x: EVMWord), evm_div [x; WOne] = Some x.
 Proof.
 intros. simpl. unfold wdiv. unfold wordBin. simpl. 
 rewrite -> N.div_1_r. rewrite -> NToWord_wordToN.
@@ -2028,23 +2027,23 @@ match map with
 end.
 
 Lemma eq_zero_iszero1: forall (x: EVMWord),
-eq [WZero; x] = iszero [x].
+evm_eq [WZero; x] = evm_iszero [x].
 Proof.
-intros. unfold eq.
+intros. unfold evm_eq.
 destruct (weqb WZero x) eqn: H.
 - apply weqb_sound in H. rewrite <- H. reflexivity.
-- unfold iszero. unfold eq.
+- unfold evm_iszero. unfold evm_eq.
   apply weqb_false in H. apply not_eq_sym in H. apply weqb_ne in H.
   rewrite -> H. reflexivity.
 Qed.
 
 Lemma eq_zero_iszero2: forall (x: EVMWord),
-eq [x; WZero] = iszero [x].
+evm_eq [x; WZero] = evm_iszero [x].
 Proof.
-intros. unfold eq.
+intros. unfold evm_eq.
 destruct (weqb WZero x) eqn: H.
 - apply weqb_sound in H. rewrite <- H. reflexivity.
-- unfold iszero. unfold eq. reflexivity.
+- unfold evm_iszero. unfold evm_eq. reflexivity.
 Qed.
 
 Definition optimize_eq_zero_fvar (fresh_var: nat) (s: asfs) : option asfs :=
@@ -2176,7 +2175,7 @@ N.to_nat (1)%N = 1.
 Proof. auto. Qed.
 
 Lemma gt_iszero: forall (x: EVMWord),
-evmgt [WOne; x] = iszero [x].
+evm_gt [WOne; x] = evm_iszero [x].
 Proof.
 intros. simpl. destruct ((wordToN x <? 1)%N) eqn: H1.
 - apply N.ltb_lt in H1.
@@ -2203,8 +2202,8 @@ optimize_fresh_var optimize_gt_one_fvar a.
 
 Lemma eq_eval_opt_gt_one: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops GT = Some (Op false 2 evmgt) ->
-ops ISZERO = Some (Op false 1 iszero) ->
+ops GT = Some (Op false 2 evm_gt) ->
+ops ISZERO = Some (Op false 1 evm_iszero) ->
 optimize_map_gt_one n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
@@ -2252,8 +2251,8 @@ Qed.
 
 Theorem optimize_gt_one_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
-ops GT = Some (Op false 2 evmgt) ->
-ops ISZERO = Some (Op false 1 iszero) ->
+ops GT = Some (Op false 2 evm_gt) ->
+ops ISZERO = Some (Op false 1 evm_iszero) ->
 optimize_gt_one_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
@@ -2322,8 +2321,8 @@ safe_optimization_fvar optimize_gt_one_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
 split.
-- assert (opmap GT = Some (Op false 2 evmgt)) as Hopmap; try reflexivity.
-  assert (opmap ISZERO = Some (Op false 1 iszero)) as Hopmap'; try reflexivity.
+- assert (opmap GT = Some (Op false 2 evm_gt)) as Hopmap; try reflexivity.
+  assert (opmap ISZERO = Some (Op false 1 evm_iszero)) as Hopmap'; try reflexivity.
   pose proof (optimize_gt_one_fvar_eq a opt_a n c opmap Hopmap Hopmap' H0)
     as Heq_eval_a_opta.
   rewrite -> Heq_eval_a_opta in H.
@@ -2381,13 +2380,13 @@ match map with
 end.
 
 Lemma evmgt_evmlt: forall (x y: EVMWord),
-evmgt [x;y] = evmlt [y;x].
+evm_gt [x;y] = evm_lt [y;x].
 Proof.
-intros. unfold evmgt. reflexivity.
+intros. unfold evm_gt. reflexivity.
 Qed.
 
 Lemma lt_iszero: forall (x: EVMWord),
-evmlt [x; WOne] = iszero [x].
+evm_lt [x; WOne] = evm_iszero [x].
 Proof.
 intros. rewrite <- evmgt_evmlt. 
 apply gt_iszero. 
@@ -2432,15 +2431,15 @@ match map with
 end.
 
 Lemma or_comm: forall (x y: EVMWord),
-or [x;y] = or [y;x].
+evm_or [x;y] = evm_or [y;x].
 Proof.
-intros. unfold or. rewrite -> wor_comm. reflexivity.
+intros. unfold evm_or. rewrite -> wor_comm. reflexivity.
 Qed.
 
 Lemma or_zero: forall (x: EVMWord),
-or [x;WZero] = Some x.
+evm_or [x;WZero] = Some x.
 Proof.
-intros. rewrite or_comm. unfold or. rewrite -> wor_wzero. reflexivity.
+intros. rewrite or_comm. unfold evm_or. rewrite -> wor_wzero. reflexivity.
 Qed.
 
 
@@ -2452,7 +2451,7 @@ optimize_fresh_var optimize_or_zero_fvar a.
 
 Lemma eq_eval_opt_or_zero: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops OR = Some (Op true 2 or) ->
+ops OR = Some (Op true 2 evm_or) ->
 optimize_map_or_zero n m1 = Some m2 ->
 forall (elem: asfs_stack_val), eval_asfs2_elem stack elem m1 ops =
                                eval_asfs2_elem stack elem m2 ops.
@@ -2514,7 +2513,7 @@ Qed.
 
 Theorem optimize_or_zero_fvar_eq: forall (a1 a2: asfs) (fresh_var: nat)
   (c: tstack) (ops: opm),
-ops OR = Some (Op true 2 or) ->
+ops OR = Some (Op true 2 evm_or) ->
 optimize_or_zero_fvar fresh_var a1 = Some a2 ->
 eval_asfs c a1 ops = eval_asfs c a2 ops.
 Proof.
@@ -2587,7 +2586,7 @@ safe_optimization_fvar optimize_or_zero_fvar.
 Proof.
 unfold safe_optimization_fvar. intros.
 split.
-- assert (opmap OR = Some (Op true 2 or)) as Hopmap; try reflexivity.
+- assert (opmap OR = Some (Op true 2 evm_or)) as Hopmap; try reflexivity.
   pose proof (optimize_or_zero_fvar_eq a opt_a n c opmap Hopmap H0)
     as Heq_eval_a_opta.
   rewrite -> Heq_eval_a_opta in H.
@@ -2900,20 +2899,20 @@ optimize_fresh_var optimize_iszero3_fvar.
 
 
 Lemma is_zero_3: forall (a r1 r2 r3: EVMWord),
-iszero [a] = Some r1 ->
-iszero [r1] = Some r2 ->
-iszero [r2] = Some r3 ->
+evm_iszero [a] = Some r1 ->
+evm_iszero [r1] = Some r2 ->
+evm_iszero [r2] = Some r3 ->
 r1 = r3.
 Proof.
-intros. unfold iszero in H. unfold iszero in H0. unfold iszero in H1.
+intros. unfold evm_iszero in H. unfold evm_iszero in H0. unfold evm_iszero in H1.
 destruct (weqb a WZero) eqn: eq_a_zero.
-- unfold eq in H. rewrite -> eq_a_zero in H. injection H as H. 
+- unfold evm_eq in H. rewrite -> eq_a_zero in H. injection H as H. 
   rewrite <- H in H0. simpl in H0. injection H0 as H0.
-  rewrite <- H0 in H1. unfold eq in H1. 
+  rewrite <- H0 in H1. unfold evm_eq in H1. 
   rewrite -> weqb_reflex in H1. injection H1 as H1.
   rewrite <- H. rewrite <- H1. reflexivity.
-- unfold eq in H. rewrite -> eq_a_zero in H. injection H as H. 
-  rewrite <- H in H0. unfold eq in H0. 
+- unfold evm_eq in H. rewrite -> eq_a_zero in H. injection H as H. 
+  rewrite <- H in H0. unfold evm_eq in H0. 
   rewrite -> weqb_reflex in H0.  simpl in H0. injection H0 as H0.
   rewrite <- H0 in H1. simpl in H1. injection H1 as H1.
   rewrite <- H. rewrite <- H1. reflexivity.
@@ -2923,7 +2922,7 @@ Qed.
    original map and also in the optimized one for ISZERO3 *)
 Lemma eq_succ_eval_opt_iszero3_eq: forall (m1 m2: asfs_map) (ops: opm) (n: nat)
   (stack: tstack),
-ops ISZERO = Some (Op false 1 iszero) ->
+ops ISZERO = Some (Op false 1 evm_iszero) ->
 optimize_map_iszero3 n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
 forall (elem: asfs_stack_val) (v: EVMWord), 
@@ -2962,7 +2961,7 @@ induction m1 as [|h t IH].
          destruct (eval_asfs2_elem stack arg1 t ops) as [val1|] 
            eqn: eq_eval_arg1; try discriminate.
          pose proof (evaluation_suffix_map' t t' 1 arg1 n2 [arg2] false
-           iszero val1 ISZERO ops stack eq_stack_val_is_oper_arg1
+           evm_iszero val1 ISZERO ops stack eq_stack_val_is_oper_arg1
            Hops_iszero eq_eval_arg1) 
            as [pref1 [vargs1 [Hpref1 [Heval_arg2 Hiszero_vargs1]]]].
          pose proof (eval_asfs2_cons arg2 [] t' ops stack vargs1
@@ -2970,7 +2969,7 @@ induction m1 as [|h t IH].
          rewrite -> eval_asfs2_empty in Hvals2'.
          injection Hvals2' as Hvals2'. rewrite <- Hvals2' in Hvargs1.
          pose proof (evaluation_suffix_map' t' t'' 1 arg2 n3 [arg3] false
-           iszero val2 ISZERO ops stack eq_stack_val_is_oper_arg2
+           evm_iszero val2 ISZERO ops stack eq_stack_val_is_oper_arg2
            Hops_iszero Heval_arg2')
            as [pref2 [vargs2 [Hpref2 [Heval_arg3 Hiszero_vargs2]]]].
          rewrite -> Hpref2 in Hpref1. simpl in Hpref1.
@@ -3028,7 +3027,7 @@ Qed.
 
 Lemma eq_succ_eval_opt_iszero3_eq_abs: forall (m1 m2: asfs_map) (ops: opm) 
   (n: nat) (stack: tstack),
-ops ISZERO = Some (Op false 1 iszero) ->
+ops ISZERO = Some (Op false 1 evm_iszero) ->
 optimize_map_iszero3 n m1 = Some m2 ->
 strictly_decreasing_map m1 ->
 forall (abs: asfs_stack) (v: tstack), 
@@ -3108,7 +3107,7 @@ unfold eval_asfs in H.
 destruct a as [ha maxa absa ma] eqn: eq_a.
 destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
 destruct (length c =? ha) eqn: eq_len; try discriminate.
-assert (opmap ISZERO = Some (Op false 1 iszero)) as eq_opmap_ISZERO; 
+assert (opmap ISZERO = Some (Op false 1 evm_iszero)) as eq_opmap_ISZERO; 
   try reflexivity.
 simpl in H0. destruct (optimize_map_iszero3 n ma) as [ma' |] 
   eqn: eq_optmize_ma; try discriminate.
@@ -3153,11 +3152,11 @@ induction x as [|a b c IH].
 Qed.
 
 Lemma wand_eq1: forall (x y z: EVMWord),
-and [x; y] = Some z ->
-and [z; y] = and [x;y].
+evm_and [x; y] = Some z ->
+evm_and [z; y] = evm_and [x;y].
 Proof.
-intros. unfold and in H. injection H as H.
-unfold and. rewrite <- H.
+intros. unfold evm_and in H. injection H as H.
+unfold evm_and. rewrite <- H.
 rewrite <- wand_assoc.
 rewrite -> wand_id.
 rewrite -> wand_comm.
@@ -3165,15 +3164,15 @@ reflexivity.
 Qed.
 
 Lemma and_comm: forall (x y: EVMWord),
-and [x;y] = and [y;x].
+evm_and [x;y] = evm_and [y;x].
 Proof. 
 intros. simpl. rewrite -> wand_comm. reflexivity.
 Qed.
 
 Lemma and_and_1: forall (val11 val12 val1 v: EVMWord),
-and [val11; val12] = Some val1 ->
-and [val1; val11] = Some v ->
-and [val11; val12] = Some v.
+evm_and [val11; val12] = Some val1 ->
+evm_and [val1; val11] = Some v ->
+evm_and [val11; val12] = Some v.
 Proof.
 intros. rewrite -> and_comm in H. apply wand_eq1 in H.
 rewrite -> H in H0. rewrite -> and_comm in H0.
@@ -3181,9 +3180,9 @@ assumption.
 Qed.
 
 Lemma and_and_2: forall (val11 val12 val1 v: EVMWord),
-and [val11; val12] = Some val1 ->
-and [val1; val12] = Some v ->
-and [val11; val12] = Some v.
+evm_and [val11; val12] = Some val1 ->
+evm_and [val1; val12] = Some v ->
+evm_and [val11; val12] = Some v.
 Proof.
 intros. apply wand_eq1 in H.
 rewrite -> H in H0. 
@@ -3273,10 +3272,10 @@ induction m1 as [|h t IH].
          destruct (eval_asfs2_elem stack arg2 t opmap) as [val2|] 
            eqn: eq_eval_arg2; try discriminate.
          simpl. rewrite -> eq_hn_fv.
-         assert (opmap AND = Some (Op true 2 and)) as eq_opmap_AND; 
+         assert (opmap AND = Some (Op true 2 evm_and)) as eq_opmap_AND; 
            try reflexivity.
          pose proof (evaluation_sufix_map t 2 arg1 [arg11; arg12] true
-           and val1 AND opmap stack eq_stack_val_arg1 eq_opmap_AND
+           evm_and val1 AND opmap stack eq_stack_val_arg1 eq_opmap_AND
            eq_eval_arg1) as [pre1 [suf1 [inner1 [eq_t [
              eval_arg11_arg12 and_inner]]]]].
          unfold eval_asfs2 in eval_arg11_arg12. 
@@ -3429,7 +3428,7 @@ unfold eval_asfs in H.
 destruct a as [ha maxa absa ma] eqn: eq_a.
 destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
 destruct (length c =? ha) eqn: eq_len; try discriminate.
-assert (opmap AND = Some (Op true 2 and)) as eq_opmap; 
+assert (opmap AND = Some (Op true 2 evm_and)) as eq_opmap; 
   try reflexivity.
 simpl in H0. destruct (optimize_map_and_and_l n ma) as [ma' |] 
   eqn: eq_optmize_ma; try discriminate.
@@ -3495,29 +3494,29 @@ match map with
 end.
 
 Lemma wand_eq2: forall (x y z: EVMWord),
-and [x; y] = Some z ->
-and [x; z] = and [x;y].
+evm_and [x; y] = Some z ->
+evm_and [x; z] = evm_and [x;y].
 Proof.
-intros. unfold and in H. injection H as H.
-unfold and. rewrite <- H.
+intros. unfold evm_and in H. injection H as H.
+unfold evm_and. rewrite <- H.
 rewrite -> wand_assoc.
 rewrite -> wand_id.
 reflexivity.
 Qed.
 
 Lemma and_and_3: forall (val21 val22 val2 v: EVMWord),
-and [val21; val22] = Some val2 ->
-and [val21; val2] = Some v ->
-and [val21; val22] = Some v.
+evm_and [val21; val22] = Some val2 ->
+evm_and [val21; val2] = Some v ->
+evm_and [val21; val22] = Some v.
 Proof.
 intros. apply wand_eq2 in H.
 rewrite -> H in H0. assumption.
 Qed.
 
 Lemma and_and_4: forall (val21 val22 val2 v: EVMWord),
-and [val21; val22] = Some val2 ->
-and [val22; val2] = Some v ->
-and [val21; val22] = Some v.
+evm_and [val21; val22] = Some val2 ->
+evm_and [val22; val2] = Some v ->
+evm_and [val21; val22] = Some v.
 Proof.
 intros. apply wand_eq1 in H. rewrite <- and_comm in H.
 rewrite -> H in H0. assumption.
@@ -3575,10 +3574,10 @@ induction m1 as [|h t IH].
          destruct (eval_asfs2_elem stack arg2 t opmap) as [val2|] 
            eqn: eq_eval_arg2; try discriminate.
          simpl. rewrite -> eq_hn_fv.
-         assert (opmap AND = Some (Op true 2 and)) as eq_opmap_AND; 
+         assert (opmap AND = Some (Op true 2 evm_and)) as eq_opmap_AND; 
            try reflexivity.
          pose proof (evaluation_sufix_map t 2 arg2 [arg21; arg22] true
-           and val2 AND opmap stack eq_stack_val_arg2 eq_opmap_AND
+           evm_and val2 AND opmap stack eq_stack_val_arg2 eq_opmap_AND
            eq_eval_arg2) as [pre [suf [inner2 [eq_t [
              eval_arg21_arg22 and_inner]]]]].
          unfold eval_asfs2 in eval_arg21_arg22. 
@@ -3731,7 +3730,7 @@ unfold eval_asfs in H.
 destruct a as [ha maxa absa ma] eqn: eq_a.
 destruct opt_a as [hopt maxopt absopt mopt] eqn: eq_opt_a.
 destruct (length c =? ha) eqn: eq_len; try discriminate.
-assert (opmap AND = Some (Op true 2 and)) as eq_opmap; 
+assert (opmap AND = Some (Op true 2 evm_and)) as eq_opmap; 
   try reflexivity.
 simpl in H0. destruct (optimize_map_and_and_r n ma) as [ma' |] 
   eqn: eq_optmize_ma; try discriminate.

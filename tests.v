@@ -19,45 +19,45 @@ Module Tests_definitions.
 Compute (wlshift' (natToWord WLen 1) 3).
 
 Example ex_shl1:
-shl [(natToWord WLen 1); (natToWord WLen 3)] = Some (natToWord WLen 6).
+evm_shl [(natToWord WLen 1); (natToWord WLen 3)] = Some (natToWord WLen 6).
 Proof. reflexivity. Qed.
 
 Example ex_shl2:
-shl [(natToWord WLen 3); (natToWord WLen 1)] = Some (natToWord WLen 8).
+evm_shl [(natToWord WLen 3); (natToWord WLen 1)] = Some (natToWord WLen 8).
 Proof. reflexivity. Qed.
 
 Example ex_shr1:
-shr [(natToWord WLen 1); (natToWord WLen 7)] = Some (natToWord WLen 3).
+evm_shr [(natToWord WLen 1); (natToWord WLen 7)] = Some (natToWord WLen 3).
 Proof. reflexivity. Qed.
 
 Example ex_shr2:
-shr [(natToWord WLen 2); (natToWord WLen 16)] = Some (natToWord WLen 4).
+evm_shr [(natToWord WLen 2); (natToWord WLen 16)] = Some (natToWord WLen 4).
 Proof. reflexivity. Qed.
 
 Example ex_sub1:
-sub [(natToWord WLen 5); (natToWord WLen 2)] = Some (natToWord WLen 3).
+evm_sub [(natToWord WLen 5); (natToWord WLen 2)] = Some (natToWord WLen 3).
 Proof. reflexivity. Qed.
 
 Example ex_sub2:
-sub [(natToWord WLen 2); (natToWord WLen 2)] = Some WZero.
+evm_sub [(natToWord WLen 2); (natToWord WLen 2)] = Some WZero.
 Proof. reflexivity. Qed.
 
 Example ex_sub3:
 (* 2 - 3 (mod 2^256) = 2^256 - 1*)
-sub [(natToWord WLen 2); (natToWord WLen 3)] = Some (wnot WZero).
+evm_sub [(natToWord WLen 2); (natToWord WLen 3)] = Some (wnot WZero).
 Proof. reflexivity. Qed.
 
 Example ex_exp1:
-exp [(natToWord WLen 2); (natToWord WLen 4)] = Some (natToWord WLen 16).
+evm_exp [(natToWord WLen 2); (natToWord WLen 4)] = Some (natToWord WLen 16).
 Proof. reflexivity. Qed.
 
 Example ex_exp2:
 (* 2 ^ 256 = 0 *)
-exp [(natToWord WLen 2); (natToWord WLen 256)] = Some (WZero).
+evm_exp [(natToWord WLen 2); (natToWord WLen 256)] = Some (WZero).
 Proof. reflexivity. Qed.
 
 Example ex_exp3:
-exp [(natToWord WLen 3); (natToWord WLen 2)] = Some (natToWord WLen 9).
+evm_exp [(natToWord WLen 3); (natToWord WLen 2)] = Some (natToWord WLen 9).
 Proof. reflexivity. Qed.
 
 End Tests_definitions.

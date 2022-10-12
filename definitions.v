@@ -167,93 +167,93 @@ Qed.
 (* ================================================================= *)
 (** ** Implementation of current instructions *)
 
-Definition add (args: list EVMWord) : option EVMWord :=
+Definition evm_add (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wplus a b)
  | _ => None
  end.
  
-Definition mul (args: list EVMWord) : option EVMWord :=
+Definition evm_mul (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wmult a b)
  | _ => None
  end.
  
-Definition not (args: list EVMWord) : option EVMWord :=
+Definition evm_not (args: list EVMWord) : option EVMWord :=
 match args with
  | [a] => Some (wnot a)
  | _ => None
 end.
 
-Definition eq (args: list EVMWord) : option EVMWord :=
+Definition evm_eq (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (if weqb a b then WOne else WZero)
  | _ => None
 end.
 
-Definition iszero (args: list EVMWord) : option EVMWord :=
+Definition evm_iszero (args: list EVMWord) : option EVMWord :=
 match args with
- | [a] => eq [a; WZero]
+ | [a] => evm_eq [a; WZero]
  | _ => None
 end.
 
-Definition and (args: list EVMWord) : option EVMWord :=
+Definition evm_and (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wand a b)
  | _ => None
 end.
 
-Definition or (args: list EVMWord) : option EVMWord :=
+Definition evm_or (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wor a b)
  | _ => None
 end.
 
-Definition xor (args: list EVMWord) : option EVMWord :=
+Definition evm_xor (args: list EVMWord) : option EVMWord :=
 match args with
  | [a; b] => Some (wxor a b)
  | _ => None
 end.
 
-Definition shl (args: list EVMWord) : option EVMWord :=
+Definition evm_shl (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (wlshift' b (wordToNat a))
 | _ => None
 end.
 
-Definition shr (args: list EVMWord) : option EVMWord :=
+Definition evm_shr (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (wrshift' b (wordToNat a))
 | _ => None
 end.
 
-Definition sub (args: list EVMWord) : option EVMWord :=
+Definition evm_sub (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (wminus a b)
 | _ => None
 end.
 
-Definition exp (args: list EVMWord) : option EVMWord :=
+Definition evm_exp (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (NToWord WLen (N.pow (wordToN a) (wordToN b)))
 | _ => None
 end.
 
-Definition div (args: list EVMWord) : option EVMWord :=
+Definition evm_div (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (wdiv a b)
 | _ => None
 end.
 
-Definition evmlt (args: list EVMWord) : option EVMWord :=
+Definition evm_lt (args: list EVMWord) : option EVMWord :=
 match args with
 | [a; b] => Some (if (N.ltb (wordToN a) (wordToN b)) then WOne else WZero)
 | _ => None
 end.
 
-Definition evmgt (args: list EVMWord) : option EVMWord :=
+Definition evm_gt (args: list EVMWord) : option EVMWord :=
 match args with
-| [a; b] => evmlt [b; a]
+| [a; b] => evm_lt [b; a]
 | _ => None
 end.
 
@@ -342,30 +342,30 @@ Definition is_fully_defined (i : oper_label) :=
 
   
 Definition opmap : opm :=
-  ADD |->i Op true 2 add;
-  MUL |->i Op true 2 mul;
-  NOT |->i Op false 1 not;
-  SUB |->i Op false 2 sub;
-  DIV |->i Op false 2 div;
+  ADD |->i Op true 2 evm_add;
+  MUL |->i Op true 2 evm_mul;
+  NOT |->i Op false 1 evm_not;
+  SUB |->i Op false 2 evm_sub;
+  DIV |->i Op false 2 evm_div;
   SDIV |->i Op false 2 uninterp2;
   MOD |->i Op false 2 uninterp2;
   SMOD |->i Op false 2 uninterp2;
   ADDMOD |->i Op false 3 uninterp3;
   MULMOD |->i Op false 3 uninterp3;
-  EXP |->i Op false 2 exp;
+  EXP |->i Op false 2 evm_exp;
   SIGNEXTEND |->i Op false 2 uninterp2;
-  LT |->i Op false 2 evmlt;
-  GT |->i Op false 2 evmgt;
+  LT |->i Op false 2 evm_lt;
+  GT |->i Op false 2 evm_gt;
   SLT |->i Op false 2 uninterp2;
   SGT |->i Op false 2 uninterp2;
-  EQ |->i Op true 2 eq;
-  ISZERO |->i Op false 1 iszero;
-  AND |->i Op true 2 and;
-  OR |->i Op true 2 or;
-  XOR |->i Op true 2 xor;
+  EQ |->i Op true 2 evm_eq;
+  ISZERO |->i Op false 1 evm_iszero;
+  AND |->i Op true 2 evm_and;
+  OR |->i Op true 2 evm_or;
+  XOR |->i Op true 2 evm_xor;
   BYTE |->i Op false 2 uninterp2;
-  SHL |->i Op false 2 shl;
-  SHR |->i Op false 2 shr;
+  SHL |->i Op false 2 evm_shl;
+  SHR |->i Op false 2 evm_shr;
   SAR |->i Op false 2 uninterp2;
   SHA3 |->i Op false 2 uninterp2;
   KECCAK256 |->i Op false 2 uninterp2;
