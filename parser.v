@@ -132,14 +132,11 @@ Definition parseHexNumber (x : string) : option N :=
   | _ => None
   end.
 
-Compute parseHexNumber "0xffa".
-
-
 Fixpoint parseDecNumber' (x : list ascii) (acc : nat) :=
   match x with
   | [] => Some acc
   | d::ds => let n := nat_of_ascii d in
-             if (andb (leb 48 n) (leb n 57)) then
+             if (andb (Nat.leb 48 n) (Nat.leb n 57)) then
                parseDecNumber' ds (10*acc+(n-48))
              else None
   end.
@@ -152,7 +149,7 @@ Definition is_push (s : string) : option nat :=
   match (list_of_string s) with
   | "P"%char::"U"%char::"S"%char::"H"%char::xs => match (parseDecNumber' xs 0) with
                                                   | None => None
-                                                  | Some n => if (andb (leb 1 n) (leb n 32)) then Some n else None
+                                                  | Some n => if (andb (Nat.leb 1 n) (Nat.leb n 32)) then Some n else None
                                                   end                                                 
   | _ => None
   end.
@@ -161,7 +158,7 @@ Definition is_dup (s : string) : option nat :=
   match (list_of_string s) with
   | "D"%char::"U"%char::"P"%char::xs => match (parseDecNumber' xs 0) with
                                         | None => None
-                                        | Some n => if (andb (leb 1 n) (leb n 16)) then Some n else None
+                                        | Some n => if (andb (Nat.leb 1 n) (Nat.leb n 16)) then Some n else None
                                         end                                                 
   | _ => None
   end.
@@ -170,7 +167,7 @@ Definition is_swap (s : string) : option nat :=
   match (list_of_string s) with
   | "S"%char::"W"%char::"A"%char::"P"%char::xs => match (parseDecNumber' xs 0) with
                                                   | None => None
-                                                  | Some n => if (andb (leb 1 n) (leb n 16)) then Some n else None
+                                                  | Some n => if (andb (Nat.leb 1 n) (Nat.leb n 16)) then Some n else None
                                                   end                                                 
   | _ => None
   end.
