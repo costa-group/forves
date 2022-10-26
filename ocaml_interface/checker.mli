@@ -150,6 +150,8 @@ module N :
 
   val leb : n -> n -> bool
 
+  val ltb : n -> n -> bool
+
   val pow : n -> n -> n
 
   val pos_div_eucl : positive -> n -> n * n
@@ -312,8 +314,6 @@ module Concrete :
   | PC
   | MSIZE
   | GAS
-  | CREATE
-  | CREATE2
 
   type instr =
   | PUSH of nat * EVM_Def.coq_EVMWord
@@ -329,31 +329,35 @@ module Concrete :
 
   val eq_oper_label : oper_label -> oper_label -> bool
 
-  val add : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_add : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val mul : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_mul : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val not : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_not : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val eq : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_eq : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val iszero : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_iszero : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val coq_and : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_and : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val coq_or : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_or : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val xor : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_xor : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val shl : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_shl : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val shr : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_shr : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val sub : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_sub : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val exp : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_exp : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val div : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+  val evm_div : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+
+  val evm_lt : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
+
+  val evm_gt : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
   val uninterp0 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
@@ -363,14 +367,11 @@ module Concrete :
 
   val uninterp3 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
 
-  val uninterp4 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
   type ('k, 'v) map = 'k -> 'v option
 
   val empty_imap : (oper_label, 'a1) map
 
-  val updatei :
-    (oper_label, 'a1) map -> oper_label -> 'a1 -> oper_label -> 'a1 option
+  val updatei : (oper_label, 'a1) map -> oper_label -> 'a1 -> oper_label -> 'a1 option
 
   type opm = (oper_label, operator) map
 
@@ -440,70 +441,49 @@ module SFS :
 
   val empty_asfs : nat -> Abstract.asfs
 
-  val asfs_map_add :
-    Abstract.asfs_map -> nat -> Abstract.asfs_map_val -> Abstract.asfs_map
+  val asfs_map_add : Abstract.asfs_map -> nat -> Abstract.asfs_map_val -> Abstract.asfs_map
 
-  val add_val_asfs :
-    Concrete.opm -> Abstract.asfs -> Abstract.asfs_map_val -> Abstract.asfs
-    option
+  val add_val_asfs : Concrete.opm -> Abstract.asfs -> Abstract.asfs_map_val -> Abstract.asfs option
 
-  val symbolic_exec'' :
-    Concrete.instr -> Abstract.asfs -> Concrete.opm -> Abstract.asfs option
+  val symbolic_exec'' : Concrete.instr -> Abstract.asfs -> Concrete.opm -> Abstract.asfs option
 
-  val symbolic_exec' :
-    Concrete.block -> Abstract.asfs -> Concrete.opm -> Abstract.asfs option
+  val symbolic_exec' : Concrete.block -> Abstract.asfs -> Concrete.opm -> Abstract.asfs option
 
-  val symbolic_exec :
-    Concrete.block -> nat -> Concrete.opm -> Abstract.asfs option
+  val symbolic_exec : Concrete.block -> nat -> Concrete.opm -> Abstract.asfs option
 
   val is_comm_op : Concrete.oper_label -> Concrete.opm -> bool
 
   val apply_f_opt_list : ('a1 -> 'a2 option) -> 'a1 list -> 'a2 list option
 
-  val flat_stack_elem :
-    Abstract.asfs_stack_val -> Abstract.asfs_map -> Abstract.stack_expr option
+  val flat_stack_elem : Abstract.asfs_stack_val -> Abstract.asfs_map -> Abstract.stack_expr option
 
   val compare_lists_pred : ('a1 -> 'a2 -> bool) -> 'a1 list -> 'a2 list -> bool
 
-  val compare_flat_asfs_map_val :
-    Abstract.stack_expr -> Abstract.stack_expr -> Concrete.opm -> bool
+  val compare_flat_asfs_map_val : Abstract.stack_expr -> Abstract.stack_expr -> Concrete.opm -> bool
 
-  val asfs_eq_stack_elem :
-    Abstract.asfs_stack_val -> Abstract.asfs_stack_val -> Abstract.asfs_map ->
-    Abstract.asfs_map -> Concrete.opm -> bool
+  val asfs_eq_stack_elem : Abstract.asfs_stack_val -> Abstract.asfs_stack_val -> Abstract.asfs_map -> Abstract.asfs_map -> Concrete.opm -> bool
 
-  val asfs_eq_stack :
-    Abstract.asfs_stack -> Abstract.asfs_stack -> Abstract.asfs_map ->
-    Abstract.asfs_map -> Concrete.opm -> bool
+  val asfs_eq_stack : Abstract.asfs_stack -> Abstract.asfs_stack -> Abstract.asfs_map -> Abstract.asfs_map -> Concrete.opm -> bool
 
   val eq_sstate_chkr : Abstract.asfs -> Abstract.asfs -> Concrete.opm -> bool
  end
 
 module Coq_Optimizations :
  sig
-  val stack_val_is_oper :
-    Concrete.oper_label -> Abstract.asfs_stack_val -> Abstract.asfs_map ->
-    Abstract.asfs_stack_val list option
+  val stack_val_is_oper_suffix :
+    Concrete.oper_label -> Abstract.asfs_stack_val -> Abstract.asfs_map -> ((Abstract.asfs_stack_val list * Abstract.asfs_map) * nat) option
 
-  val optimize_fresh_var2 :
-    Abstract.asfs -> Abstract.asfs_map -> (nat -> Abstract.asfs -> Abstract.asfs
-    option) -> Abstract.asfs * bool
+  val stack_val_is_oper : Concrete.oper_label -> Abstract.asfs_stack_val -> Abstract.asfs_map -> Abstract.asfs_stack_val list option
 
-  val optimize_fresh_var :
-    (nat -> Abstract.asfs -> Abstract.asfs option) -> Abstract.asfs ->
-    Abstract.asfs * bool
+  val optimize_fresh_var2 : Abstract.asfs -> Abstract.asfs_map -> (nat -> Abstract.asfs -> Abstract.asfs option) -> Abstract.asfs * bool
 
-  val stack_val_has_value' :
-    Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord -> bool
+  val optimize_fresh_var : (nat -> Abstract.asfs -> Abstract.asfs option) -> Abstract.asfs -> Abstract.asfs * bool
 
-  val optimize_func_map :
-    (nat -> Abstract.asfs_map -> Abstract.asfs_map option) -> nat ->
-    Abstract.asfs -> Abstract.asfs option
+  val stack_val_has_value' : Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord -> bool
 
-  val optimize_id : Abstract.asfs -> Abstract.asfs * bool
+  val optimize_func_map : (nat -> Abstract.asfs_map -> Abstract.asfs_map option) -> nat -> Abstract.asfs -> Abstract.asfs option
 
-  val optimize_map_add_zero :
-    nat -> Abstract.asfs_map -> Abstract.asfs_map option
+  val optimize_map_add_zero : nat -> Abstract.asfs_map -> Abstract.asfs_map option
 
   val optimize_add_zero_fvar : nat -> Abstract.asfs -> Abstract.asfs option
 
@@ -515,8 +495,7 @@ module Coq_Optimizations :
 
   val optimize_mul_one : Abstract.asfs -> Abstract.asfs * bool
 
-  val optimize_map_mul_zero :
-    nat -> Abstract.asfs_map -> Abstract.asfs_map option
+  val optimize_map_mul_zero : nat -> Abstract.asfs_map -> Abstract.asfs_map option
 
   val optimize_mul_zero_fvar : nat -> Abstract.asfs -> Abstract.asfs option
 
@@ -528,15 +507,11 @@ module Coq_Optimizations :
 
   val optimize_not_not : Abstract.asfs -> Abstract.asfs * bool
 
-  val flat_extract_const :
-    Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord option
+  val flat_extract_const : Abstract.asfs_stack_val -> Abstract.asfs_map -> EVM_Def.coq_EVMWord option
 
-  val const_list :
-    Abstract.asfs_stack_val list -> Abstract.asfs_map -> EVM_Def.coq_EVMWord
-    list option
+  val const_list : Abstract.asfs_stack_val list -> Abstract.asfs_map -> EVM_Def.coq_EVMWord list option
 
-  val optimize_map_eval :
-    Concrete.opm -> nat -> Abstract.asfs_map -> Abstract.asfs_map option
+  val optimize_map_eval : Concrete.opm -> nat -> Abstract.asfs_map -> Abstract.asfs_map option
 
   val optimize_eval_fvar : nat -> Abstract.asfs -> Abstract.asfs option
 
@@ -584,40 +559,34 @@ module Coq_Optimizations :
 
   val optimize_iszero3 : Abstract.asfs -> Abstract.asfs * bool
 
-  val optimize_map_and_and_l :
-    nat -> Abstract.asfs_map -> Abstract.asfs_map option
+  val optimize_map_and_and_l : nat -> Abstract.asfs_map -> Abstract.asfs_map option
 
   val optimize_and_and_l_fvar : nat -> Abstract.asfs -> Abstract.asfs option
 
   val optimize_and_and_l : Abstract.asfs -> Abstract.asfs * bool
 
-  val optimize_map_and_and_r :
-    nat -> Abstract.asfs_map -> Abstract.asfs_map option
+  val optimize_map_and_and_r : nat -> Abstract.asfs_map -> Abstract.asfs_map option
 
   val optimize_and_and_r_fvar : nat -> Abstract.asfs -> Abstract.asfs option
 
   val optimize_and_and_r : Abstract.asfs -> Abstract.asfs * bool
 
-  val apply_n_times :
-    Optimizations.optimization -> nat -> Abstract.asfs -> Abstract.asfs * bool
+  val apply_n_times : Optimizations.optimization -> nat -> Abstract.asfs -> Abstract.asfs * bool
 
-  val apply_all_possible_opt :
-    Optimizations.optimization list -> Abstract.asfs -> Abstract.asfs * bool
+  val apply_all_possible_opt : Optimizations.optimization list -> Abstract.asfs -> Abstract.asfs * bool
 
-  val apply_pipeline_n_times :
-    Optimizations.optimization list -> nat -> Abstract.asfs ->
-    Abstract.asfs * bool
+  val apply_pipeline_n_times : Optimizations.optimization list -> nat -> Abstract.asfs -> Abstract.asfs * bool
 
   val our_optimization_pipeline : (Abstract.asfs -> Abstract.asfs * bool) list
  end
 
 module Checker :
  sig
-  val evm_eq_block_chkr' :
-    Optimizations.optimization -> Concrete.block -> Concrete.block -> nat -> bool
+  val evm_eq_block_chkr : Concrete.block -> Concrete.block -> nat -> bool
 
-  val evm_eq_block_chkr'' :
-    Optimizations.optimization -> Concrete.block -> Concrete.block -> nat -> bool
+  val evm_eq_block_chkr' : Optimizations.optimization -> Concrete.block -> Concrete.block -> nat -> bool
+
+  val evm_eq_block_chkr'' : Optimizations.optimization -> Concrete.block -> Concrete.block -> nat -> bool
  end
 
 module Parser :
@@ -666,11 +635,17 @@ module Parser :
 
   val parse_block : char list -> Concrete.instr list option
 
-  val block_eq_0 : char list -> char list -> char list -> bool option
-
   val opt : Abstract.asfs -> Abstract.asfs * bool
 
-  val block_eq_1 : char list -> char list -> char list -> bool option
+  val str_to_opt : char list -> Optimizations.optimization option
 
-  val block_eq_2 : char list -> char list -> char list -> bool option
+  val strs_to_opts : char list list -> Optimizations.optimization list option
+
+  val parse_opts : char list list -> Optimizations.optimization option
+
+  val block_eq_0 : char list -> char list -> char list -> Optimizations.optimization -> bool option
+
+  val block_eq_1 : char list -> char list -> char list -> Optimizations.optimization -> bool option
+
+  val block_eq_2 : char list -> char list -> char list -> Optimizations.optimization -> bool option
  end
