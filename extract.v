@@ -1,5 +1,5 @@
 (** NOTES:
-
+ 
   Some problems related to type extraction:
    
    - Types like bool, list and prod have straight forward representations
@@ -19,7 +19,7 @@
     - Extract option
     - Extract nat into an efficient type.
     - Extract bbv library Word into an efficient type. *)
-
+ 
 From Coq Require Import Strings.String.
 Require Import List.
 Import ListNotations.

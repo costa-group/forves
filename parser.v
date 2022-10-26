@@ -12,6 +12,8 @@ From Coq Require Import Strings.Ascii.
 From Coq Require Import Lists.List. Import ListNotations.
 Require Import Coq.NArith.NArith.
 Require Import bbv.Word.
+Require Import Coq_EVM.definitions.
+Import Optimizations.
 
 
 Module Parser.
@@ -266,7 +268,51 @@ Fixpoint parse_block' (l : list string) : option (list instr) :=
 Definition parse_block (block : string) : option (list instr) :=
   parse_block' (tokenize block).
 
-Definition block_eq_0 (p_opt p k : string) :=
+
+Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
+
+Definition str_to_opt (s : string) : option optimization :=
+  match s with
+  | "add_zero"%string  => Some optimize_add_zero 
+  | "mul_one"%string  => Some optimize_mul_one      
+  | "mul_zero"%string  => Some optimize_mul_zero     
+  | "not_not"%string   => Some optimize_not_not      
+  | "div_one"%string   => Some optimize_div_one
+  | "eq_zero"%string   => Some optimize_eq_zero
+  | "gt_one"%string    => Some optimize_gt_one
+  | "lt_one"%string    => Some optimize_lt_one
+  | "or_zero"%string   => Some optimize_or_zero
+  | "sub_x_x"%string   => Some optimize_sub_x_x      
+  | "iszero3"%string   => Some optimize_iszero3
+  | "and_and_l"%string => Some optimize_and_and_l
+  | "and_and_r"%string => Some optimize_and_and_r
+  | _ => None
+  end.
+
+             
+Fixpoint strs_to_opts (l : list string) : option (list optimization) :=
+  match l with
+  | [] => Some []
+  | x::xs => match (str_to_opt x) with
+             | None => None
+             | Some o => match (strs_to_opts xs) with
+                         | None => None
+                         | Some os => Some (o::os)
+                         end
+             end
+  end.
+
+Definition parse_opts (l : list string) : option optimization :=
+  match l with
+  | [] => Some (apply_pipeline_n_times our_optimization_pipeline 50)
+  | _ => match (strs_to_opts l) with
+         | None => None
+         | Some opts => Some (apply_pipeline_n_times opts 50)
+         end
+  end.
+
+            
+Definition block_eq_0 (p_opt p k : string) (opt : optimization) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
@@ -281,10 +327,8 @@ Definition block_eq_0 (p_opt p k : string) :=
                end
   end.
 
-Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
 
-
-Definition block_eq_1 (p_opt p k : string) :=
+Definition block_eq_1 (p_opt p k : string) (opt : optimization) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
@@ -299,7 +343,7 @@ Definition block_eq_1 (p_opt p k : string) :=
                end
   end.
 
-Definition block_eq_2 (p_opt p k : string) :=
+Definition block_eq_2 (p_opt p k : string)  (opt : optimization) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
