@@ -14,7 +14,7 @@ Require Import Coq.NArith.NArith.
 
 Module Checker.
 
-Definition sem_eq_blocks (p1 p2: block) (k: nat) (ops: opm) : Prop :=
+Definition sem_eq_blocks (p1 p2: block) (k: nat) (ops: stack_op_map) : Prop :=
 forall (in_st: execution_state) (in_stk: tstack),
 get_stack_es in_st = in_stk ->
 length in_stk = k ->
@@ -25,30 +25,30 @@ concr_interpreter p2 in_st ops = Some out_st.
 
 Definition eq_block_chkr_snd (chkr : block -> block -> nat -> bool) : Prop :=
 forall (p1 p2: block) (k: nat),
-chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k opmap.
+chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k evm_stack_opm.
 
 
 Definition evm_eq_block_chkr (opt_p p: block) (height: nat)
   : bool :=
-match symbolic_exec opt_p height opmap with
+match symbolic_exec opt_p height evm_stack_opm with
 | None => false
 | Some sfs1 => 
-    match symbolic_exec p height opmap with 
+    match symbolic_exec p height evm_stack_opm with 
     | None => false
-    | Some sfs2 => eq_sstate_chkr sfs1 sfs2 opmap
+    | Some sfs2 => eq_sstate_chkr sfs1 sfs2 evm_stack_opm
     end
 end.
 
 
 Definition evm_eq_block_chkr' (opt: optimization) (opt_p p: block) (height: nat) 
   : bool :=
-match symbolic_exec opt_p height opmap with
+match symbolic_exec opt_p height evm_stack_opm with
 | None => false
 | Some sfs1 => 
-    match symbolic_exec p height opmap with 
+    match symbolic_exec p height evm_stack_opm with 
     | None => false
     | Some sfs2 => let (sfs3, _) := opt sfs2 in 
-                   eq_sstate_chkr sfs1 sfs3 opmap
+                   eq_sstate_chkr sfs1 sfs3 evm_stack_opm
     end
 end.
 
@@ -59,7 +59,7 @@ Inductive hasfs_stack_val : Type :=
   | HFreshVar (var: nat).
 Inductive hasfs_map_val : Type :=
   | HASFSBasicVal (val: hasfs_stack_val)
-  | HASFSOp (opcode : oper_label) (args : list hasfs_stack_val).
+  | HASFSOp (opcode : stack_op_instr) (args : list hasfs_stack_val).
 Definition hasfs_stack  := list hasfs_stack_val.
 Definition hasfs_map    := list (nat*hasfs_map_val).
 Inductive hasfs : Type :=
@@ -94,19 +94,19 @@ end.
 (* Debugging version of chkr' *)
 Definition evm_eq_block_chkr'_dbg (opt: optimization) (opt_p p: block) 
   (height: nat) : hasfs*hasfs*bool :=
-match symbolic_exec opt_p height opmap with
+match symbolic_exec opt_p height evm_stack_opm with
 | None => (asfs_to_human (empty_asfs height),
            asfs_to_human (empty_asfs height),
            false)
 | Some sfs1 => 
-    match symbolic_exec p height opmap with 
+    match symbolic_exec p height evm_stack_opm with 
     | None => (asfs_to_human sfs1,
                asfs_to_human (empty_asfs height),
                false)
     | Some sfs2 => let (sfs3, _) := opt sfs2 in 
                    (asfs_to_human sfs1, 
                     asfs_to_human sfs3,
-                    eq_sstate_chkr sfs1 sfs3 opmap)
+                    eq_sstate_chkr sfs1 sfs3 evm_stack_opm)
     end
 end.
 (*************************************)
@@ -114,14 +114,14 @@ end.
 
 Definition evm_eq_block_chkr'' (opt: optimization) (opt_p p: block) (height: nat) 
   : bool :=
-match symbolic_exec opt_p height opmap with
+match symbolic_exec opt_p height evm_stack_opm with
 | None => false
 | Some sfs1 => 
-    match symbolic_exec p height opmap with 
+    match symbolic_exec p height evm_stack_opm with 
     | None => false
     | Some sfs2 => let (sfs3, _) := opt sfs2 in 
                    let (sfs4, _) := opt sfs1 in
-                   eq_sstate_chkr sfs4 sfs3 opmap
+                   eq_sstate_chkr sfs4 sfs3 evm_stack_opm
     end
 end.
 
@@ -134,26 +134,26 @@ evm_eq_block_chkr' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 exists (out_es_opt out_es_p: execution_state),
-(concr_interpreter opt_p in_es opmap = Some out_es_opt /\
- concr_interpreter p in_es opmap = Some out_es_p /\
+(concr_interpreter opt_p in_es evm_stack_opm = Some out_es_opt /\
+ concr_interpreter p in_es evm_stack_opm = Some out_es_p /\
  get_stack_es out_es_opt = get_stack_es out_es_p).
 Proof.
 intros.
 unfold evm_eq_block_chkr' in H0.
-destruct (symbolic_exec p height opmap) as [sfs_p|] eqn: eq_symb_exec_p;
-  try (destruct (symbolic_exec opt_p height opmap); discriminate). 
-destruct (symbolic_exec opt_p height opmap) as [sfsopt_p|] eqn: eq_symb_exec_opt;
+destruct (symbolic_exec p height evm_stack_opm) as [sfs_p|] eqn: eq_symb_exec_p;
+  try (destruct (symbolic_exec opt_p height evm_stack_opm); discriminate). 
+destruct (symbolic_exec opt_p height evm_stack_opm) as [sfsopt_p|] eqn: eq_symb_exec_opt;
   try discriminate.
-pose proof (correctness_symb_exec opt_p in_stk opmap height in_es sfsopt_p H1
+pose proof (correctness_symb_exec opt_p in_stk evm_stack_opm height in_es sfsopt_p H1
   H2 eq_symb_exec_opt evm_stack_opm_validity) 
   as [out_es1 [Hconcr_p1 eq_eval_sfs_opt]].
-pose proof (correctness_symb_exec p in_stk opmap height in_es sfs_p H1
+pose proof (correctness_symb_exec p in_stk evm_stack_opm height in_es sfs_p H1
   H2 eq_symb_exec_p evm_stack_opm_validity) 
   as [out_es2 [Hconcr_p2 eq_eval_sfs_p]].  
 exists out_es1. exists out_es2.
 split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
-pose proof (asfs_eq_correctness sfsopt_p p_with_opt opmap H0 
+pose proof (asfs_eq_correctness sfsopt_p p_with_opt evm_stack_opm H0 
   evm_stack_opm_validity in_stk).
 unfold safe_optimization in H.
 apply symb_exec_valid_asfs in eq_symb_exec_p as Hdecr_sfs_p.
@@ -210,27 +210,27 @@ evm_eq_block_chkr'' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
 exists (out_es_opt out_es_p: execution_state),
-(concr_interpreter opt_p in_es opmap = Some out_es_opt /\
- concr_interpreter p in_es opmap = Some out_es_p /\
+(concr_interpreter opt_p in_es evm_stack_opm = Some out_es_opt /\
+ concr_interpreter p in_es evm_stack_opm = Some out_es_p /\
  get_stack_es out_es_opt = get_stack_es out_es_p).
 Proof.
 intros.
 unfold evm_eq_block_chkr'' in H0.
-destruct (symbolic_exec p height opmap) as [sfs_p|] eqn: eq_symb_exec_p;
-  try (destruct (symbolic_exec opt_p height opmap); discriminate). 
-destruct (symbolic_exec opt_p height opmap) as [sfsopt_p|] eqn: eq_symb_exec_opt;
+destruct (symbolic_exec p height evm_stack_opm) as [sfs_p|] eqn: eq_symb_exec_p;
+  try (destruct (symbolic_exec opt_p height evm_stack_opm); discriminate). 
+destruct (symbolic_exec opt_p height evm_stack_opm) as [sfsopt_p|] eqn: eq_symb_exec_opt;
   try discriminate.
-pose proof (correctness_symb_exec opt_p in_stk opmap height in_es sfsopt_p H1
+pose proof (correctness_symb_exec opt_p in_stk evm_stack_opm height in_es sfsopt_p H1
   H2 eq_symb_exec_opt evm_stack_opm_validity) 
   as [out_es1 [Hconcr_p1 eq_eval_sfs_opt]].
-pose proof (correctness_symb_exec p in_stk opmap height in_es sfs_p H1
+pose proof (correctness_symb_exec p in_stk evm_stack_opm height in_es sfs_p H1
   H2 eq_symb_exec_p evm_stack_opm_validity) 
   as [out_es2 [Hconcr_p2 eq_eval_sfs_p]].  
 exists out_es1. exists out_es2.
 split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
 destruct (opt sfsopt_p) as [opt_with_opt flagopt] eqn: eq_optimize_popt.
-pose proof (asfs_eq_correctness opt_with_opt p_with_opt opmap H0 
+pose proof (asfs_eq_correctness opt_with_opt p_with_opt evm_stack_opm H0 
   evm_stack_opm_validity in_stk) as H3.
 unfold safe_optimization in H.
 apply symb_exec_valid_asfs in eq_symb_exec_p as Hdecr_sfs_p.

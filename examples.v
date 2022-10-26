@@ -35,7 +35,7 @@ let es := ExState [] empty_nmap empty_nmap
 in let block := [PUSH 32 W0;
                 PUSH 32 W5;
                 Opcode ADD]
-in concr_interpreter block es opmap
+in concr_interpreter block es evm_stack_opm
 ).
 
 
@@ -46,7 +46,7 @@ in let block := [PUSH 32 W5;
                 Opcode ADD;
                 PUSH 32 W1;
                 Opcode MUL]
-in concr_interpreter block es opmap
+in concr_interpreter block es evm_stack_opm
 ).
 
 
@@ -56,7 +56,7 @@ in let block := [PUSH 32 W0;
                 Opcode ADD;
                 PUSH 32 W2;
                 Opcode MUL]
-in concr_interpreter block es opmap
+in concr_interpreter block es evm_stack_opm
 ).
 
 
@@ -64,7 +64,7 @@ Compute (
 let es := ExState [W5; W1; W2] empty_nmap empty_nmap
 in let block := [Opcode ADD;
                 Opcode MUL]
-in concr_interpreter block es opmap
+in concr_interpreter block es evm_stack_opm
 ).
 
 
@@ -75,7 +75,7 @@ Compute (
 let block := [PUSH 32 W0;
              PUSH 32 W5;
              Opcode ADD]
-in symbolic_exec block 0 opmap
+in symbolic_exec block 0 evm_stack_opm
 ).
 
 
@@ -85,7 +85,7 @@ let block := [PUSH 32 W5;
              Opcode ADD;
              PUSH 32 W1;
              Opcode MUL]
-in symbolic_exec block 0 opmap
+in symbolic_exec block 0 evm_stack_opm
 ).
 
 
@@ -94,7 +94,7 @@ let block := [PUSH 32 W0;
              Opcode ADD;
              PUSH 32 W2;
              Opcode MUL]
-in symbolic_exec block 2 opmap
+in symbolic_exec block 2 evm_stack_opm
 ).
 (*
  [FreshVar 1; InStackVar 1]
@@ -108,7 +108,7 @@ in symbolic_exec block 2 opmap
 Compute (
 let block := [Opcode ADD;
              Opcode MUL]
-in symbolic_exec block 3 opmap
+in symbolic_exec block 3 evm_stack_opm
 ).
 
 

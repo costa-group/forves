@@ -192,7 +192,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
 let stack := [(natToWord WLen 5); (natToWord WLen 7)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 12)].
+eval_asfs stack asfs evm_stack_opm = Some [wnot (natToWord WLen 12)].
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_2:
@@ -201,7 +201,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
 let stack := [(natToWord WLen 8); (natToWord WLen 3)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 11)].
+eval_asfs stack asfs evm_stack_opm = Some [wnot (natToWord WLen 11)].
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_3:
@@ -210,7 +210,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
 let stack := [(natToWord WLen 2); (natToWord WLen 0)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 2)].
+eval_asfs stack asfs evm_stack_opm = Some [wnot (natToWord WLen 2)].
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_4:
@@ -219,7 +219,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
 let stack := [(natToWord WLen 0); (natToWord WLen 7)] in
-eval_asfs stack asfs opmap = Some [wnot (natToWord WLen 7)].
+eval_asfs stack asfs evm_stack_opm = Some [wnot (natToWord WLen 7)].
 Proof. reflexivity. Qed.
 
 
@@ -228,7 +228,7 @@ let asfs := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-eq_sstate_chkr asfs asfs opmap = true.
+eq_sstate_chkr asfs asfs evm_stack_opm = true.
 Proof.
 reflexivity. Qed.
 
@@ -241,7 +241,7 @@ let asfs2 := ASFSc 3 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 0; InStackVar 1])] in
-eq_sstate_chkr asfs1 asfs2 opmap = false.
+eq_sstate_chkr asfs1 asfs2 evm_stack_opm = false.
 Proof.
 reflexivity. Qed.
 Example test_eval_asfs_eq_3:
@@ -253,7 +253,7 @@ let asfs2 := ASFSc 2 2 [FreshVar 2]
             [(2, ASFSOp NOT [FreshVar 1]);
              (1, ASFSOp ADD [Val (natToWord WLen 0); FreshVar 0]);
              (0, ASFSOp ADD [InStackVar 1; InStackVar 0])] in
-eq_sstate_chkr asfs1 asfs2 opmap = true.
+eq_sstate_chkr asfs1 asfs2 evm_stack_opm = true.
 Proof.
 reflexivity. Qed.
 
@@ -424,7 +424,7 @@ let map: asfs_map :=
   [(100, ASFSOp MUL [Val (natToWord WLen 10); Val (natToWord WLen 10)])] in
 let expected_map : asfs_map := 
   [(100, ASFSBasicVal (Val (natToWord WLen 100)))] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 Example eval_1:
@@ -434,7 +434,7 @@ let map: asfs_map :=
 let expected_map : asfs_map := 
   [(100, ASFSBasicVal (Val (natToWord WLen 20)));
    (75, ASFSBasicVal (Val (natToWord WLen 2)))] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 Example eval_2:
@@ -448,7 +448,7 @@ let expected_map : asfs_map :=
    (75, ASFSBasicVal (Val (natToWord WLen 2)));
    (50, ASFSBasicVal (Val (natToWord WLen 7)))
   ] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 Example eval_3:
@@ -464,7 +464,7 @@ let expected_map : asfs_map :=
    (50, ASFSBasicVal (FreshVar 25));
    (25, ASFSBasicVal (Val (natToWord WLen 15)))
   ] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 Example eval_4:
@@ -472,7 +472,7 @@ let map: asfs_map :=
   [(100, ASFSOp SUB [Val (natToWord WLen 6); Val WOne])] in
 let expected_map : asfs_map := 
   [(100, ASFSBasicVal (Val (natToWord WLen 5)))] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 Example eval_4':
@@ -480,7 +480,7 @@ let map: asfs_map :=
   [(100, ASFSOp DIV [Val (natToWord WLen 6); Val WOne])] in
 let expected_map : asfs_map := 
   [(100, ASFSBasicVal (Val (natToWord WLen 6)))] in
-optimize_map_eval opmap 100 map = Some (expected_map).
+optimize_map_eval evm_stack_opm 100 map = Some (expected_map).
 Proof. simpl. reflexivity. Qed.
 
 
@@ -730,9 +730,9 @@ let opt_map: asfs_map := [(100, ASFSBasicVal (FreshVar 50));
                           (75,  ASFSOp NOT [FreshVar 50]);
                           (50,  ASFSBasicVal (Val WOne))] in
 let some_map2 := optimize_map_not_not 100 map in
-eval_asfs2_elem [] (FreshVar 100) map opmap = Some WOne /\
+eval_asfs2_elem [] (FreshVar 100) map evm_stack_opm = Some WOne /\
 some_map2 = Some opt_map /\
-eval_asfs2_elem [] (FreshVar 100) opt_map opmap = Some WZero.
+eval_asfs2_elem [] (FreshVar 100) opt_map evm_stack_opm = Some WZero.
 Proof.
 split; try (split; reflexivity).
 Qed.

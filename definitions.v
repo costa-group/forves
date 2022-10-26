@@ -28,7 +28,7 @@ Module Concrete.
 
 (** General opcodes that operate on stack elements and return one value on 
     top of the stack *)
-Inductive oper_label :=
+Inductive stack_op_instr :=
   | ADD
   | MUL
   | NOT
@@ -89,15 +89,14 @@ Inductive instr :=
   | POP 
   | DUP (pos: nat)
   | SWAP (pos: nat)
-  | Opcode (label: oper_label).
+  | Opcode (label: stack_op_instr).
   
 Definition block := list instr.  
 
-(** Function that evaluates a list of EVMWord, they are related to oper_label *)
-Inductive operator :=
-  | Op (comm: bool) (nb_args : nat) (func : list EVMWord -> option EVMWord).
+Inductive stack_operation :=
+  | StackOp (comm: bool) (n : nat) (f : list EVMWord -> option EVMWord).
 
-Definition eq_oper_label (a b: oper_label) : bool :=
+Definition eq_stack_op_instr (a b: stack_op_instr) : bool :=
 match (a, b) with
  | (ADD, ADD) => true
  | (MUL, MUL) => true
@@ -154,12 +153,12 @@ match (a, b) with
  | (GAS,GAS) => true
  | _ => false
 end.
-Notation "m '=?i' n" := (eq_oper_label m n) (at level 100).
+Notation "m '=?i' n" := (eq_stack_op_instr m n) (at level 100).
 
-Lemma eq_oper_label_correct:  forall (a b: oper_label),
-eq_oper_label a b = true -> a = b.
+Lemma eq_stack_op_instr_correct:  forall (a b: stack_op_instr),
+eq_stack_op_instr a b = true -> a = b.
 Proof.
-intros. unfold eq_oper_label in H. 
+intros. unfold eq_stack_op_instr in H. 
 destruct a; try (destruct b; intuition).
 Qed.
 
@@ -296,9 +295,11 @@ match args with
 
 Definition map (K V : Type) : Type := K -> option V.
 
-Definition empty_imap {A : Type} : map oper_label A := (fun _ => None).
-Definition updatei {A : Type} (m : map oper_label A) (x : oper_label) (v : A) :=
-  fun x' => if x =?i x' then Some v else m x'.
+Definition empty_imap {A : Type} : map stack_op_instr A := (fun _ => None).
+Definition updatei {A : Type} (m : map stack_op_instr A) 
+    (x : stack_op_instr) (v : A) :=
+fun x' => if x =?i x' then Some v else m x'.
+
 Notation "x '|->i' v ';' m" := (updatei m x v)
   (at level 100, v at next level, right associativity).
 Notation "x '|->i' v" := (updatei empty_imap x v)
@@ -312,7 +313,7 @@ Notation "x '|->n' v ';' m" := (updaten m x v)
 Notation "x '|->n' v" := (updaten empty_nmap x v)
   (at level 100).
   
-Definition opm := map oper_label operator.
+Definition stack_op_map := map stack_op_instr stack_operation.
   
 
 Definition fully_defined := [
@@ -330,80 +331,79 @@ Definition fully_defined := [
   SHL;
   SHR
   ].
-                                           
-Definition is_fully_defined (i : oper_label) :=
-  let  fix f ( l : list oper_label) :=
+
+Definition is_fully_defined (i : stack_op_instr) :=
+  let  fix f ( l : list stack_op_instr) :=
             match l with
             | [] => false
-            | x::xs => if (eq_oper_label i x) then true else (f xs)
+            | x::xs => if (eq_stack_op_instr i x) then true else (f xs)
             end
   in
   f fully_defined.
 
-  
-Definition opmap : opm :=
-  ADD |->i Op true 2 evm_add;
-  MUL |->i Op true 2 evm_mul;
-  NOT |->i Op false 1 evm_not;
-  SUB |->i Op false 2 evm_sub;
-  DIV |->i Op false 2 evm_div;
-  SDIV |->i Op false 2 uninterp2;
-  MOD |->i Op false 2 uninterp2;
-  SMOD |->i Op false 2 uninterp2;
-  ADDMOD |->i Op false 3 uninterp3;
-  MULMOD |->i Op false 3 uninterp3;
-  EXP |->i Op false 2 evm_exp;
-  SIGNEXTEND |->i Op false 2 uninterp2;
-  LT |->i Op false 2 evm_lt;
-  GT |->i Op false 2 evm_gt;
-  SLT |->i Op false 2 uninterp2;
-  SGT |->i Op false 2 uninterp2;
-  EQ |->i Op true 2 evm_eq;
-  ISZERO |->i Op false 1 evm_iszero;
-  AND |->i Op true 2 evm_and;
-  OR |->i Op true 2 evm_or;
-  XOR |->i Op true 2 evm_xor;
-  BYTE |->i Op false 2 uninterp2;
-  SHL |->i Op false 2 evm_shl;
-  SHR |->i Op false 2 evm_shr;
-  SAR |->i Op false 2 uninterp2;
-  SHA3 |->i Op false 2 uninterp2;
-  KECCAK256 |->i Op false 2 uninterp2;
-  ADDRESS |->i Op false 0 uninterp0;
-  BALANCE |->i Op false 1 uninterp1;
-  ORIGIN |->i Op false 0 uninterp0;
-  CALLER |->i Op false 0 uninterp0;
-  CALLVALUE |->i Op false 0 uninterp0;
-  CALLDATALOAD |->i Op false 1 uninterp1;
-  CALLDATASIZE  |->i Op false 0 uninterp0;
-  CODESIZE |->i Op false 0 uninterp0;
-  GASPRICE |->i Op false 0 uninterp0;
-  EXTCODESIZE |->i Op false 1 uninterp1;
-  RETURNDATASIZE |->i Op false 0 uninterp0;
-  EXTCODEHASH |->i Op false 1 uninterp1;
-  BLOCKHASH |->i Op false 0 uninterp0;
-  COINBASE |->i Op false 0 uninterp0;
-  TIMESTAMP |->i Op false 0 uninterp0;
-  NUMBER |->i Op false 0 uninterp0;
-  DIFFICULTY |->i Op false 0 uninterp0;
-  GASLIMIT |->i Op false 0 uninterp0;
-  CHAINID |->i Op false 0 uninterp0;
-  SELFBALANCE |->i Op false 0 uninterp0;
-  BASEFEE |->i Op false 0 uninterp0;
-  SLOAD |->i Op false 1 uninterp1;
-  MLOAD |->i Op false 1 uninterp1;
-  PC |->i Op false 0 uninterp0;
-  MSIZE |->i Op false 0 uninterp0;
-  GAS |->i Op false 0 uninterp0.
+Definition evm_stack_opm : stack_op_map :=
+  ADD |->i StackOp true 2 evm_add;
+  MUL |->i StackOp true 2 evm_mul;
+  NOT |->i StackOp false 1 evm_not;
+  SUB |->i StackOp false 2 evm_sub;
+  DIV |->i StackOp false 2 evm_div;
+  SDIV |->i StackOp false 2 uninterp2;
+  MOD |->i StackOp false 2 uninterp2;
+  SMOD |->i StackOp false 2 uninterp2;
+  ADDMOD |->i StackOp false 3 uninterp3;
+  MULMOD |->i StackOp false 3 uninterp3;
+  EXP |->i StackOp false 2 evm_exp;
+  SIGNEXTEND |->i StackOp false 2 uninterp2;
+  LT |->i StackOp false 2 evm_lt;
+  GT |->i StackOp false 2 evm_gt;
+  SLT |->i StackOp false 2 uninterp2;
+  SGT |->i StackOp false 2 uninterp2;
+  EQ |->i StackOp true 2 evm_eq;
+  ISZERO |->i StackOp false 1 evm_iszero;
+  AND |->i StackOp true 2 evm_and;
+  OR |->i StackOp true 2 evm_or;
+  XOR |->i StackOp true 2 evm_xor;
+  BYTE |->i StackOp false 2 uninterp2;
+  SHL |->i StackOp false 2 evm_shl;
+  SHR |->i StackOp false 2 evm_shr;
+  SAR |->i StackOp false 2 uninterp2;
+  SHA3 |->i StackOp false 2 uninterp2;
+  KECCAK256 |->i StackOp false 2 uninterp2;
+  ADDRESS |->i StackOp false 0 uninterp0;
+  BALANCE |->i StackOp false 1 uninterp1;
+  ORIGIN |->i StackOp false 0 uninterp0;
+  CALLER |->i StackOp false 0 uninterp0;
+  CALLVALUE |->i StackOp false 0 uninterp0;
+  CALLDATALOAD |->i StackOp false 1 uninterp1;
+  CALLDATASIZE  |->i StackOp false 0 uninterp0;
+  CODESIZE |->i StackOp false 0 uninterp0;
+  GASPRICE |->i StackOp false 0 uninterp0;
+  EXTCODESIZE |->i StackOp false 1 uninterp1;
+  RETURNDATASIZE |->i StackOp false 0 uninterp0;
+  EXTCODEHASH |->i StackOp false 1 uninterp1;
+  BLOCKHASH |->i StackOp false 0 uninterp0;
+  COINBASE |->i StackOp false 0 uninterp0;
+  TIMESTAMP |->i StackOp false 0 uninterp0;
+  NUMBER |->i StackOp false 0 uninterp0;
+  DIFFICULTY |->i StackOp false 0 uninterp0;
+  GASLIMIT |->i StackOp false 0 uninterp0;
+  CHAINID |->i StackOp false 0 uninterp0;
+  SELFBALANCE |->i StackOp false 0 uninterp0;
+  BASEFEE |->i StackOp false 0 uninterp0;
+  SLOAD |->i StackOp false 1 uninterp1;
+  MLOAD |->i StackOp false 1 uninterp1;
+  PC |->i StackOp false 0 uninterp0;
+  MSIZE |->i StackOp false 0 uninterp0;
+  GAS |->i StackOp false 0 uninterp0.
 
 
 (* ================================================================= *)
 (* ** Execution states *)
-Definition tstack := list EVMWord.
-Definition tmemory := map nat EVMWord.
-Definition tstorage := map nat EVMWord.
-Inductive execution_state :=
- | ExState (stack: tstack) (memory: tmemory) (storage: tstorage).
+Definition stack := list EVMWord.
+Definition memory := map nat EVMWord.
+Definition storage := map nat EVMWord.
+Inductive state :=
+ | ExState (stk: stack) (mem: memory) (stg: storage).
 
 End Concrete.
 Import Concrete.
@@ -423,13 +423,13 @@ Inductive asfs_stack_val : Type :=
 
 Inductive asfs_map_val : Type :=
   | ASFSBasicVal (val: asfs_stack_val)
-  | ASFSOp (opcode : oper_label) (args : list asfs_stack_val).
+  | ASFSOp (opcode : stack_op_instr) (args : list asfs_stack_val).
   
   
 Inductive stack_expr : Type :=
   | UVal (val: EVMWord)
   | UInStackVar (var: nat)
-  | UOp (opcode : oper_label) (args : list stack_expr).
+  | UOp (opcode : stack_op_instr) (args : list stack_expr).
 
 Definition asfs_stack  := list asfs_stack_val.
 Definition asfs_map    := list (nat*asfs_map_val).

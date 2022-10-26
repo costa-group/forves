@@ -30,7 +30,7 @@ Section stack_expr_ind'.
   Variable P : stack_expr -> Prop.
   Hypothesis UVal_case: forall (v: EVMWord), P (UVal v).
   Hypothesis UInStackVar_case: forall (n: nat), P (UInStackVar n).
-  Hypothesis UOp_case : forall (opcode: oper_label)
+  Hypothesis UOp_case : forall (opcode: stack_op_instr)
                                (args : list stack_expr),
                            All stack_expr P args -> P (UOp opcode args).
                            
