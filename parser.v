@@ -241,7 +241,7 @@ Definition parse_non_push_instr (s : string) : option instr :=
              end
   end.
 
-Fixpoint parse_block' (l : list string) : option (list instr) :=
+Fixpoint parse_block' (l : list string) : option block :=
   match l with
   | [] => Some []
   | x::xs => match (is_push x) with
@@ -265,13 +265,13 @@ Fixpoint parse_block' (l : list string) : option (list instr) :=
              end               
   end.
 
-Definition parse_block (block : string) : option (list instr) :=
-  parse_block' (tokenize block).
+Definition parse_block (block_str : string) : option block :=
+  parse_block' (tokenize block_str).
 
 
 Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
 
-Definition str_to_opt (s : string) : option optimization :=
+Definition str_to_opt (s : string) : option optim :=
   match s with
   | "add_zero"%string  => Some optimize_add_zero 
   | "mul_one"%string  => Some optimize_mul_one      
@@ -290,7 +290,7 @@ Definition str_to_opt (s : string) : option optimization :=
   end.
 
              
-Fixpoint strs_to_opts (l : list string) : option (list optimization) :=
+Fixpoint strs_to_opts (l : list string) : option (list optim) :=
   match l with
   | [] => Some []
   | x::xs => match (str_to_opt x) with
@@ -302,7 +302,7 @@ Fixpoint strs_to_opts (l : list string) : option (list optimization) :=
              end
   end.
 
-Definition parse_opts (l : list string) : option optimization :=
+Definition parse_opts (l : list string) : option optim :=
   match l with
   | [] => Some (apply_pipeline_n_times our_optimization_pipeline 50)
   | _ => match (strs_to_opts l) with
@@ -312,7 +312,7 @@ Definition parse_opts (l : list string) : option optimization :=
   end.
 
             
-Definition block_eq_0 (p_opt p k : string) (opt : optimization) :=
+Definition block_eq_0 (p_opt p k : string) (opt : optim) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
@@ -328,7 +328,7 @@ Definition block_eq_0 (p_opt p k : string) (opt : optimization) :=
   end.
 
 
-Definition block_eq_1 (p_opt p k : string) (opt : optimization) :=
+Definition block_eq_1 (p_opt p k : string) (opt : optim) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with
@@ -343,7 +343,7 @@ Definition block_eq_1 (p_opt p k : string) (opt : optimization) :=
                end
   end.
 
-Definition block_eq_2 (p_opt p k : string)  (opt : optimization) :=
+Definition block_eq_2 (p_opt p k : string)  (opt : optim) :=
   match (parse_block p_opt) with
   | None => None
   | Some b1 => match (parse_block p) with

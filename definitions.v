@@ -415,15 +415,15 @@ Import Concrete.
 Module Abstract.
 
 
-Inductive asfs_stack_val : Type :=
+Inductive sstack_val : Type :=
   | Val (val: EVMWord)
   | InStackVar (var: nat)
   | FreshVar (var: nat).
 
 
-Inductive asfs_map_val : Type :=
-  | ASFSBasicVal (val: asfs_stack_val)
-  | ASFSOp (opcode : stack_op_instr) (args : list asfs_stack_val).
+Inductive smap_val : Type :=
+  | SymBasicVal (val: sstack_val)
+  | SymOp (opcode : stack_op_instr) (args : list sstack_val).
   
   
 Inductive stack_expr : Type :=
@@ -431,22 +431,22 @@ Inductive stack_expr : Type :=
   | UInStackVar (var: nat)
   | UOp (opcode : stack_op_instr) (args : list stack_expr).
 
-Definition asfs_stack  := list asfs_stack_val.
-Definition asfs_map    := list (nat*asfs_map_val).
+Definition sstack := list sstack_val.
+Definition smap    := list (nat*smap_val).
 
-Inductive asfs : Type :=
-  | ASFSc (height maxid: nat) (s: asfs_stack) (m: asfs_map).
+Inductive sstate : Type :=
+  | SymState (k maxid: nat) (sstk: sstack) (m: smap).
 
 
 (* MaxID is > any fresh variable in the map *)
-Fixpoint fresh_var_gt_map (idx: nat) (map: asfs_map) : Prop :=
+Fixpoint fresh_var_gt_map (idx: nat) (map: smap) : Prop :=
 match map with 
 | nil => True
 | (k,v)::t => idx > k /\ fresh_var_gt_map idx t
 end.
 
 (* Fresh variables in a map are strictly decreasing *)
-Fixpoint strictly_decreasing_map (a: asfs_map) {struct a} : Prop :=
+Fixpoint strictly_decreasing_map (a: smap) {struct a} : Prop :=
 match a with
 | [] => True
 | (var1, e1)::t1 => match t1 with 
@@ -456,10 +456,10 @@ match a with
                     end
 end.
 
-Definition valid_asfs (sfs: asfs) : Prop :=
-match sfs with 
-| ASFSc height maxid s m => (fresh_var_gt_map maxid m) /\
-                            (strictly_decreasing_map m)
+Definition valid_sstate (sst: sstate) : Prop :=
+match sst with 
+| SymState k maxid s m => (fresh_var_gt_map maxid m) /\
+                          (strictly_decreasing_map m)
 end.
 
 End Abstract.
@@ -469,7 +469,7 @@ Import Abstract.
 
 Module Optimizations.
 
-Definition optimization := asfs -> asfs*bool.
+Definition optim := sstate -> sstate*bool.
 
 End Optimizations.
 Import Optimizations. 

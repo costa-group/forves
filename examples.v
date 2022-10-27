@@ -115,29 +115,29 @@ in symbolic_exec block 3 evm_stack_opm
 
 (* OPTIMIZATIONS ON ASFS *)
 Compute (
-let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp ADD [Val W0; InStackVar 0])] in
+let a := SymState 1 1 [FreshVar 0] [(0, SymOp ADD [Val W0; InStackVar 0])] in
 optimize_add_zero a
 ).
 
 Compute (
-let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [Val W0; InStackVar 0])] in
+let a := SymState 1 1 [FreshVar 0] [(0, SymOp MUL [Val W0; InStackVar 0])] in
 optimize_add_zero a
 ).
 
 
 Compute (
-let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [InStackVar 0; Val W0])] in
+let a := SymState 1 1 [FreshVar 0] [(0, SymOp MUL [InStackVar 0; Val W0])] in
 optimize_mul_zero a
 ).
 
 Compute (
-let a := ASFSc 1 1 [FreshVar 0] [(0, ASFSOp MUL [InStackVar 0; Val W1])] in
+let a := SymState 1 1 [FreshVar 0] [(0, SymOp MUL [InStackVar 0; Val W1])] in
 optimize_mul_one a
 ).
 
 Compute (
-let a := ASFSc 1 2 [FreshVar 1] [(1, ASFSOp NOT [FreshVar 0]);
-                                 (0, ASFSOp NOT [InStackVar 0])] in
+let a := SymState 1 2 [FreshVar 1] [(1, SymOp NOT [FreshVar 0]);
+                                 (0, SymOp NOT [InStackVar 0])] in
 optimize_not_not a
 ).
 
