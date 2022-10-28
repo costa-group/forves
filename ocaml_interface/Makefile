@@ -10,7 +10,7 @@ all: executable static
 
 executable: checker $(MAIN)
 	ocamlopt -o $(EXE)  checker.cmx str.cmxa $(MAIN) 
-	cp $(EXE) ../bin
+	mv $(EXE) ../bin
 
 checker: checker.ml checker.mli
 	ocamlopt -c checker.mli -o checker.cmi
@@ -18,7 +18,7 @@ checker: checker.ml checker.mli
 
 static: checker $(MAIN)
 	ocamlopt -o $(STATIC_EXE) -ccopt -static str.cmxa checker.cmx $(MAIN)
-	cp $(STATIC_EXE) ../bin
+	mv $(STATIC_EXE) ../bin
 
 static_checker: checker.ml checker.mli
 	ocamlopt -c checker.mli -ccopt -static -o checker.cmi
@@ -29,7 +29,9 @@ clean:
 	rm -f *.cmx
 	rm -f *.o
 	rm -f $(EXE)
+	rm -f ../bin/$(EXE)
 	rm -f $(STATIC_EXE)
+	rm -f ../bin/$(STATIC_EXE)
 
 clean_all: clean
 	rm -f checker.ml

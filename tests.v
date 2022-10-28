@@ -16,8 +16,6 @@ Import ListNotations.
 
 Module Tests_definitions.
 
-Compute (wlshift' (natToWord WLen 1) 3).
-
 Example ex_shl1:
 evm_shl [(natToWord WLen 1); (natToWord WLen 3)] = Some (natToWord WLen 6).
 Proof. reflexivity. Qed.

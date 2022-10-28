@@ -265,10 +265,11 @@ simpl in Heq_stacks. rewrite -> Heq_stacks.
 auto.
 Qed.
 
+(*
 Print Assumptions evm_eq_block_chkr_snd.
 Print Assumptions evm_eq_block_chkr'_snd.
 Print Assumptions evm_eq_block_chkr''_snd.
-Print Assumptions our_optimization_pipeline_snd.
+Print Assumptions our_optimization_pipeline_snd.*)
 
 
 End Checker.
