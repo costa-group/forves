@@ -19,9 +19,9 @@ This artifact includes a verification tool to automatically prove the
 correctness of EVM (Ethereum Virtual Machine) block-optimizations on
 Ethereum smart contracts using the Coq proof assistant. The EVM equivalence 
 checker takes two blocks of jump-free EVM instructions, the original block and 
-the optimized one, as well as an inicital stack size, and determines if they are
-equivalent, i.e, if they have the same semantic behavior. The artifacts has been 
-build to be executed insided the TACAS 23 Artifact Evaluation VM available at 
+the optimized one, as well as the initial stack size, and determines if they are
+equivalent, i.e., if they have the same semantic behavior. The artifact has been 
+built to be executed inside the TACAS 23 Artifact Evaluation VM available at 
 https://zenodo.org/record/7113223.
 
 
@@ -35,9 +35,9 @@ for Ubuntu 22.04 LTS:
                   libraries
    * `bin/static_checker`: binary checker statically compiled
 
-The artifact also contains the Coq source code, Debian packages and the
+The artifact also contains the Coq source code, Debian packages, and the
 required Coq libraries to compile the EVM equivalence checker from scratch. It
-depends on:
+depends on the following components:
 
    * The Coq Proof Assistant, version 8.15.0
    * OCaml 4.13.1
@@ -93,12 +93,12 @@ command in the root directory of the artifact:
 =======================
 After compiling the checker, the directory `bin/` will contain the executables 
 `checker` (dynamically linked) and `static_checker` (statically linked). Both
-behave the same and only differ on the linking process, so in the following 
-examples we will only use the dinamically linked `checker`.
+behave the same and only differ in the linking process, so in the following 
+examples we will only use the dynamically linked `checker`.
 
 The checker accepts two parameters: the algorithm used to check the equivalence
 (`-alg`) and the list of optimizations to use (`-opt`) when checking the
-equivalence. The latter parameter is only used when applying and algorithm that
+equivalence. The latter parameter is only used when applying an algorithm that
 uses optimizations (`-opt 1` or `-opt 2`):
 
     $ bin/checker --help
@@ -121,9 +121,9 @@ uses optimizations (`-opt 1` or `-opt 2`):
 The checker reads a sequence of blocks to check its equivalence from the 
 standard input. Each case if formed by 3 lines: the first one is the 
 optimized block of EVM instructions, the second line contains the original
-block of EVM instructions, and the third line contains the stack size. The
-checker will read triplets until the end of file (EOF, introduced by Ctrl-d
-in the terminal) and show all the results. For each case it will show a line 
+block of EVM instructions, and the third line has the initial stack size. The
+checker will read triplets until the end of the file (EOF, introduced by Ctrl-d
+in the terminal) and show all the results. For each case, it will show a line 
 `Example N: X` where `N` is the case number and `X` is a Boolean: `true` if
 the blocks are equivalent and `false` if the checker cannot determine the 
 equivalence.
@@ -160,7 +160,7 @@ Example:
 5 Running experiments
 =====================
 ADDITIONAL REQUIREMENTS: None, all software dependencies are included in the 
-artifact. There are not hardware requirements.
+artifact. There are no hardware requirements.
 
 EXPERIMENT RUNTIME: less than 3 seconds in the TACAS 23 Virtual Machine 
 executed on `Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz` with 32 GB.
@@ -173,10 +173,10 @@ options in each phase, we obtain 8 different sets of blocks, which are
 stored in the files with names `N_RES_SOLC OPT_SIMP.txt` in the `./blocks` directory:
 
    * `N` is the number of the set of blocks. The first file corresponds to
-     the first line of Table 5.1 of the paper, the second file correponds
-     to the second lines of Table 5.1, and so on.
+     the first line of Table 5.1 of the paper, the second file corresponds
+     to the second line of Table 5.1, and so on.
    * `RES`: resource optimized by `GASOL`, can be `gas` or `size`.
-   * `SOLC OPT`: whether optimizations have been enabled in `solc` or not. 
+   * `SOLC OPT`: whether optimizations have been enabled in `solc`. 
       Possible values are `opt` (optimizations enabled) or `notopt` 
       (optimizations disabled).
    * `SIMP`: whether simplification rules have been applied by `GASOL` or 
@@ -190,7 +190,7 @@ the following script:
     $ ./run_all_experiments.sh
 
 The script will show 8 blocks of results, one for each line of Table 5.1 of the
-paper. In each block of results the script will show the file processed by the
+paper. In each block of results, the script will show the file processed by the
 checker and the results (number of blocks proven equivalent and time) for each
 one of the algorithms: `evm_eq_block_chkr`, `evm_eq_block_chkr'`, and 
 `evm_eq_block_chkr''`. Example:
@@ -215,5 +215,5 @@ one of the algorithms: `evm_eq_block_chkr`, `evm_eq_block_chkr'`, and
 
 6 License
 =========
-All the Coq source files that form the EVM equivalence checker have licence
-GNU GENERAL PUBLIC LICENSE version 3, include in the file `src/License.txt`.
+All the Coq source files that form the EVM equivalence checker have license
+GNU GENERAL PUBLIC LICENSE Version 3, included in the file `src/License.txt`.
