@@ -719,7 +719,7 @@ match elem with
                       | SymOp op args => 
                            match ops op with
                            | None => None
-                           | Some (StackOp comm_flat nargs func) => 
+                           | Some (StackOp comm nargs func) => 
                                if (List.length args =? nargs) then
                                  (* Lambda-abstraction to create a unary function over asfa_stack_val *)
                                  let f_eval_list := fun (elem': sstack_val) => eval_asfs2_elem c elem' rm ops in

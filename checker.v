@@ -28,27 +28,26 @@ forall (p1 p2: block) (k: nat),
 chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k evm_stack_opm.
 
 
-Definition evm_eq_block_chkr (opt_p p: block) (height: nat)
-  : bool :=
-match symbolic_exec opt_p height evm_stack_opm with
+Definition evm_eq_block_chkr (p1 p2: block) (k: nat) : bool :=
+match symbolic_exec p1 k evm_stack_opm with
 | None => false
-| Some sfs1 => 
-    match symbolic_exec p height evm_stack_opm with 
+| Some sst1 => 
+    match symbolic_exec p2 k evm_stack_opm with 
     | None => false
-    | Some sfs2 => eq_sstate_chkr sfs1 sfs2 evm_stack_opm
+    | Some sst2 => eq_sstate_chkr sst1 sst2 evm_stack_opm
     end
 end.
 
 
-Definition evm_eq_block_chkr' (opt: optim) (opt_p p: block) (height: nat) 
+Definition evm_eq_block_chkr' (opt: optim) (opt_p p: block) (k: nat) 
   : bool :=
-match symbolic_exec opt_p height evm_stack_opm with
+match symbolic_exec opt_p k evm_stack_opm with
 | None => false
-| Some sfs1 => 
-    match symbolic_exec p height evm_stack_opm with 
+| Some sst1 => 
+    match symbolic_exec p k evm_stack_opm with 
     | None => false
-    | Some sfs2 => let (sfs3, _) := opt sfs2 in 
-                   eq_sstate_chkr sfs1 sfs3 evm_stack_opm
+    | Some sst2 => let (sst2', _) := opt sst2 in 
+                   eq_sstate_chkr sst1 sst2' evm_stack_opm
     end
 end.
 
@@ -112,16 +111,16 @@ end.
 (*************************************)
 
 
-Definition evm_eq_block_chkr'' (opt: optim) (opt_p p: block) (height: nat) 
+Definition evm_eq_block_chkr'' (opt: optim) (opt_p p: block) (k: nat) 
   : bool :=
-match symbolic_exec opt_p height evm_stack_opm with
+match symbolic_exec opt_p k evm_stack_opm with
 | None => false
-| Some sfs1 => 
-    match symbolic_exec p height evm_stack_opm with 
+| Some sst1 => 
+    match symbolic_exec p k evm_stack_opm with 
     | None => false
-    | Some sfs2 => let (sfs3, _) := opt sfs2 in 
-                   let (sfs4, _) := opt sfs1 in
-                   eq_sstate_chkr sfs4 sfs3 evm_stack_opm
+    | Some sst2 => let (sst2', _) := opt sst2 in 
+                   let (sst1', _) := opt sst1 in
+                   eq_sstate_chkr sst1' sst2' evm_stack_opm
     end
 end.
 
@@ -129,7 +128,7 @@ end.
 Lemma equiv_checker'_correct: forall (opt_p p: block) (height: nat) 
   (opt: optim) (in_es: state) 
   (in_stk: stack),
-optim_snd opt ->
+safe_optimization opt ->
 evm_eq_block_chkr' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
@@ -155,7 +154,7 @@ split; try assumption. split; try assumption.
 destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
 pose proof (asfs_eq_correctness sfsopt_p p_with_opt evm_stack_opm H0 
   evm_stack_opm_validity in_stk).
-unfold optim_snd in H.
+unfold safe_optimization in H.
 apply symb_exec_valid_sstate in eq_symb_exec_p as Hdecr_sfs_p.
 pose proof (H in_stk (get_stack_es out_es2) sfs_p p_with_opt flag
   eq_eval_sfs_p eq_optimize_p Hdecr_sfs_p) as [eq_eval_p_with_opt _].
@@ -166,7 +165,7 @@ Qed.
 
 
 Theorem evm_eq_block_chkr'_snd: forall (opt: optim), 
-optim_snd opt -> eq_block_chkr_snd (evm_eq_block_chkr' opt).
+safe_optimization opt -> eq_block_chkr_snd (evm_eq_block_chkr' opt).
 Proof.
 intros. unfold eq_block_chkr_snd. intros. unfold sem_eq_blocks. intros.
 pose proof (equiv_checker'_correct p1 p2 k opt in_st in_stk H H0 H1 H2)
@@ -205,7 +204,7 @@ Qed.
 Lemma equiv_checker''_correct: forall (opt_p p: block) (height: nat) 
   (opt: optim) (in_es: state) 
   (in_stk: stack),
-optim_snd opt ->
+safe_optimization opt ->
 evm_eq_block_chkr'' opt opt_p p height = true ->
 get_stack_es in_es = in_stk ->
 length in_stk = height ->
@@ -232,7 +231,7 @@ destruct (opt sfs_p) as [p_with_opt flag] eqn: eq_optimize_p.
 destruct (opt sfsopt_p) as [opt_with_opt flagopt] eqn: eq_optimize_popt.
 pose proof (asfs_eq_correctness opt_with_opt p_with_opt evm_stack_opm H0 
   evm_stack_opm_validity in_stk) as H3.
-unfold optim_snd in H.
+unfold safe_optimization in H.
 apply symb_exec_valid_sstate in eq_symb_exec_p as Hdecr_sfs_p.
 apply symb_exec_valid_sstate in eq_symb_exec_opt as Hdecr_sfs_opt.
 pose proof (H in_stk (get_stack_es out_es2) sfs_p p_with_opt flag
@@ -246,7 +245,7 @@ Qed.
 
 
 Theorem evm_eq_block_chkr''_snd: forall (opt: optim), 
-optim_snd opt -> eq_block_chkr_snd (evm_eq_block_chkr'' opt).
+safe_optimization opt -> eq_block_chkr_snd (evm_eq_block_chkr'' opt).
 Proof.
 intros. unfold eq_block_chkr_snd. intros. unfold sem_eq_blocks. intros.
 pose proof (equiv_checker''_correct p1 p2 k opt in_st in_stk H H0 H1 H2)
@@ -269,7 +268,7 @@ Qed.
 Print Assumptions evm_eq_block_chkr_snd.
 Print Assumptions evm_eq_block_chkr'_snd.
 Print Assumptions evm_eq_block_chkr''_snd.
-Print Assumptions our_optimization_pipeline_is_safe.
+Print Assumptions our_optimization_pipeline_snd.
 
 
 End Checker.

@@ -69,7 +69,7 @@ Qed.
    in the map. Stops as soon as it finds one that the optmization succeeds
 *)
 Fixpoint optimize_fresh_var2 (a: sstate) (m: smap) 
- (opt: nat -> sstate -> option sstate): sstate*bool :=
+  (opt: nat -> sstate -> option sstate): sstate*bool :=
 match m with
 | [] => (a, false)
 | (n,_)::t => match opt n a with
@@ -77,6 +77,24 @@ match m with
               | Some a' => (a',true)
               end
 end.
+
+Lemma optimize_fresh_var2_succ: forall (a a': sstate) (m: smap) 
+  (opt: nat -> sstate -> option sstate),
+optimize_fresh_var2 a m opt = (a', true) ->
+exists (n: nat), opt n a = Some a'.
+Proof.
+intros a a' m. revert a a'. induction m as [|h t IH].
+- intros. simpl in H. discriminate.
+- intros. unfold optimize_fresh_var2 in H.
+  destruct h as [fvar expr] eqn: eq_h.
+  fold optimize_fresh_var2 in H.
+  destruct (opt fvar a) as [a''|] eqn: eq_opt.
+  + injection H as eq_a'. rewrite <- eq_a'.
+    exists fvar. assumption.
+  + apply IH. assumption.
+Qed.
+
+
 
 (* When an optimization is not applicable, optimize_fresh_var2 returns the
    same ASFS *)
@@ -110,12 +128,39 @@ valid_sstate a ->
 eval_asfs c opt_a evm_stack_opm = Some cf /\ valid_sstate opt_a.
 
 
-Definition optim_snd (opt: optim) : Prop :=
+Definition safe_optimization (opt: optim) : Prop :=
 forall (c cf: stack) (a opt_a: sstate) (b: bool),
 eval_asfs c a evm_stack_opm = Some cf ->
 opt a = (opt_a, b) ->
 valid_sstate a ->
 eval_asfs c opt_a evm_stack_opm = Some cf /\ valid_sstate opt_a.
+
+Definition optim_snd (opt: optim) : Prop :=
+forall (sst: sstate) (sst': sstate) (b: bool),
+valid_sstate sst ->
+opt sst = (sst', b) ->
+(valid_sstate sst' /\ 
+ forall (st st': state), eval_sstate st sst  evm_stack_opm = Some st' ->
+                         eval_sstate st sst' evm_stack_opm = Some st').
+
+
+Lemma safe_optimization_optim_snd_1: forall (opt: optim),
+safe_optimization opt ->
+  forall (sst: sstate) (sst': sstate) (b: bool),
+  valid_sstate sst ->
+  opt sst = (sst', b) ->
+  forall (st st': state), eval_sstate st sst  evm_stack_opm = Some st' ->
+                          eval_sstate st sst' evm_stack_opm = Some st'.
+Proof.
+intros. unfold safe_optimization in H.
+unfold eval_sstate. destruct st as [stk mem sto] eqn: eq_st.
+destruct (eval_asfs stk sst evm_stack_opm) as [stk'|] eqn: eval_sst.
+- pose proof (H stk stk' sst sst' b eval_sst H1 H0) as [eval_sst' _].
+  rewrite -> eval_sst'.
+  simpl in H2. rewrite -> eval_sst in H2. rewrite <- H2.
+  reflexivity.
+- simpl in H2. rewrite -> eval_sst in H2. discriminate. 
+Qed.
 
 
 Lemma optimize_fresh_var2_preservation: forall (m: smap) (a a': sstate) 
@@ -147,10 +192,10 @@ Qed.
 
 Lemma optimize_fresh_var_preservation: forall (opt: nat -> sstate -> option sstate),
 safe_optimization_fvar opt ->
-optim_snd (optimize_fresh_var opt).
+safe_optimization (optimize_fresh_var opt).
 Proof.
 intros. 
-unfold optim_snd. intros.
+unfold safe_optimization. intros.
 destruct a as [ha maxa sa ma] eqn: eq_a.
 unfold optimize_fresh_var in H1.
 rewrite <- eq_a in H1. rewrite <- eq_a in H0.
@@ -685,14 +730,21 @@ Qed.
 *******************************************)
 Definition optimize_id (a: sstate) : sstate*bool := (a, false).
 
-Theorem optimize_id_safe:
-optim_snd optimize_id.
+Lemma optimize_id_safe:
+safe_optimization optimize_id.
 Proof.
-unfold optim_snd. intros.
+unfold safe_optimization. intros.
 unfold optimize_id in H0.
 injection H0 as eq_a_opta _.
 rewrite <- eq_a_opta.
 auto.
+Qed.
+
+Theorem optimize_id_snd: optim_snd optimize_id.
+Proof.
+unfold optim_snd. intros.
+unfold optimize_id in H0. injection H0 as eq_sst _.
+rewrite <- eq_sst. split; try auto.
 Qed.
 
 
@@ -748,7 +800,7 @@ Lemma eq_eval_opt_add_zero: forall (m1 m2: smap) (ops: stack_op_map) (n: nat)
 ops ADD = Some (StackOp true 2 evm_add) ->
 optimize_map_add_zero n m1 = Some m2 ->
 forall (elem: sstack_val), eval_asfs2_elem stk elem m1 ops =
-                               eval_asfs2_elem stk elem m2 ops.
+                           eval_asfs2_elem stk elem m2 ops.
 Proof.
 induction m1 as [|h t IH].
 - intros. simpl in H0. discriminate.
@@ -877,6 +929,36 @@ apply same_fvar_in_map_preserves_decreasingness with (m1:=m1);
 Qed.
 
 
+Lemma optimize_add_zero_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_add_zero sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_add_zero in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_add_zero_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_add_zero n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_add_zero_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_add_zero_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+
+
 Lemma optimize_add_zero_fvar_safe:
 safe_optimization_fvar optimize_add_zero_fvar.
 Proof.
@@ -910,12 +992,23 @@ split.
 Qed.
 
 
-Theorem optimize_add_zero_safe:
-optim_snd optimize_add_zero.
+Lemma optimize_add_zero_safe:
+safe_optimization optimize_add_zero.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_add_zero_fvar_safe.
 Qed.
+
+Theorem optimize_add_zero_snd: optim_snd optimize_add_zero.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_add_zero_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_add_zero)(b:=b);
+    try assumption.
+  apply optimize_add_zero_safe.
+Qed.
+
 
 
 
@@ -974,7 +1067,7 @@ Lemma eq_eval_opt_mul_one_eq: forall (m1 m2: smap) (ops: stack_op_map) (n: nat)
 ops MUL = Some (StackOp true 2 evm_mul) ->
 optimize_map_mul_one n m1 = Some m2 ->
 forall (elem: sstack_val), eval_asfs2_elem stk elem m1 ops =
-                               eval_asfs2_elem stk elem m2 ops.
+                           eval_asfs2_elem stk elem m2 ops.
 Proof.
 induction m1 as [|h t IH].
 - intros. simpl in H0. discriminate.
@@ -1138,15 +1231,50 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
+Lemma optimize_mul_one_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_mul_one sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_mul_one in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_mul_one_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_mul_one n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_mul_one_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_mul_one_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
 
-Theorem optimize_mul_one_safe:
-optim_snd optimize_mul_one.
+Lemma optimize_mul_one_safe:
+safe_optimization optimize_mul_one.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_mul_one_fvar_safe.
 Qed.
 
-
+Theorem optimize_mul_one_snd: optim_snd optimize_mul_one.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_mul_one_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_mul_one)(b:=b);
+    try assumption.
+  apply optimize_mul_one_safe.
+Qed.
 
 
 
@@ -1397,13 +1525,53 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
+Lemma optimize_mul_zero_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_mul_zero sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_mul_zero in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_mul_zero_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_mul_zero n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_mul_zero_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_mul_zero_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
 
-Theorem optimize_mul_zero_safe: 
-optim_snd optimize_mul_zero.
+Lemma optimize_mul_zero_safe: 
+safe_optimization optimize_mul_zero.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_mul_zero_fvar_safe.
 Qed.
+
+Theorem optimize_mul_zero_snd: optim_snd optimize_mul_zero.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_mul_zero_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_mul_zero)(b:=b);
+    try assumption.
+  apply optimize_mul_zero_safe.
+Qed.
+
+
+
 
 
 
@@ -1649,11 +1817,49 @@ split; try split.
     try assumption.
 Qed.
 
-Theorem optimize_not_not_safe:
-optim_snd optimize_not_not.
+Lemma optimize_not_not_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_not_not sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_not_not in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_not_not_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_not_not n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_not_not_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_not_not_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_not_not_safe:
+safe_optimization optimize_not_not.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_not_not_fvar_safe.
+Qed.
+
+Theorem optimize_not_not_snd: optim_snd optimize_not_not.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_not_not_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_not_not)(b:=b);
+    try assumption.
+  apply optimize_not_not_safe.
 Qed.
 
 
@@ -1950,11 +2156,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-Theorem optimize_eval_safe:
-optim_snd optimize_eval.
+Lemma optimize_eval_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_eval sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_eval in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_eval_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_eval evm_stack_opm n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_eval_same_fvar_in_maps n m map' evm_stack_opm eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_eval_decreasingness_preservation 
+      with (n:=n)(m1:=m)(ops:=evm_stack_opm); try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_eval_safe:
+safe_optimization optimize_eval.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_eval_fvar_safe. 
+Qed.
+
+Theorem optimize_eval_snd: optim_snd optimize_eval.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_eval_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_eval)(b:=b);
+    try assumption.
+  apply optimize_eval_safe.
 Qed.
 
 
@@ -2142,12 +2386,51 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-Theorem optimize_div_one_safe:
-optim_snd optimize_div_one.
+Lemma optimize_div_one_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_div_one sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_div_one in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_div_one_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_div_one n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_div_one_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_div_one_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_div_one_safe:
+safe_optimization optimize_div_one.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_div_one_fvar_safe.
 Qed.
+
+Theorem optimize_div_one_snd: optim_snd optimize_div_one.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_div_one_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_div_one)(b:=b);
+    try assumption.
+  apply optimize_div_one_safe.
+Qed.
+
 
 
 
@@ -2370,11 +2653,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-Theorem optimize_eq_zero_safe:
-optim_snd optimize_eq_zero.
+Lemma optimize_eq_zero_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_eq_zero sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_eq_zero in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_eq_zero_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_eq_zero n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_eq_zero_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_eq_zero_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_eq_zero_safe:
+safe_optimization optimize_eq_zero.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_eq_zero_fvar_safe. 
+Qed.
+
+Theorem optimize_eq_zero_snd: optim_snd optimize_eq_zero.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_eq_zero_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_eq_zero)(b:=b);
+    try assumption.
+  apply optimize_eq_zero_safe.
 Qed.
 
 
@@ -2669,11 +2990,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-Theorem optimize_gt_one_safe:
-optim_snd optimize_gt_one.
+Lemma optimize_gt_one_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_gt_one sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_gt_one in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_gt_one_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_gt_one n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_gt_one_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_gt_one_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_gt_one_safe:
+safe_optimization optimize_gt_one.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_gt_one_fvar_safe. 
+Qed.
+
+Theorem optimize_gt_one_snd: optim_snd optimize_gt_one.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_gt_one_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_gt_one)(b:=b);
+    try assumption.
+  apply optimize_gt_one_safe.
 Qed.
 
 
@@ -2868,11 +3227,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-Theorem optimize_lt_one_safe:
-optim_snd optimize_lt_one.
+Lemma optimize_lt_one_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_lt_one sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_lt_one in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_lt_one_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_lt_one n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_lt_one_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_lt_one_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Lemma optimize_lt_one_safe:
+safe_optimization optimize_lt_one.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_lt_one_fvar_safe. 
+Qed.
+
+Theorem optimize_lt_one_snd: optim_snd optimize_lt_one.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_lt_one_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_lt_one)(b:=b);
+    try assumption.
+  apply optimize_lt_one_safe.
 Qed.
 
 
@@ -3084,12 +3481,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
+Lemma optimize_or_zero_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_or_zero sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_or_zero in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_or_zero_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_or_zero n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_or_zero_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_or_zero_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
 
-Theorem optimize_or_zero_safe:
-optim_snd optimize_or_zero.
+Lemma optimize_or_zero_safe:
+safe_optimization optimize_or_zero.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_or_zero_fvar_safe.
+Qed.
+
+Theorem optimize_or_zero_snd: optim_snd optimize_or_zero.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_or_zero_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_or_zero)(b:=b);
+    try assumption.
+  apply optimize_or_zero_safe.
 Qed.
 
 
@@ -3324,12 +3758,49 @@ split.
     * rewrite -> eq_maps. assumption.
 Qed.
 
-
-Theorem optimize_sub_x_x_safe:
-optim_snd optimize_sub_x_x.
+Lemma optimize_sub_x_x_safe:
+safe_optimization optimize_sub_x_x.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_sub_x_x_fvar_safe.
+Qed.
+
+Lemma optimize_sub_x_x_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_sub_x_x sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_sub_x_x in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_sub_x_x_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_sub_x_x n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_sub_x_x_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_sub_x_x_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+Theorem optimize_sub_x_x_snd: optim_snd optimize_sub_x_x.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_sub_x_x_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_sub_x_x)(b:=b);
+    try assumption.
+  apply optimize_sub_x_x_safe.
 Qed.
 
 
@@ -3599,11 +4070,50 @@ split; try split.
     try assumption.
 Qed.
 
-Theorem optimize_iszero3_safe:
-optim_snd optimize_iszero3.
+Lemma optimize_iszero3_safe:
+safe_optimization optimize_iszero3.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_iszero3_fvar_safe.
+Qed.
+
+Lemma optimize_iszero3_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_iszero3 sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_iszero3 in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_iszero3_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_iszero3 n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_iszero3_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_iszero3_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+
+Theorem optimize_iszero3_snd: optim_snd optimize_iszero3.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_iszero3_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_iszero3)(b:=b);
+    try assumption.
+  apply optimize_iszero3_safe.
 Qed.
 
 
@@ -3920,11 +4430,50 @@ split; try split.
     try assumption.
 Qed.
 
-Theorem optimize_and_and_l_safe:
-optim_snd optimize_and_and_l.
+Lemma optimize_and_and_l_safe:
+safe_optimization optimize_and_and_l.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_and_and_l_fvar_safe.
+Qed.
+
+Lemma optimize_and_and_l_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_and_and_l sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_and_and_l in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_and_and_l_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_and_and_l n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_and_and_l_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_and_and_l_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+
+Theorem optimize_and_and_l_snd: optim_snd optimize_and_and_l.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_and_and_l_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_and_and_l)(b:=b);
+    try assumption.
+  apply optimize_and_and_l_safe.
 Qed.
 
 
@@ -4222,12 +4771,50 @@ split; try split.
     try assumption.
 Qed.
 
-
-Theorem optimize_and_and_r_safe:
-optim_snd optimize_and_and_r.
+Lemma optimize_and_and_r_safe:
+safe_optimization optimize_and_and_r.
 Proof.
 apply optimize_fresh_var_preservation.
 apply optimize_and_and_r_fvar_safe.
+Qed.
+
+Lemma optimize_and_and_r_valid_sst: forall (sst sst': sstate) (b: bool),
+valid_sstate sst ->
+optimize_and_and_r sst = (sst', b) ->
+valid_sstate sst'.
+Proof.
+intros. unfold valid_sstate in H. 
+destruct sst as [k maxid stk m] eqn: eq_sst.
+destruct H as [Hfresh Hdecr].
+unfold valid_sstate. unfold optimize_and_and_r in H0.
+simpl in H0.
+destruct b.
+- pose proof (optimize_fresh_var2_succ (SymState k maxid stk m) sst' m
+    optimize_and_and_r_fvar H0) as [n eq_optim].
+  simpl in eq_optim.
+  destruct (optimize_map_and_and_r n m) as [map'|] eqn: eq_optim_map;
+    try discriminate.
+  injection eq_optim as eq_sst'. rewrite <- eq_sst'.
+  split.
+  + pose proof (opt_and_and_r_same_fvar_in_maps n m map' eq_optim_map)
+      as same_fvars_map'.
+    apply same_fvar_in_map_preserves_fresh_var_gt with (n:=maxid)(m1:=m);
+      try assumption.
+  + apply opt_and_and_r_decreasingness_preservation with (n:=n)(m1:=m);
+      try assumption.
+- apply optimize_fresh_var2_not_applicable in H0. 
+  rewrite <- H0. auto.
+Qed.
+
+
+Theorem optimize_and_and_r_snd: optim_snd optimize_and_and_r.
+Proof.
+unfold optim_snd. intros. split.
+- apply optimize_and_and_r_valid_sst with (sst:=sst)(b:=b);
+    try assumption.
+- apply safe_optimization_optim_snd_1 with (opt:=optimize_and_and_r)(b:=b);
+    try assumption.
+  apply optimize_and_and_r_safe.
 Qed.
 
 
@@ -4258,21 +4845,24 @@ induction n as [| n' IH].
   simpl in H1. injection H1 as eq_a_a' _. rewrite <- eq_a_a'. 
   split; try auto.
 - intros. unfold optim_snd. intros. 
-  simpl in H1. destruct (opt a) as [a' flag] eqn: eq_opt_a.
+  simpl in H1. destruct (opt sst) as [a' flag] eqn: eq_opt_sst.
   assert (Hcopy := H).
   unfold optim_snd in H.
-  pose proof (H c cf a a' flag H0 eq_opt_a H2) as 
-   [Heval_a' Hstrictly_decr_a'].
+  pose proof (H sst a' flag H0 eq_opt_sst) as [valid_a' preserv_a'].
   pose proof (IH opt Hcopy) as Hsafe_n'.
   unfold optim_snd in Hsafe_n'.
-  pose proof (Hsafe_n' c cf a' opt_a b Heval_a' H1 Hstrictly_decr_a').
+  pose proof (Hsafe_n' a' sst' b valid_a' H1) as [valid_sst' preserv_sst']. 
+  split; try assumption.
+  intros st st' H2.
+  apply preserv_a' in H2.
+  apply preserv_sst' in H2.
   assumption.
 Qed.
 
 
-(* A pipeline of optimizations is safe if every optimization in the list 
-   is safe (preserves succesful evaluations and decreasingness of the map *)
-Definition safe_optimization_pipeline (l: list optim) : Prop :=
+(* A pipeline of optimizations is sound if every optimization in the list 
+   is sound *)
+Definition pipeline_snd (l: list optim) : Prop :=
 Forall optim_snd l.
 
 
@@ -4288,28 +4878,32 @@ match l_opt with
 end.
 
 Theorem safe_apply_all_possible_opt: forall (l: list optim),
-safe_optimization_pipeline l -> 
+pipeline_snd l -> 
 optim_snd (apply_all_possible_opt l).
 Proof.
 induction l as [|opt ropts IH].
-- unfold optim_snd. intros.
-  simpl in H1. injection H1 as H1. 
+- intros. simpl. unfold optim_snd. intros.
+  injection H1 as H1.
   rewrite <- H1.
-  split; try assumption.
-- unfold optim_snd. intros.
-  unfold safe_optimization_pipeline in H.
+  split; try auto.
+- unfold pipeline_snd. intros.
+  unfold optim_snd. intros.
   assert (Hcopy := H).
   apply Forall_inv in H.
-  unfold safe_optimization_pipeline in IH.
   apply Forall_inv_tail in Hcopy.
+  unfold pipeline_snd in IH.
   apply IH in Hcopy.
   unfold apply_all_possible_opt in H1.
-  destruct (opt a) as [a1 flag] eqn: eq_opta.
+  destruct (opt sst) as [a1 flag] eqn: eq_opta.
   fold apply_all_possible_opt in H1.
   unfold optim_snd in H.
-  pose proof (H c cf a a1 flag H0 eq_opta H2) as [Heval_a1 Hstric_decr_a1].
+  pose proof (H sst a1 flag H0 eq_opta) as [valid_a1 eval_a1].
   unfold optim_snd in Hcopy.
-  pose proof (Hcopy c cf a1 opt_a b Heval_a1 H1 Hstric_decr_a1).
+  pose proof (Hcopy a1 sst' b valid_a1 H1) as [valid_stt' eval_stt'].
+  split; try assumption.
+  intros.
+  apply eval_a1 in H2.
+  apply eval_stt' in H2.
   assumption.
 Qed.
 
@@ -4322,7 +4916,7 @@ apply_n_times (apply_all_possible_opt l_opt) n a.
 
 
 Theorem safe_apply_pipeline_n_times: forall (l: list optim) (n: nat),
-safe_optimization_pipeline l -> 
+pipeline_snd l -> 
 optim_snd (apply_pipeline_n_times l n).
 Proof.
 intros.
@@ -4347,7 +4941,7 @@ match l_opt with
 end.
 
 Theorem apply_first_op_safety: forall (l: list optim),
-safe_optimization_pipeline l -> 
+pipeline_snd l -> 
 optim_snd (apply_first_op l).
 Proof.
 induction l as [|opt ropts IH].
@@ -4355,23 +4949,23 @@ induction l as [|opt ropts IH].
   simpl in H1. injection H1 as eq_a_opta Hfalse.
   rewrite <- eq_a_opta. auto.
 - unfold optim_snd. intros.
-  unfold safe_optimization_pipeline in H.
+  unfold pipeline_snd in H.
   assert (Hcopy := H).
   apply Forall_inv in H.
-  unfold safe_optimization_pipeline in IH.
+  unfold pipeline_snd in IH.
   apply Forall_inv_tail in Hcopy.
   apply IH in Hcopy.
   unfold apply_first_op in H1.
-  destruct (opt a) as [a1 flag] eqn: eq_opta.
+  destruct (opt sst) as [a1 flag] eqn: eq_opta.
   destruct flag eqn: eq_flag.
   + unfold optim_snd in H.
-    pose proof (H c cf a a1 true H0 eq_opta H2).
+    pose proof (H sst a1 true H0 eq_opta). 
     injection H1 as eqa1_opta.
     rewrite <- eqa1_opta.
-    apply H3.
+    assumption.
   + fold apply_first_op in H1.
     unfold optim_snd in Hcopy.
-    pose proof (Hcopy c cf a opt_a b H0 H1 H2).
+    pose proof (Hcopy sst sst' b H0 H1).
     assumption.
 Qed.
 
@@ -4392,24 +4986,24 @@ Definition our_optimization_pipeline :=
  optimize_and_and_r].
 
 
-Theorem our_optimization_pipeline_is_safe: 
-safe_optimization_pipeline our_optimization_pipeline.
+Theorem our_optimization_pipeline_snd: 
+pipeline_snd our_optimization_pipeline.
 Proof.
-unfold safe_optimization_pipeline.
-apply Forall_cons; try apply optimize_eval_safe.
-apply Forall_cons; try apply optimize_add_zero_safe.
-apply Forall_cons; try apply optimize_mul_one_safe.
-apply Forall_cons; try apply optimize_mul_zero_safe.
-apply Forall_cons; try apply optimize_not_not_safe.
-apply Forall_cons; try apply optimize_div_one_safe.
-apply Forall_cons; try apply optimize_eq_zero_safe.
-apply Forall_cons; try apply optimize_gt_one_safe.
-apply Forall_cons; try apply optimize_lt_one_safe.
-apply Forall_cons; try apply optimize_or_zero_safe.
-apply Forall_cons; try apply optimize_sub_x_x_safe.
-apply Forall_cons; try apply optimize_iszero3_safe.
-apply Forall_cons; try apply optimize_and_and_l_safe.
-apply Forall_cons; try apply optimize_and_and_r_safe.
+unfold pipeline_snd.
+apply Forall_cons; try apply optimize_eval_snd.
+apply Forall_cons; try apply optimize_add_zero_snd.
+apply Forall_cons; try apply optimize_mul_one_snd.
+apply Forall_cons; try apply optimize_mul_zero_snd.
+apply Forall_cons; try apply optimize_not_not_snd.
+apply Forall_cons; try apply optimize_div_one_snd.
+apply Forall_cons; try apply optimize_eq_zero_snd.
+apply Forall_cons; try apply optimize_gt_one_snd.
+apply Forall_cons; try apply optimize_lt_one_snd.
+apply Forall_cons; try apply optimize_or_zero_snd.
+apply Forall_cons; try apply optimize_sub_x_x_snd.
+apply Forall_cons; try apply optimize_iszero3_snd.
+apply Forall_cons; try apply optimize_and_and_l_snd.
+apply Forall_cons; try apply optimize_and_and_r_snd.
 apply Forall_nil.
 Qed.
 
@@ -4973,3 +5567,6 @@ Definition extract_asfs (a: option sstate) : sstate :=
   end.
 
 *)
+
+
+Search optimize_fresh_var2.
