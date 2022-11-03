@@ -153,8 +153,7 @@ Example:
     ...
     Example 685: true
     Example 686: true
-   Example 687: true
-
+    Example 687: true
 
 
 5 Running experiments
@@ -166,17 +165,21 @@ EXPERIMENT RUNTIME: less than 3 seconds in the TACAS 23 Virtual Machine
 executed on `Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz` with 32 GB.
 
 The experiments in Section 5 of the paper process all the blocks extracted
-from the BottleCastle smart contract (https://etherscan.io/address/0x7293f550c7c0B8e5B564C033FB4296AdF7c771aA). These blocks are extracted by
-first compiling the Solidy source code of the contract with `solc` and 
-then executing the `GASOL` optimizer. Depending on the combination of 
-options in each phase, we obtain 8 different sets of blocks, which are
-stored in the files with names `N_RES_SOLC OPT_SIMP.txt` in the `./blocks` directory:
+from the BottleCastle smart contract:
+
+ https://etherscan.io/address/0x7293f550c7c0B8e5B564C033FB4296AdF7c771aA). 
+ 
+These blocks are extracted by first compiling the Solidity source code
+of the contract with `solc` and then executing the `GASOL`
+optimizer. Depending on the combination of options in each phase, we
+obtain 8 different sets of blocks, which are stored in the files with
+names `N_RES_SOLCOPT_SIMP.txt` in the `./blocks` directory:
 
    * `N` is the number of the set of blocks. The first file corresponds to
      the first line of Table 5.1 of the paper, the second file corresponds
      to the second line of Table 5.1, and so on.
    * `RES`: resource optimized by `GASOL`, can be `gas` or `size`.
-   * `SOLC OPT`: whether optimizations have been enabled in `solc`. 
+   * `SOLCOPT`: whether optimizations have been enabled in `solc`. 
       Possible values are `opt` (optimizations enabled) or `notopt` 
       (optimizations disabled).
    * `SIMP`: whether simplification rules have been applied by `GASOL` or 
