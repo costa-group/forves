@@ -41,9 +41,17 @@ Definition y := natToWord 15 1.
 
 Check word 0.
 
+
 Theorem word_to_bytes_bytes_to_word:
-  forall (size : nat) (w : word size) (l : list (word 8)), 
+  forall (l : list (word 8)) (size : nat) (w : word size), 
     word_to_bytes size w = Some l -> bytes_to_word size l = Some w.
-Admitted.                    
-    
+Proof.
+  intro.
+  induction l as [|l' IHl'].
+  - intros. destruct size.
+    + simpl. unfold natToWord. rewrite <- shatter_word_0 with (a:=w). reflexivity.
+    + simpl in H. simpl.
+
+  
+  
 

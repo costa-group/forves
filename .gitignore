@@ -9,3 +9,4 @@ Makefile
 Makefile.conf
 .Makefile.d
 !extraction/Makefile
+!ocaml_interface/Makefile

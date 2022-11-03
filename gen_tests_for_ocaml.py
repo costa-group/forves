@@ -153,15 +153,18 @@ def print_test(bench_id,block_info, block_sfs):
         opt_bytecode = ' '.join(opt_bytecode_as_list)
         stack_size = len(block_sfs["src_ws"])
 
-        print(opt_bytecode)
-        print(bytecode)
-        print(stack_size)
+        # print(opt_bytecode)
+        # print(bytecode)
+        # print(stack_size)
+        return (len(bytecode_as_list),len(opt_bytecode_as_list))
     except Exception as e:
         return None
 
 #
 #
 def gen_tests(paths):
+    total_p = 0
+    total_opt_p = 0
     all_ex = []
     i = 0
     for path in paths:
@@ -174,9 +177,12 @@ def gen_tests(paths):
                     block_id = block_info['block_id']
                     with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
                         block_sfs = json.load(f)
-                        print_test(i, block_info, block_sfs)
-                        i = i + 1
-
+                        r = print_test(i, block_info, block_sfs)
+                        if r is not None:
+                            total_p = total_p + r[0]
+                            total_opt_p = total_p + r[1]
+                            i = i + 1
+    print(f'{total_p/i:.2f},{total_opt_p/i:.2f}')
 
 # Usage example:
 #
