@@ -1,0 +1,161 @@
+
+There are many opcodes that we do not need them to be implemented
+because they are not actually involved in any rule optimization. For
+those, maybe it is convenient to split our operations map into 2
+corresponding groups. Then the theorem will use universal
+quantification for all those instructions.
+
+
+
+
+
+Instructions that require only stack, for both input and output
+===============================================================
+
+POP
+PUSHi
+DUPi
+SWAPi
+
+ADD
+MUL
+SUB
+DIV
+SDIV
+MOD
+SMOD
+ADDMOD
+MULMOD
+EXP
+SIGNEXTEND
+LT
+GT
+SLT
+SGT
+EQ
+ISZERO
+AND
+OR
+XOR
+NOT
+BYTE
+SHL
+SHR
+SAR
+
+
+
+
+
+Instructions that require contract/caller/etc information
+=========================================================
+{
+  address: word 20*8 # address of the current contract (20 bytes)
+  balance: func addr: word 20*8 -> evmword  
+  origin: word 20*8 # address of the sender (20 bytes)
+  caller: word 20*8 # address of the caller account (20 bytes)
+  callvalue: evmword # get deposited value by the instruction/transaction responsible for this execution
+  data: pair n (word n)
+  code: fun addr: word 20*8 -> pair size (word size)
+  gasprice: evmword
+  outdata: pair n (word n)
+  blocks: func num -> (word bsize) timestamp hash diff
+  miner: word 20*8
+  currblocknum: evmword
+  gaslimit: evmword
+  chainid: evmword
+  basefee: evmword
+}
+
+
+ADDRESS
+BALANCE
+ORIGIN
+CALLER
+CALLVALUE
+CALLDATALOAD
+CALLDATASIZE <- is it the number of elements? or elements*32?
+
+
+GASPRICE
+EXTCODESIZE
+RETURNDATASIZE
+EXTCODEHASH <- !!! requires calculating has
+BLOCKHASH
+COINBASE
+TIMESTAMP
+NUMBER
+DIFFICULTY
+GASLIMIT
+CHAINID
+SELFBALANCE
+BASEFEE
+CODESIZE <- is it the size of code of the current contract?
+
+
+These modify the memory
+
+CODECOPY <- writes into memory
+EXTCODECOPY <- !!!! write into memory
+RETURNDATACOPY <- !!!! write into memory
+CALLDATACOPY <- !!!! writes into memory
+
+
+
+
+Other special instruction that do not affect the state
+======================================================
+
+LOGi <- In principle does not affect the state, but reordering it
+        might log different things. Should disappear in symbolic
+        execution
+
+
+Instructions that require or update the memory/store
+====================================================
+
+The memory can be represented as a word of length n.
+The store can be represented as a function from evmword to evmword
+
+
+MSTORE
+MSTORE8
+MLOAD
+
+
+
+SSTORE
+
+MSIZE <- requires tracking the size of memory
+
+SLOAD
+
+SHA3 <- !!
+
+See above also, there some that copy data/code to memory
+
+
+Instructions that involve control flow - NOT SUPPORTED
+======================================================
+
+STOP
+JUMP
+JUMPI
+CREATE
+CALL
+CALLCODE
+RETURN
+DELEGATECALL
+CREATE2
+STATICCALL
+REVERT
+INVALID
+SELFDESTRUCT
+
+
+
+Candidates to be removed:
+
+PC <- requires tracking PC. This is quite easy.
+GAS <- Requires tracking gas. In principle cannot be involved in optimizations since moving it around might changes the output.
+JUMPDEST <- it does not jump, just marks the address as a valid for jump. I think we cannot support it, since it has to be consistent with jumps, not 100% sure.
