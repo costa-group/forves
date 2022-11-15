@@ -30,6 +30,14 @@ let charlist_of_string s =
   in
   trav (String.length s) 0;;
 
+let read_line () =
+  let quit_loop = ref false in
+  let line = ref " " in
+  while not !quit_loop do
+    line := input_line stdin;
+    if not (String.length !line == 0 || String.get !line 0 == '#') then quit_loop := true;
+  done;
+  !line;;
 
 let main () =
   let opts = Checker.Parser.parse_opts (List.map charlist_of_string !opts_list) in
@@ -40,9 +48,9 @@ let main () =
       try
         while true do
           i := !i+1;
-          let p_opt = input_line stdin in (* read the optimized block *)
-          let p = input_line stdin in     (* read the original block *)
-          let k = input_line stdin in     (* read input statck size *)
+          let p_opt = read_line() in (* read the optimized block *)
+          let p = read_line() in     (* read the original block *)
+          let k = read_line() in     (* read input statck size *)
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
           let r = !alg (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) opt_func in
           (* print the result *)
