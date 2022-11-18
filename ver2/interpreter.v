@@ -8,38 +8,41 @@ Import ListNotations.
 
 Module EVM_Def.
 
-Definition BLen: nat := 8. 
-Definition EVMByte := word BLen. 
+(* Byte *)
+Definition EVMByteSize: nat := 8. 
+Definition EVMByte := word EVMByteSize. 
 
-Definition BZero: EVMByte  := natToWord BLen 0.
-Definition BOne : EVMByte  := natToWord BLen 1.
+(* Word *)
+Definition BytesInWord: nat := 32. 
+Definition EVMWordSize: nat := BytesInWord*EVMByteSize. 
+Definition EVMWord:= word EVMWordSize.
 
-Definition WLen: nat := 32*BLen. 
-Definition EVMWord:= word WLen.
+(* Address *)
+Definition ByteInAddr : nat := 20. 
+Definition AddrSize : nat := ByteInAddr*ByteInAddr.
+Definition EVMAddr := word AddrSize.
 
-Definition StackLen := 1024.
+(* Predefined constants *)
+Definition BZero: EVMByte  := natToWord EVMByteSize 0.
+Definition BOne : EVMByte  := natToWord EVMByteSize 1.
 
-Definition WZero: EVMWord  := natToWord WLen 0.
-Definition WOne : EVMWord  := natToWord WLen 1.
+Definition WZero: EVMWord  := natToWord EVMWordSize 0.
+Definition WOne : EVMWord  := natToWord EVMWordSize 1.
 
-Definition AddrLen : nat := 20*BLen. (* 20 bytes *)
-Definition AddrWord := word AddrLen.
+Definition StackSize := 1024.
+
 
 End EVM_Def.
 Import EVM_Def.
 
 
-Module Concrete.
-
-
 (*
- 
-  Operations are supposed to compute a value given the input, and they
-  not modify the state directly.
+
+Stack operation instructions require the context and stack as input,
+they compute a value given the input, and they not modify the state.
 
 *)
-  
-(* Instructions that require the context and stack as input *)
+
 Inductive stack_op_instr :=
 | ADD
 | MUL
@@ -92,11 +95,10 @@ Inductive stack_op_instr :=
 (*
 
 Instructions are (1) the basic stack manipulation ones -- PUSH, POP,
-DUP and SWAP; (2) the 3 types defined above; and (3) the store/memory
-instructions. Those of (1) and (3) will be directly handled in the
-interpreter, the rest will be provide via an operations map.
+DUP and SWAP; (2) instruction that operate on memory; and (3) the
+stack operations above.
 
- *)
+*)
 
 
 Inductive instr :=
@@ -114,17 +116,21 @@ Inductive instr :=
 | OpInstr (label: stack_op_instr).
 
 
+(* a block is a list instructions *)
 Definition block := list instr.  
 
 (* stack is a list of EVMWord *)
 Definition stack := list EVMWord.
 
-(* memory is a mapping from EVMWord to EVMByte *)
+(* 
+
+Memory is a mapping from EVMWord to EVMByte. We do not models its 
+
+*)
 Definition memory := EVMWord -> EVMByte.
-Definition empty_m := (fun (a : EVMWord) => BZero).
 
 (* store is a function from addresses to values *)
-Definition store := EVMWord -> EVMWord.
+Definition storage := EVMWord -> EVMWord.
 
 (*
 
@@ -152,17 +158,17 @@ Inductive chunk :=
         
 Inductive context :=
 Ctx
-  (address : AddrWord)
-  (balance : AddrWord -> EVMWord)
-  (origin : AddrWord)
-  (caller : AddrWord)
+  (address : EVMAddr)
+  (balance : EVMAddr -> EVMWord)
+  (origin : EVMAddr)
+  (caller : EVMAddr)
   (callvalue : EVMWord)
   (data: chunk)
-  (code : AddrWord -> code_info ) 
+  (code : EVMAddr -> code_info ) 
   (gasprice : EVMWord)
   (outdata: chunk)
   (blokcs : EVMWord -> block_info)
-  (miner : AddrWord)
+  (miner : EVMAddr)
   (currblock : EVMWord)
   (gaslimit : EVMWord)
   (chainid : EVMWord)
@@ -258,7 +264,12 @@ Definition get_keccak256 (c : context) :=
 
 
 Definition comm_op (f : context -> list EVMWord -> EVMWord)  : Prop :=
-  forall (a b : EVMWord) (c : context), f c [a; b] = f c [b; a].
+  forall (a b : EVMWord) (ctx : context),
+    f ctx [a;b] = f ctx [b;a].
+
+
+Definition coherent_stack_op (n : nat) (f: context -> list EVMWord -> option EVMWord) : Prop :=
+forall  (ctx : context) (l: list EVMWord), length l = n -> exists (v: EVMWord), f ctx l = Some v.
 
 Inductive op_impl :=
 | OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H : option (comm_op f)).
@@ -318,11 +329,12 @@ Definition eq_stack_op_instr (a b: stack_op_instr) : bool :=
 Notation "m '=?i' n" := (eq_stack_op_instr m n) (at level 100).
 
 
+(****** Concrete state ******)
+
 Inductive state :=
- | ExState (stk: stack) (mem: memory) (stg: store) (ctx :context).
+ | ExState (stk: stack) (mem: memory) (stg: storage) (ctx :context).
 
 
-(****** Execution state manipulation ******)
 Definition get_stack_st (st: state) : stack :=
 match st with
 | ExState stk _ _  => stk
@@ -345,12 +357,12 @@ match st with
 | ExState stk _ strg ctx => ExState stk mem strg ctx
 end.
 
-Definition get_store_st (st: state) : store :=
+Definition get_store_st (st: state) : storage :=
 match st with
 | ExState _ _ strg _ => strg
 end.
 
-Definition set_store_st (st: state) (strg: store)
+Definition set_store_st (st: state) (strg: storage)
   : state :=
 match st with
 | ExState stk mem _ ctx => ExState stk mem strg ctx
@@ -400,59 +412,66 @@ Definition stack_op_map := map stack_op_instr op_impl.
 
 (******* stack manipulation operators ********)
 
-(* Polymorphic versions for manipulating the stack *)
-Definition push {T : Type} (v : T) (sk : list T) : option (list T) :=
-if List.length(sk) <? StackLen then Some (v :: sk) else None.
 
-Definition pop {T : Type} (sk: list T): option (list T) :=
-match sk with
- | x::sk' => Some sk'
+Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
+  if n <=? length l then Some (firstn n l) else None.
+
+Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
+  if n <=? length l then Some (skipn n l) else None.
+
+(* Polymorphic versions for manipulating the stack *)
+Definition push {T : Type} (v : T) (stk : list T) : option (list T) :=
+if List.length(stk) <? StackSize then Some (v :: stk) else None.
+
+Definition pop {T : Type} (stk: list T): option (list T) :=
+match stk with
+ | x::stk' => Some stk'
  | _ => None
 end.
 
-Definition dup {T: Type} (k : nat) (sk: list T) : option (list T) :=
-if ((k =? 0) || (16 <? k) || (StackLen <=? List.length(sk))) then None
-else match nth_error sk (pred k) with
+Definition dup {T: Type} (k : nat) (stk: list T) : option (list T) :=
+if ((k =? 0) || (16 <? k) || (StackSize <=? List.length(stk))) then None
+else match nth_error stk (pred k) with
   | None => None
-  | Some x => Some (x::sk)
+  | Some x => Some (x::stk)
   end.
 
-Definition swap {T: Type} (k : nat) (sk: list T) : option (list T) :=
+Definition swap {T: Type} (k : nat) (stk: list T) : option (list T) :=
 if ((k =? 0) || (16 <? k)) then None
-else match (nth_error sk k, sk) with
+else match (nth_error stk k, stk) with
      | (Some v, h::t) => Some ([v] ++ ((firstn (k-1) t)) 
-                               ++ [h] ++ (skipn (k+1) sk))
+                               ++ [h] ++ (skipn (k+1) stk))
      | _  => None
      end.
 
 (* version operating on execution states *)
 Definition push_c (v : EVMWord) (st : state)
   : option state :=
-let sk := get_stack_st st in
-match push v sk with
+let stk := get_stack_st st in
+match push v stk with
 | None => None
-| Some sk' => Some (set_stack_st st sk')
+| Some stk' => Some (set_stack_st st stk')
 end.
 
 Definition pop_c (st : state): option state :=
-let sk := get_stack_st st in
-match pop sk with
+let stk := get_stack_st st in
+match pop stk with
  | None => None
- | Some sk' => Some (set_stack_st st sk')
+ | Some stk' => Some (set_stack_st st stk')
 end.
 
 Definition dup_c (k : nat) (st : state) : option state  :=
-let sk := get_stack_st st in
-match dup k sk with
+let stk := get_stack_st st in
+match dup k stk with
  | None => None
- | Some sk' => Some (set_stack_st st sk')
+ | Some stk' => Some (set_stack_st st stk')
 end.
 
 Definition swap_c (k : nat) (st : state) : option state :=
-let sk := get_stack_st st in
-match swap k sk with
+let stk := get_stack_st st in
+match swap k stk with
  | None => None
- | Some sk' => Some (set_stack_st st sk')
+ | Some stk' => Some (set_stack_st st stk')
 end.
 
 
@@ -460,7 +479,7 @@ Definition mload_ (mem : memory) (offset : EVMWord) :=
   fix mload_fix (n : nat) : word (n * 8) :=
     match n with
     | O => WO
-    | S n' => bbv.Word.combine (mem (wplus offset (natToWord WLen n))) (mload_fix n')
+    | S n' => bbv.Word.combine (mem (wplus offset (natToWord EVMWordSize n))) (mload_fix n')
     end.
 
 Definition mload (mem : memory) (offset : EVMWord) : EVMWord :=
@@ -480,104 +499,92 @@ Fixpoint mstore {sz : nat} (mem : memory) : (word sz) -> EVMWord -> (EVMWord -> 
   end.
 
 
-
-Definition firstn_e {A: Type} (n: nat) (l: list A) : option (list A) :=
-  if n <=? length l then Some (firstn n l) else None.
-
-Definition skipn_e {A: Type} (n:nat) (l:list A) : option (list A) :=
-  if n <=? length l then Some (skipn n l) else None.
-
-Definition sload (strg : store) (key : EVMWord) :=
+Definition sload (strg : storage) (key : EVMWord) :=
   strg key.
 
-Definition sstore (strg : store) (key : EVMWord) (value : EVMWord) :=
+Definition sstore (strg : storage) (key : EVMWord) (value : EVMWord) :=
   fun key' => if (weqb key' key) then value else strg key'.
 
 Definition mload_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 1 stk with
-  | Some [offset] =>
+  match get_stack_st st with
+  | offset::stk =>
       let v := mload (get_memory_st st) offset in
-      match skipn_e 1 stk with
-      | None => None
-      | Some stk' => Some (set_stack_st st (v::stk'))
-      end
+      let st' := set_stack_st st (v::stk) in 
+      Some st'
   | _ => None
   end.
 
 Definition mstore8_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 2 stk with
-  | Some [offset;value] =>
-      let mem := mstore8 (get_memory_st st) offset (split1 8 (WLen-8) value) in
+  match get_stack_st st with
+  | offset::value::stk =>
+      let mem := mstore8 (get_memory_st st) offset (split1 8 (EVMWordSize-8) value) in
       let st' := set_memory_st st mem in
-      match skipn_e 2 stk with
-      | None => None
-      | Some stk' => Some (set_stack_st st' stk')
-      end
+      let st'' := set_stack_st st' stk in
+      Some st''
   | _ => None
   end.
 
-
 Definition mstore_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 2 stk with
-  | Some [offset;value] =>
+  match get_stack_st st with
+  | offset::value::stk =>
       let mem := mstore (get_memory_st st) offset value in
       let st' := set_memory_st st mem in
-      match skipn_e 2 stk with
-      | None => None
-      | Some stk' => Some (set_stack_st st' stk')
-      end
+      let st'' := set_stack_st st' stk in
+      Some st''
   | _ => None
   end.
 
 Definition sload_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 1 stk with
-  | Some [key] =>
+  match get_stack_st st with
+  | key::stk =>
       let v := sload (get_store_st st) key in
-      match skipn_e 1 stk with
-      | None => None
-      | Some stk' => Some (set_stack_st st (v::stk'))
-      end
+      let st' := set_stack_st st (v::stk) in 
+      Some st'
   | _ => None
   end.
 
 Definition sstore_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 2 stk with
-  | Some [key;value] =>
+  match get_stack_st st with
+  | key::value::stk =>
       let strg := sstore (get_store_st st) key value in
       let st' := set_store_st st strg in
-      match skipn_e 2 stk with
-      | None => None
-      | Some stk' => Some (set_stack_st st' stk')
-      end
+      let st'' := set_stack_st st' stk in
+      Some st''
   | _ => None
   end.
 
 (* just return 0 for now *)
 Definition sha3_c (st : state) : option state :=
-  let stk := get_stack_st st in
-  match firstn_e 2 stk with
-  | Some [offset;size] =>
-      match skipn_e 2 stk with
-      | None => None
-      | Some stk' =>
-          let f := get_keccak256 (get_context_st st) in
-          let v := f (get_memory_st st) offset size in
-          Some (set_stack_st st (v::stk'))
-      end
+  match get_stack_st st with
+  | offset::size::stk =>
+      let f := get_keccak256 (get_context_st st) in
+      let v := f (get_memory_st st) offset size in
+      let st' := set_stack_st st (v::stk) in 
+      Some st'
   | _ => None
   end.
 
+Definition exec_op_c (st : state) (ops : stack_op_map) (label : stack_op_instr) : option state :=
+  match (ops label) with
+  | None => None
+  | Some (OpImp nb_args func _) => 
+      let stk := get_stack_st st in
+      match firstn_e nb_args stk with
+      | None => None
+      | Some args => match skipn_e nb_args stk with 
+                     | None => None
+                     | Some stk' =>
+                         let v := func (get_context_st st) args in
+                         Some (set_stack_st st (v :: stk'))
+                     end
+      end
+  end.
 
 
 (* Concrete interpreter *)
-Definition concr_intpreter_instr (inst : instr) (st: state) (ops : stack_op_map) : option state :=
+Definition evm_exec_instr (inst : instr) (st: state) (ops : stack_op_map) : option state :=
   match inst with
-  | PUSH size v => push_c (NToWord WLen v) st
+  | PUSH size v => push_c (NToWord EVMWordSize v) st
   | POP => pop_c st
   | DUP k => dup_c k st
   | SWAP k => swap_c k st
@@ -588,35 +595,20 @@ Definition concr_intpreter_instr (inst : instr) (st: state) (ops : stack_op_map)
   | SSTORE => sstore_c st
   | SHA3 => sha3_c st
   | KECCAK256 => sha3_c st
-  | OpInstr label =>
-      match (ops label) with
-      | Some (OpImp nb_args func _) => 
-          let stk := get_stack_st st in
-          match firstn_e nb_args stk with
-          | Some args => match skipn_e nb_args stk with 
-                         | Some stk' =>
-                             let v :=  func (get_context_st st) args in 
-                             Some (set_stack_st st (v :: stk'))
-                         | None => None
-                         end
-          | None => None
-          end
-      | None => None
-      end
+  | OpInstr label => exec_op_c st ops label
   end.
 
-
-Fixpoint concr_interpreter (p : block) (st : state)
+               
+Fixpoint evm_exec_block (p : block) (st : state)
   (ops : stack_op_map) : option state :=
   match p with
   | [] => Some st
   | inst::insts' =>
-    match (concr_intpreter_instr inst st ops) with
+    match (evm_exec_instr inst st ops) with
     | None => None
-    | Some st' => concr_interpreter insts' st' ops
+    | Some st' => evm_exec_block insts' st' ops
     end
   end.
-
 
 
 
@@ -626,100 +618,88 @@ Fixpoint concr_interpreter (p : block) (st : state)
 
 Definition evm_add (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wplus a b)
+  | [a;b] => (wplus a b)
   | _ => WZero
   end.
 
+Lemma add_comm: comm_op evm_add.
+Proof.
+  unfold comm_op.
+  intros.
+  unfold evm_add.
+  rewrite -> wplus_comm.
+  reflexivity.
+Qed.
+        
 Definition evm_mul (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wmult a b)
+  | [a;b] => (wmult a b)
   | _ => WZero
   end.
+
 
 Definition evm_sub (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wminus a b)
+  | [a;b] => (wminus a b)
   | _ => WZero
   end.
 
 Definition evm_div (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wdiv a b)
+  | [a;b] => (wdiv a b)
   | _ => WZero
   end.
 
 Definition evm_sdiv (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_mod (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_smod (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_addmod (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_mulmod (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_exp (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (NToWord WLen (N.pow (wordToN a) (wordToN b)))
+  | [a;b] => (NToWord EVMWordSize (N.pow (wordToN a) (wordToN b)))
   | _ => WZero
   end.
+  
 
 Definition evm_signextend (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_lt (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (if (N.ltb (wordToN a) (wordToN b)) then WOne else WZero)
+  | [a;b] => (if (N.ltb (wordToN a) (wordToN b)) then WOne else WZero)
   | _ => WZero
   end.
+  
 
 Definition evm_gt (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => evm_lt ctx [b; a]
+  | [a;b] => evm_lt ctx [b; a]
   | _ => WZero
   end.
 
 Definition evm_slt (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_sgt (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_eq (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (if weqb a b then WOne else WZero)
+  | [a;b] => (if weqb a b then WOne else WZero)
   | _ => WZero
   end.
-
+  
 Definition evm_iszero (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a] => evm_eq ctx [a; WZero]
@@ -728,19 +708,20 @@ Definition evm_iszero (ctx : context) (args : list EVMWord) : EVMWord :=
 
 Definition evm_and (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wand a b)
+  | [a;b] => (wand a b)
   | _ => WZero
   end.
+  
 
 Definition evm_or (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wor a b)
+  | [a;b] => (wor a b)
   | _ => WZero
   end.
 
 Definition evm_xor (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wxor a b)
+  | [a;b] => (wxor a b)
   | _ => WZero
   end.
 
@@ -751,158 +732,89 @@ Definition evm_not (ctx : context) (args : list EVMWord) : EVMWord :=
   end.
 
 Definition evm_byte (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_shl (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wlshift' b (wordToNat a))
+  | [a;b] => (wlshift' b (wordToNat a))
   | _ => WZero
   end.
 
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a; b] => (wrshift' b (wordToNat a))
+  | [a;b] => (wrshift' b (wordToNat a))
   | _ => WZero
   end.
 
 Definition evm_sar (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_address (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_balance (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_origin (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_caller (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_callvalue (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_calldataload (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_calldatasize (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_codesize (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_gasprice (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_extcodesize (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_returndatasize (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_extcodehash (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_blockhash (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_coinbase (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_timestamp (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_number (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_difficulty (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_gaslimit (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+   WZero.
 
 Definition evm_chainid (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_selfbalance (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 Definition evm_basefee (ctx : context) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [] => WOne
-  | _ => WZero
-  end.
+  WZero.
 
 
 Definition evm_stack_opm : stack_op_map :=
-  ADD |->i OpImp 2 evm_add None;
+  ADD |->i OpImp 2 evm_add (Some add_comm);
   MUL |->i OpImp 2 evm_mul None;
   SUB |->i OpImp 2 evm_sub None;
   DIV |->i OpImp 2 evm_div None;
@@ -949,3 +861,248 @@ Definition evm_stack_opm : stack_op_map :=
   SELFBALANCE |->i OpImp 0 evm_selfbalance None;
   BASEFEE |->i OpImp 0 evm_basefee None.
  
+
+(* symbolic stack *)
+
+Inductive sstack_val : Type :=
+| Val (val: EVMWord)
+| InStackVar (var: nat)
+| FreshVar (var: nat).
+
+Definition sstack := list sstack_val.
+
+
+(* Symbolic memory *)
+
+Inductive smemory_val : Type :=
+| SymMSTORE  (offset: sstack_val) (value: sstack_val)
+| SymMSTORE8 (offset: sstack_val) (value: sstack_val).
+Definition smemory := list smemory_val.
+
+(* Symbolic memory *)
+
+Inductive sstorage_val : Type :=
+| SymSSTORE (key: sstack_val) (value: sstack_val).
+
+Definition sstorage := list sstorage_val.
+
+Definition scontext := unit. (* ctx is not used actually *)
+
+Inductive smap_value : Type :=
+| SymBasicVal (val: sstack_val)
+| SymOp (opcode : stack_op_instr) (args : list sstack_val)
+| SymMLOAD (offset: sstack_val) (smem : smemory)
+| SymSLOAD (key: sstack_val) (sstrg : sstorage)
+| SymSHA3  (offset: sstack_val) (size: sstack_val) (sstrg : smemory).
+
+Inductive smap :=
+  SymMap (maxid : nat) (map: list (nat*smap_value)).
+
+Inductive sstate :=
+ | SymExState (instk_height: nat) (sstk: sstack) (smem: smemory) (sstg: sstorage) (sctx : scontext) (sm: smap). 
+
+Definition get_instk_height_sst (sst: sstate) : nat :=
+match sst with
+| SymExState instk_height _ _ _ _ _ => instk_height
+end.
+
+Definition set_instk_height_sst (sst: sstate) (instk_height : nat) : sstate :=
+match sst with
+| SymExState _ sstk smem sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition get_sstack_sst (sst: sstate) : sstack :=
+match sst with
+| SymExState _ sstk _ _ _ _ => sstk
+end.
+
+Definition set_sstack_sst (sst: sstate) (sstk: sstack) : sstate :=
+match sst with
+| SymExState instk_height _ smem sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition get_smemory_sst (sst: sstate) : smemory :=
+match sst with
+| SymExState _ _ smem _ _ _ => smem
+end.
+
+Definition set_smemory_sst (sst: sstate) (smem: smemory) : sstate :=
+match sst with
+| SymExState instk_height sstk _ sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition get_sstore_sst (sst : sstate) : sstorage :=
+match sst with
+| SymExState _ _ _ sstrg _ _ => sstrg
+end.
+
+Definition set_sstore_sst (sst : sstate) (sstrg: sstorage) : sstate :=
+match sst with
+| SymExState instk_height sstk smem _ sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition get_scontext_sst (sst : sstate) : scontext :=
+match sst with
+| SymExState _ _ _ _ sctx _ => sctx
+end.
+
+Definition set_scontext_sst (sst : sstate) (sctx: scontext) : sstate :=
+match sst with
+| SymExState instk_height sstk smem sstrg _ sm => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition get_smap_sst (sst : sstate) : smap :=
+match sst with
+| SymExState _ _ _ _ _ sm => sm
+end.
+
+Definition set_smap_sst (sst : sstate) (sm: smap) : sstate :=
+match sst with
+| SymExState instk_height sstk smem sstrg sctx _ => SymExState instk_height sstk smem sstrg sctx sm
+end.
+
+Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
+  pair 0 (SymMap 0 []).
+
+
+(************)
+
+
+Definition push_s (value : EVMWord) (sst : sstate) : option sstate :=
+  let sstk := get_sstack_sst sst in
+  match push (Val value) sstk with
+  | None => None
+  | Some sstk' => Some (set_sstack_sst sst sstk')
+  end.
+
+Definition pop_s (sst : sstate): option sstate :=
+let sstk := get_sstack_sst sst in
+match pop sstk with
+ | None => None
+ | Some sstk' => Some (set_sstack_sst sst sstk')
+end.
+
+Definition dup_s (k : nat) (sst : sstate) : option sstate  :=
+let sstk := get_sstack_sst sst in
+match dup k sstk with
+ | None => None
+ | Some sstk' => Some (set_sstack_sst sst sstk')
+end.
+
+Definition swap_s (k : nat) (sst : sstate) : option sstate :=
+let sstk := get_sstack_sst sst in
+match swap k sstk with
+ | None => None
+ | Some sstk' => Some (set_sstack_sst sst sstk')
+end.
+
+Definition mload_s (sst : sstate) : option sstate :=
+  let sm   : smap := get_smap_sst sst in
+  let smem : smemory := get_smemory_sst sst in
+  match get_sstack_sst sst with
+  | offset::sstk =>
+      let sv := SymMLOAD offset smem in
+      match add_to_smap sm sv with
+      | pair key sm' =>
+          let sst' := set_sstack_sst sst ((FreshVar key)::sstk) in
+          let sst'' := set_smap_sst sst sm' in
+          Some sst'
+      end
+  | _ => None
+  end.
+
+Definition sload_s (sst : sstate) : option sstate :=
+  let sm    : smap := get_smap_sst sst in
+  let sstrg : sstorage := get_sstore_sst sst in
+  match get_sstack_sst sst with
+  | skey::sstk =>
+      let sv := SymSLOAD skey sstrg in
+      match add_to_smap sm sv with
+      | pair key sm' =>
+          let sst' := set_sstack_sst sst ((FreshVar key)::sstk) in
+          let sst'' := set_smap_sst sst sm' in
+          Some sst'
+      end
+  | _ => None
+  end.
+
+Definition sha3_s (sst : sstate) : option sstate :=
+  let sm   : smap := get_smap_sst sst in
+  let smem : smemory := get_smemory_sst sst in
+  match get_sstack_sst sst with
+  | offset::size::sstk =>
+      let sv := SymSHA3 offset size smem in
+      match add_to_smap sm sv with
+      | pair key sm' =>
+          let sst' := set_sstack_sst sst ((FreshVar key)::sstk) in
+          let sst'' := set_smap_sst sst sm' in
+          Some sst'
+      end
+  | _ => None
+  end.
+
+Definition mstore8_s (sst : sstate) : option sstate :=
+  match get_sstack_sst sst with
+  | offset::value::sstk => 
+      let smem := get_smemory_sst sst in
+      let st' := set_smemory_sst sst ((SymMSTORE8 offset value)::smem) in
+      let st'' := set_sstack_sst sst sstk in
+      Some st''
+  | _ => None
+  end.
+      
+Definition mstore_s (sst : sstate) : option sstate :=
+  match get_sstack_sst sst with
+  | offset::value::sstk => 
+      let smem := get_smemory_sst sst in
+      let st' := set_smemory_sst sst ((SymMSTORE offset value)::smem) in
+      let st'' := set_sstack_sst sst sstk in
+      Some st''
+  | _ => None
+  end.
+
+Definition sstore_s (sst : sstate) : option sstate := 
+  match get_sstack_sst sst with
+  | key::value::sstk => 
+      let sstrg := get_sstore_sst sst in
+      let st' := set_sstore_sst sst ((SymSSTORE key value)::sstrg) in
+      let st'' := set_sstack_sst sst sstk in
+      Some st''
+  | _ => None
+  end.
+
+
+Definition exec_op_s (sst : sstate) (ops : stack_op_map) (label : stack_op_instr) : option sstate :=
+  match (ops label) with
+  | None => None
+  | Some (OpImp nb_args func _) => 
+      let sstk := get_sstack_sst sst in
+      match firstn_e nb_args sstk, skipn_e nb_args sstk with          
+      | Some s1, Some s2 =>
+          let sm : smap := get_smap_sst sst in              
+          let v  : smap_value := SymOp label s1 in
+          match add_to_smap sm v with
+          | pair key sm' =>
+              let sst' := set_sstack_sst sst ((FreshVar key)::s2) in
+              let sst'' := set_smap_sst sst sm' in
+              Some sst''
+          end
+      | _, _ => None
+      end
+  end.
+
+Definition evm_sexec_inst (inst: instr) (sst: sstate) (ops: stack_op_map) : option sstate :=
+  match inst with
+  | PUSH size w => push_s (NToWord EVMWordSize w) sst
+  | POP => pop_s sst
+  | DUP pos => dup_s pos sst
+  | SWAP pos => swap_s pos sst
+  | MLOAD => mload_s sst                 
+  | MSTORE8 => mstore8_s sst                 
+  | MSTORE => mstore_s sst                 
+  | SLOAD => sload_s sst                 
+  | SSTORE => sstore_s sst
+  | SHA3 => sha3_s sst
+  | KECCAK256 => sha3_s sst
+  | OpInstr label => exec_op_s sst ops label
+  end.
