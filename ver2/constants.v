@@ -1,6 +1,6 @@
 Require Import bbv.Word.
 
-Module FORVES_Constants.
+Module Constants.
 
 
 (* Byte *)
@@ -30,4 +30,4 @@ Definition AOne : EVMAddr  := natToWord EVMAddrSize 1.
 (* Maximum size of the stack *)
 Definition StackSize := 1024.
 
-End FORVES_Constants.
+End Constants.

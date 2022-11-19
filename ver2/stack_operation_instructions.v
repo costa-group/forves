@@ -6,19 +6,19 @@ Require Import List.
 Import ListNotations.
 
 Require Import FORVES.execution_state.
-Import FORVES_ExecutionState.
+Import ExecutionState.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 Require Import FORVES.misc.
-Import FORVES_Misc.
+Import Misc.
 
 Require Import FORVES.program.
-Import FORVES_Program.
+Import Program.
 
 
-Module FORVES_StackOpInstrs.
+Module StackOpInstrs.
 
 (* Some stack operation instructions are commutative, a property that
 might be used when optimizing a block. The following definition models
@@ -294,4 +294,4 @@ Definition evm_stack_opm : stack_op_instr_map :=
  
 
 
-End FORVES_StackOpInstrs.
+End StackOpInstrs.

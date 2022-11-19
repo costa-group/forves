@@ -1,6 +1,6 @@
 Require Import Coq.NArith.NArith.
 
-Module FORVES_Program.
+Module Program.
 
 (*
 
@@ -138,4 +138,4 @@ Inductive instr :=
 (* A block is a list instructions *)
 Definition block : Type := list instr.  
 
-End FORVES_Program.
+End Program.

@@ -1,12 +1,12 @@
 Require Import bbv.Word.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 Require Import List.
 Import ListNotations.
 
-Module FORVES_ExecutionState.
+Module ExecutionState.
        
 (*** Execution State and its auxiliary data-structures ***)
 
@@ -226,5 +226,5 @@ Definition set_context_st (st: state) (ctx: context) : state :=
   end.
   
 (************)
-End FORVES_ExecutionState.
+End ExecutionState.
 

@@ -2,25 +2,25 @@ Require Import bbv.Word.
 Require Import Nat.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 Require Import FORVES.program.
-Import FORVES_Program.
+Import Program.
 
 Require Import FORVES.symbolic_state.
-Import FORVES_SymbolicState.
+Import SymbolicState.
 
 Require Import FORVES.misc.
-Import FORVES_Misc.
+Import Misc.
 
 Require Import FORVES.stack_operation_instructions.
-Import FORVES_StackOpInstrs.
+Import StackOpInstrs.
 
 Require Import List.
 Import ListNotations.
 
 
-Module FORVES_SymbolicExecution.
+Module SymbolicExecution.
 
 
 Definition push_s (value : EVMWord) (sst : sstate) : option sstate :=
@@ -177,4 +177,4 @@ Definition evm_sexec_block (p : block) (instk_height: nat) (ops : stack_op_instr
   evm_sexec_block' p sst ops.
 
 
-End FORVES_SymbolicExecution.  
+End SymbolicExecution.  

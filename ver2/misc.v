@@ -5,14 +5,14 @@ Require Import Nat.
 Require Import Bool.
 
 Require Import FORVES.execution_state.
-Import FORVES_ExecutionState.
+Import ExecutionState.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 
 
-Module FORVES_Misc.
+Module Misc.
 
 (* The maps here link an opcode (oper_label) to an operator *)
 Definition map (K V : Type) : Type := K -> option V.
@@ -52,4 +52,4 @@ Definition swap {T: Type} (k : nat) (stk: list T) : option (list T) :=
        end.
 
 
-End FORVES_Misc.
+End Misc.

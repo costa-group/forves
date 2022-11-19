@@ -2,15 +2,15 @@ Require Import bbv.Word.
 Require Import Nat.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 Require Import FORVES.program.
-Import FORVES_Program.
+Import Program.
 
 Require Import List.
 Import ListNotations.
 
-Module FORVES_SymbolicState.
+Module SymbolicState.
 
 
 (* symbolic stack *)
@@ -148,17 +148,5 @@ Definition find_in_smap (key : nat) (sm : smap) : option smap_value :=
   | SymMap maxid map => find_in_smap' key map
   end.
 
-
-
-
-Inductive sexpr : Type :=
-| SExpr_Val (val: EVMWord)
-| SExpr_InStkVar (var : nat)
-| SExpr_Op (label : stack_op_instr) (args : list sexpr)
-| SExpr_MLOAD (offset: sstack_val) (smem : memory_updates sexpr)
-| SExpr_SLOAD (key: sstack_val) (sstrg : storage_updates sexpr)
-| SExpr_SHA3 (offset: sstack_val) (size: sstack_val) (smem : memory_updates sexpr).
-
-
        
-End FORVES_SymbolicState.
+End SymbolicState.

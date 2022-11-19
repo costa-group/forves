@@ -7,24 +7,24 @@ Require Import List.
 Import ListNotations.
 
 Require Import FORVES.constants.
-Import FORVES_Constants.
+Import Constants.
 
 Require Import FORVES.program.
-Import FORVES_Program.
+Import Program.
 
 Require Import FORVES.execution_state.
-Import FORVES_ExecutionState.
+Import ExecutionState.
 
 Require Import FORVES.stack_operation_instructions.
-Import FORVES_StackOpInstrs.
+Import StackOpInstrs.
 
 Require Import FORVES.misc.
-Import FORVES_Misc.
+Import Misc.
 
 
 
 
-Module FORVES_ConcreteInterpreter.
+Module ConcreteInterpreter.
 
 (* version operating on execution states *)
 Definition push_c (v : EVMWord) (st : state) : option state :=
@@ -52,7 +52,7 @@ Definition swap_c (k : nat) (st : state) : option state :=
   | Some stk' => Some (set_stack_st st stk')
   end.
 
-Definition mload_ (mem : memory) (offset : EVMWord) :=
+Definition mload' (mem : memory) (offset : EVMWord) :=
   fix mload_fix (n : nat) : word (n * 8) :=
     match n with
     | O => WO
@@ -60,7 +60,7 @@ Definition mload_ (mem : memory) (offset : EVMWord) :=
     end.
 
 Definition mload (mem : memory) (offset : EVMWord) : EVMWord :=
-  mload_ mem offset 32.
+  mload' mem offset 32.
   
 Definition mstore8 (mem : memory) (offset : EVMWord) (value : EVMByte)
   := fun offset' => if (weqb offset' offset) then value else mem
@@ -118,7 +118,7 @@ Definition sstore_c (st : state) : option state :=
   | key::value::stk =>
       let strg := sstore (get_storage_st st) key value in
       let st' := set_store_st st strg in
-      let st'' := set_stack_st st' stk in
+       let st'' := set_stack_st st' stk in
       Some st''
   | _ => None end.
 
@@ -183,5 +183,5 @@ Fixpoint evm_exec_block (p : block) (st : state) (ops : stack_op_instr_map) : op
 
 
 
-End FORVES_ConcreteInterpreter.
+End ConcreteInterpreter.
   
