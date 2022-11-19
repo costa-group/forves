@@ -351,8 +351,10 @@ Definition get_keccak256_ctx (c : context) :=
 Inductive state :=
 | ExState (stk: stack) (mem: memory) (stg: storage) (ctx :context).
 
-Definition empty_state := ExState empty_stack empty_memory empty_storage.
+Definition make_st (stk: stack) (mem: memory) (strg: storage) (ctx : context) : state :=
+  ExState stk mem strg ctx.
 
+Definition empty_state := make_st empty_stack empty_memory empty_storage empty_context.
 
 Definition get_stack_st (st: state) : stack :=
   match st with
@@ -374,7 +376,7 @@ Definition set_memory_st (st: state) (mem: memory) : state :=
   | ExState stk _ strg ctx => ExState stk mem strg ctx
   end.
 
-Definition get_store_st (st: state) : storage :=
+Definition get_storage_st (st: state) : storage :=
   match st with
   | ExState _ _ strg _ => strg
   end.
@@ -499,7 +501,7 @@ Definition mstore8 (mem : memory) (offset : EVMWord) (value : EVMByte)
   := fun offset' => if (weqb offset' offset) then value else mem
   offset'.
 
-Fixpoint mstore {sz : nat} (mem : memory) : (word sz) -> EVMWord -> (EVMWord -> EVMByte) :=
+Fixpoint mstore {sz : nat} (mem : memory) : (word sz) -> EVMWord -> memory :=
   match sz with
   | S (S (S (S (S (S (S (S sz1'))))))) =>
       fun value offset =>
@@ -541,7 +543,7 @@ Definition mstore_c (st : state) : option state :=
 Definition sload_c (st : state) : option state :=
   match get_stack_st st with
   | key::stk =>
-      let v := sload (get_store_st st) key in
+      let v := sload (get_storage_st st) key in
       let st' := set_stack_st st (v::stk) in
       Some st'
   | _ => None end.
@@ -549,7 +551,7 @@ Definition sload_c (st : state) : option state :=
 Definition sstore_c (st : state) : option state :=
   match get_stack_st st with
   | key::value::stk =>
-      let strg := sstore (get_store_st st) key value in
+      let strg := sstore (get_storage_st st) key value in
       let st' := set_store_st st strg in
       let st'' := set_stack_st st' stk in
       Some st''
@@ -878,6 +880,10 @@ Inductive smemory_val : Type :=
 | SymMSTORE (offset: sstack_val) (value: sstack_val)
 | SymMSTORE8 (offset: sstack_val) (value: sstack_val).
 
+Inductive memory_update : Type :=
+| U_MSTORE (offset: EVMWord) (value: EVMWord)
+| U_MSTORE8 (offset: EVMWord) (value: EVMWord).
+
 Definition smemory : Type := list smemory_val.
 Definition empty_smemory : smemory := [].
 
@@ -885,6 +891,9 @@ Definition empty_smemory : smemory := [].
 
 Inductive sstorage_val : Type :=
 | SymSSTORE (key: sstack_val) (value: sstack_val).
+
+Inductive storage_update : Type :=
+| U_SSTORE (key: EVMWord) (value: EVMWord).
 
 Definition sstorage : Type := list sstorage_val.
 Definition empty_sstorage : sstorage := [].
@@ -895,21 +904,25 @@ Definition empty_scontext : scontext := SymCtx.
 
 Inductive smap_value : Type :=
 | SymBasicVal (val: sstack_val)
-| SymOp (opcode : stack_op_instr) (args : list sstack_val)
+| SymOp (label : stack_op_instr) (args : list sstack_val)
 | SymMLOAD (offset: sstack_val) (smem : smemory)
 | SymSLOAD (key: sstack_val) (sstrg : sstorage)
-| SymSHA3 (offset: sstack_val) (size: sstack_val) (sstrg : smemory).
+| SymSHA3 (offset: sstack_val) (size: sstack_val) (smem : smemory).
 
-Inductive smap := SymMap (maxid : nat) (map: list (nat*smap_value)).
+Definition sbindings : Type := list (nat*smap_value).
+Inductive smap := SymMap (maxid : nat) (map: sbindings).
 Definition empty_smap : smap := SymMap 0 [].
 
 Inductive sstate :=
 | SymExState (instk_height: nat) (sstk: sstack) (smem: smemory) (sstg: sstorage) (sctx : scontext) (sm: smap).
 
+Definition make_sst (instk_height: nat) (sstk: sstack) (smem: smemory) (sstrg: sstorage) (sctx : scontext) (sm: smap) : sstate :=
+  SymExState instk_height sstk smem sstrg sctx sm.
+
 Definition gen_empty_sstate (instk_height: nat) : sstate :=
   let ids := seq 0 instk_height in
   let sstk := List.map InStackVar ids in
-  SymExState instk_height sstk empty_smemory empty_sstorage empty_scontext empty_smap.
+  make_sst instk_height sstk empty_smemory empty_sstorage empty_scontext empty_smap.
 
 Definition get_instk_height_sst (sst: sstate) : nat :=
   match sst with
@@ -941,7 +954,7 @@ Definition set_smemory_sst (sst: sstate) (smem: smemory) : sstate :=
   | SymExState instk_height sstk _ sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
   end.
 
-Definition get_sstore_sst (sst : sstate) : sstorage :=
+Definition get_sstorage_sst (sst : sstate) : sstorage :=
   match sst with
   | SymExState _ _ _ sstrg _ _ => sstrg
   end.
@@ -976,6 +989,17 @@ Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
   | SymMap maxid map =>
       let sm' := SymMap (S maxid) ((pair maxid value)::map) in
        pair maxid sm'
+  end.
+
+Fixpoint find_in_smap' (key : nat) (sm : list (nat*smap_value)) : option smap_value :=
+  match sm with
+  | [] => None
+  | (pair k sv)::sm' => if k =? key then Some sv else find_in_smap' key sm'
+  end.
+
+Definition find_in_smap (key : nat) (sm : smap) : option smap_value :=
+  match sm with
+  | SymMap maxid map => find_in_smap' key map
   end.
 
 
@@ -1027,7 +1051,7 @@ Definition mload_s (sst : sstate) : option sstate :=
 
 Definition sload_s (sst : sstate) : option sstate :=
   let sm : smap := get_smap_sst sst in
-  let sstrg : sstorage := get_sstore_sst sst in
+  let sstrg : sstorage := get_sstorage_sst sst in
   match get_sstack_sst sst with
   | skey::sstk =>
       let sv := SymSLOAD skey sstrg in
@@ -1077,7 +1101,7 @@ Definition mstore_s (sst : sstate) : option sstate :=
 Definition sstore_s (sst : sstate) : option sstate :=
   match get_sstack_sst sst with
   | key::value::sstk =>
-      let sstrg := get_sstore_sst sst in
+      let sstrg := get_sstorage_sst sst in
       let st' := set_sstore_sst sst ((SymSSTORE key value)::sstrg) in
       let st'' := set_sstack_sst sst sstk in
       Some st''
@@ -1132,3 +1156,303 @@ Fixpoint evm_sexec_block' (p : block) (sst : sstate) (ops : stack_op_instr_map) 
 Definition evm_sexec_block (p : block) (instk_height: nat) (ops : stack_op_instr_map) : option sstate :=
   let sst := gen_empty_sstate instk_height in 
   evm_sexec_block' p sst ops.
+
+
+
+Fixpoint update_memory' (mem: memory) (update : memory_update) :=
+  match update with
+  | U_MSTORE offset value => mstore mem offset value
+  | U_MSTORE8 offset value => mstore8 mem offset (split1 8 (EVMWordSize-8) value)
+  end.
+
+Fixpoint update_memory (mem: memory) (updates : list memory_update) :=
+  match updates with
+  | [] => mem
+  | u::us =>
+      let mem' := update_memory' mem u in
+      update_memory mem' us
+  end.
+
+Fixpoint update_storage' (strg: storage) (update : storage_update) :=
+  match update with
+  | U_SSTORE key value => sstore strg key value
+  end.
+
+Fixpoint update_storage (strg: storage) (updates : list storage_update) :=
+  match updates with
+  | [] => strg
+  | u::us =>
+      let strg' := update_storage' strg u in
+      update_storage strg' us
+  end.
+
+Fixpoint apply_f_list_sstack_val {A B : Type} (f: A -> option B) (l: list A) :
+  option (list B) :=
+match l with 
+| nil => Some []
+| elem::rs => let elem_oval := f elem in
+              let rs_oval := apply_f_list_sstack_val f rs in
+              match (elem_oval, rs_oval) with 
+              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+              | _ => None
+              end
+end.
+
+        
+Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=
+  match sv with
+  | Val v => Some v
+  | InStackVar n =>
+      let stk := get_stack_st st in
+      match nth_error stk n with
+      | Some v => Some v
+      | None => None
+      end
+  | FreshVar idx =>
+      match sb with
+      | [] => None
+      | (key,smv)::sb' =>
+          if key =? idx then
+            match smv with
+            (* basic value *)
+            | SymBasicVal v => eval_sstack_val v st sb' ops
+            (* stack operation instruction *)
+            | SymOp label args =>
+                match ops label with
+                | None => None
+                | Some (OpImp nargs f _) => 
+                    if (List.length args =? nargs) then
+                      let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' st sb' ops in
+                      match apply_f_list_sstack_val f_eval_list args with
+                      | None => None
+                      | Some vargs => Some (f (get_context_st st) vargs)
+                      end
+                    else None
+                end
+            (* memory read *)
+            | SymMLOAD soffset smem =>
+                let f_eval_memupdate := fun (update: smemory_val) =>
+                                          match update with
+                                          | SymMSTORE soffset svalue =>
+                                              let ooffset := eval_sstack_val soffset st sb' ops in
+                                              let ovalue := eval_sstack_val svalue st sb' ops in
+                                              match ooffset, ovalue with
+                                              | Some offset, Some value => Some (U_MSTORE offset value)
+                                              | _, _ => None
+                                              end
+                                          | SymMSTORE8 soffset svalue =>
+                                              let ooffset := eval_sstack_val soffset st sb' ops in
+                                              let ovalue := eval_sstack_val svalue st sb' ops in
+                                              match ooffset, ovalue with
+                                              | Some offset, Some value => Some (U_MSTORE8 offset value)
+                                              | _, _ => None
+                                              end
+                                          end
+                in
+                match apply_f_list_sstack_val f_eval_memupdate smem with
+                | None => None
+                | Some mem_updates =>
+                    match eval_sstack_val soffset st sb' ops with
+                    | None => None
+                    | Some offset =>
+                        let mem := update_memory (get_memory_st st) mem_updates in
+                        Some (mload mem offset)
+                    end
+                end
+            (* storage read *)
+            | SymSLOAD skey sstrg =>
+                let f_eval_strgupdate := fun (update: sstorage_val) =>
+                                          match update with
+                                          | SymSSTORE skey svalue =>
+                                              let okey := eval_sstack_val skey st sb' ops in
+                                              let ovalue := eval_sstack_val svalue st sb' ops in
+                                              match okey, ovalue with
+                                              | Some key, Some value => Some (U_SSTORE key value)
+                                              | _, _ => None
+                                              end
+                                          end
+                in
+                match apply_f_list_sstack_val f_eval_strgupdate sstrg with
+                | None => None
+                | Some strg_updates =>
+                    match eval_sstack_val skey st sb' ops with
+                    | None => None
+                    | Some key =>
+                        let strg := update_storage (get_storage_st st) strg_updates in
+                        Some (sload strg key)
+                    end
+                end
+
+            (* SHA3 and KECCAK256 *)
+            | SymSHA3 soffset ssize smem =>
+                                let f_eval_memupdate := fun (update: smemory_val) =>
+                                          match update with
+                                          | SymMSTORE soffset svalue =>
+                                              let ooffset := eval_sstack_val soffset st sb' ops in
+                                              let ovalue := eval_sstack_val svalue st sb' ops in
+                                              match ooffset, ovalue with
+                                              | Some offset, Some value => Some (U_MSTORE offset value)
+                                              | _, _ => None
+                                              end
+                                          | SymMSTORE8 soffset svalue =>
+                                              let ooffset := eval_sstack_val soffset st sb' ops in
+                                              let ovalue := eval_sstack_val svalue st sb' ops in
+                                              match ooffset, ovalue with
+                                              | Some offset, Some value => Some (U_MSTORE8 offset value)
+                                              | _, _ => None
+                                              end
+                                          end
+                in
+                match apply_f_list_sstack_val f_eval_memupdate smem with
+                | None => None
+                | Some mem_updates =>
+                    match eval_sstack_val soffset st sb' ops with
+                    | None => None
+                    | Some offset =>
+                        match eval_sstack_val ssize st sb' ops with
+                        | None => None
+                        | Some size =>
+                            let mem := update_memory (get_memory_st st) mem_updates in
+                            let f_sha3 := (get_keccak256_ctx (get_context_st st)) in
+                            Some (f_sha3 mem offset size)
+                        end
+                    end
+                end
+
+            end
+          else eval_sstack_val sv st sb' ops
+      end
+  end.
+
+
+
+
+Fixpoint eval_sstack' (sstk: sstack) (st: state) (sb: sbindings) (ops: stack_op_instr_map) : option stack :=
+  match sstk with
+  | [] => Some []
+  | sv::sstk' =>
+      match eval_sstack_val sv st sb ops with
+      | None => None
+      | Some v =>
+          match  eval_sstack' sstk' st sb ops with
+          | None => None
+          | Some vs => Some (v::vs)
+          end
+      end
+  end.
+
+
+Definition eval_sstack (st: state) (sst: sstate) (ops: stack_op_instr_map) : option stack :=
+  let stk := get_stack_st st in
+  let instk_height := (get_instk_height_sst sst) in
+  if (length stk) =? instk_height then
+    let sstk := get_sstack_sst sst in
+    match (get_smap_sst sst) with
+    | SymMap _ sb => eval_sstack' sstk st sb ops
+    end
+  else
+    None.
+
+
+Fixpoint eval_memory_update (update: smemory_val) (st: state) (sb: sbindings) (ops: stack_op_instr_map) : option memory_update :=
+  match update with
+  | SymMSTORE soffset svalue =>
+      let ooffset := eval_sstack_val soffset st sb ops in
+      let ovalue := eval_sstack_val svalue st sb ops in
+      match ooffset, ovalue with
+      | Some offset, Some value => Some (U_MSTORE offset value)
+      | _, _ => None
+      end
+  | SymMSTORE8 soffset svalue =>
+      let ooffset := eval_sstack_val soffset st sb ops in
+      let ovalue := eval_sstack_val svalue st sb ops in
+      match ooffset, ovalue with
+      | Some offset, Some value => Some (U_MSTORE8 offset value)
+      | _, _ => None
+      end
+  end.
+
+Fixpoint eval_memory_updates (smem : smemory) (st: state) (sb: sbindings) (ops: stack_op_instr_map) :=
+  match smem with
+  | [] => Some []
+  | supdate::smem' =>
+      match eval_memory_update supdate st sb ops with
+      | None => None
+      | Some update =>
+          match eval_memory_updates smem' st sb ops with
+          | None => None
+          | Some updates => Some (update::updates)
+          end
+      end
+  end.
+
+Definition eval_smemory (st: state) (sst: sstate) (ops: stack_op_instr_map) : option memory :=
+  match get_smap_sst sst with
+  | SymMap _ sb =>
+      let smem := get_smemory_sst sst in
+      match eval_memory_updates smem st sb ops with
+      | None => None
+      | Some updates =>
+          let mem := (get_memory_st st) in
+          let mem' := update_memory mem updates in
+          Some mem'
+      end
+  end.
+
+
+
+Fixpoint eval_storage_update (update: sstorage_val) (st: state) (sb: sbindings) (ops: stack_op_instr_map) : option storage_update :=
+  match update with
+  | SymSSTORE skey svalue =>
+      let okey := eval_sstack_val skey st sb ops in
+      let ovalue := eval_sstack_val svalue st sb ops in
+      match okey, ovalue with
+      | Some key, Some value => Some (U_SSTORE key value)
+      | _, _ => None
+      end
+  end.
+
+Fixpoint eval_storage_updates (strg : sstorage) (st: state) (sb: sbindings) (ops: stack_op_instr_map) :=
+  match strg with
+  | [] => Some []
+  | supdate::sstrg' =>
+      match eval_storage_update supdate st sb ops with
+      | None => None
+      | Some update =>
+          match eval_storage_updates sstrg' st sb ops with
+          | None => None
+          | Some updates => Some (update::updates)
+          end
+      end
+  end.
+
+Definition eval_sstorage (st: state) (sst: sstate) (ops: stack_op_instr_map) : option storage :=
+  match get_smap_sst sst with
+  | SymMap _ sb =>
+      let strg := get_sstorage_sst sst in
+      match eval_storage_updates strg st sb ops with
+      | None => None
+      | Some updates =>
+          let strg := (get_storage_st st) in
+          let strg' := update_storage strg updates in
+          Some strg'
+      end
+  end.
+
+
+Definition eval_sstate (st: state) (sst: sstate) (ops: stack_op_instr_map) : option state :=
+  match eval_sstack st sst ops with
+  | None => None
+  | Some stk =>
+      match eval_smemory st sst ops with
+      | None => None
+      | Some mem =>
+          match eval_sstorage st sst ops with
+          | None => None
+          | Some strg =>
+              let ctx := get_context_st st in
+              let sst' := make_st stk mem strg ctx in
+              Some sst'
+          end
+      end
+  end.
