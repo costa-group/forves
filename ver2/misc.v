@@ -14,8 +14,47 @@ Import Constants.
 
 Module Misc.
 
+
 (* The maps here link an opcode (oper_label) to an operator *)
 Definition map (K V : Type) : Type := K -> option V.
+
+
+(**
+
+It is like fold_right, but stops once f returns None (and returns None
+in this case).
+
+**)
+
+Fixpoint fold_right_option {A B : Type} (f: A -> option B) (l: list A) : option (list B) :=
+match l with 
+| nil => Some []
+| elem::rs => let elem_oval := f elem in
+              let rs_oval := fold_right_option f rs in
+              match (elem_oval, rs_oval) with 
+              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+              | _ => None
+              end
+end.
+
+Check fold_right.
+
+(*
+Alternative implementation of fold_right_option, using List.fold_right
+*)
+Definition fold_right_option_2 {A B : Type} (f: A -> option B) (l: list A) : option (list B) :=
+  let ff := fun b a =>
+             match a with
+             | None => None
+             | Some xs =>
+                 match (f b) with
+                 | None => None
+                 | Some v => Some (v::xs)
+                 end
+             end
+  in
+  fold_right ff (Some []) l.
+
 
 
 (******* stack manipulation operators ********)

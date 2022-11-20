@@ -58,18 +58,6 @@ Fixpoint update_storage (strg: storage) (updates : storage_updates EVMWord) :=
       update_storage strg' us
   end.
 
-Fixpoint apply_f_list_sstack_val {A B : Type} (f: A -> option B) (l: list A) :
-  option (list B) :=
-match l with 
-| nil => Some []
-| elem::rs => let elem_oval := f elem in
-              let rs_oval := apply_f_list_sstack_val f rs in
-              match (elem_oval, rs_oval) with 
-              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
-              | _ => None
-              end
-end.
-
         
 Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=
   match sv with
@@ -95,7 +83,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                 | Some (OpImp nargs f _) => 
                     if (List.length args =? nargs) then
                       let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' st sb' ops in
-                      match apply_f_list_sstack_val f_eval_list args with
+                      match fold_right_option f_eval_list args with
                       | None => None
                       | Some vargs => Some (f (get_context_st st) vargs)
                       end
@@ -121,7 +109,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_memupdate smem with
+                match fold_right_option f_eval_memupdate smem with
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset st sb' ops with
@@ -144,7 +132,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_strgupdate sstrg with
+                match fold_right_option f_eval_strgupdate sstrg with
                 | None => None
                 | Some strg_updates =>
                     match eval_sstack_val skey st sb' ops with
@@ -175,7 +163,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_memupdate smem with
+                match fold_right_option f_eval_memupdate smem with
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset st sb' ops with

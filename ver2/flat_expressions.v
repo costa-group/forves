@@ -68,18 +68,6 @@ Fixpoint update_storage (strg: storage) (updates : storage_updates EVMWord) :=
       update_storage strg' us
   end.
 
-Fixpoint apply_f_list_sstack_val {A B : Type} (f: A -> option B) (l: list A) :
-  option (list B) :=
-match l with 
-| nil => Some []
-| elem::rs => let elem_oval := f elem in
-              let rs_oval := apply_f_list_sstack_val f rs in
-              match (elem_oval, rs_oval) with 
-              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
-              | _ => None
-              end
-end.
-
 
 Fixpoint bindings_to_flat_bindings'' (sv: sstack_val) (flat_sb:  list (nat*sexpr)) : option sexpr :=
   match sv with
@@ -99,7 +87,7 @@ Definition bindings_to_flat_bindings' (sv : smap_value) (flat_sb:  list (nat*sex
     | SymBasicVal sv' => bindings_to_flat_bindings'' sv' flat_sb
     | SymOp label args =>
         let f_eval_list := fun (sv': sstack_val) => bindings_to_flat_bindings'' sv' flat_sb  in
-        match apply_f_list_sstack_val f_eval_list args with
+        match fold_right_option f_eval_list args with
         | None => None
         | Some sexpr_args => Some (SExpr_Op label sexpr_args)
         end
@@ -122,7 +110,7 @@ Definition bindings_to_flat_bindings' (sv : smap_value) (flat_sb:  list (nat*sex
                                       end
                                   end
         in
-        match apply_f_list_sstack_val f_eval_memupdate smem with
+        match fold_right_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
             match bindings_to_flat_bindings'' soffset flat_sb with
@@ -143,7 +131,7 @@ Definition bindings_to_flat_bindings' (sv : smap_value) (flat_sb:  list (nat*sex
                                       end
                                   end
         in
-        match apply_f_list_sstack_val f_eval_strgupdate sstrg with
+        match fold_right_option f_eval_strgupdate sstrg with
         | None => None
         | Some strg_updates =>
             match bindings_to_flat_bindings'' skey flat_sb with
@@ -170,7 +158,7 @@ Definition bindings_to_flat_bindings' (sv : smap_value) (flat_sb:  list (nat*sex
                                       end
                                   end
         in
-        match apply_f_list_sstack_val f_eval_memupdate smem with
+        match fold_right_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
             match bindings_to_flat_bindings'' soffset flat_sb with
@@ -211,7 +199,7 @@ Definition sstate_to_flat_sstate (sst : sstate) :=
       | Some flat_sb =>
           let sstk := get_stack_sst sst in
           let f_eval_list := fun (sv': sstack_val) => bindings_to_flat_bindings'' sv' flat_sb  in
-          match apply_f_list_sstack_val f_eval_list sstk with
+          match fold_right_option f_eval_list sstk with
           | None => None
           | Some flat_sstk =>
               let smem := get_memory_sst sst in
@@ -233,7 +221,7 @@ Definition sstate_to_flat_sstate (sst : sstate) :=
                                             end
                                         end
               in
-              match apply_f_list_sstack_val f_eval_memupdate smem with
+              match fold_right_option f_eval_memupdate smem with
               | None => None
               | Some flat_smem =>
                   let sstrg := get_storage_sst sst in
@@ -248,7 +236,7 @@ Definition sstate_to_flat_sstate (sst : sstate) :=
                                                  end
                                              end
                   in
-                  match apply_f_list_sstack_val f_eval_strgupdate sstrg with
+                  match fold_right_option f_eval_strgupdate sstrg with
                   | None => None
                   | Some flat_sstrg => Some (FlatSymExState 0 flat_sstk flat_smem flat_sstrg)
                   end
@@ -287,7 +275,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                 | Some (OpImp nargs f _) => 
                     if (List.length args =? nargs) then
                       let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' st sb' ops in
-                      match apply_f_list_sstack_val f_eval_list args with
+                      match fold_right_option f_eval_list args with
                       | None => None
                       | Some vargs => Some (f (get_context_st st) vargs)
                       end
@@ -313,7 +301,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_memupdate smem with
+                match fold_right_option f_eval_memupdate smem with
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset st sb' ops with
@@ -336,7 +324,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_strgupdate sstrg with
+                match fold_right_option f_eval_strgupdate sstrg with
                 | None => None
                 | Some strg_updates =>
                     match eval_sstack_val skey st sb' ops with
@@ -367,7 +355,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
                                               end
                                           end
                 in
-                match apply_f_list_sstack_val f_eval_memupdate smem with
+                match fold_right_option f_eval_memupdate smem with
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset st sb' ops with
