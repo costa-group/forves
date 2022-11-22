@@ -27,7 +27,7 @@ Import SymbolicState.
 Require Import FORVES.concrete_interpreter.
 Import ConcreteInterpreter.
 
-Module FlatExpression.
+Module FlatSymbolicState.
 
 Inductive sexpr : Type :=
 | SExpr_Val (val: EVMWord)
@@ -381,4 +381,4 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
 
 
 
-End FlatExpression.
+End FlatSymbolicState.
