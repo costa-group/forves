@@ -271,8 +271,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (st: state) (sb: sbindings) (ops: sta
             (* stack operation instruction *)
             | SymOp label args =>
                 match ops label with
-                | None => None
-                | Some (OpImp nargs f _) => 
+                | OpImp nargs f _ => 
                     if (List.length args =? nargs) then
                       let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' st sb' ops in
                       match fold_right_option f_eval_list args with

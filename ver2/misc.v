@@ -16,7 +16,9 @@ Module Misc.
 
 
 (* The maps here link an opcode (oper_label) to an operator *)
-Definition map (K V : Type) : Type := K -> option V.
+Definition omap (K V : Type) : Type := K -> option V.
+
+Definition map (K V : Type) : Type := K -> V.
 
 
 (**
@@ -26,16 +28,18 @@ in this case).
 
 **)
 
-Fixpoint fold_right_option {A B : Type} (f: A -> option B) (l: list A) : option (list B) :=
-match l with 
-| nil => Some []
-| elem::rs => let elem_oval := f elem in
-              let rs_oval := fold_right_option f rs in
-              match (elem_oval, rs_oval) with 
-              | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
-              | _ => None
-              end
-end.
+Definition fold_right_option {A B : Type} (f: A -> option B)  :=
+
+  fix fold_right_option_fix (l: list A) : option (list B) :=
+    match l with 
+    | nil => Some []
+    | elem::rs => let elem_oval := f elem in
+                  let rs_oval := fold_right_option_fix rs in
+                  match (elem_oval, rs_oval) with 
+                  | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
+                  | _ => None
+                  end
+    end.
 
 Check fold_right.
 

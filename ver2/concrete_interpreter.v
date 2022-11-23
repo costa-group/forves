@@ -135,8 +135,7 @@ None end.
 
 Definition exec_stack_op_intsr_c (st : state) (ops : stack_op_instr_map) (label : stack_op_instr) : option state :=
   match (ops label) with
-  | None => None
-  | Some (OpImp nb_args func _) =>
+  | OpImp nb_args func _ =>
       let stk := get_stack_st st in
       match firstn_e nb_args stk with
       | None => None
@@ -149,7 +148,6 @@ Definition exec_stack_op_intsr_c (st : state) (ops : stack_op_instr_map) (label 
                      end
       end
   end.
-                             
 
 (* Concrete interpreter *)
 Definition evm_exec_instr (inst : instr) (st: state) (ops : stack_op_instr_map) : option state :=
