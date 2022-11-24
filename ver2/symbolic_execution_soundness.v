@@ -153,6 +153,14 @@ Proof.
 Qed.
 
 
+Theorem gen_empty_sstate_snd:
+  forall (st: state) (instk_height: nat) (sst: sstate) (ops : stack_op_instr_map),
+    length (get_stack_st st) = instk_height ->
+    sst = gen_empty_sstate instk_height ->
+    eq_con_sym st sst ops.
+Proof.
+Admitted.
+
 Theorem symbolic_exec_snd:
   forall (p : block) (instk_height : nat) (sst : sstate) (ops : stack_op_instr_map),
     evm_sym_exec p instk_height ops = Some sst -> 
@@ -162,8 +170,14 @@ Theorem symbolic_exec_snd:
         evm_exec_block_c p st ops = Some st' /\
           eq_con_sym st' sst ops. 
 Proof.
-  Admitted.
+  intros.
+  unfold evm_sym_exec in H.
+  apply evm_exec_block_snd in H.
+  apply H.
+  apply gen_empty_sstate_snd with (instk_height:=instk_height)(sst:=(gen_empty_sstate instk_height)).
+  + apply H0.
+  + reflexivity.                    
+Qed.
 
-Check symbolic_exec_snd.
-  
+
 End SymbolicExecutionSoundness.
