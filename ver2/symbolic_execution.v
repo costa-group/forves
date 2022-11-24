@@ -23,35 +23,36 @@ Import ListNotations.
 Module SymbolicExecution.
 
 
-Definition push_s (value : EVMWord) (sst : sstate) : option sstate :=
-  let sstk := get_stack_sst sst in
-  match push (Val value) sstk with
-  | None => None
-  | Some sstk' => Some (set_stack_sst sst sstk')
-  end.
+Definition push_s (value : EVMWord) :=
+  fun (sst : sstate) (ops: stack_op_instr_map) =>
+    let sstk := get_stack_sst sst in
+    match push (Val value) sstk with
+    | None => None
+    | Some sstk' => Some (set_stack_sst sst sstk')
+    end.
 
-Definition pop_s (sst : sstate): option sstate :=
+Definition pop_s (sst : sstate)  (ops: stack_op_instr_map) : option sstate :=
   let sstk := get_stack_sst sst in
   match pop sstk with
   | None => None
   | Some sstk' => Some (set_stack_sst sst sstk')
   end.
 
-Definition dup_s (k : nat) (sst : sstate) : option sstate :=
+Definition dup_s (k : nat) (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sstk := get_stack_sst sst in
   match dup k sstk with
   | None => None
   | Some sstk' => Some (set_stack_sst sst sstk')
   end.
 
-Definition swap_s (k : nat) (sst : sstate) : option sstate :=
+Definition swap_s (k : nat) (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sstk := get_stack_sst sst in
   match swap k sstk with
   | None => None
   | Some sstk' => Some (set_stack_sst sst sstk')
   end.
 
-Definition mload_s (sst : sstate) : option sstate :=
+Definition mload_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sm : smap := get_smap_sst sst in
   let smem : smemory := get_memory_sst sst in
   match get_stack_sst sst with
@@ -66,7 +67,7 @@ Definition mload_s (sst : sstate) : option sstate :=
   | _ => None
   end.
 
-Definition sload_s (sst : sstate) : option sstate :=
+Definition sload_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sm : smap := get_smap_sst sst in
   let sstrg : sstorage := get_storage_sst sst in
   match get_stack_sst sst with
@@ -81,7 +82,7 @@ Definition sload_s (sst : sstate) : option sstate :=
   | _ => None
   end.
 
-Definition sha3_s (sst : sstate) : option sstate :=
+Definition sha3_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sm : smap := get_smap_sst sst in
   let smem : smemory := get_memory_sst sst in
   match get_stack_sst sst with
@@ -97,7 +98,7 @@ Definition sha3_s (sst : sstate) : option sstate :=
 
                                       
   
-Definition mstore8_s (sst : sstate) : option sstate :=
+Definition mstore8_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | offset::value::sstk =>
       let smem := get_memory_sst sst in
@@ -107,7 +108,7 @@ Definition mstore8_s (sst : sstate) : option sstate :=
   | _ => None
   end.
       
-Definition mstore_s (sst : sstate) : option sstate :=
+Definition mstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | offset::value::sstk =>
       let smem := get_memory_sst sst in
@@ -117,7 +118,7 @@ Definition mstore_s (sst : sstate) : option sstate :=
   | _ => None
   end.
 
-Definition sstore_s (sst : sstate) : option sstate :=
+Definition sstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | key::value::sstk =>
       let sstrg := get_storage_sst sst in
@@ -127,10 +128,9 @@ Definition sstore_s (sst : sstate) : option sstate :=
   | _ => None
   end.
 
-Definition exec_op_s (sst : sstate) (ops : stack_op_instr_map) (label : stack_op_instr) : option sstate :=
+Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | None => None
-  | Some (OpImp nb_args func _) =>
+  | OpImp nb_args func _ =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>
@@ -146,35 +146,35 @@ Definition exec_op_s (sst : sstate) (ops : stack_op_instr_map) (label : stack_op
       end
   end.
 
-Definition evm_sexec_instr (inst: instr) (sst: sstate) (ops: stack_op_instr_map) : option sstate :=
+Definition evm_exec_instr_s (inst: instr) (sst: sstate) (ops: stack_op_instr_map) : option sstate :=
   match inst with
-  | PUSH size w => push_s (NToWord EVMWordSize w) sst
-  | POP => pop_s sst
-  | DUP pos => dup_s pos sst
-  | SWAP pos => swap_s pos sst
-  | MLOAD => mload_s sst
-  | MSTORE8 => mstore8_s sst
-  | MSTORE => mstore_s sst
-  | SLOAD => sload_s sst
-  | SSTORE => sstore_s sst
-  | SHA3 => sha3_s sst
-  | KECCAK256 => sha3_s sst
-  | OpInstr label => exec_op_s sst ops label
+  | PUSH size w => (push_s (NToWord EVMWordSize w)) sst ops
+  | POP => pop_s sst ops
+  | DUP pos => dup_s pos sst ops
+  | SWAP pos => swap_s pos sst ops
+  | MLOAD => mload_s sst ops
+  | MSTORE8 => mstore8_s sst ops
+  | MSTORE => mstore_s sst ops
+  | SLOAD => sload_s sst ops
+  | SSTORE => sstore_s sst ops
+  | SHA3 => sha3_s sst ops
+  | KECCAK256 => sha3_s sst ops
+  | OpInstr label => exec_stack_op_intsr_s label sst ops 
   end.
 
-Fixpoint evm_sexec_block' (p : block) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
+Fixpoint evm_exec_block_s (p : block) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match p with
   | [] => Some sst
   | inste::instrs' =>
-      match (evm_sexec_instr inste sst ops) with
+      match (evm_exec_instr_s inste sst ops) with
       | None => None
-      | Some sst' => evm_sexec_block' instrs' sst' ops
+      | Some sst' => evm_exec_block_s instrs' sst' ops
       end
   end.
 
-Definition evm_sexec_block (p : block) (instk_height: nat) (ops : stack_op_instr_map) : option sstate :=
+Definition evm_sym_exec (p : block) (instk_height: nat) (ops : stack_op_instr_map) : option sstate :=
   let sst := gen_empty_sstate instk_height in 
-  evm_sexec_block' p sst ops.
+  evm_exec_block_s p sst ops.
 
 
 End SymbolicExecution.  

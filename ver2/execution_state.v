@@ -6,6 +6,14 @@ Import Constants.
 Require Import List.
 Import ListNotations.
 
+Require Import Arith.
+Require Import Nat.
+Require Import Bool.
+Require Import bbv.Word.
+Require Import Coq.NArith.NArith.
+Require Import List.
+Import ListNotations.
+
 Module ExecutionState.
        
 (*** Execution State and its auxiliary data-structures ***)
@@ -225,6 +233,34 @@ Definition set_context_st (st: state) (ctx: context) : state :=
   | ExState stk mem strg _ => ExState stk mem strg ctx
   end.
   
-(************)
+
+
+Definition eq_stack (stk1 stk2: stack) : Prop :=
+  stk1 = stk2.
+
+Definition eq_memory (mem1 mem2: memory) : Prop :=
+  forall w, mem1 w = mem2 w.
+
+Definition eq_storage (strg1 strg2: storage) : Prop :=
+  forall w, strg1 w = strg1 w.
+
+Definition eq_context (ctx1 ctx2: context) : Prop :=
+  ctx1 = ctx2.
+
+Definition eq_execution_states (st1 st2: state) : Prop :=
+  forall stk1 stk2 mem1 mem2 strg1 strg2 ctx1 ctx2,
+  (stk1 = get_stack_st st1) ->
+  (stk2 = get_stack_st st2) ->
+  (mem1 = get_memory_st st1) ->
+  (mem2 = get_memory_st st2) ->
+  (strg1 = get_storage_st st1) ->
+  (strg2 = get_storage_st st2) ->
+  (ctx1 = get_context_st st1) ->
+  (ctx2 = get_context_st st2) ->
+    eq_stack stk1 stk2 /\
+    eq_memory mem1 mem2 /\
+    eq_storage strg1 strg2 /\
+    eq_context ctx1 ctx1.
+
 End ExecutionState.
 

@@ -126,11 +126,11 @@ Inductive instr :=
 | POP
 | DUP (pos: nat)
 | SWAP (pos: nat)
-| SLOAD
-| SSTORE
 | MLOAD
 | MSTORE
 | MSTORE8
+| SLOAD
+| SSTORE
 | SHA3
 | KECCAK256
 | OpInstr (label: stack_op_instr).
