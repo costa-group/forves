@@ -65,6 +65,8 @@ Inductive sstate :=
 Definition make_sst (instk_height: nat) (sstk: sstack) (smem: smemory) (sstrg: sstorage) (sctx : scontext) (sm: smap) : sstate :=
   SymExState instk_height sstk smem sstrg sctx sm.
 
+Check seq_length.
+
 Definition gen_empty_sstate (instk_height: nat) : sstate :=
   let ids := seq 0 instk_height in
   let sstk := List.map InStackVar ids in
@@ -130,10 +132,21 @@ Definition set_smap_sst (sst : sstate) (sm: smap) : sstate :=
   | SymExState instk_height sstk smem sstrg sctx _ => SymExState instk_height sstk smem sstrg sctx sm
   end.
 
+Definition get_bindings_smap(sm: smap) :=
+  match sm with
+  | SymMap maxid bindings => bindings
+  end.
+
+Definition get_maxid_smap(sm: smap) :=
+  match sm with
+  | SymMap maxid bindings => maxid
+  end.
+
+  
 Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
   match sm with
-  | SymMap maxid map =>
-      let sm' := SymMap (S maxid) ((pair maxid value)::map) in
+  | SymMap maxid bindings =>
+      let sm' := SymMap (S maxid) ((pair maxid value)::bindings) in
        pair maxid sm'
   end.
 

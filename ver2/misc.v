@@ -41,7 +41,73 @@ Definition fold_right_option {A B : Type} (f: A -> option B)  :=
                   end
     end.
 
-Check fold_right.
+  
+Fixpoint app_f_succ_all {A B: Type} (f: A -> option B) (l: list A) : bool :=
+  match l with
+  | [] => true
+  | x::l' =>
+      match (f x) with
+      | None => false
+      | Some _ => app_f_succ_all f l'
+      end
+  end.
+ 
+Lemma app_f_succ_all_tl:
+  forall (A B: Type) (f: A->option B) (l: list A) (a: A),
+    app_f_succ_all f (a::l) = true ->  app_f_succ_all f l = true.
+Proof.
+  intros.
+  unfold app_f_succ_all in H.
+  destruct (f a) in H.
+  + apply H.
+  + discriminate H.
+Qed.
+
+Lemma fold_right_option_succ:
+  forall (A B: Type) (f: A->option B) (l: list A),
+    app_f_succ_all f l = true ->  exists lr, fold_right_option f l = Some lr.
+
+Proof.
+  intros A B f l.
+  induction l as [|a l' IHl'].
+  - intros. exists []. reflexivity.
+  - simpl. destruct (f a) eqn:fa.
+    + intro. apply IHl' in H. destruct H. exists (b::x). rewrite H. reflexivity.
+    + intro. discriminate.
+Qed.      
+
+
+Lemma fold_right_option_len:
+  forall (A B: Type) (f: A->option B) (l1: list A) (l2: list B),
+    fold_right_option f l1 = Some l2 ->
+    length l1 = length l2.
+Proof.
+  induction l1 as [|a l1' IHl1'].
+  - intros. simpl in H. injection H. intros. rewrite <- H0. reflexivity.
+  - intros.
+    unfold fold_right_option in H.
+    destruct (f a).
+    + destruct ((fix fold_right_option_fix (l : list A) : option (list B) :=
+           match l with
+           | [] => Some []
+           | elem :: rs =>
+               match f elem with
+               | Some elem_val =>
+                   match fold_right_option_fix rs with
+                   | Some rs_val => Some (elem_val :: rs_val)
+                   | None => None
+                   end
+               | None => None
+               end
+           end) l1') eqn:E0.
+      ++ apply IHl1' in E0.
+         injection H. intros.
+         rewrite <- H0.
+         simpl. rewrite E0. reflexivity.
+      ++ discriminate.
+    + discriminate.
+Qed.
+
 
 (*
 Alternative implementation of fold_right_option, using List.fold_right

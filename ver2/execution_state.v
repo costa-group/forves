@@ -186,7 +186,7 @@ Definition get_keccak256_ctx (c : context) :=
 
 
 Inductive state :=
-| ExState (stk: stack) (mem: memory) (stg: storage) (ctx :context).
+| ExState (stk: stack) (mem: memory) (strg: storage) (ctx :context).
 
 Definition make_st (stk: stack) (mem: memory) (strg: storage) (ctx : context) : state :=
   ExState stk mem strg ctx.
@@ -260,7 +260,7 @@ Definition eq_execution_states (st1 st2: state) : Prop :=
     eq_stack stk1 stk2 /\
     eq_memory mem1 mem2 /\
     eq_storage strg1 strg2 /\
-    eq_context ctx1 ctx1.
+    eq_context ctx1 ctx2.
 
 End ExecutionState.
 
