@@ -130,7 +130,7 @@ Definition sstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
 
 Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | OpImp nb_args func _ =>
+  | OpImp nb_args func _ _ =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>

@@ -5,6 +5,7 @@ Require Import bbv.Word.
 Require Import Coq.NArith.NArith.
 Require Import List.
 Import ListNotations.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Import FORVES.constants.
 Import Constants.
@@ -186,21 +187,7 @@ Proof.
   - discriminate.
 Qed.
 
-Search Nat.eqb.
-Search list.
-
-(*
-Lemma eval_sstack'_len:
-    forall (sstk: sstack) (stk stk': stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map),
-    eval_sstack' sstk stk mem strg ctx sb ops = Some stk' ->
-    length sstk = length stk'.
-Proof.
-  intros.
-  induction sstk as [|sv sstk' IHsstk'].
-  + simpl in H. injection H. intros. rewrite <- H0. reflexivity.
-  + unfold eval_sstack'  in H.
- *)
-
+(* relation between length of stacks of symbolic states, and their instantiations wrt to an initial state *)
 Lemma st_is_instance_of_sst_stk_len:
   forall (init_st st: state) (sst: sstate) (ops: stack_op_instr_map),
          st_is_instance_of_sst init_st st sst ops ->
@@ -241,6 +228,7 @@ Proof.
   + discriminate.
 Qed.
 
+(* push_s is a sound symbolic transformer *)
 Lemma push_snd:
   forall w, snd_state_transformer (push_c w) (push_s w).
 Proof.
@@ -301,19 +289,376 @@ intro w.
               rewrite H5.
               reflexivity.
           +++ split. apply H6. split. apply H7. apply H8.
-  - discriminate.
+  - discriminate. 
 Qed.  
 
+
+Lemma pop_succ:
+  forall init_st st sst ops l,
+    st_is_instance_of_sst init_st st sst ops ->
+    pop (get_stack_sst sst) = Some l ->
+    exists v1 v2 l', (get_stack_sst sst)=v1::l /\ get_stack_st st = v2::l'.
+Proof.
+  intros.
+  unfold pop in H0.
+  destruct (get_stack_sst sst) eqn:E_stk_sst.
+  discriminate.
+  injection H0. intros.
+  rewrite H1.
+  exists s.
+  unfold st_is_instance_of_sst in H.
+  destruct H as [st' H].
+  destruct H.
+  unfold eval_sstate in H.
+  unfold eval_sstack in H.
+  destruct (length (get_stack_st init_st) =? get_instk_height_sst sst) eqn:E_len.
+  2: {discriminate.}.
+  destruct (get_smap_sst sst) eqn:E_map.
+  rewrite E_stk_sst in H.
+  simpl in H.
+  destruct (eval_sstack_val s (get_stack_st init_st) (get_memory_st init_st)
+              (get_storage_st init_st) (get_context_st init_st) map0 ops) in H.
+  2: {discriminate.}.
+  destruct (eval_sstack' s0 (get_stack_st init_st) (get_memory_st init_st)
+            (get_storage_st init_st) (get_context_st init_st) map0 ops) in H.
+  2: {discriminate.}.
+  destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st) 
+              (get_storage_st init_st) (get_context_st init_st) sst ops) in H.
+  2: {discriminate.}.
+  destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st) 
+              (get_storage_st init_st) (get_context_st init_st) sst ops) in H.
+  2: {discriminate.}.
+  unfold make_st in H.
+  injection H. intros.
+  unfold eq_execution_states in H2.
+  rewrite <- H3 in H2.
+  simpl in H2.
+  destruct H2 with (stk1:=get_stack_st st)(stk2:=e::s1)(mem1:=get_memory_st st)(mem2:=m)(strg1:=get_storage_st st)(strg2:=s2)(ctx1:=get_context_st st)(ctx2:=get_context_st init_st).
+  reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity.
+  unfold eq_stack in H4.
+  rewrite H4.
+  exists e. exists s1.
+  split.
+  reflexivity. reflexivity.
+Qed.
+  
 Lemma pop_snd:
   snd_state_transformer pop_c pop_s.       
 Proof.
-Admitted.
+  unfold snd_state_transformer.
+  intros sst sst' ops H_pop_s init_st st H_st_inst_sst. 
+  unfold pop_s in H_pop_s.
+  destruct (pop (get_stack_sst sst)) eqn:H_pop_sst.
+  2: {discriminate.}.
+  injection H_pop_s as H_sst'.
+  apply pop_succ with (init_st:=init_st)(st:=st)(ops:=ops) in H_pop_sst.
+  2: {apply H_st_inst_sst.}.
+  destruct H_pop_sst as [v1 H_pop_sst]. 
+  destruct H_pop_sst as [v2 H_pop_sst].
+  destruct H_pop_sst as [l' H_pop_sst].
+  destruct H_pop_sst.
+  unfold pop_c.
+  rewrite H0. simpl.
+  exists (set_stack_st st l').
+  split.
+  reflexivity.
+  rewrite <- H_sst'.
+  unfold st_is_instance_of_sst in H_st_inst_sst.
+  destruct H_st_inst_sst as [st' H_st_inst_sst].
+  destruct H_st_inst_sst as [H_st_inst_sst_l H_st_inst_sst_r].
+  destruct st' eqn:E_st'.
+  destruct st eqn:E_st.
+  destruct sst eqn:E_sst.
+  destruct sst' eqn:E_sst'.
+  simpl.
+  simpl in H.
+  simpl in H0.
+  simpl in H_sst'.
+  injection H_sst'.
+  intros.
+  unfold eq_execution_states in H_st_inst_sst_r.
+  simpl in H_st_inst_sst_r.
+  destruct H_st_inst_sst_r with (stk1:=stk0)(stk2:=stk)(mem1:=mem0)(mem2:=mem)(strg1:=strg0)(strg2:=strg)(ctx1:=ctx0)(ctx2:=ctx).
+  rewrite H0. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity. reflexivity.
+  destruct H8. destruct H9.
+  unfold st_is_instance_of_sst. 
+  exists (set_stack_st st l').
+  rewrite E_st.
+  simpl.
+  split.
+  2: { apply eq_execution_states_refl. }.
+  rewrite H in H_st_inst_sst_l.
+  unfold eq_stack in H7.
+  rewrite <- H7 in H_st_inst_sst_l.
+  rewrite H0 in H_st_inst_sst_l.
+  unfold eval_sstate in H_st_inst_sst_l.
+  unfold eval_sstack in H_st_inst_sst_l.
+  simpl in H_st_inst_sst_l.
+  destruct (length (get_stack_st init_st) =? instk_height) eqn:E_len.
+  2: {discriminate.}.
+  destruct sm eqn:E_sm.
+  destruct (eval_sstack_val v1 (get_stack_st init_st) 
+                          (get_memory_st init_st) (get_storage_st init_st)
+                          (get_context_st init_st) map0 ops) eqn:E_esv.
+  2: {discriminate.}.
+  destruct (eval_sstack' l (get_stack_st init_st) (get_memory_st init_st)
+                          (get_storage_st init_st) (get_context_st init_st) map0 ops) eqn:E_es'.
+  2: {discriminate.}.
+  destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st)
+                        (get_storage_st init_st) (get_context_st init_st)
+                        (SymExState instk_height (v1 :: l) smem sstg sctx (SymMap maxid map0))
+                        ops) eqn:E_esm.
+  2: {discriminate.}.
+  destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st)
+                        (get_storage_st init_st) (get_context_st init_st)
+                        (SymExState instk_height (v1 :: l) smem sstg sctx (SymMap maxid map0))
+                        ops) eqn:E_est.
+  2: {discriminate.}.
+  unfold make_st in H_st_inst_sst_l.
+  injection H_st_inst_sst_l. intros.
+  unfold eval_sstate.
+  unfold eval_sstack.
+  simpl.
+  rewrite E_len.
+  rewrite E_es'.
+  unfold eval_smemory in E_esm.
+  simpl in E_esm.
+  destruct (fold_right_option
+              (eval_common.EvalCommon.instantiate_memory_update
+                 (fun sv : sstack_val =>
+                  eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                    (get_storage_st init_st) (get_context_st init_st) map0 ops)) smem) eqn:E_fr1.
+  2: {discriminate.}.
+  injection E_esm. intros.
+  unfold eval_smemory.
+  simpl.
+  rewrite E_fr1.
+  unfold eval_sstorage in E_est.
+  simpl in E_est.
+  destruct (fold_right_option
+            (eval_common.EvalCommon.instantiate_storage_update
+               (fun sv : sstack_val =>
+                eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                  (get_storage_st init_st) (get_context_st init_st) map0 ops)) sstg) eqn:E_fr2.
+  2: {discriminate.}.
+  injection E_est. intros.
+  unfold eval_sstorage.
+  simpl.
+  rewrite E_fr2.
+  rewrite H16.
+  rewrite H17.
+  unfold make_st.
+  rewrite H14.
+  unfold eq_context in H10.
+  rewrite H10. rewrite H11.
+  unfold eq_memory in H8.
+  apply functional_extensionality in H8.
+  rewrite H13. rewrite H8.
+  unfold eq_storage in H9.
+  apply functional_extensionality in H9.
+  rewrite H9. rewrite H12.
+  reflexivity.
+Qed.
 
+
+Lemma app_nil_result:
+  forall A (l1 l2 : list A),
+    l1++l2 = [] -> l1=[]/\l2=[].
+Proof.
+  intros.
+  destruct l1.
+  destruct l2.
+  + split. reflexivity. reflexivity.
+  + discriminate H.
+  + discriminate H.
+Qed.
+
+Lemma eval_sstack'_app:
+  forall (sstk sstk1 sstk2: sstack) (stk stk': stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map),
+    sstk = sstk1++sstk2 ->   
+    eval_sstack' sstk stk mem strg ctx sb ops = Some stk' ->
+    exists stk1' stk2',
+      stk' = stk1'++stk2' /\
+        eval_sstack' sstk1 stk mem strg ctx sb ops = Some stk1' /\
+        eval_sstack' sstk2 stk mem strg ctx sb ops = Some stk2'.
+Proof.
+  induction sstk as [|sv sstk' IHsstk'].
+  - simpl.
+    intros.
+    injection H0 as H1.
+    symmetry in H. apply app_nil_result in H. destruct H.
+    rewrite H. rewrite H0. rewrite <- H1.
+    exists [], [].
+    simpl.
+    auto.
+  - intros.
+    destruct sstk1.
+    + simpl.
+      simpl in H.
+      simpl in H0.
+      destruct (eval_sstack_val sv stk mem strg ctx sb ops) eqn:E0.
+      ++ destruct (eval_sstack' sstk' stk mem strg ctx sb ops) eqn:E1.
+         +++ destruct sstk2.
+             ++++ discriminate H.
+             ++++ injection H. intros.
+                  pose proof (IHsstk' [] sstk2 stk s mem strg ctx sb ops H1 E1).
+                  destruct H3 as [stk1']. destruct H3 as [stk2'].
+                  destruct H3. destruct H4.
+                  exists []. exists stk'.
+                  split. reflexivity. split. reflexivity.
+                  simpl. rewrite <- H2. rewrite E0. rewrite <- H1. rewrite E1. apply H0.
+         +++ discriminate.
+      ++ discriminate.
+    + simpl in H. injection H. intros.
+      simpl in H0.
+      destruct (eval_sstack_val sv stk mem strg ctx sb ops) eqn:E0.
+      ++ destruct (eval_sstack' sstk' stk mem strg ctx sb ops) eqn:E1.
+         +++ pose proof (IHsstk' sstk1 sstk2 stk s0 mem strg ctx sb ops H1 E1).
+             destruct H3 as [stk1']. destruct H3 as [stk2'].
+             injection H0. intros.
+             exists (e::stk1'). exists stk2'.
+             rewrite <- H4.
+             destruct H3. destruct H5.
+             split.
+             ++++ simpl. rewrite <- H3. reflexivity.
+             ++++ split.
+                  +++++ simpl. rewrite <- H2. rewrite E0. rewrite H5. reflexivity.
+                  +++++ apply H6.
+         +++ discriminate.
+      ++ discriminate.         
+Qed.
+
+
+Lemma nth_err_two_lists:
+  forall A B (l1: list A) (l2: list B) (k:nat) (v: A),
+    length l1 = length l2 ->
+    nth_error l1 k = Some v ->
+    exists v', nth_error l2 k = Some v'.
+Proof.
+  induction l1 as [|e l1' IHk'].
+  - intros.
+    destruct k.
+    + simpl in H0. discriminate.
+    + simpl in H0. discriminate.
+  - intros.
+    destruct k.
+    + simpl in H0.
+      destruct l2.
+      ++ discriminate.
+      ++ simpl. exists b. reflexivity.
+    + simpl in H0.
+      destruct l2.
+      ++ discriminate.
+      ++ simpl in H.
+         injection H as H.
+         pose proof (IHk' l2 k v H H0) as Hih.
+         destruct Hih as [v'].
+         simpl. rewrite H1. exists v'. reflexivity.
+Qed.
+
+Lemma dup_len_two_lists:
+  forall (k: nat) (T1 T2: Type) (l1: list T1) (l2: list T2) (v: T1),
+    length l1 = length l2 ->
+    dup k l1 = Some (v::l1) ->
+    exists v', dup k l2 = Some (v'::l2).
+Proof.
+  induction k as [|k' IHk'].
+  - intros.
+    unfold dup in H0.
+    destruct ((0 =? 0) || (16 <? 0) || (StackSize <=? length l1)) eqn:E_k.
+    + discriminate.
+    + destruct (nth_error l1 (pred 0)) eqn:E_nth_err.
+      ++ injection H0. intros.
+         pose proof (nth_err_two_lists T1 T2 l1 l2 (pred 0) t H E_nth_err).
+         destruct H2 as [v'].
+         unfold dup. rewrite <- H. rewrite E_k. rewrite H2. exists v'. reflexivity.
+      ++ discriminate.
+  - intros.
+    destruct l1.
+    + unfold dup in H0. simpl in H0.
+      destruct k'.
+      ++ simpl in H0. discriminate.
+      ++ simpl in H0.
+         destruct ((16 <? S (S k')) || false).
+         +++ discriminate.
+         +++ discriminate.
+    + unfold dup in H0.
+      destruct (((S k' =? 0) || (16 <? S k') || (StackSize <=? length (t :: l1)))) eqn:E_len.
+      ++ discriminate.
+      ++ simpl nth_error in H0.
+         destruct (nth_error (t :: l1) k') eqn:E_nth_err.
+         +++ injection H0. intros.
+             pose proof (nth_err_two_lists T1 T2 (t::l1) l2 k' t0 H E_nth_err).
+             destruct H2 as [v'].
+             unfold dup. rewrite <- H. rewrite E_len. simpl. rewrite H2. exists v'. reflexivity.
+         +++ discriminate.
+Qed.
+
+(*
+Search ltb.
+
+Lemma eval_sstack_val_nth:
+  forall (sstk: sstack) (stk stk': stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map),
+    eval_sstack' sstk stk mem strg ctx sb ops = Some stk' ->
+    forall k,
+      k < length sstk ->
+      exists sv v,
+        nth_error sstk k = Some sv /\
+        nth_error stk' k = Some v /\
+        eval_sstack_val sv stk mem strg ctx sb ops = Some v.
+Proof.
+  intros sstk stk stk' mem strg ctx svb ops H_evs'.
+  intros.
+  induction k as [|k' IHk'].
+  - destruct sstk. 
+    + rewrite <- Nat.ltb_lt in H. discriminate H.
+    + destruct stk'.
+      ++ unfold eval_sstack' in H_evs'.
+         apply fold_right_option_len in H_evs'.
+         discriminate H_evs'.
+      ++ unfold eval_sstack' in H_evs'. unfold fold_right_option in H_evs'.
+         destruct (eval_sstack_val s stk mem strg ctx svb ops). 
+    + 
+                              
+    + simpl in H_evs'. injection H_evs' as H_evs'. rewrite <- H_evs'. simpl in H. rewrite <- Nat.ltb_lt in H. discriminate H.
+    + destruct stk'.
+      ++ unfold eval_sstack' in H_evs'. unfold fold_right_option in H_evs'. destruct (eval_sstack_val s stk mem strg ctx svb ops).
+         +++ 
+
+  Lemma dup_elem_smd:
+  forall (sstk: sstack) (stk stk': stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map) (sv: sstack_val) (k: nat),
+    nth_error sstk k = Some sv ->
+    eval_sstack' sstk stk mem strg ctx sb ops = Some stk' ->
+    exists v,
+      nth_error stk' k = Some v /\
+        eval_sstack' (sv::sstk) stk mem strg ctx sb ops = Some (v::stk').
+Proof.
+  intros.
+  *)
+  
 Lemma dup_snd:
   forall k, snd_state_transformer (dup_c k) (dup_s k).       
 Proof.
 Admitted.
+(*
+  intros.
+  unfold snd_state_transformer.
+  intros.
+  apply st_is_instance_of_sst_stk_len in H0.
+  destruct H0.
+  unfold dup_s in H.
+  unfold dup in H.
+  destruct ((k =? 0) || (16 <? k) || (StackSize <=? length (get_stack_sst sst))) eqn:E_dup_s.
+  + discriminate.
+  + destruct (nth_error (get_stack_sst sst) (pred k)) eqn:E_nth_err.
+    2: {discriminate.}.
+    unfold dup_c.
+    unfold dup.
+    rewrite <- H0.
+    rewrite E_dup_s.
+    *)
 
+    
 Lemma swap_snd:
   forall k, snd_state_transformer (swap_c k) (swap_s k).
 Proof.
@@ -657,7 +1002,7 @@ Theorem symbolic_exec_snd:
       length (get_stack_st st) = instk_height -> 
       exists (st': state),
         evm_exec_block_c p st ops = Some st' /\
-          st_is_instance_of_sst st st' sst ops. 
+          st_is_instance_of_sst st st' sst ops. (* st' is an instance of sst wrt the initial state st *)
 Proof.
   intros.
   unfold evm_sym_exec in H.
@@ -670,3 +1015,4 @@ Qed.
 
 
 End SymbolicExecutionSoundness.
+

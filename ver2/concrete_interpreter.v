@@ -135,7 +135,7 @@ None end.
 
 Definition exec_stack_op_intsr_c (label : stack_op_instr) (st : state) (ops : stack_op_instr_map)  : option state :=
   match (ops label) with
-  | OpImp nb_args func _ =>
+  | OpImp nb_args func _ _ =>
       let stk := get_stack_st st in
       match firstn_e nb_args stk with
       | None => None

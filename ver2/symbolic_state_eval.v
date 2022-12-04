@@ -64,7 +64,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
             recursively and then evaluate the corresponding operation *)
             | SymOp label args =>
                 match ops label with
-                | OpImp nargs f _ =>
+                | OpImp nargs f _ _ =>
                      (* first check that the number of argumets agree with what is declared in the map *)
                     if (List.length args =? nargs) then
                       let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' stk mem strg ctx sb' ops in

@@ -242,7 +242,7 @@ Definition eq_memory (mem1 mem2: memory) : Prop :=
   forall w, mem1 w = mem2 w.
 
 Definition eq_storage (strg1 strg2: storage) : Prop :=
-  forall w, strg1 w = strg1 w.
+  forall w, strg1 w = strg2 w.
 
 Definition eq_context (ctx1 ctx2: context) : Prop :=
   ctx1 = ctx2.

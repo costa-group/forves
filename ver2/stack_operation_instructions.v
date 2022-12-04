@@ -26,9 +26,13 @@ this property. *)
 Definition commutative_op (f : context -> list EVMWord -> EVMWord) : Prop :=
   forall (a b : EVMWord) (ctx : context), f ctx [a;b] = f ctx [b;a].
 
+Definition ctx_independent (f : context -> list EVMWord -> EVMWord) : Prop :=
+  forall (l : list EVMWord) (ctx1 ctx2 : context), f ctx1 l = f ctx2 l.
+
+
 (* An implementation of a stack operation instructions *)
 Inductive stack_op_impl :=
-| OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H : option (commutative_op f)).
+| OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H_comm : option (commutative_op f)) (H_ctx_ind: option (ctx_independent f)).
 
 
 
@@ -41,7 +45,7 @@ Definition updatei {A : Type} (m : map stack_op_instr A) (x : stack_op_instr) (v
   fun x' => if x =?i x' then v else m x'.
 
 Notation "x '|->i' v ';' m" := (updatei m x v) (at level 100, v at next level, right associativity).
-Notation "x '|->i' v" := (updatei (empty_imap (OpImp 0 (fun (_:context) (_:list EVMWord) => WZero) None)) x v) (at level 100).
+Notation "x '|->i' v" := (updatei (empty_imap (OpImp 0 (fun (_:context) (_:list EVMWord) => WZero) None None)) x v) (at level 100).
 
 
 
@@ -246,52 +250,52 @@ Definition evm_basefee (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
 Definition evm_stack_opm : stack_op_instr_map :=
-  ADD |->i OpImp 2 evm_add (Some add_comm);
-  MUL |->i OpImp 2 evm_mul None;
-  SUB |->i OpImp 2 evm_sub None;
-  DIV |->i OpImp 2 evm_div None;
-  SDIV |->i OpImp 2 evm_sdiv None;
-  MOD |->i OpImp 2 evm_mod None;
-  SMOD |->i OpImp 2 evm_smod None;
-  ADDMOD |->i OpImp 3 evm_addmod None;
-  MULMOD |->i  OpImp 3 evm_mulmod None;
-  EXP |->i OpImp 2 evm_exp None;
-  SIGNEXTEND  |->i OpImp 2 evm_signextend None;
-  LT |->i OpImp 2 evm_lt None;
-  GT  |->i OpImp 2 evm_gt None;
-  SLT |->i OpImp 2 evm_slt None;
-  SGT |->i  OpImp 2 evm_sgt None;
-  EQ |->i OpImp 2 evm_eq None;
-  ISZERO |->i OpImp  1 evm_iszero None;
-  AND |->i OpImp 2 evm_and None;
-  OR |->i OpImp 2  evm_or None;
-  XOR |->i OpImp 2 evm_xor None;
-  NOT |->i OpImp 1 evm_not  None;
-  BYTE |->i OpImp 2 evm_byte None;
-  SHL |->i OpImp 2 evm_shl  None;
-  SHR |->i OpImp 2 evm_shr None;
-  SAR |->i OpImp 2 evm_sar None;
-  ADDRESS |->i OpImp 0 evm_address None;
-  BALANCE |->i OpImp 1  evm_balance None;
-  ORIGIN |->i OpImp 0 evm_origin None;
-  CALLER |->i  OpImp 0 evm_caller None;
-  CALLVALUE |->i OpImp 0 evm_callvalue None;
-  CALLDATALOAD |->i OpImp 1 evm_calldataload None;
-  CALLDATASIZE |->i  OpImp 0 evm_calldatasize None;
-  CODESIZE |->i OpImp 0 evm_codesize  None;
-  GASPRICE |->i OpImp 0 evm_gasprice None;
-  EXTCODESIZE |->i  OpImp 1 evm_extcodesize None;
-  RETURNDATASIZE |->i OpImp 0  evm_returndatasize None;
-  EXTCODEHASH |->i OpImp 1 evm_extcodehash  None;
-  BLOCKHASH |->i OpImp 1 evm_blockhash None;
-  COINBASE |->i OpImp  0 evm_coinbase None;
-  TIMESTAMP |->i OpImp 0 evm_timestamp None;
-  NUMBER |->i OpImp 0 evm_number None;
-  DIFFICULTY |->i OpImp 0  evm_difficulty None;
-  GASLIMIT |->i OpImp 0 evm_gaslimit None;
-  CHAINID |->i OpImp 0 evm_chainid None;
-  SELFBALANCE |->i OpImp 0  evm_selfbalance None;
-  BASEFEE |->i OpImp 0 evm_basefee None.
+  ADD |->i OpImp 2 evm_add (Some add_comm) None;
+  MUL |->i OpImp 2 evm_mul None None;
+  SUB |->i OpImp 2 evm_sub None None;
+  DIV |->i OpImp 2 evm_div None None;
+  SDIV |->i OpImp 2 evm_sdiv None None;
+  MOD |->i OpImp 2 evm_mod None None;
+  SMOD |->i OpImp 2 evm_smod None None;
+  ADDMOD |->i OpImp 3 evm_addmod None None;
+  MULMOD |->i  OpImp 3 evm_mulmod None None;
+  EXP |->i OpImp 2 evm_exp None None;
+  SIGNEXTEND  |->i OpImp 2 evm_signextend None None;
+  LT |->i OpImp 2 evm_lt None None;
+  GT  |->i OpImp 2 evm_gt None None;
+  SLT |->i OpImp 2 evm_slt None None;
+  SGT |->i  OpImp 2 evm_sgt None None;
+  EQ |->i OpImp 2 evm_eq None None;
+  ISZERO |->i OpImp  1 evm_iszero None None;
+  AND |->i OpImp 2 evm_and None None;
+  OR |->i OpImp 2  evm_or None None;
+  XOR |->i OpImp 2 evm_xor None None;
+  NOT |->i OpImp 1 evm_not  None None;
+  BYTE |->i OpImp 2 evm_byte None None;
+  SHL |->i OpImp 2 evm_shl  None None;
+  SHR |->i OpImp 2 evm_shr None None;
+  SAR |->i OpImp 2 evm_sar None None;
+  ADDRESS |->i OpImp 0 evm_address None None;
+  BALANCE |->i OpImp 1  evm_balance None None;
+  ORIGIN |->i OpImp 0 evm_origin None None;
+  CALLER |->i  OpImp 0 evm_caller None None;
+  CALLVALUE |->i OpImp 0 evm_callvalue None None;
+  CALLDATALOAD |->i OpImp 1 evm_calldataload None None;
+  CALLDATASIZE |->i  OpImp 0 evm_calldatasize None None;
+  CODESIZE |->i OpImp 0 evm_codesize  None None;
+  GASPRICE |->i OpImp 0 evm_gasprice None None;
+  EXTCODESIZE |->i  OpImp 1 evm_extcodesize None None;
+  RETURNDATASIZE |->i OpImp 0  evm_returndatasize None None;
+  EXTCODEHASH |->i OpImp 1 evm_extcodehash  None None;
+  BLOCKHASH |->i OpImp 1 evm_blockhash None None;
+  COINBASE |->i OpImp  0 evm_coinbase None None;
+  TIMESTAMP |->i OpImp 0 evm_timestamp None None;
+  NUMBER |->i OpImp 0 evm_number None None;
+  DIFFICULTY |->i OpImp 0  evm_difficulty None None;
+  GASLIMIT |->i OpImp 0 evm_gaslimit None None;
+  CHAINID |->i OpImp 0 evm_chainid None None;
+  SELFBALANCE |->i OpImp 0  evm_selfbalance None None;
+  BASEFEE |->i OpImp 0 evm_basefee None None.
  
 
 
