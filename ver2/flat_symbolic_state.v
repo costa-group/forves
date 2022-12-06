@@ -33,6 +33,7 @@ Inductive sexpr : Type :=
 | SExpr_Val (val: EVMWord)
 | SExpr_InStkVar (var : nat)
 | SExpr_Op (label : stack_op_instr) (args : list sexpr)
+| SExpr_PUSHTAG (v: N)
 | SExpr_MLOAD (offset: sexpr) (smem : memory_updates sexpr)
 | SExpr_SLOAD (key: sexpr) (sstrg : storage_updates sexpr)
 | SExpr_SHA3 (offset: sexpr) (size: sexpr) (smem : memory_updates sexpr).
@@ -85,6 +86,7 @@ Fixpoint bindings_to_flat_bindings'' (sv: sstack_val) (flat_sb:  list (nat*sexpr
 Definition bindings_to_flat_bindings' (sv : smap_value) (flat_sb:  list (nat*sexpr)) : option sexpr :=
     match sv with
     | SymBasicVal sv' => bindings_to_flat_bindings'' sv' flat_sb
+    | SymPUSHTAG v => Some (SExpr_PUSHTAG v)
     | SymOp label args =>
         let f_eval_list := fun (sv': sstack_val) => bindings_to_flat_bindings'' sv' flat_sb  in
         match fold_right_option f_eval_list args with

@@ -1,5 +1,6 @@
 Require Import bbv.Word.
 Require Import Nat.
+Require Import Coq.NArith.NArith.
 
 Require Import FORVES.constants.
 Import Constants.
@@ -50,13 +51,14 @@ Definition empty_scontext : scontext := SymCtx.
 
 Inductive smap_value : Type :=
 | SymBasicVal (val: sstack_val)
+| SymPUSHTAG (val: N)
 | SymOp (label : stack_op_instr) (args : list sstack_val)
 | SymMLOAD (offset: sstack_val) (smem : smemory)
 | SymSLOAD (key: sstack_val) (sstrg : sstorage)
 | SymSHA3 (offset: sstack_val) (size: sstack_val) (smem : smemory).
 
 Definition sbindings : Type := list (nat*smap_value).
-Inductive smap := SymMap (maxid : nat) (map: sbindings).
+Inductive smap := SymMap (maxid : nat) (bindings: sbindings).
 Definition empty_smap : smap := SymMap 0 [].
 
 Inductive sstate :=
@@ -161,5 +163,32 @@ Definition find_in_smap (key : nat) (sm : smap) : option smap_value :=
   | SymMap maxid map => find_in_smap' key map
   end.
 
-       
+
+(* Facts *)
+
+Lemma instk_height_preserved_when_updating_stack_sst:
+  forall sst sstk,
+    get_instk_height_sst (set_stack_sst sst sstk) = get_instk_height_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma smap_preserved_when_updating_stack_sst:
+  forall sst sstk,
+    get_smap_sst (set_stack_sst sst sstk) = get_smap_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma set_and_then_get_stack_sst:
+  forall sst sstk,
+    get_stack_sst (set_stack_sst sst sstk) = sstk.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+
 End SymbolicState.

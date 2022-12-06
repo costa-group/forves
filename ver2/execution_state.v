@@ -70,7 +70,7 @@ Ctx
   (chainid : EVMWord)
   (basefee : EVMWord)
   (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord)
-  (_extra_1 : nat)
+  (tags : N -> EVMWord )
   (_extra_2 : nat)
   (_extra_3 : nat)
   (_extra_4 : nat)
@@ -95,7 +95,7 @@ Definition empty_context : context :=
   WZero (* (chainid : EVMWord) *)
   WZero (* (basefee : EVMWord) *)
   (fun _ _ _ => WZero) (* (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord) *)
-  0 (* (_extra_1 : nat) *)
+  (fun v => (NToWord EVMWordSize v)) (* tags: N -> EVMWord *)
   0 (* (_extra_2 : nat) *)
   0 (* (_extra_3 : nat) *)
   0 (* (_extra_4 : nat) *)
@@ -183,6 +183,10 @@ Definition get_keccak256_ctx (c : context) :=
   | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ => x
   end.
 
+Definition get_tags_ctx (c : context) :=
+  match c with
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ => x
+  end.
 
 
 Inductive state :=
@@ -235,32 +239,77 @@ Definition set_context_st (st: state) (ctx: context) : state :=
   
 
 
-Definition eq_stack (stk1 stk2: stack) : Prop :=
-  stk1 = stk2.
 
-Definition eq_memory (mem1 mem2: memory) : Prop :=
-  forall w, mem1 w = mem2 w.
+(* When two state are equivalent. It is not simply equivalent of terms
+because memory and storage are functions, so we need functional
+equivalence as well *)
 
-Definition eq_storage (strg1 strg2: storage) : Prop :=
-  forall w, strg1 w = strg2 w.
+Definition eq_stack (stk1 stk2: stack) : Prop := stk1 = stk2.
 
-Definition eq_context (ctx1 ctx2: context) : Prop :=
-  ctx1 = ctx2.
+Definition eq_memory (mem1 mem2: memory) : Prop := forall w, mem1 w =
+  mem2 w.
+
+Definition eq_storage (strg1 strg2: storage) : Prop := forall w, strg1
+  w = strg2 w.
+
+Definition eq_context (ctx1 ctx2: context) : Prop := ctx1 = ctx2.
+
+(*
+Definition eq_execution_states (st1 st2: state) : Prop :=
+
+  forall stk1 stk2 mem1 mem2 strg1 strg2 ctx1 ctx2,
+    (stk1 = get_stack_st st1) ->
+    (stk2 = get_stack_st st2) -> (mem1 = get_memory_st st1) ->
+    (mem2 = get_memory_st st2) -> (strg1 = get_storage_st st1) ->
+    (strg2 = get_storage_st st2) -> (ctx1 = get_context_st st1) ->
+    (ctx2 = get_context_st st2) ->
+    
+    eq_stack stk1 stk2 /\ eq_memory mem1 mem2 /\ eq_storage strg1 strg2 /\ eq_context ctx1 ctx2.
+*)
+
 
 Definition eq_execution_states (st1 st2: state) : Prop :=
-  forall stk1 stk2 mem1 mem2 strg1 strg2 ctx1 ctx2,
-  (stk1 = get_stack_st st1) ->
-  (stk2 = get_stack_st st2) ->
-  (mem1 = get_memory_st st1) ->
-  (mem2 = get_memory_st st2) ->
-  (strg1 = get_storage_st st1) ->
-  (strg2 = get_storage_st st2) ->
-  (ctx1 = get_context_st st1) ->
-  (ctx2 = get_context_st st2) ->
-    eq_stack stk1 stk2 /\
-    eq_memory mem1 mem2 /\
-    eq_storage strg1 strg2 /\
-    eq_context ctx1 ctx2.
+    
+    eq_stack (get_stack_st st1) (get_stack_st st2) /\
+      eq_memory (get_memory_st st1) (get_memory_st st2) /\
+      eq_storage (get_storage_st st1) (get_storage_st st2) /\
+      eq_context (get_context_st st1) (get_context_st st2).
+
+
+(* Facts *)
+
+
+Lemma memory_preserved_when_updating_stack_st:
+  forall st stk,
+    get_memory_st (set_stack_st st stk) = get_memory_st st.
+Proof.
+  destruct st.
+  reflexivity.
+Qed.
+
+Lemma storage_preserved_when_updating_stack_st:
+  forall st stk,
+    get_storage_st (set_stack_st st stk) = get_storage_st st.
+Proof.
+  destruct st.
+  reflexivity.
+Qed.
+
+Lemma context_preserved_when_updating_stack_st:
+  forall st stk,
+    get_context_st (set_stack_st st stk) = get_context_st st.
+Proof.
+  destruct st.
+  reflexivity.
+Qed.
+
+Lemma set_and_then_get_stack_st:
+  forall st stk,
+    get_stack_st (set_stack_st st stk) = stk.
+Proof.
+  destruct st.
+  reflexivity.
+Qed.
 
 End ExecutionState.
 

@@ -123,6 +123,7 @@ stack operation instructions above.
 
 Inductive instr :=
 | PUSH (size : nat) (v: N)
+| PUSHTAG (v: N)
 | POP
 | DUP (pos: nat)
 | SWAP (pos: nat)

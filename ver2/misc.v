@@ -129,7 +129,7 @@ Proof.
       ++ discriminate H_fold_r_cons.
     + discriminate H_fold_r_cons.
 Qed.
-
+  
 (* when fold_right_option succeeds on v::l1 and results in v::l2, and
 l2 is the result of applying fold_right_option on l1.
 *)
@@ -189,5 +189,29 @@ Proof.
          apply IH.
 Qed.
 
+
+
+Lemma pop_succ_len:
+  forall (A: Type) (stk: list A) (stk': list A),
+    pop stk = Some stk' -> length stk > 0.
+Proof.
+  intros A stk stk' H_pop.
+  unfold pop in H_pop.
+  destruct stk.
+  + discriminate.
+  + simpl.
+    apply gt_Sn_O.
+Qed.
+
+Lemma pop_fail:
+  forall (A: Type) (stk: list A),
+    pop stk = None -> stk = [].
+Proof.
+  intros A stk H_pop.
+  unfold pop in H_pop.
+  destruct stk.
+  + reflexivity.
+  + discriminate.
+Qed.
 
 End Misc.
