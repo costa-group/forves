@@ -213,10 +213,8 @@ Proof.
   unfold eval_sstate in H_eval_sst.
   unfold eval_sstack in H_eval_sst.
   destruct (get_smap_sst sst) as [maxid sb] eqn:E_smap_sst.
-  destruct (length (get_stack_st st) =? get_instk_height_sst sst) eqn:E_len.
-  2: {discriminate.}. (* the case of false leads to false assumption *)
-  destruct (eval_sstack' (get_stack_sst sst) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sb ops) as [stk|] eqn:E_eval_sstack'.
-  2: {discriminate.}. (* the case of None leads to false assumption *)
+  destruct (length (get_stack_st st) =? get_instk_height_sst sst) eqn:E_len; try discriminate.
+  destruct (eval_sstack' (get_stack_sst sst) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sb ops) as [stk|] eqn:E_eval_sstack'; try discriminate.
   unfold eval_sstate.
   unfold eval_sstack.
   rewrite instk_height_preserved_when_updating_stack_sst.
@@ -230,11 +228,9 @@ Proof.
   rewrite <- eval_smemory_preserved_when_sstack_changed.
   rewrite <- eval_sstorage_preserved_when_sstack_changed.
 
-  destruct (eval_smemory (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sst ops).
-  2: {discriminate.}.
+  destruct (eval_smemory (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sst ops); try discriminate.
 
-  destruct (eval_sstorage (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sst ops).
-  2: {discriminate.}.
+  destruct (eval_sstorage (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) sst ops); try discriminate.
 
   injection H_eval_sst as H_st'. (* get the value of st' *)
   rewrite <- H_st'. simpl.
@@ -259,20 +255,16 @@ Proof.
   destruct H_inst as [H_inst_l H_inst_r].
   unfold eval_sstate in H_inst_l.
   unfold eval_sstack in H_inst_l.
-  destruct (length (get_stack_st init_st) =? get_instk_height_sst sst) eqn:E_len.
-  2: {discriminate.}.
+  destruct (length (get_stack_st init_st) =? get_instk_height_sst sst) eqn:E_len; try discriminate.
   destruct (get_smap_sst sst) as [maxid sb] eqn:E_smap.
   apply beq_nat_true in E_len.
 
   destruct (eval_sstack' (get_stack_sst sst) (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) 
-              (get_context_st init_st) sb ops) as [stk|] eqn:E_eval_sstack'.
-  2: {discriminate.}.
+              (get_context_st init_st) sb ops) as [stk|] eqn:E_eval_sstack'; try discriminate.
 
-  destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) as [mem|]  eqn:E_eval_smemory.
-  2: {discriminate.}.
+  destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) as [mem|]  eqn:E_eval_smemory; try discriminate.
 
-  destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) as [strg|]  eqn:E_eval_sstorage.
-  2: {discriminate.}.
+  destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) as [strg|]  eqn:E_eval_sstorage; try discriminate.
   split.
   + apply eval_sstack'_len in E_eval_sstack'.
     rewrite E_eval_sstack'.

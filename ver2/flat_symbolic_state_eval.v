@@ -57,7 +57,7 @@ Fixpoint eval_sexpr (fsv : sexpr) (st: state) (ops : stack_op_instr_map) : optio
       end
   | SExpr_Op label args  =>
       match ops label with
-      | OpImp nargs f _ =>
+      | OpImp nargs f _ _ =>
           (* first check that the number of argumets agree with what is declared in the map *)
           if (List.length args =? nargs) then
             let f_eval_list := fun (fsv': sexpr) => eval_sexpr fsv' st ops in
