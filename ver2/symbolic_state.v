@@ -164,7 +164,96 @@ Definition find_in_smap (key : nat) (sm : smap) : option smap_value :=
   end.
 
 
+(* MaxID is > any fresh variable in the map *)
+Fixpoint fresh_var_gt_map (idx: nat) (map: sbindings) : Prop :=
+match map with 
+| nil => True
+| (k,v)::t => idx > k /\ fresh_var_gt_map idx t
+end.
+
+(* Fresh variables in a map are strictly decreasing *)
+Fixpoint strictly_decreasing_map (a: sbindings) : Prop :=
+match a with
+| [] => True
+| (var1, e1)::t1 => match t1 with 
+                    | [] => True
+                    | (var2, e2)::t2 => var1 > var2 /\ 
+                                        strictly_decreasing_map t1
+                    end
+end.
+
+Definition valid_sstate (sst: sstate) : Prop :=
+match sst with 
+| SymExState _ _ _ _ _ (SymMap maxid m) =>
+    (fresh_var_gt_map maxid m) /\
+      (strictly_decreasing_map m)
+end.
+
 (* Facts *)
+
+
+Lemma fresh_var_gt_map_maxid_S:
+  forall  sm maxid,
+    fresh_var_gt_map maxid sm ->
+    fresh_var_gt_map (S maxid) sm.
+Proof.
+  induction sm as [|v sm' IHsm'].
+  - auto.
+  - intros.
+    unfold fresh_var_gt_map in H.
+    fold fresh_var_gt_map in H.
+    destruct v as [k kvalue].
+    destruct H.
+    unfold fresh_var_gt_map.
+    fold fresh_var_gt_map.
+    split.
+    + auto.
+    + apply IHsm'.
+      apply H0.
+Qed.
+
+Lemma valid_empty_sstate:
+  forall k, valid_sstate (gen_empty_sstate k).
+Proof.
+  intro.
+  simpl valid_sstate.  
+  auto.
+Qed.
+    
+Lemma add_to_map_valid_sstate:
+  forall sst key sm value,
+    valid_sstate sst ->
+    (key,sm) = add_to_smap (get_smap_sst sst) value ->
+    valid_sstate (set_smap_sst sst sm).
+Proof.
+  intros sst key sm value H_valid_sst H_add_to_smap.
+  unfold valid_sstate.
+  unfold valid_sstate in H_valid_sst.
+  destruct sst as [instk_height sstk smem sstrg ctx sm'].
+  destruct sm' as [maxid' m'].
+  destruct H_valid_sst as [H_valid_sst_l H_valid_sst_r].
+  simpl in  H_add_to_smap.
+  injection H_add_to_smap as _ H_add_to_smap.
+  simpl.
+  destruct sm as [maxid m].
+  injection H_add_to_smap as H_add_to_smap_maxid H_add_to_smap_maxid_map.
+  rewrite H_add_to_smap_maxid_map.
+  split.
+  - simpl.
+    split.
+    + rewrite H_add_to_smap_maxid.
+      apply Gt.gt_Sn_n.
+    + rewrite H_add_to_smap_maxid.
+      apply fresh_var_gt_map_maxid_S.
+      apply H_valid_sst_l.
+  - unfold strictly_decreasing_map.
+    fold strictly_decreasing_map.
+    destruct m'.
+    + auto.
+    + destruct p.
+      unfold fresh_var_gt_map in H_valid_sst_l.
+      intuition.
+Qed.
 
 Lemma instk_height_preserved_when_updating_stack_sst:
   forall sst sstk,

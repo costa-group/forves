@@ -301,7 +301,7 @@ Proof.
     ++ discriminate.
     ++ repeat (rewrite <- app_comm_cons in H_fldr).
        unfold fold_right_option in H_fldr.
-       destruct (f v) eqn:E_f_v.
+       destruct (f v) eqn:E_f_v. 
        2: discriminate.
        rewrite <- fold_right_option_ho in H_fldr.
        destruct (fold_right_option f (l1' ++ l2 ++ l3 ++ l4)) eqn:E_fldr2.
@@ -312,7 +312,8 @@ Proof.
        injection H_len_l1 as H_len_l1'.
        pose proof (IHl1' l2 l3 l4 rl1' rl2 rl3 rl4 H_len_l1' H_len_l2 H_len_l3 H_len_l4 E_fldr2) as E_fldr3.
        assert ( length (l2++l1'++l4) = length(rl2 ++ rl1' ++ rl4) ).
-         (* proof of the assert *)
+       
+       (* proof of the assert *)
          pose proof (app_length l2 (l1'++l4)).
          pose proof (app_length l1' l4).
          rewrite H0 in H.
@@ -324,8 +325,8 @@ Proof.
          rewrite H_len_l2.
          rewrite H_len_l1'.
          rewrite H_len_l4.
-         reflexivity.
-         (* end proof of assert *)
+         reflexivity.        
+       (* end proof of assert *)
          
        pose proof (fold_right_option_app2 A B f l3 (l2++l1'++l4) rl3 (rl2++rl1'++rl4) H_len_l3 H E_fldr3) as [H_fldr4 H_fldr5].
        assert ( length (l1'++l4) = length(rl1' ++ rl4) ).

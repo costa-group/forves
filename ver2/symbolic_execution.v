@@ -74,8 +74,8 @@ Definition mload_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
       match add_to_smap sm sv with
       | pair key sm' =>
           let sst' := set_stack_sst sst ((FreshVar key)::sstk) in
-          let sst'' := set_smap_sst sst sm' in
-          Some sst'
+          let sst'' := set_smap_sst sst' sm' in
+          Some sst''
       end
   | _ => None
   end.
@@ -89,8 +89,8 @@ Definition sload_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
       match add_to_smap sm sv with
       | pair key sm' =>
           let sst' := set_stack_sst sst ((FreshVar key)::sstk) in
-          let sst'' := set_smap_sst sst sm' in
-          Some sst'
+          let sst'' := set_smap_sst sst' sm' in
+          Some sst''
       end
   | _ => None
   end.
@@ -104,8 +104,8 @@ Definition sha3_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
       match add_to_smap sm sv with
       | pair key sm' =>
           let sst' := set_stack_sst sst ((FreshVar key)::sstk) in
-          let sst'' := set_smap_sst sst sm' in
-          Some sst'
+          let sst'' := set_smap_sst sst' sm' in
+          Some sst''
       end
   | _ => None end.
 
@@ -115,9 +115,9 @@ Definition mstore8_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | offset::value::sstk =>
       let smem := get_memory_sst sst in
-      let st' := set_memory_sst sst ((U_MSTORE8 sstack_val offset value)::smem) in
-      let st'' := set_stack_sst sst sstk in
-      Some st''
+      let sst' := set_memory_sst sst ((U_MSTORE8 sstack_val offset value)::smem) in
+      let sst'' := set_stack_sst sst sstk in
+      Some sst''
   | _ => None
   end.
       
@@ -125,9 +125,9 @@ Definition mstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | offset::value::sstk =>
       let smem := get_memory_sst sst in
-      let st' := set_memory_sst sst ((U_MSTORE sstack_val offset value)::smem) in
-      let st'' := set_stack_sst sst sstk in
-      Some st''
+      let sst' := set_memory_sst sst ((U_MSTORE sstack_val offset value)::smem) in
+      let sst'' := set_stack_sst sst' sstk in
+      Some sst''
   | _ => None
   end.
 
@@ -135,9 +135,9 @@ Definition sstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
   | key::value::sstk =>
       let sstrg := get_storage_sst sst in
-      let st' := set_storage_sst sst ((U_SSTORE sstack_val key value)::sstrg) in
-      let st'' := set_stack_sst sst sstk in
-      Some st''
+      let sst' := set_storage_sst sst ((U_SSTORE sstack_val key value)::sstrg) in
+      let sst'' := set_stack_sst sst' sstk in
+      Some sst''
   | _ => None
   end.
 
