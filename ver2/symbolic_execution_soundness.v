@@ -180,6 +180,15 @@ Proof.
   reflexivity.
 Qed.
 
+(* changing the symbolic stack does not affect eval_smemory *)
+Lemma eval_smemory_preserved_when_smap_extended:
+  forall (init_st st: state) (sst: sstate) (key: nat) (mv: smap_value) (m: smap) (ops: stack_op_instr_map),
+    st_is_instance_of_sst init_st st sst ops ->
+    (key,m) = add_to_smap (get_smap_sst sst) mv ->
+    st_is_instance_of_sst init_st st (set_smap_sst sst m) ops.
+Proof.
+Admitted.
+
 (* changing the symbolic stack does not affect eval_sstorage *)
 Lemma eval_sstorage_preserved_when_sstack_changed:
   forall stk mem strg ctx sst sstk,
@@ -275,7 +284,27 @@ Proof.
   + apply E_len.
 Qed.
   
-
+Lemma push_valid_sst:
+  forall sst sst' w ops,
+    valid_sstate sst ->
+    push_s w sst ops = Some sst' ->
+    valid_sstate sst'.
+Proof.
+  intros sst sst' w ops H_valid_sst H_push_s.
+  unfold push_s in H_push_s.
+  destruct (push (Val w) (get_stack_sst sst)) eqn:E_push.
+  2: discriminate.
+  injection H_push_s as H_push_s.
+  destruct sst.
+  destruct sst'.
+  unfold valid_sstate in H_valid_sst.
+  unfold valid_sstate.
+  simpl in H_push_s.
+  injection H_push_s as _ _ _ _ _ H_sm_sm0.
+  rewrite <- H_sm_sm0.
+  apply H_valid_sst.
+Qed.
+  
 (* push_s is a sound symbolic transformer *)
 Lemma push_snd:
   forall w, snd_state_transformer (push_c w) (push_s w).
@@ -316,6 +345,27 @@ Lemma pushtag_snd:
   forall v, snd_state_transformer (pushtag_c v) (pushtag_s v).
 Proof.
 Admitted.
+
+Lemma pop_valid_sst:
+  forall sst sst' ops,
+    valid_sstate sst ->
+    pop_s sst ops = Some sst' ->
+    valid_sstate sst'.
+Proof.
+  intros sst sst' ops H_valid_sst H_pop_s.
+  unfold pop_s in H_pop_s.
+  destruct (pop (get_stack_sst sst)) eqn:E_pop.
+  2: discriminate.
+  injection H_pop_s as H_pop_s.
+  destruct sst.
+  destruct sst'.
+  unfold valid_sstate in H_valid_sst.
+  unfold valid_sstate.
+  simpl in H_pop_s.
+  injection H_pop_s as _ _ _ _ _ H_sm_sm0.
+  rewrite <- H_sm_sm0.
+  apply H_valid_sst.
+Qed.
 
 Lemma pop_succ:
   forall init_st st sst ops l,
@@ -888,8 +938,30 @@ Proof.
     ++ exists (set_stack_st st (f (get_context_st st) l1 :: l2)).
        split.
        reflexivity.
-       Admitted.
-
+       unfold st_is_instance_of_sst.
+       exists (set_stack_st st (f (get_context_st st) l1 :: l2)).
+       split.
+       2: apply eq_execution_states_refl.
+       unfold eval_sstate.
+       unfold st_is_instance_of_sst in H0.
+       destruct H0 as [st'].
+       destruct H0.
+       unfold eval_sstate in H0.
+       destruct (eval_sstack (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st)
+                   (get_context_st init_st) sst ops) eqn:E_eval_sstack.
+       2: discriminate.
+       destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st)
+                   (get_context_st init_st) sst ops) eqn:E_mem.
+       2: discriminate.
+       destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st)
+                   (get_context_st init_st) sst ops) eqn:E_strg.
+       2: discriminate.
+       injection H as H.
+       rewrite <- H.
+       pose proof (
+       rewrite <- 
+    ++ (* discriminate becuase the symbolic stack has same length and succeeds *)
+  + (* discriminate becuase the symbolic stack has same length and succeeds *)
   
 Lemma evm_exec_instr_snd:
   forall (i : instr),
