@@ -143,7 +143,7 @@ Definition sstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
 
 Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | OpImp nb_args func _ _ =>
+  | OpImp nb_args _ _ _ =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>
@@ -152,7 +152,7 @@ Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : 
           match add_to_smap sm v with
           | pair key sm' =>
               let sst' := set_stack_sst sst ((FreshVar key)::s2) in
-              let sst'' := set_smap_sst sst sm' in
+              let sst'' := set_smap_sst sst' sm' in
               Some sst''
           end
       | _, _ => None

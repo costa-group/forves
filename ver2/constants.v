@@ -6,7 +6,7 @@ Module Constants.
 (* Byte *)
 Definition EVMByteSize: nat := 8. 
 Definition EVMByte := word EVMByteSize. 
-
+ 
 (* Word *)
 Definition BytesInEVMWord: nat := 32. 
 Definition EVMWordSize: nat := BytesInEVMWord*EVMByteSize. 

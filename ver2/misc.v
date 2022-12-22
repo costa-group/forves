@@ -189,6 +189,171 @@ Proof.
          apply IH.
 Qed.
 
+Lemma fold_right_option_app:
+  forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl1 rl2: list B),
+    fold_right_option f l1 = Some rl1 ->
+    fold_right_option f l2 = Some rl2 ->
+    fold_right_option f (l1++l2) = Some (rl1++rl2).
+Proof.
+  intros A B f.
+  induction l1 as [|v l1' IHl1'].
+  - intros.
+    simpl in H.
+    injection H as H.
+    rewrite <- H.
+    simpl.
+    apply H0.
+  - intros.
+    destruct rl1.
+    + apply fold_right_option_len in H. discriminate.
+    + apply fold_right_option_hd in H.
+      destruct H.
+      pose proof (IHl1' l2 rl1 rl2 H1 H0).
+      simpl.
+      rewrite H. rewrite H2. reflexivity.
+Qed.
+
+Lemma fold_right_option_singleton:
+  forall A B (f: A -> option B) (v: A) (e: B),
+    f v = Some e ->
+    fold_right_option f [v] = Some [e].
+Proof.
+  intros.
+  unfold fold_right_option.
+  rewrite H.
+  reflexivity.
+Qed.
+
+
+Lemma fold_right_option_app2:
+  forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl1 rl2: list B),
+    length l1 = length rl1 ->
+    length l2 = length rl2 ->
+    fold_right_option f (l1++l2) = Some (rl1++rl2) ->
+    fold_right_option f l1 = Some rl1 /\ fold_right_option f l2 = Some rl2.
+Proof.
+  intros A B f.
+  induction l1 as [|v l1' IHl1'].
+  - intros.
+    destruct rl1.
+    + unfold app in H1.
+      split. reflexivity. apply H1.
+    + discriminate.
+  - intros.
+    destruct rl1 as [|v' rl1'] eqn:E_rl1.
+    discriminate.
+    simpl app in H1.
+    simpl in H.
+    injection H as H.
+    apply fold_right_option_hd in H1 as [H2 H3].
+    pose proof (IHl1' l2 rl1' rl2 H H0 H3) as [H4 H5].
+    split.
+    + unfold fold_right_option.
+      rewrite <- fold_right_option_ho.
+      rewrite H2.
+      rewrite H4.
+      reflexivity.
+    + apply H5.
+Qed.
+    
+
+Lemma fold_right_option_swap:
+  forall (A B: Type) (f: A->option B) (l1 l2 l3 l4: list A) (rl1 rl2 rl3 rl4: list B),
+    length l1 = length rl1 ->
+    length l2 = length rl2 ->
+    length l3 = length rl3 ->
+    length l4 = length rl4 ->
+    fold_right_option f (l1++l2++l3++l4) = Some (rl1++rl2++rl3++rl4) ->
+    fold_right_option f (l3++l2++l1++l4) = Some (rl3++rl2++rl1++rl4).
+Proof.
+  intros A B f.
+  induction l1 as [|v l1' IHl1'].
+  + intros l2 l3 l4 rl1 rl2 rl3 rl4 H_len_l1 H_len_l2 H_len_l3 H_len_l4 H_fldr.
+    destruct rl1.
+    2: discriminate.
+    unfold app in H_fldr at 1.
+    unfold app in H_fldr at 3.
+    unfold app at 3.
+    unfold app at 5.
+
+    assert (length (l3++l4) = length (rl3++rl4) ).
+     (* proof of the assert *)
+     pose proof (app_length l3 l4).
+     pose proof (app_length rl3 rl4).
+     rewrite H.
+     rewrite H0.
+     rewrite H_len_l3.
+     rewrite H_len_l4.
+     reflexivity.
+     (* end proof of assert *)
+    pose proof (fold_right_option_app2 A B f l2 (l3++l4) rl2 (rl3++rl4) H_len_l2 H H_fldr).
+    destruct H0.
+    pose proof (fold_right_option_app2 A B f l3 l4 rl3 rl4 H_len_l3 H_len_l4 H1).
+    destruct H2.
+    
+    
+    ++ apply fold_right_option_app.
+       +++ apply H2.
+       +++ apply fold_right_option_app. apply H0. apply H3.
+           
+  + intros l2 l3 l4 rl1 rl2 rl3 rl4 H_len_l1 H_len_l2 H_len_l3 H_len_l4 H_fldr.
+    destruct rl1 as [|v3 rl1'].
+    ++ discriminate.
+    ++ repeat (rewrite <- app_comm_cons in H_fldr).
+       unfold fold_right_option in H_fldr.
+       destruct (f v) eqn:E_f_v.
+       2: discriminate.
+       rewrite <- fold_right_option_ho in H_fldr.
+       destruct (fold_right_option f (l1' ++ l2 ++ l3 ++ l4)) eqn:E_fldr2.
+       2: discriminate.
+       injection H_fldr as H_b H_l.
+       rewrite H_l in E_fldr2.
+       simpl in H_len_l1.
+       injection H_len_l1 as H_len_l1'.
+       pose proof (IHl1' l2 l3 l4 rl1' rl2 rl3 rl4 H_len_l1' H_len_l2 H_len_l3 H_len_l4 E_fldr2) as E_fldr3.
+       assert ( length (l2++l1'++l4) = length(rl2 ++ rl1' ++ rl4) ).
+         (* proof of the assert *)
+         pose proof (app_length l2 (l1'++l4)).
+         pose proof (app_length l1' l4).
+         rewrite H0 in H.
+         pose proof (app_length rl2 (rl1'++rl4)).
+         pose proof (app_length rl1' rl4).
+         rewrite H2 in H1.
+         rewrite H.
+         rewrite H1.
+         rewrite H_len_l2.
+         rewrite H_len_l1'.
+         rewrite H_len_l4.
+         reflexivity.
+         (* end proof of assert *)
+         
+       pose proof (fold_right_option_app2 A B f l3 (l2++l1'++l4) rl3 (rl2++rl1'++rl4) H_len_l3 H E_fldr3) as [H_fldr4 H_fldr5].
+       assert ( length (l1'++l4) = length(rl1' ++ rl4) ).
+         (* proof of the assert *)
+         pose proof (app_length l1' l4).
+         pose proof (app_length rl1' rl4).
+         rewrite H0.
+         rewrite H1.
+         rewrite H_len_l1'.
+         rewrite H_len_l4.
+         reflexivity.
+         (* end proof of assert *)
+       pose proof (fold_right_option_app2 A B f l2 (l1'++l4) rl2 (rl1'++rl4) H_len_l2 H0 H_fldr5) as [H_fldr6 H_fldr7].
+       pose proof (fold_right_option_app2 A B f l1' l4 rl1' rl4 H_len_l1' H_len_l4 H_fldr7) as [H_fldr8 H_flr9].
+       
+       apply fold_right_option_app.
+       +++ apply H_fldr4.
+       +++ apply fold_right_option_app.
+           ++++ apply H_fldr6.
+           ++++ apply fold_right_option_app.
+                +++++ unfold fold_right_option.
+                rewrite <- fold_right_option_ho.
+                rewrite E_f_v.
+                rewrite  H_fldr8.
+                rewrite H_b.
+                reflexivity.
+                +++++ apply   H_flr9 .
+Qed.
 
 
 Lemma pop_succ_len:
@@ -213,5 +378,104 @@ Proof.
   + reflexivity.
   + discriminate.
 Qed.
+
+Search app.
+Lemma skipn_nth:
+  forall (A: Type)  (l: list A) (k: nat) (v: A),
+    nth_error l k = Some v ->
+    l = (firstn k l)++v::(skipn (k+1) l).
+Proof.
+  induction l as [|a l' IHl'].
+  - intros.
+    destruct k; discriminate.
+  - intros.
+    destruct k as [|k'].
+    + simpl in H.
+      simpl.
+      injection H as H.
+      rewrite H.
+      reflexivity.
+    + simpl in H.
+      apply IHl' in H.
+      rewrite Nat.add_1_r.
+      rewrite Nat.add_1_r in H.
+      simpl firstn.
+      rewrite skipn_cons.
+      rewrite <- app_comm_cons.
+      rewrite <- H.
+      reflexivity.
+Qed.
+
+Lemma skipn_nth1:
+  forall (A: Type) (k: nat)  (l: list A) (v: A),
+    nth_error l k = Some v ->
+    l = (firstn k l)++v::(skipn (k+1) l).
+Proof.
+  induction k as [|k' IHk'].
+  - intros.
+    destruct l.
+    discriminate.
+    simpl in H.
+    simpl.
+    injection H as H.
+    rewrite H.
+    reflexivity.
+  - intros.
+    destruct l as [|e l'].
+    + discriminate.
+    + simpl in H.
+      apply IHk' in H.
+      rewrite Nat.add_1_r.
+      rewrite Nat.add_1_r in H.
+      simpl firstn.
+      rewrite skipn_cons.
+      rewrite <- app_comm_cons.
+      rewrite <- H.
+      reflexivity.
+Qed.
+
+Lemma swap_succ:
+  forall (T: Type) (k : nat) (stk stk': list T),
+    swap k stk = Some stk' ->
+    exists (v v':T) (l1 l2: list T),
+        stk  = v::(l1++(v'::l2)) /\
+        stk' = v'::(l1++(v::l2)).
+Proof.
+  intros.
+  unfold swap in H.
+  destruct ((k =? 0) || (16 <? k)) eqn:E_k.
+  discriminate.
+  destruct (nth_error stk k) as [v''|] eqn:E_nth_err.
+  2: discriminate.
+  apply skipn_nth in E_nth_err as H_skipn.
+  destruct stk as [|a stk''] eqn:E_stk.
+  discriminate.
+  injection H as H.
+  exists a.
+  exists v''.
+  exists (firstn (k-1) stk''). (* l1 *)
+  exists (skipn (k + 1) (a :: stk'')). (* l2 *)
+  split.
+  + assert (a :: firstn (k - 1) stk'' = firstn k (a::stk'')).
+    (* proof of assert *)
+     destruct k.
+      discriminate.
+      simpl.
+      rewrite Nat.sub_0_r.
+      reflexivity.
+      (* end proof of assert *)
+      
+    rewrite <- H0 in H_skipn.
+    rewrite H_skipn at 1.
+    rewrite app_comm_cons.
+    reflexivity.
+  + symmetry.
+    apply H.
+Qed.
+
+                  
+                
+                
+  
 
 End Misc.

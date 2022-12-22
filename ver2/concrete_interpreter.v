@@ -69,25 +69,31 @@ Definition mload' (mem : memory) (offset : EVMWord) :=
 
 Definition mload (mem : memory) (offset : EVMWord) : EVMWord :=
   mload' mem offset 32.
-  
-Definition mstore8 (mem : memory) (offset : EVMWord) (value : EVMByte)
-  := fun offset' => if (weqb offset' offset) then value else mem
-  offset'.
 
-Fixpoint mstore {sz : nat} (mem : memory) : (word sz) -> EVMWord -> memory :=
+Definition split1_byte {sz : nat} (w : word ((S sz)*8)) : word ((S 0)*8) :=
+  split1 8 (sz*8) w.
+
+Definition split2_byte {sz : nat} (w : word ((S sz)*8)):=
+  split2 8 (sz*8) w.
+
+Fixpoint mstore {sz : nat} (mem : memory) : (word (sz*8)) -> EVMWord -> memory :=
   match sz with
-  | S (S (S (S (S (S (S (S sz1'))))))) =>
+  | O => fun _ _ => mem
+  | S sz1' =>
       fun value offset =>
-        let byte := split1 8 sz1' value in
+        let byte := split1_byte value in (* split1 8 (8*sz1') value in *)
         let mem' := fun offset' => if (weqb offset' offset) then byte else mem offset' in
-        mstore mem (bbv.Word.split2 8 sz1' value) (wplus offset WOne)
-  | _ => fun _ _ => mem
+        mstore mem (split2_byte value) (wplus offset WOne)
   end.
+
+
 
 Definition sload (strg : storage) (key : EVMWord) := strg key.
 
 Definition sstore (strg : storage) (key : EVMWord) (value : EVMWord) :=
   fun key' => if (weqb key' key) then value else strg key'.
+
+
 
 Definition mload_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
@@ -96,10 +102,12 @@ Definition mload_c (st : state) (ops : stack_op_instr_map) : option state :=
                    Some st'
   | _ => None end.
 
+
+
 Definition mstore8_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
   | offset::value::stk =>
-      let mem := mstore8 (get_memory_st st) offset (split1 8 (EVMWordSize-8) value) in
+      let mem := mstore (get_memory_st st) (split1_byte (value: word ((S (pred BytesInEVMWord))*8))) offset in
       let st' := set_memory_st st mem in
       let st'' := set_stack_st st' stk in
       Some st''
@@ -135,7 +143,8 @@ Definition sha3_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
   | offset::size::stk =>
       let f := get_keccak256_ctx (get_context_st st) in
-      let v := f (get_memory_st st) offset size in
+      (*      let v := f (get_memory_st st) offset size in *)
+      let v := f (wordToNat size) (mload' (get_memory_st st) offset (wordToNat size)) in
       let st' := set_stack_st st (v::stk) in
       Some st'
   | _ =>

@@ -51,7 +51,7 @@ Inductive block_info :=
 
 Inductive chunk :=
 | Chunk (size : nat) (content : word size).
-        
+
 Inductive context :=
 Ctx
   (address : EVMAddr)
@@ -69,7 +69,7 @@ Ctx
   (gaslimit : EVMWord)
   (chainid : EVMWord)
   (basefee : EVMWord)
-  (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord)
+  (keccak256 : forall (n : nat), word (n*8) -> EVMWord)
   (tags : N -> EVMWord )
   (_extra_2 : nat)
   (_extra_3 : nat)
@@ -94,7 +94,7 @@ Definition empty_context : context :=
   WZero (* (gaslimit : EVMWord) *)
   WZero (* (chainid : EVMWord) *)
   WZero (* (basefee : EVMWord) *)
-  (fun _ _ _ => WZero) (* (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord) *)
+  (fun _ _ => WZero) (* (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord) *)
   (fun v => (NToWord EVMWordSize v)) (* tags: N -> EVMWord *)
   0 (* (_extra_2 : nat) *)
   0 (* (_extra_3 : nat) *)
