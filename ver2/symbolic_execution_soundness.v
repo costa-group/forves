@@ -182,16 +182,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* changing the symbolic stack does not affect eval_smemory *)
-Lemma eval_smemory_preserved_when_smap_extended:
-  forall (init_st st: state) (sst: sstate) (key: nat) (mv: smap_value) (m: smap) (ops: stack_op_instr_map),
-    st_is_instance_of_sst init_st st sst ops ->
-    (key,m) = add_to_smap (get_smap_sst sst) mv ->
-    st_is_instance_of_sst init_st st (set_smap_sst sst m) ops.
-Proof.
-Admitted.
-
-(* changing the symbolic stack does not affect eval_sstorage *)
+                (* changing the symbolic stack does not affect eval_sstorage *)
 Lemma eval_sstorage_preserved_when_sstack_changed:
   forall stk mem strg ctx sst sstk,
     eval_sstorage stk mem strg ctx sst =
@@ -199,6 +190,301 @@ Lemma eval_sstorage_preserved_when_sstack_changed:
 Proof.
   intros.
   destruct sst.
+  reflexivity.
+Qed.
+
+(* This is a challenging one! For now we assume it is correct *)
+Lemma eval_sstack_val_preserved_when_smap_extended:
+  forall sst maxid maxid' sb sb' v value sv stk mem strg ctx ops key',
+  valid_sstate sst ->
+  (get_smap_sst sst) = SymMap maxid sb ->
+  (add_to_smap (get_smap_sst sst) value) = (key', SymMap maxid' sb') ->
+  eval_sstack_val sv stk mem strg ctx sb ops = Some v ->
+  eval_sstack_val sv stk mem strg ctx sb' ops = Some v.
+Proof.
+  Admitted.
+
+Lemma eval_sstack_fldr_preserved_when_smap_extended:
+  forall sst init_st maxid maxid' sb sb' value ops key' s,
+  valid_sstate sst ->
+  (get_smap_sst sst) = SymMap maxid sb ->
+  (add_to_smap (get_smap_sst sst) value) = (key', SymMap maxid' sb') ->
+
+  fold_right_option
+                    (fun sv : sstack_val =>
+                     eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                       (get_storage_st init_st) (get_context_st init_st) sb ops)
+                    (get_stack_sst sst) = Some s
+  ->
+  fold_right_option
+                    (fun sv : sstack_val =>
+                     eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                       (get_storage_st init_st) (get_context_st init_st) sb' ops)
+                    (get_stack_sst sst) = Some s.
+Proof.
+  intro sst.
+  induction (get_stack_sst sst) as [| s0 s1 IHs1].
+  - intros. simpl. simpl in H2. apply H2.
+  - intros.
+    destruct s.
+    + apply fold_right_option_len in H2. discriminate.
+    + apply fold_right_option_hd in H2.
+      destruct H2.
+      pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e value s0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1 H2).
+      pose proof (IHs1 init_st maxid maxid' sb sb' value ops key' s H H0 H1 H3).
+      unfold fold_right_option.
+      rewrite <- fold_right_option_ho.
+      rewrite H5.
+      rewrite H4.
+      reflexivity.
+Qed.
+    
+
+Lemma eval_sstack_preserved_when_smap_extended:
+  forall sst init_st m value ops key' stk,
+  valid_sstate sst ->
+  (add_to_smap (get_smap_sst sst) value) = (key', m) ->
+  eval_sstack (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops = Some stk ->
+  eval_sstack (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) (set_smap_sst sst m) ops = Some stk.
+Proof.
+  intros.
+  unfold eval_sstack in H1.
+  destruct (length (get_stack_st init_st) =? get_instk_height_sst sst) eqn:E_len; try discriminate.
+  destruct (get_smap_sst sst) eqn:E_smap.
+  unfold eval_sstack' in H1.
+  destruct m eqn:E_m.
+  rewrite <- E_smap in H0.
+  pose proof (eval_sstack_fldr_preserved_when_smap_extended sst init_st maxid maxid0  bindings bindings0 value ops key' stk H E_smap H0 H1).
+  unfold eval_sstack.
+  rewrite instk_height_preserved_when_updating_smap_sst.
+  rewrite E_len.
+  rewrite set_and_then_get_smap_sst.
+  rewrite sstack_preserved_when_updating_smap_sst.
+  unfold eval_sstack'.
+  apply H2.
+Qed.
+
+Lemma eval_smemory_fldr_preserved_when_smap_extended:
+  forall sst init_st maxid maxid' sb sb' value ops key' l,
+    valid_sstate sst ->
+    (get_smap_sst sst) = SymMap maxid sb ->
+    (add_to_smap (get_smap_sst sst) value) = (key', SymMap maxid' sb') ->
+    fold_right_option
+      (eval_common.EvalCommon.instantiate_memory_update
+         (fun sv : sstack_val =>
+            eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+              (get_storage_st init_st) (get_context_st init_st) sb ops))
+      (get_memory_sst sst) = Some l ->
+    fold_right_option
+      (eval_common.EvalCommon.instantiate_memory_update
+         (fun sv : sstack_val =>
+            eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+              (get_storage_st init_st) (get_context_st init_st) sb' ops))
+      (get_memory_sst sst) = Some l.
+Proof.
+  intro sst.
+  induction (get_memory_sst sst) as [| u us IHus].
+  - intros. simpl. simpl in H2. apply H2.
+  - intros.
+    destruct l.
+    + apply fold_right_option_len in H2. discriminate.
+    + apply fold_right_option_hd in H2.
+      destruct H2.
+      
+      unfold eval_common.EvalCommon.instantiate_memory_update in H2.
+      destruct u.
+      ++ destruct (eval_sstack_val offset (get_stack_st init_st) (get_memory_st init_st)
+                     (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_offset; try discriminate.
+         
+         pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e value offset (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_offset).
+
+         destruct (eval_sstack_val value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_value; try discriminate.
+
+         pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e0 value value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_value).
+
+         unfold fold_right_option.
+         rewrite <- fold_right_option_ho.
+         simpl.
+         rewrite H4.
+         rewrite H5.
+
+         pose proof (IHus init_st maxid maxid' sb sb' value ops key' l H H0 H1 H3).
+         rewrite H6.
+         injection H2 as H2.
+         rewrite <- H2.
+         reflexivity.
+
+      (* dulicated from previous step, improve later *)
+      ++ destruct (eval_sstack_val offset (get_stack_st init_st) (get_memory_st init_st)
+                     (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_offset; try discriminate.
+
+         pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e value offset (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_offset).
+
+         destruct (eval_sstack_val value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_value; try discriminate.
+
+         pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e0 value value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_value).
+
+         unfold fold_right_option.
+         rewrite <- fold_right_option_ho.
+         simpl.
+         rewrite H4.
+         rewrite H5.
+
+         pose proof (IHus init_st maxid maxid' sb sb' value ops key' l H H0 H1 H3).
+         rewrite H6.
+         injection H2 as H2.
+         rewrite <- H2.
+         reflexivity.
+Qed.
+
+    
+Lemma eval_smemory_preserved_when_smap_extended:
+  forall sst init_st m value ops key' mem,
+  valid_sstate sst ->
+  (add_to_smap (get_smap_sst sst) value) = (key', m) ->
+    eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops = Some mem ->
+  eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) (set_smap_sst sst m) ops = Some mem.
+Proof.
+  intros.
+  unfold eval_smemory in H1.
+  destruct (get_smap_sst sst) eqn:E_smap.
+  destruct (fold_right_option
+           (eval_common.EvalCommon.instantiate_memory_update
+              (fun sv : sstack_val =>
+               eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                 (get_storage_st init_st) (get_context_st init_st) bindings ops))
+           (get_memory_sst sst)) eqn:E_fldr; try discriminate.
+  injection H1 as H1.
+  destruct m eqn:E_m.
+  rewrite <- E_smap in H0.
+  pose proof (eval_smemory_fldr_preserved_when_smap_extended sst init_st maxid maxid0 bindings bindings0 value ops key' l H E_smap H0 E_fldr).
+  unfold eval_smemory.
+  rewrite set_and_then_get_smap_sst. 
+  rewrite smemory_preserved_when_updating_smap_sst.
+  rewrite H2.
+  rewrite H1.
+  reflexivity.
+Qed.
+
+
+Lemma eval_sstorage_fldr_preserved_when_smap_extended:
+  forall sst init_st maxid maxid' sb sb' value ops key' l,
+    valid_sstate sst ->
+    (get_smap_sst sst) = SymMap maxid sb ->
+    (add_to_smap (get_smap_sst sst) value) = (key', SymMap maxid' sb') ->
+    fold_right_option
+      (eval_common.EvalCommon.instantiate_storage_update
+         (fun sv : sstack_val =>
+            eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+              (get_storage_st init_st) (get_context_st init_st) sb ops))
+      (get_storage_sst sst) = Some l ->
+    fold_right_option
+      (eval_common.EvalCommon.instantiate_storage_update
+         (fun sv : sstack_val =>
+            eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+              (get_storage_st init_st) (get_context_st init_st) sb' ops))
+      (get_storage_sst sst) = Some l.
+Proof.
+  intro sst.
+  induction (get_storage_sst sst) as [| u us IHus].
+  - intros. simpl. simpl in H2. apply H2.
+  - intros.
+    destruct l.
+    + apply fold_right_option_len in H2. discriminate.
+    + apply fold_right_option_hd in H2.
+      destruct H2.
+      unfold eval_common.EvalCommon.instantiate_storage_update in H2.
+
+      destruct u.
+
+      destruct (eval_sstack_val key (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_key; try discriminate.
+
+      pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e value key (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_key).
+
+      destruct (eval_sstack_val value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sb ops) eqn:E_eval_sstack_val_value; try discriminate.
+
+      pose proof (eval_sstack_val_preserved_when_smap_extended sst maxid maxid' sb sb' e0 value value0 (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H H0 H1  E_eval_sstack_val_value).
+      
+      unfold fold_right_option.
+      rewrite <- fold_right_option_ho.
+      simpl.
+      rewrite H4.
+      rewrite H5.
+
+      pose proof (IHus init_st maxid maxid' sb sb' value ops key' l H H0 H1 H3).
+      rewrite H6.
+      injection H2 as H2.
+      rewrite <- H2.
+      reflexivity.
+Qed.
+
+
+Lemma eval_sstorage_preserved_when_smap_extended:
+  forall sst init_st m value ops key' strg,
+  valid_sstate sst ->
+  (add_to_smap (get_smap_sst sst) value) = (key', m) ->
+    eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops = Some strg ->
+  eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) (set_smap_sst sst m) ops = Some strg.
+Proof.
+  intros.
+  unfold eval_sstorage in H1.
+  destruct (get_smap_sst sst) eqn:E_smap.
+  destruct (fold_right_option
+           (eval_common.EvalCommon.instantiate_storage_update
+              (fun sv : sstack_val =>
+               eval_sstack_val sv (get_stack_st init_st) (get_memory_st init_st)
+                 (get_storage_st init_st) (get_context_st init_st) bindings ops))
+           (get_storage_sst sst)) eqn:E_fldr; try discriminate.
+  injection H1 as H1.
+  destruct m eqn:E_m.
+  rewrite <- E_smap in H0.
+  pose proof (eval_sstorage_fldr_preserved_when_smap_extended sst init_st maxid maxid0 bindings bindings0 value ops key' l H E_smap H0 E_fldr). 
+  unfold eval_sstorage.
+  rewrite set_and_then_get_smap_sst. 
+  rewrite sstorage_preserved_when_updating_smap_sst.
+  rewrite H2.
+  rewrite H1.
+  reflexivity.
+Qed.
+
+
+(* changing the symbolic stack does not affect st_is_instance_of_sst *)
+Lemma eval_st_inst_sst_sstack_preserved_when_smap_extended:
+  forall (init_st st: state) (sst: sstate) (key maxid: nat) (value: smap_value) (m: smap) (ops: stack_op_instr_map),
+    valid_sstate sst ->
+    st_is_instance_of_sst init_st st sst ops ->
+    (add_to_smap (get_smap_sst sst) value) = (key, m) ->
+    st_is_instance_of_sst init_st st (set_smap_sst sst m) ops.
+Proof.
+  intros.
+  unfold st_is_instance_of_sst.
+  exists st.
+  split; try apply eq_execution_states_refl.
+  unfold st_is_instance_of_sst in H0.
+  destruct H0 as [st'].
+  destruct H0.
+  apply eq_execution_states_ext in H2.
+  unfold eval_sstate in H0.
+
+  destruct (eval_sstack (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) eqn:E_eval_sstack; try discriminate.
+  destruct (eval_smemory (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) eqn:E_eval_smemory; try discriminate.
+  destruct (eval_sstorage (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) sst ops) eqn:E_eval_sstorage; try discriminate.
+
+  pose proof (eval_sstack_preserved_when_smap_extended sst init_st m value ops key s H H1 E_eval_sstack).
+
+  pose proof (eval_smemory_preserved_when_smap_extended sst init_st m value ops key m0 H H1 E_eval_smemory).
+
+  pose proof (eval_sstorage_preserved_when_smap_extended sst init_st m value ops key s0 H H1 E_eval_sstorage).
+  
+  unfold eval_sstate.
+
+  rewrite H3.
+  rewrite H4.
+  rewrite H5.
+
+  injection H0 as H0.
+  rewrite H2.
+  rewrite <- H0.
   reflexivity.
 Qed.
 

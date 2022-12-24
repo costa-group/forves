@@ -144,7 +144,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
           else eval_sstack_val sv stk mem strg ctx sb' ops   (* The fresh variable is not the first in the binding so we continue recursively with the rest of bindings *)
       end
   end.
-
+ 
 
 
 Definition eval_sstack' (sstk: sstack) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map) : option stack :=

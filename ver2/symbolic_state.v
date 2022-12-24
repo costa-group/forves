@@ -219,7 +219,7 @@ Proof.
   simpl valid_sstate.  
   auto.
 Qed.
-    
+
 Lemma add_to_map_valid_sstate:
   forall sst key sm value,
     valid_sstate sst ->
@@ -255,9 +255,18 @@ Proof.
       intuition.
 Qed.
 
+
 Lemma instk_height_preserved_when_updating_stack_sst:
   forall sst sstk,
     get_instk_height_sst (set_stack_sst sst sstk) = get_instk_height_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma instk_height_preserved_when_updating_smap_sst:
+  forall sst m,
+    get_instk_height_sst (set_smap_sst sst m) = get_instk_height_sst sst.
 Proof.
   destruct sst.
   reflexivity.
@@ -271,6 +280,40 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma sstack_preserved_when_updating_smap_sst:
+  forall sst m,
+    get_stack_sst (set_smap_sst sst m) = get_stack_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+
+Lemma smemory_preserved_when_updating_smap_sst:
+  forall sst m,
+    get_memory_sst (set_smap_sst sst m) = get_memory_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma sstorage_preserved_when_updating_smap_sst:
+  forall sst m,
+    get_storage_sst (set_smap_sst sst m) = get_storage_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+
+Lemma set_and_then_get_smap_sst:
+  forall sst m,
+    get_smap_sst (set_smap_sst sst m) = m.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
 Lemma set_and_then_get_stack_sst:
   forall sst sstk,
     get_stack_sst (set_stack_sst sst sstk) = sstk.
@@ -278,6 +321,5 @@ Proof.
   destruct sst.
   reflexivity.
 Qed.
-
 
 End SymbolicState.
