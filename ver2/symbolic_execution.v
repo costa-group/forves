@@ -113,19 +113,19 @@ Definition sha3_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   
 Definition mstore8_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
-  | offset::value::sstk =>
+  | soffset::svalue::sstk =>
       let smem := get_memory_sst sst in
-      let sst' := set_memory_sst sst ((U_MSTORE8 sstack_val offset value)::smem) in
-      let sst'' := set_stack_sst sst sstk in
+      let sst' := set_memory_sst sst ((U_MSTORE8 sstack_val soffset svalue)::smem) in
+      let sst'' := set_stack_sst sst' sstk in
       Some sst''
   | _ => None
   end.
       
 Definition mstore_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   match get_stack_sst sst with
-  | offset::value::sstk =>
+  | soffset::svalue::sstk =>
       let smem := get_memory_sst sst in
-      let sst' := set_memory_sst sst ((U_MSTORE sstack_val offset value)::smem) in
+      let sst' := set_memory_sst sst ((U_MSTORE sstack_val soffset svalue)::smem) in
       let sst'' := set_stack_sst sst' sstk in
       Some sst''
   | _ => None

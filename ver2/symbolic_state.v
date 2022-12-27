@@ -310,9 +310,49 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma instk_height_preserved_when_updating_storage_sst:
+  forall sst sstrg,
+    get_instk_height_sst (set_storage_sst sst sstrg) = get_instk_height_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma instk_height_preserved_when_updating_memory_sst:
+  forall sst smem,
+    get_instk_height_sst (set_memory_sst sst smem) = get_instk_height_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
 Lemma smap_preserved_when_updating_stack_sst:
   forall sst sstk,
     get_smap_sst (set_stack_sst sst sstk) = get_smap_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma smap_preserved_when_updating_storage_sst:
+  forall sst sstrg,
+    get_smap_sst (set_storage_sst sst sstrg) = get_smap_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma smap_preserved_when_updating_memory_sst:
+  forall sst smem,
+    get_smap_sst (set_memory_sst sst smem) = get_smap_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma smemory_preserved_when_updating_storage_sst:
+  forall sst sstrg,
+    get_memory_sst (set_storage_sst sst sstrg) = get_memory_sst sst.
 Proof.
   destruct sst.
   reflexivity.
@@ -325,6 +365,23 @@ Proof.
   destruct sst.
   reflexivity.
 Qed.
+
+Lemma sstorage_preserved_when_updating_stack_sst:
+  forall sst sstk,
+    get_storage_sst (set_stack_sst sst sstk) = get_storage_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma sstorage_preserved_when_updating_memory_sst:
+  forall sst smem,
+    get_storage_sst (set_memory_sst sst smem) = get_storage_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
 
 Lemma sstack_preserved_when_updating_smap_sst:
   forall sst m,
@@ -363,6 +420,22 @@ Qed.
 Lemma set_and_then_get_stack_sst:
   forall sst sstk,
     get_stack_sst (set_stack_sst sst sstk) = sstk.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma set_and_then_get_storage_sst:
+  forall sst sstrg,
+    get_storage_sst (set_storage_sst sst sstrg) = sstrg.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma set_and_then_get_memory_sst:
+  forall sst smem,
+    get_memory_sst (set_memory_sst sst smem) = smem.
 Proof.
   destruct sst.
   reflexivity.

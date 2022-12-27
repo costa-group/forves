@@ -116,7 +116,7 @@ Definition mstore8_c (st : state) (ops : stack_op_instr_map) : option state :=
 Definition mstore_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
   | offset::value::stk =>
-      let mem := mstore (get_memory_st st) offset value in
+      let mem := mstore (get_memory_st st) value offset in
       let st' := set_memory_st st mem in
       let st'' := set_stack_st st' stk in Some st''
   | _ => None end.
