@@ -70,7 +70,7 @@ Ctx
   (chainid : EVMWord)
   (basefee : EVMWord)
   (keccak256 : forall (n : nat), word (n*8) -> EVMWord)
-  (tags : N -> EVMWord )
+  (tags : N -> EVMWord)
   (_extra_2 : nat)
   (_extra_3 : nat)
   (_extra_4 : nat)

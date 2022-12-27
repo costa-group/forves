@@ -39,9 +39,13 @@ Definition pushtag_s (value : N) :=
     let v : smap_value := SymPUSHTAG value in
     match add_to_smap sm v with
     | pair key sm' =>
-        let sst' := set_stack_sst sst ((FreshVar key)::sstk) in
-        let sst'' := set_smap_sst sst' sm' in
-        Some sst''
+        match push (FreshVar key) sstk with
+        | Some sstk' =>
+            let sst' := set_stack_sst sst sstk' in
+            let sst'' := set_smap_sst sst' sm' in
+            Some sst''
+        | None => None
+        end
     end.
 
 Definition pop_s (sst : sstate)  (ops: stack_op_instr_map) : option sstate :=

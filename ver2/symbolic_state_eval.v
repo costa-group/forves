@@ -63,7 +63,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
             (* PUSHTAG *)
             | SymPUSHTAG v =>
                 let tags := (get_tags_ctx ctx) in Some (tags v)
-                                               
+
             (* stack operation instruction: we evaluate the argument
             recursively and then evaluate the corresponding operation *)
             | SymOp label args =>

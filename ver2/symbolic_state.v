@@ -183,8 +183,8 @@ match a with
 end.
 
 Definition valid_sstate (sst: sstate) : Prop :=
-match sst with 
-| SymExState _ _ _ _ _ (SymMap maxid m) =>
+match get_smap_sst sst with 
+| SymMap maxid m =>
     (fresh_var_gt_map maxid m) /\
       (strictly_decreasing_map m)
 end.
@@ -210,88 +210,6 @@ Proof.
     + auto.
     + apply IHsm'.
       apply H0.
-Qed.
-
-Lemma valid_empty_sstate:
-  forall k, valid_sstate (gen_empty_sstate k).
-Proof.
-  intro.
-  simpl valid_sstate.  
-  auto.
-Qed.
-
-Lemma add_to_map_valid_sstate:
-  forall sst key sm value,
-    valid_sstate sst ->
-    (key,sm) = add_to_smap (get_smap_sst sst) value ->
-    valid_sstate (set_smap_sst sst sm).
-Proof.
-  intros sst key sm value H_valid_sst H_add_to_smap.
-  unfold valid_sstate.
-  unfold valid_sstate in H_valid_sst.
-  destruct sst as [instk_height sstk smem sstrg ctx sm'].
-  destruct sm' as [maxid' m'].
-  destruct H_valid_sst as [H_valid_sst_l H_valid_sst_r].
-  simpl in  H_add_to_smap.
-  injection H_add_to_smap as _ H_add_to_smap.
-  simpl.
-  destruct sm as [maxid m].
-  injection H_add_to_smap as H_add_to_smap_maxid H_add_to_smap_maxid_map.
-  rewrite H_add_to_smap_maxid_map.
-  split.
-  - simpl.
-    split.
-    + rewrite H_add_to_smap_maxid.
-      apply Gt.gt_Sn_n.
-    + rewrite H_add_to_smap_maxid.
-      apply fresh_var_gt_map_maxid_S.
-      apply H_valid_sst_l.
-  - unfold strictly_decreasing_map.
-    fold strictly_decreasing_map.
-    destruct m'.
-    + auto.
-    + destruct p.
-      unfold fresh_var_gt_map in H_valid_sst_l.
-      intuition.
-Qed.
-
-Lemma valid_sstate_sstack_change:
-  forall sst sstk,
-    valid_sstate sst ->
-    valid_sstate (set_stack_sst sst sstk).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
-Qed.
-
-Lemma valid_sstate_smemory_change:
-  forall sst smem,
-    valid_sstate sst ->
-    valid_sstate (set_memory_sst sst smem).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
-Qed.
-
-Lemma valid_sstate_sstorage_change:
-  forall sst sstrg,
-    valid_sstate sst ->
-    valid_sstate (set_memory_sst sst sstrg).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
 Qed.
 
 Lemma instk_height_preserved_when_updating_stack_sst:
@@ -440,5 +358,91 @@ Proof.
   destruct sst.
   reflexivity.
 Qed.
+
+
+Lemma valid_empty_sstate:
+  forall k, valid_sstate (gen_empty_sstate k).
+Proof.
+  intro.
+  unfold gen_empty_sstate.
+  unfold make_sst.
+  unfold valid_sstate.
+  simpl.
+  auto.
+Qed.
+
+Lemma add_to_map_valid_sstate:
+  forall sst key sm value,
+    valid_sstate sst ->
+    (key,sm) = add_to_smap (get_smap_sst sst) value ->
+    valid_sstate (set_smap_sst sst sm).
+Proof.
+  intros sst key sm value H_valid_sst H_add_to_smap.
+
+  unfold valid_sstate in H_valid_sst.
+  destruct (get_smap_sst sst) as [maxid m] eqn:E_get_smap.
+  destruct H_valid_sst as [H_valid_sst_l H_valid_sst_r].
+
+  unfold valid_sstate.
+  rewrite set_and_then_get_smap_sst.
+  simpl in H_add_to_smap.
+  injection H_add_to_smap as H_add_to_smap_1 H_add_to_smap_2.
+  rewrite H_add_to_smap_2.
+  
+  split.
+  + simpl.
+    split.
+    apply Gt.gt_Sn_n.
+    apply fresh_var_gt_map_maxid_S.
+    apply H_valid_sst_l.
+  + destruct m.
+    ++ intuition.
+    ++ unfold fresh_var_gt_map in H_valid_sst_l.
+       fold fresh_var_gt_map in H_valid_sst_l.
+       destruct p.
+       destruct H_valid_sst_l as [H_valid_sst_l_1 H_valid_sst_l_2].
+       unfold strictly_decreasing_map.
+       intuition.
+Qed.
+
+Lemma valid_sstate_sstack_change:
+  forall sst sstk,
+    valid_sstate sst ->
+    valid_sstate (set_stack_sst sst sstk).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
+
+Lemma valid_sstate_smemory_change:
+  forall sst smem,
+    valid_sstate sst ->
+    valid_sstate (set_memory_sst sst smem).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
+
+Lemma valid_sstate_sstorage_change:
+  forall sst sstrg,
+    valid_sstate sst ->
+    valid_sstate (set_memory_sst sst sstrg).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
+
 
 End SymbolicState.
