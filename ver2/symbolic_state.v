@@ -255,6 +255,44 @@ Proof.
       intuition.
 Qed.
 
+Lemma valid_sstate_sstack_change:
+  forall sst sstk,
+    valid_sstate sst ->
+    valid_sstate (set_stack_sst sst sstk).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
+
+Lemma valid_sstate_smemory_change:
+  forall sst smem,
+    valid_sstate sst ->
+    valid_sstate (set_memory_sst sst smem).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
+
+Lemma valid_sstate_sstorage_change:
+  forall sst sstrg,
+    valid_sstate sst ->
+    valid_sstate (set_memory_sst sst sstrg).
+Proof.
+  intros.
+  unfold valid_sstate in H.
+  destruct sst.
+  destruct sm.
+  simpl.
+  apply H.
+Qed.
 
 Lemma instk_height_preserved_when_updating_stack_sst:
   forall sst sstk,
@@ -275,6 +313,14 @@ Qed.
 Lemma smap_preserved_when_updating_stack_sst:
   forall sst sstk,
     get_smap_sst (set_stack_sst sst sstk) = get_smap_sst sst.
+Proof.
+  destruct sst.
+  reflexivity.
+Qed.
+
+Lemma smemory_preserved_when_updating_stack_sst:
+  forall sst sstk,
+    get_memory_sst (set_stack_sst sst sstk) = get_memory_sst sst.
 Proof.
   destruct sst.
   reflexivity.

@@ -69,8 +69,8 @@ Definition mload_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sm : smap := get_smap_sst sst in
   let smem : smemory := get_memory_sst sst in
   match get_stack_sst sst with
-  | offset::sstk =>
-      let sv := SymMLOAD offset smem in
+  | soffset::sstk =>
+      let sv := SymMLOAD soffset smem in
       match add_to_smap sm sv with
       | pair key sm' =>
           let sst' := set_stack_sst sst ((FreshVar key)::sstk) in
@@ -99,8 +99,8 @@ Definition sha3_s (sst : sstate) (ops: stack_op_instr_map) : option sstate :=
   let sm : smap := get_smap_sst sst in
   let smem : smemory := get_memory_sst sst in
   match get_stack_sst sst with
-  | offset::size::sstk =>
-      let sv := SymSHA3 offset size smem in
+  | soffset::ssize::sstk =>
+      let sv := SymSHA3 soffset ssize smem in
       match add_to_smap sm sv with
       | pair key sm' =>
           let sst' := set_stack_sst sst ((FreshVar key)::sstk) in

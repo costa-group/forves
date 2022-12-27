@@ -380,7 +380,6 @@ Proof.
   + discriminate.
 Qed.
 
-Search app.
 Lemma skipn_nth:
   forall (A: Type)  (l: list A) (k: nat) (v: A),
     nth_error l k = Some v ->
