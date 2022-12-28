@@ -61,7 +61,7 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
           (* first check that the number of argumets agree with what is declared in the map *)
           if (List.length args =? nargs) then
             let f_eval_list := fun (fsv': sexpr) => eval_sexpr fsv' stk mem strg ctx ops in
-            match fold_right_option f_eval_list args with
+            match map_option f_eval_list args with
             | None => None
             | Some vargs => Some (f ctx vargs)
             end
@@ -71,7 +71,7 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
       let tags := (get_tags_ctx ctx) in Some (tags v)
   | SExpr_MLOAD offset smem =>
       let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
-      match fold_right_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+      match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
       | None => None
       | Some mem_updates =>
           match eval_sexpr offset stk mem strg ctx ops with (* Evaluate the offset *)
@@ -84,7 +84,7 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
         
   | SExpr_SLOAD key sstrg => 
       let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
-      match fold_right_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
+      match map_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
       | None => None
       | Some strg_updates =>
           match eval_sexpr key stk mem strg ctx ops with (* Evaluate the key *)
@@ -96,7 +96,7 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
       end
   | SExpr_SHA3 offset size smem => 
       let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
-      match fold_right_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+      match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
       | None => None
       | Some mem_updates =>
           match eval_sexpr offset stk mem strg ctx ops with (* Evaluate the offset *)
@@ -116,14 +116,14 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
 Definition eval_flat_sstack (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option stack :=
   let instk_height := (get_instk_height_fsst fsst) in
   if (length stk) =? instk_height then
-    fold_right_option (fun sv => eval_sexpr sv stk mem strg ctx ops) (get_stack_fsst fsst)
+    map_option (fun sv => eval_sexpr sv stk mem strg ctx ops) (get_stack_fsst fsst)
   else
     None.
 
 Definition eval_flat_smemory (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option memory :=
   let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
   let fsmem := get_memory_fsst fsst in
-  match fold_right_option f_eval_mem_update fsmem with
+  match map_option f_eval_mem_update fsmem with
   | None => None
   | Some updates =>
       let mem' := update_memory mem updates in
@@ -133,7 +133,7 @@ Definition eval_flat_smemory (stk: stack) (mem: memory) (strg: storage) (ctx: co
 Definition eval_flat_sstorage (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option storage :=
   let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
   let fsstrg := get_storage_fsst fsst in
-  match fold_right_option f_eval_strg_update fsstrg with
+  match map_option f_eval_strg_update fsstrg with
   | None => None
   | Some updates =>
       let strg' := update_storage strg updates in

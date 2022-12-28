@@ -72,7 +72,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
                      (* first check that the number of argumets agree with what is declared in the map *)
                     if (List.length args =? nargs) then
                       let f_eval_list := fun (sv': sstack_val) => eval_sstack_val sv' stk mem strg ctx sb' ops in
-                      match fold_right_option f_eval_list args with
+                      match map_option f_eval_list args with
                       | None => None
                       | Some vargs => Some (f ctx vargs)
                       end
@@ -87,7 +87,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
              *)
             | SymMLOAD soffset smem =>
                 let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val sv stk mem strg ctx sb' ops) in
-                match fold_right_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+                match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset stk mem strg ctx sb' ops with (* Evaluate the offset *)
@@ -106,7 +106,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
              *)
             | SymSLOAD skey sstrg =>
                 let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val sv stk mem strg ctx sb' ops) in
-                match fold_right_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
+                match map_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some strg_updates =>
                     match eval_sstack_val skey stk mem strg ctx sb' ops with (* Evaluate the key *)
@@ -125,7 +125,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
              *)
             | SymSHA3 soffset ssize smem =>
                 let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val sv stk mem strg ctx sb' ops) in
-                match fold_right_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+                match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some mem_updates =>
                     match eval_sstack_val soffset stk mem strg ctx sb' ops with (* Evaluate the offset *)
@@ -148,7 +148,7 @@ Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: st
 
 
 Definition eval_sstack' (sstk: sstack) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map) : option stack :=
-  fold_right_option (fun sv => eval_sstack_val sv stk mem strg ctx sb ops) sstk.
+  map_option (fun sv => eval_sstack_val sv stk mem strg ctx sb ops) sstk.
 
 Definition eval_sstack (stk: stack) (mem: memory) (strg: storage) (ctx: context) (sst: sstate) (ops: stack_op_instr_map) : option stack :=
   let instk_height := (get_instk_height_sst sst) in
@@ -167,7 +167,7 @@ Definition eval_smemory (stk: stack) (mem: memory) (strg: storage) (ctx: context
   | SymMap _ sb =>
       let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val sv stk mem strg ctx sb ops) in
       let smem := get_memory_sst sst in
-      match fold_right_option f_eval_mem_update smem with
+      match map_option f_eval_mem_update smem with
       | None => None
       | Some updates =>
           let mem' := update_memory mem updates in
@@ -180,7 +180,7 @@ Definition eval_sstorage (stk: stack) (mem: memory) (strg: storage) (ctx: contex
   | SymMap _ sb =>
       let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val sv stk mem strg ctx sb ops) in
       let sstrg := get_storage_sst sst in
-      match fold_right_option f_eval_strg_update sstrg with
+      match map_option f_eval_strg_update sstrg with
       | None => None
       | Some updates =>
           let strg' := update_storage strg updates in

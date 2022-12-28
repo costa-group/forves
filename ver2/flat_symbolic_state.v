@@ -45,7 +45,6 @@ Definition flat_sstorage : Type := storage_updates sexpr.
 Inductive flat_scontext :=
   | FlatSymCtx. 
 
-
 Inductive flat_sstate :=
   | FlatSymExState (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstg: flat_sstorage) (sctx: flat_scontext).
 
@@ -97,7 +96,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
     | SymPUSHTAG v => Some (SExpr_PUSHTAG v)
     | SymOp label args =>
         let f_eval_list := fun (sv': sstack_val) => sstack_val_to_sexpr sv' flat_sb  in
-        match fold_right_option f_eval_list args with
+        match map_option f_eval_list args with
         | None => None
         | Some sexpr_args => Some (SExpr_Op label sexpr_args)
         end
@@ -120,7 +119,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
                                       end
                                   end
         in
-        match fold_right_option f_eval_memupdate smem with
+        match map_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
             match sstack_val_to_sexpr soffset flat_sb with
@@ -141,7 +140,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
                                       end
                                   end
         in
-        match fold_right_option f_eval_strgupdate sstrg with
+        match map_option f_eval_strgupdate sstrg with
         | None => None
         | Some strg_updates =>
             match sstack_val_to_sexpr skey flat_sb with
@@ -168,7 +167,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
                                       end
                                   end
         in
-        match fold_right_option f_eval_memupdate smem with
+        match map_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
             match sstack_val_to_sexpr soffset flat_sb with
@@ -209,7 +208,7 @@ Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
       | Some flat_sb =>
           let sstk := get_stack_sst sst in
           let f_eval_list := fun (sv': sstack_val) => sstack_val_to_sexpr sv' flat_sb  in
-          match fold_right_option f_eval_list sstk with
+          match map_option f_eval_list sstk with
           | None => None
           | Some flat_sstk =>
               let smem := get_memory_sst sst in
@@ -231,7 +230,7 @@ Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
                                             end
                                         end
               in
-              match fold_right_option f_eval_memupdate smem with
+              match map_option f_eval_memupdate smem with
               | None => None
               | Some flat_smem =>
                   let sstrg := get_storage_sst sst in
@@ -246,7 +245,7 @@ Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
                                                  end
                                              end
                   in
-                  match fold_right_option f_eval_strgupdate sstrg with
+                  match map_option f_eval_strgupdate sstrg with
                   | None => None
                   | Some flat_sstrg => Some (make_flat_sst 0 flat_sstk flat_smem flat_sstrg FlatSymCtx)
                   end

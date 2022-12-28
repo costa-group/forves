@@ -29,13 +29,13 @@ in this case).
 
 **)
 
-Definition fold_right_option {A B : Type} (f: A -> option B)  :=
+Definition map_option {A B : Type} (f: A -> option B)  :=
 
-  fix fold_right_option_fix (l: list A) : option (list B) :=
+  fix map_option_fix (l: list A) : option (list B) :=
     match l with 
     | nil => Some []
     | elem::rs => let elem_oval := f elem in
-                  let rs_oval := fold_right_option_fix rs in
+                  let rs_oval := map_option_fix rs in
                   match (elem_oval, rs_oval) with 
                   | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
                   | _ => None
@@ -80,17 +80,17 @@ Definition swap {T: Type} (k : nat) (stk: list T) : option (list T) :=
 (** Facts about functions defined in this module **)
 
 
-(* Just a relation between fold_right_option and its inner function
-fold_right_option_fix. Trivial, but useful for induction and for
+(* Just a relation between map_option and its inner function
+map_option_fix. Trivial, but useful for induction and for
 readability *)
-Lemma fold_right_option_ho:
+Lemma map_option_ho:
   forall A B f l,
-  fold_right_option f l =
-    (fix fold_right_option_fix (l: list A) : option (list B) :=
+  map_option f l =
+    (fix map_option_fix (l: list A) : option (list B) :=
     match l with 
     | nil => Some []
     | elem::rs => let elem_oval := f elem in
-                  let rs_oval := fold_right_option_fix rs in
+                  let rs_oval := map_option_fix rs in
                   match (elem_oval, rs_oval) with 
                   | (Some elem_val, Some rs_val) => Some (elem_val::rs_val)
                   | _ => None
@@ -101,11 +101,11 @@ Proof.
 Qed.
 
   
-(* When fold_right_option succeeds, the length of the result list is
+(* When map_option succeeds, the length of the result list is
   as the length of the input list *)
-Lemma fold_right_option_len:
+Lemma map_option_len:
   forall (A B: Type) (f: A->option B) (l1: list A) (l2: list B),
-    fold_right_option f l1 = Some l2 ->
+    map_option f l1 = Some l2 ->
     length l1 = length l2.
 Proof.
   intros A B f.
@@ -116,10 +116,10 @@ Proof.
     rewrite <- H_l2.
     reflexivity.
   - intros l2 H_fold_r_cons.
-    unfold fold_right_option in H_fold_r_cons.
+    unfold map_option in H_fold_r_cons.
     destruct (f a) eqn:E_fa.
-    + rewrite <- fold_right_option_ho in H_fold_r_cons.
-      destruct (fold_right_option f l1') eqn:E_fold_r_l1' in H_fold_r_cons.
+    + rewrite <- map_option_ho in H_fold_r_cons.
+      destruct (map_option f l1') eqn:E_fold_r_l1' in H_fold_r_cons.
       ++ apply IHl1' in E_fold_r_l1'.
          injection H_fold_r_cons as H_fold_r_cons. 
          rewrite <- H_fold_r_cons.
@@ -130,20 +130,20 @@ Proof.
     + discriminate H_fold_r_cons.
 Qed.
   
-(* when fold_right_option succeeds on v::l1 and results in v::l2, and
-l2 is the result of applying fold_right_option on l1.
+(* when map_option succeeds on v::l1 and results in v::l2, and
+l2 is the result of applying map_option on l1.
 *)
 
-Lemma fold_right_option_hd:
+Lemma map_option_hd:
   forall (A B: Type) (f: A->option B) (l1: list A) (l2: list B) (v : A) (e: B),
-    fold_right_option f (v::l1) = Some (e::l2) ->
-    f v = Some e /\ fold_right_option f l1 = Some l2.
+    map_option f (v::l1) = Some (e::l2) ->
+    f v = Some e /\ map_option f l1 = Some l2.
 Proof.
   intros A B f l1 l2 v e H_fold_r.
-  unfold fold_right_option in H_fold_r.
-  rewrite <- fold_right_option_ho in H_fold_r.
+  unfold map_option in H_fold_r.
+  rewrite <- map_option_ho in H_fold_r.
   destruct (f v) eqn:E_fv.
-  + destruct (fold_right_option f l1) eqn:E_fold_r.
+  + destruct (map_option f l1) eqn:E_fold_r.
     ++ injection H_fold_r as H_b H_l2.
        rewrite H_b. rewrite H_l2.
        split; reflexivity.
@@ -152,11 +152,11 @@ Proof.
 Qed.
 
   
-(* When fold_right_option succeeds, the i-th element of the output is
+(* When map_option succeeds, the i-th element of the output is
 the result of applying f to the i-th element in the input.  *)
-Lemma fold_right_option_nth:
+Lemma map_option_nth:
   forall (A B: Type) (f: A->option B) (l1: list A) (l2: list B),
-    fold_right_option f l1 = Some l2 ->
+    map_option f l1 = Some l2 ->
     forall k,
       k < length l1 ->
       exists v,
@@ -171,12 +171,12 @@ Proof.
     destruct k; discriminate.
   - intros l2 H_fold_r_cons k H_k_lt_len.
     destruct l2 eqn:E_l2.
-    + unfold fold_right_option in H_fold_r_cons.
-      rewrite <- fold_right_option_ho in H_fold_r_cons.
+    + unfold map_option in H_fold_r_cons.
+      rewrite <- map_option_ho in H_fold_r_cons.
       destruct (f e) eqn:E_fa.
-      ++ destruct (fold_right_option f l1') eqn:E_fold_r_l1' in H_fold_r_cons; discriminate.
+      ++ destruct (map_option f l1') eqn:E_fold_r_l1' in H_fold_r_cons; discriminate.
       ++ discriminate.
-    + apply fold_right_option_hd in H_fold_r_cons.
+    + apply map_option_hd in H_fold_r_cons.
       destruct H_fold_r_cons as [H_hd H_tl].
       destruct k eqn:E_k.
       ++ simpl.
@@ -189,11 +189,11 @@ Proof.
          apply IH.
 Qed.
 
-Lemma fold_right_option_app:
+Lemma map_option_app:
   forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl1 rl2: list B),
-    fold_right_option f l1 = Some rl1 ->
-    fold_right_option f l2 = Some rl2 ->
-    fold_right_option f (l1++l2) = Some (rl1++rl2).
+    map_option f l1 = Some rl1 ->
+    map_option f l2 = Some rl2 ->
+    map_option f (l1++l2) = Some (rl1++rl2).
 Proof.
   intros A B f.
   induction l1 as [|v l1' IHl1'].
@@ -205,32 +205,32 @@ Proof.
     apply H0.
   - intros.
     destruct rl1.
-    + apply fold_right_option_len in H. discriminate.
-    + apply fold_right_option_hd in H.
+    + apply map_option_len in H. discriminate.
+    + apply map_option_hd in H.
       destruct H.
       pose proof (IHl1' l2 rl1 rl2 H1 H0).
       simpl.
       rewrite H. rewrite H2. reflexivity.
 Qed.
 
-Lemma fold_right_option_singleton:
+Lemma map_option_singleton:
   forall A B (f: A -> option B) (v: A) (e: B),
     f v = Some e ->
-    fold_right_option f [v] = Some [e].
+    map_option f [v] = Some [e].
 Proof.
   intros.
-  unfold fold_right_option.
+  unfold map_option.
   rewrite H.
   reflexivity.
 Qed.
 
 
-Lemma fold_right_option_app2:
+Lemma map_option_app2:
   forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl1 rl2: list B),
     length l1 = length rl1 ->
     length l2 = length rl2 ->
-    fold_right_option f (l1++l2) = Some (rl1++rl2) ->
-    fold_right_option f l1 = Some rl1 /\ fold_right_option f l2 = Some rl2.
+    map_option f (l1++l2) = Some (rl1++rl2) ->
+    map_option f l1 = Some rl1 /\ map_option f l2 = Some rl2.
 Proof.
   intros A B f.
   induction l1 as [|v l1' IHl1'].
@@ -245,11 +245,11 @@ Proof.
     simpl app in H1.
     simpl in H.
     injection H as H.
-    apply fold_right_option_hd in H1 as [H2 H3].
+    apply map_option_hd in H1 as [H2 H3].
     pose proof (IHl1' l2 rl1' rl2 H H0 H3) as [H4 H5].
     split.
-    + unfold fold_right_option.
-      rewrite <- fold_right_option_ho.
+    + unfold map_option.
+      rewrite <- map_option_ho.
       rewrite H2.
       rewrite H4.
       reflexivity.
@@ -257,14 +257,14 @@ Proof.
 Qed.
     
 
-Lemma fold_right_option_swap:
+Lemma map_option_swap:
   forall (A B: Type) (f: A->option B) (l1 l2 l3 l4: list A) (rl1 rl2 rl3 rl4: list B),
     length l1 = length rl1 ->
     length l2 = length rl2 ->
     length l3 = length rl3 ->
     length l4 = length rl4 ->
-    fold_right_option f (l1++l2++l3++l4) = Some (rl1++rl2++rl3++rl4) ->
-    fold_right_option f (l3++l2++l1++l4) = Some (rl3++rl2++rl1++rl4).
+    map_option f (l1++l2++l3++l4) = Some (rl1++rl2++rl3++rl4) ->
+    map_option f (l3++l2++l1++l4) = Some (rl3++rl2++rl1++rl4).
 Proof.
   intros A B f.
   induction l1 as [|v l1' IHl1'].
@@ -286,25 +286,25 @@ Proof.
      rewrite H_len_l4.
      reflexivity.
      (* end proof of assert *)
-    pose proof (fold_right_option_app2 A B f l2 (l3++l4) rl2 (rl3++rl4) H_len_l2 H H_fldr).
+    pose proof (map_option_app2 A B f l2 (l3++l4) rl2 (rl3++rl4) H_len_l2 H H_fldr).
     destruct H0.
-    pose proof (fold_right_option_app2 A B f l3 l4 rl3 rl4 H_len_l3 H_len_l4 H1).
+    pose proof (map_option_app2 A B f l3 l4 rl3 rl4 H_len_l3 H_len_l4 H1).
     destruct H2.
     
     
-    ++ apply fold_right_option_app.
+    ++ apply map_option_app.
        +++ apply H2.
-       +++ apply fold_right_option_app. apply H0. apply H3.
+       +++ apply map_option_app. apply H0. apply H3.
            
   + intros l2 l3 l4 rl1 rl2 rl3 rl4 H_len_l1 H_len_l2 H_len_l3 H_len_l4 H_fldr.
     destruct rl1 as [|v3 rl1'].
     ++ discriminate.
     ++ repeat (rewrite <- app_comm_cons in H_fldr).
-       unfold fold_right_option in H_fldr.
+       unfold map_option in H_fldr.
        destruct (f v) eqn:E_f_v. 
        2: discriminate.
-       rewrite <- fold_right_option_ho in H_fldr.
-       destruct (fold_right_option f (l1' ++ l2 ++ l3 ++ l4)) eqn:E_fldr2.
+       rewrite <- map_option_ho in H_fldr.
+       destruct (map_option f (l1' ++ l2 ++ l3 ++ l4)) eqn:E_fldr2.
        2: discriminate.
        injection H_fldr as H_b H_l.
        rewrite H_l in E_fldr2.
@@ -328,7 +328,7 @@ Proof.
          reflexivity.        
        (* end proof of assert *)
          
-       pose proof (fold_right_option_app2 A B f l3 (l2++l1'++l4) rl3 (rl2++rl1'++rl4) H_len_l3 H E_fldr3) as [H_fldr4 H_fldr5].
+       pose proof (map_option_app2 A B f l3 (l2++l1'++l4) rl3 (rl2++rl1'++rl4) H_len_l3 H E_fldr3) as [H_fldr4 H_fldr5].
        assert ( length (l1'++l4) = length(rl1' ++ rl4) ).
          (* proof of the assert *)
          pose proof (app_length l1' l4).
@@ -339,16 +339,16 @@ Proof.
          rewrite H_len_l4.
          reflexivity.
          (* end proof of assert *)
-       pose proof (fold_right_option_app2 A B f l2 (l1'++l4) rl2 (rl1'++rl4) H_len_l2 H0 H_fldr5) as [H_fldr6 H_fldr7].
-       pose proof (fold_right_option_app2 A B f l1' l4 rl1' rl4 H_len_l1' H_len_l4 H_fldr7) as [H_fldr8 H_flr9].
+       pose proof (map_option_app2 A B f l2 (l1'++l4) rl2 (rl1'++rl4) H_len_l2 H0 H_fldr5) as [H_fldr6 H_fldr7].
+       pose proof (map_option_app2 A B f l1' l4 rl1' rl4 H_len_l1' H_len_l4 H_fldr7) as [H_fldr8 H_flr9].
        
-       apply fold_right_option_app.
+       apply map_option_app.
        +++ apply H_fldr4.
-       +++ apply fold_right_option_app.
+       +++ apply map_option_app.
            ++++ apply H_fldr6.
-           ++++ apply fold_right_option_app.
-                +++++ unfold fold_right_option.
-                rewrite <- fold_right_option_ho.
+           ++++ apply map_option_app.
+                +++++ unfold map_option.
+                rewrite <- map_option_ho.
                 rewrite E_f_v.
                 rewrite  H_fldr8.
                 rewrite H_b.
