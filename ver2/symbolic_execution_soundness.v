@@ -1389,7 +1389,6 @@ Proof.
   injection H0. intro.
   unfold swap.
   rewrite E_k.
-  Search nth_error.
   pose proof (nth_err_two_lists A B (a0::l0) l2 k a H E_nth_err).
   destruct H2.
   rewrite H2.
@@ -1532,7 +1531,6 @@ Proof.
     unfold eval_sstack.
     pose proof (st_is_instance_of_sst_stk_len init_st st sst ops H_st_inst_sst_0) as H_st_is_instance_of_sst_stk_len.
     destruct H_st_is_instance_of_sst_stk_len as [H_st_is_instance_of_sst_stk_len_0 H_st_is_instance_of_sst_stk_len_1].
-    Search Nat.eqb.
     rewrite <- Nat.eqb_eq in H_st_is_instance_of_sst_stk_len_1.
     rewrite instk_height_preserved_when_updating_stack_sst.  
     rewrite H_st_is_instance_of_sst_stk_len_1.
