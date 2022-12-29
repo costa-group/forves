@@ -62,34 +62,34 @@ Fixpoint update_storage (strg: storage) (updates : storage_updates EVMWord) :=
 
 
 
-Definition instantiate_memory_update  {A} (evaluator : A -> option EVMWord ) :=
+Definition instantiate_memory_update  {A B} (evaluator : A -> option B ) :=
   fun (update: memory_update A ) =>
     match update with
     | U_MSTORE _ soffset svalue =>
         let ooffset := evaluator soffset in
         let ovalue := evaluator  svalue in
         match ooffset, ovalue with
-        | Some offset, Some value => Some (U_MSTORE EVMWord offset value)
+        | Some offset, Some value => Some (U_MSTORE B offset value)
         | _, _ => None
         end
     | U_MSTORE8 _ soffset svalue =>
         let ooffset := evaluator soffset in
         let ovalue := evaluator svalue  in
         match ooffset, ovalue with
-        | Some offset, Some value => Some (U_MSTORE8 EVMWord offset value)
+        | Some offset, Some value => Some (U_MSTORE8 B offset value)
         | _, _ => None
         end
     end.
 
 
-Definition instantiate_storage_update  {A} (evaluator : A -> option EVMWord ) :=
+Definition instantiate_storage_update  {A B} (evaluator : A -> option B ) :=
   fun (update: storage_update A) =>
     match update with
     | U_SSTORE _ skey svalue =>
         let okey := evaluator skey  in
         let ovalue := evaluator svalue  in
         match okey, ovalue with
-        | Some key, Some value => Some (U_SSTORE EVMWord key value)
+        | Some key, Some value => Some (U_SSTORE B key value)
         | _, _ => None
         end
     end.

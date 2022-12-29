@@ -24,7 +24,7 @@ Definition map (K V : Type) : Type := K -> V.
 
 (**
 
-It is like fold_right, but stops once f returns None (and returns None
+It is like map, but stops once f returns None (and returns None
 in this case).
 
 **)

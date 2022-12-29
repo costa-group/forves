@@ -27,6 +27,9 @@ Import SymbolicState.
 Require Import FORVES.concrete_interpreter.
 Import ConcreteInterpreter.
 
+Require Import FORVES.eval_common.
+Import EvalCommon.
+
 Module FlatSymbolicState.
 
 Inductive sexpr : Type :=
@@ -41,6 +44,7 @@ Inductive sexpr : Type :=
 Definition flat_sstack  : Type := list sexpr.
 Definition flat_smemory : Type := memory_updates sexpr.
 Definition flat_sstorage : Type := storage_updates sexpr.
+Definition flat_sbindings : Type := list (nat*sexpr).
 
 Inductive flat_scontext :=
   | FlatSymCtx. 
@@ -77,7 +81,7 @@ Definition get_flat_context_sst (fsst : flat_sstate) : flat_scontext :=
   end.
 
 
-Fixpoint sstack_val_to_sexpr (sv: sstack_val) (flat_sb:  list (nat*sexpr)) : option sexpr :=
+Fixpoint sstack_val_to_sexpr (sv: sstack_val) (flat_sb:  flat_sbindings) : option sexpr :=
   match sv with
   | Val v => Some (SExpr_Val v)
   | InStackVar n => Some (SExpr_InStkVar n)
@@ -90,7 +94,7 @@ Fixpoint sstack_val_to_sexpr (sv: sstack_val) (flat_sb:  list (nat*sexpr)) : opt
       end
   end.
 
-Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : option sexpr :=
+Definition smap_value_to_sexpr (sv : smap_value) (flat_sb: flat_sbindings) : option sexpr :=
     match sv with
     | SymBasicVal sv' => sstack_val_to_sexpr sv' flat_sb
     | SymPUSHTAG v => Some (SExpr_PUSHTAG v)
@@ -101,24 +105,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
         | Some sexpr_args => Some (SExpr_Op label sexpr_args)
         end
     | SymMLOAD soffset smem =>
-        let f_eval_memupdate := fun (update: memory_update sstack_val) =>
-                                  match update with
-                                  | U_MSTORE _ soffset svalue =>
-                                      let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                      let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                      match ooffset, ovalue with
-                                      | Some offset, Some value => Some (U_MSTORE sexpr offset value)
-                                      | _, _ => None
-                                      end
-                                  | U_MSTORE8 _ soffset svalue =>
-                                      let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                      let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                      match ooffset, ovalue with
-                                      | Some offset, Some value => Some (U_MSTORE8 sexpr offset value)
-                                      | _, _ => None
-                                      end
-                                  end
-        in
+        let f_eval_memupdate := instantiate_memory_update (fun sv => sstack_val_to_sexpr sv flat_sb) in
         match map_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
@@ -129,17 +116,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
         end
 
     | SymSLOAD skey sstrg =>
-        let f_eval_strgupdate := fun (update: storage_update sstack_val) =>
-                                  match update with
-                                  | U_SSTORE _ skey svalue =>
-                                      let okey := sstack_val_to_sexpr skey flat_sb in
-                                      let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                      match okey, ovalue with
-                                      | Some key, Some value => Some (U_SSTORE sexpr key value)
-                                      | _, _ => None
-                                      end
-                                  end
-        in
+        let f_eval_strgupdate := instantiate_storage_update (fun sv => sstack_val_to_sexpr sv flat_sb) in
         match map_option f_eval_strgupdate sstrg with
         | None => None
         | Some strg_updates =>
@@ -149,24 +126,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
             end
         end
     | SymSHA3 soffset ssize smem =>
-        let f_eval_memupdate := fun (update: memory_update sstack_val) =>
-                                  match update with
-                                  | U_MSTORE _ soffset svalue =>
-                                      let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                      let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                      match ooffset, ovalue with
-                                      | Some offset, Some value => Some (U_MSTORE sexpr offset value)
-                                      | _, _ => None
-                                      end
-                                  | U_MSTORE8 _ soffset svalue =>
-                                      let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                      let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                      match ooffset, ovalue with
-                                      | Some offset, Some value => Some (U_MSTORE8 sexpr offset value)
-                                      | _, _ => None
-                                      end
-                                  end
-        in
+        let f_eval_memupdate := instantiate_memory_update (fun sv => sstack_val_to_sexpr sv flat_sb) in
         match map_option f_eval_memupdate smem with
         | None => None
         | Some mem_updates =>
@@ -182,7 +142,7 @@ Definition smap_value_to_sexpr (sv : smap_value) (flat_sb:  list (nat*sexpr)) : 
     end.
 
 
-Fixpoint bindings_to_flat_bindings (sb: sbindings) : option (list (nat*sexpr)) :=
+Fixpoint bindings_to_flat_bindings (sb: sbindings) : option flat_sbindings :=
   match sb with
   |  [] => Some []
   |  (key,sv)::sb' =>
@@ -199,55 +159,37 @@ Fixpoint bindings_to_flat_bindings (sb: sbindings) : option (list (nat*sexpr)) :
 
 
 
-             
+Definition sstack_to_flat_sstack (sst: sstate) (flat_sb: flat_sbindings) : option flat_sstack :=
+  let sstk := get_stack_sst sst in
+  let f_eval_list := fun (sv': sstack_val) => sstack_val_to_sexpr sv' flat_sb  in
+  map_option f_eval_list sstk.
+
+Definition smemory_to_flat_smemory (sst: sstate) (flat_sb: flat_sbindings) : option flat_smemory :=
+  let smem := get_memory_sst sst in
+  let f_eval_memupdate := instantiate_memory_update (fun sv => sstack_val_to_sexpr sv flat_sb) in
+  map_option f_eval_memupdate smem.
+
+Definition sstorage_to_flat_sstorage (sst: sstate) (flat_sb: flat_sbindings) : option flat_sstorage :=
+  let sstrg := get_storage_sst sst in
+  let f_eval_strgupdate := instantiate_storage_update (fun sv => sstack_val_to_sexpr sv flat_sb) in
+  map_option f_eval_strgupdate sstrg.
+
+
 Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
   match get_smap_sst sst with
     SymMap _ bs =>
       match bindings_to_flat_bindings bs with
       | None => None
       | Some flat_sb =>
-          let sstk := get_stack_sst sst in
-          let f_eval_list := fun (sv': sstack_val) => sstack_val_to_sexpr sv' flat_sb  in
-          match map_option f_eval_list sstk with
+          match sstack_to_flat_sstack sst flat_sb with
           | None => None
           | Some flat_sstk =>
-              let smem := get_memory_sst sst in
-              let f_eval_memupdate := fun (update: memory_update sstack_val) =>
-                                        match update with
-                                        | U_MSTORE _ soffset svalue =>
-                                            let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                            let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                            match ooffset, ovalue with
-                                            | Some offset, Some value => Some (U_MSTORE sexpr offset value)
-                                            | _, _ => None
-                                            end
-                                        | U_MSTORE8 _ soffset svalue =>
-                                            let ooffset := sstack_val_to_sexpr soffset flat_sb in
-                                            let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                            match ooffset, ovalue with
-                                            | Some offset, Some value => Some (U_MSTORE8 sexpr offset value)
-                                            | _, _ => None
-                                            end
-                                        end
-              in
-              match map_option f_eval_memupdate smem with
+              match smemory_to_flat_smemory sst flat_sb with
               | None => None
               | Some flat_smem =>
-                  let sstrg := get_storage_sst sst in
-                  let f_eval_strgupdate := fun (update: storage_update sstack_val) =>
-                                             match update with
-                                             | U_SSTORE _ skey svalue =>
-                                                 let okey := sstack_val_to_sexpr skey flat_sb in
-                                                 let ovalue := sstack_val_to_sexpr svalue flat_sb in
-                                                 match okey, ovalue with
-                                                 | Some key, Some value => Some (U_SSTORE sexpr key value)
-                                                 | _, _ => None
-                                                 end
-                                             end
-                  in
-                  match map_option f_eval_strgupdate sstrg with
+                  match sstorage_to_flat_sstorage sst flat_sb with
                   | None => None
-                  | Some flat_sstrg => Some (make_flat_sst 0 flat_sstk flat_smem flat_sstrg FlatSymCtx)
+                  | Some flat_sstrg => Some (make_flat_sst (get_instk_height_sst sst) flat_sstk flat_smem flat_sstrg FlatSymCtx)
                   end
               end
           end

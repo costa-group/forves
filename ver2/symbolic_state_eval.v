@@ -33,7 +33,6 @@ Import EvalCommon.
 Module SymbolicStateEval.
 
 
-
 Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (ctx: context) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=  
   match sv with
   (* Concrere values are retuned *)
