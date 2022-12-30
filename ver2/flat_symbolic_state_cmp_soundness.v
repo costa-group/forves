@@ -256,7 +256,38 @@ Proof.
       split; reflexivity. 
 
     (* SExpr_SHA3 *)
-    + 
+    + simpl in H_sexp_cmp.
+      destruct (sexp_cmp d' s1 s3 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s1_s3; try discriminate.
+      destruct (sexp_cmp d' s2 s4 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s2_s4; try discriminate.
+
+      pose proof (IHd' s1 s3 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s1_s3) as IHd'_0.
+      destruct IHd'_0 as [v1 [IHd'_0 IHd'_1]]. 
+
+      pose proof (IHd' s2 s4 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s2_s4) as IHd'_3.
+      destruct IHd'_3 as [v2 [IHd'_3 IHd'_4]]. 
+
+      unfold sha3_cmp_snd in H_sha3_cmp.
+      pose proof (H_sha3_cmp d' s1 s2 smem smem0 instk_height ops H_sexp_cmp stk mem strg ctx v1 v2 H_len_stk IHd'_0 IHd'_3) as H_sha3_cmp_0.
+      
+      destruct H_sha3_cmp_0 as [mem1 [mem2 [mem_updates1 [mem_updates2 [H_mload_cmp_1_0 [H_mload_cmp_1_1 [H_mload_cmp_1_2 [H_mload_cmp_1_3 H_mload_cmp_1_4]]]]]]]].
+
+      simpl.
+
+      rewrite IHd'_0.
+      rewrite IHd'_1.
+      rewrite IHd'_3.
+      rewrite IHd'_4.
+      
+      rewrite H_mload_cmp_1_0.
+      rewrite H_mload_cmp_1_1.
+      rewrite H_mload_cmp_1_2.
+      rewrite H_mload_cmp_1_3.
+      rewrite H_mload_cmp_1_4.
+
+      exists (get_keccak256_ctx ctx (wordToNat v2) (mload' mem2 v1 (wordToNat v2))).
+
+      split; reflexivity.
+Qed.
 
     
 
