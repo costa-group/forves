@@ -50,34 +50,39 @@ Inductive flat_scontext :=
   | FlatSymCtx. 
 
 Inductive flat_sstate :=
-  | FlatSymExState (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstg: flat_sstorage) (sctx: flat_scontext).
+  | FlatSymExState (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstg: flat_sstorage) (sctx: flat_scontext) (max_depth: nat).
 
-Definition make_flat_sst (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstrg: flat_sstorage) (sctx : flat_scontext) : flat_sstate :=
-  FlatSymExState instk_height sstk smem sstrg sctx.
+Definition make_flat_sst (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstrg: flat_sstorage) (sctx : flat_scontext) (max_depth: nat) : flat_sstate :=
+  FlatSymExState instk_height sstk smem sstrg sctx max_depth.
 
 Definition get_instk_height_fsst (fsst: flat_sstate) : nat :=
   match fsst with
-  | FlatSymExState instk_height _ _ _ _ => instk_height
+  | FlatSymExState instk_height _ _ _ _ _ => instk_height
   end.
 
 Definition get_stack_fsst (fsst: flat_sstate) : flat_sstack :=
   match fsst with
-  | FlatSymExState _ sstk _ _ _ => sstk
+  | FlatSymExState _ sstk _ _ _ _ => sstk
   end.
 
 Definition get_memory_fsst (fsst: flat_sstate) : flat_smemory :=
   match fsst with
-  | FlatSymExState _ _ smem _ _ => smem
+  | FlatSymExState _ _ smem _ _ _ => smem
   end.
 
 Definition get_storage_fsst (fsst : flat_sstate) : flat_sstorage :=
   match fsst with
-  | FlatSymExState _ _ _ sstrg _ => sstrg
+  | FlatSymExState _ _ _ sstrg _ _ => sstrg
   end.
 
-Definition get_flat_context_sst (fsst : flat_sstate) : flat_scontext :=
+Definition get_context_fsst (fsst : flat_sstate) : flat_scontext :=
   match fsst with
-  | FlatSymExState _ _ _ _ sctx => sctx
+  | FlatSymExState _ _ _ _ sctx _ => sctx
+  end.
+
+Definition get_max_depth_fsst (fsst : flat_sstate) : nat :=
+  match fsst with
+  | FlatSymExState _ _ _ _ _ max_depth => max_depth
   end.
 
 
@@ -189,7 +194,7 @@ Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
               | Some flat_smem =>
                   match sstorage_to_flat_sstorage sst flat_sb with
                   | None => None
-                  | Some flat_sstrg => Some (make_flat_sst (get_instk_height_sst sst) flat_sstk flat_smem flat_sstrg FlatSymCtx)
+                  | Some flat_sstrg => Some (make_flat_sst (get_instk_height_sst sst) flat_sstk flat_smem flat_sstrg FlatSymCtx ((length flat_sb) + 1))
                   end
               end
           end

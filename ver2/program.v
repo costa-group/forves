@@ -112,6 +112,14 @@ Definition eqb_stack_op_instr (a b: stack_op_instr) : bool :=
 
 Notation "m '=?i' n" := (eqb_stack_op_instr m n) (at level 100).
 
+Lemma eqb_stack_op_instr_eq:
+  forall (a b: stack_op_instr),
+    eqb_stack_op_instr a b = true -> a = b.
+Proof.
+  intros a b H.
+  unfold eqb_stack_op_instr in H. 
+  destruct a; destruct b; try reflexivity || discriminate.
+Qed.
 
 (*
 
