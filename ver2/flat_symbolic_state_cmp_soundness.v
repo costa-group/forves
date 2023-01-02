@@ -291,16 +291,3 @@ Qed.
 
     
 
-Lemma flat_sstack_cmp_snd:
-  forall (mload_cmp: mload_cmp_type) (sload_cmp: sload_cmp_type) (sha3_cmp: sha3_cmp_type),
-    mload_cmp_snd mload_cmp ->
-    sload_cmp_snd sload_cmp ->
-    sha3_cmp_snd sha3_cmp ->
-    forall d fsst1 fsst2 ops stk mem strg ctx,
-      flat_sstack_cmp d fsst1 fsst2 ops mload_cmp sload_cmp sha3_cmp = true ->
-      exists l,
-        eval_flat_sstack stk mem strg ctx fsst1 ops = Some l /\
-        eval_flat_sstack stk mem strg ctx fsst2 ops = Some l.
-Proof.
-  intros mload_cmp sload_cmp sha3_cmp H_mload_cmp H_sload_cmp H_sha3_cmp.
-  
