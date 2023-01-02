@@ -26,13 +26,13 @@ this property. *)
 Definition commutative_op (f : context -> list EVMWord -> EVMWord) : Prop :=
   forall (a b : EVMWord) (ctx : context), f ctx [a;b] = f ctx [b;a].
 
-Definition ctx_independent (f : context -> list EVMWord -> EVMWord) : Prop :=
+Definition ctx_independent_op (f : context -> list EVMWord -> EVMWord) : Prop :=
   forall (l : list EVMWord) (ctx1 ctx2 : context), f ctx1 l = f ctx2 l.
 
 
 (* An implementation of a stack operation instructions *)
 Inductive stack_op_impl :=
-| OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H_comm : option (commutative_op f)) (H_ctx_ind: option (ctx_independent f)).
+| OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H_comm : option (commutative_op f)) (H_ctx_ind: option (ctx_independent_op f)).
 
 
 
@@ -55,6 +55,20 @@ Notation "x '|->i' v" := (updatei (empty_imap (OpImp 0 (fun (_:context) (_:list 
 (* =================================================================
 *) (** ** Implementation of current instructions *)
 
+
+Ltac comm_op_tac_trivial f H_comm_of_underlying_op :=
+  unfold commutative_op;
+  intros;
+  unfold f;
+  rewrite -> H_comm_of_underlying_op;
+  reflexivity.
+
+Ltac ctx_independent_tac f :=
+  unfold ctx_independent_op;
+  intros;
+  unfold f;
+  reflexivity.
+
 Definition evm_add (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wplus a b
@@ -63,18 +77,29 @@ Definition evm_add (ctx : context) (args : list EVMWord) : EVMWord :=
 
 Lemma add_comm: commutative_op evm_add.
 Proof.
-  unfold commutative_op.
-  intros.
-  unfold evm_add.
-  rewrite -> wplus_comm.
-  reflexivity.
+  comm_op_tac_trivial evm_add wplus_comm.
 Qed.
-        
+
+Lemma add_ctx_ind: ctx_independent_op evm_add.
+Proof.
+  ctx_independent_tac evm_add.
+Qed.
+
 Definition evm_mul (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wmult a b
   | _ => WZero
   end.
+
+Lemma mul_comm: commutative_op evm_mul.
+Proof.
+  comm_op_tac_trivial evm_mul wmult_comm.
+Qed.
+
+Lemma mul_ctx_ind: ctx_independent_op evm_mul.
+Proof.
+  ctx_independent_tac evm_mul.
+Qed.
 
 
 Definition evm_sub (ctx : context) (args : list EVMWord) : EVMWord :=
@@ -83,11 +108,24 @@ Definition evm_sub (ctx : context) (args : list EVMWord) : EVMWord :=
   | _ => WZero
   end.
 
+Lemma sub_ctx_ind: ctx_independent_op evm_sub.
+Proof.
+  ctx_independent_tac evm_sub.
+Qed.
+
+
 Definition evm_div (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wdiv a b
   | _ => WZero
   end.
+
+Lemma div_ctx_ind: ctx_independent_op evm_div.
+Proof.
+  ctx_independent_tac evm_div.
+Qed.
+
+
 
 Definition evm_sdiv (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
@@ -250,10 +288,10 @@ Definition evm_basefee (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
 Definition evm_stack_opm : stack_op_instr_map :=
-  ADD |->i OpImp 2 evm_add (Some add_comm) None;
-  MUL |->i OpImp 2 evm_mul None None;
-  SUB |->i OpImp 2 evm_sub None None;
-  DIV |->i OpImp 2 evm_div None None;
+  ADD |->i OpImp 2 evm_add (Some add_comm) (Some add_ctx_ind);
+  MUL |->i OpImp 2 evm_mul (Some mul_comm) (Some mul_ctx_ind);
+  SUB |->i OpImp 2 evm_sub None (Some sub_ctx_ind);
+  DIV |->i OpImp 2 evm_div None (Some div_ctx_ind);
   SDIV |->i OpImp 2 evm_sdiv None None;
   MOD |->i OpImp 2 evm_mod None None;
   SMOD |->i OpImp 2 evm_smod None None;

@@ -60,11 +60,14 @@ Definition fold_right_two_lists {A B: Type} (f : A -> B -> bool) :=
     end.
 
 
-Definition mload_cmp_type := nat -> sexpr -> flat_smemory -> flat_smemory  -> nat -> stack_op_instr_map -> bool.
+Definition mload_cmp_type := nat -> sexpr -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.
+
 Definition sload_cmp_type := nat -> sexpr -> flat_sstorage -> flat_sstorage -> nat -> stack_op_instr_map -> bool.
 Definition sha3_cmp_type  := nat -> sexpr -> sexpr -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.
 Definition smemory_cmp_type := nat -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.
 Definition sstorage_cmp_type := nat -> flat_sstorage -> flat_sstorage -> nat -> stack_op_instr_map -> bool.
+
+Definition sexpr_eval_type := nat -> flat_sstorage -> flat_sstorage -> nat -> stack_op_instr_map -> bool.
 
 Definition mload_cmp_snd (mload_cmp: mload_cmp_type) :=
   forall d flat_offset flat_memory1 flat_memory2 instk_height ops,
@@ -186,7 +189,11 @@ Fixpoint sexp_cmp (d :nat) (se1 se2: sexpr) (instk_height: nat) (ops: stack_op_i
       end
   end.
 
-Definition flat_sstack_cmp (d : nat) (flat_sstk1 flat_sstk2 : flat_sstack) (instk_height1 instk_height2: nat) (ops: stack_op_instr_map) (mload_cmp: mload_cmp_type) (sload_cmp: sload_cmp_type) (sha3_cmp: sha3_cmp_type) : bool :=
+Definition flat_sstack_cmp (d : nat) (fsst1 fsst2 : flat_sstate) (ops: stack_op_instr_map) (mload_cmp: mload_cmp_type) (sload_cmp: sload_cmp_type) (sha3_cmp: sha3_cmp_type) : bool :=
+  let flat_sstk1 := get_stack_fsst fsst1 in
+  let flat_sstk2 := get_stack_fsst fsst2 in
+  let instk_height1 := get_instk_height_fsst fsst1 in
+  let instk_height2 := get_instk_height_fsst fsst2 in
   if instk_height1 =? instk_height2 then
     fold_right_two_lists (fun a b => sexp_cmp d a b instk_height1 ops mload_cmp sload_cmp sha3_cmp) flat_sstk1 flat_sstk2
   else
@@ -208,7 +215,7 @@ Definition flat_sstate_cmp (fsst1 fsst2 : flat_sstate) (ops: stack_op_instr_map)
   let instk_height1 := get_instk_height_fsst fsst1 in
   let instk_height2 := get_instk_height_fsst fsst2 in
   let d := max (get_max_depth_fsst fsst1) (get_max_depth_fsst fsst2) in
-  if flat_sstack_cmp d (get_stack_fsst fsst1) (get_stack_fsst fsst1) instk_height1 instk_height2 ops mload_cmp sload_cmp sha3_cmp then
+  if flat_sstack_cmp d fsst1 fsst2 ops mload_cmp sload_cmp sha3_cmp then
     if flat_smemory_cmp d (get_memory_fsst fsst1) (get_memory_fsst fsst1) instk_height1 instk_height2 ops smem_cmp then
       if flat_sstorage_cmp d (get_storage_fsst fsst1) (get_storage_fsst fsst1) instk_height1 instk_height2 ops sstrg_cmp then
         true
@@ -219,6 +226,4 @@ Definition flat_sstate_cmp (fsst1 fsst2 : flat_sstate) (ops: stack_op_instr_map)
   else
     false.
 
-    
-  
 End FlatSymbolicStateCmp.
