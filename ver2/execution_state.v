@@ -25,13 +25,13 @@ Definition empty_stack : stack := [].
 (* Memory is a mapping from EVMWord to EVMByte. We do not keep its
 accessed size, i.e., don't handle memory expansion, because we don't
 track gas consumption. *)
-Definition memory : Type := EVMWord -> EVMByte.
+Definition memory : Type := N -> EVMByte.
 Definition empty_memory : memory := fun _ => BZero.
 
 (* Storage is a function from EVMWord (key) to values EVMWord
 (value). We don't model the warm/cold properies since we don't track
 gas consumption *)
-Definition storage : Type := EVMWord -> EVMWord.
+Definition storage : Type := N -> EVMWord.
 Definition empty_storage : storage := fun _ => WZero.
 
 (*

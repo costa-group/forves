@@ -59,13 +59,16 @@ Definition swap_c (k : nat) (st : state) (ops : stack_op_instr_map) : option sta
   | None => None
   | Some stk' => Some (set_stack_st st stk')
   end.
-   
-Fixpoint mload' (mem : memory) (offset : EVMWord) (n: nat) : word (n*8) :=
+
+Fixpoint mload'' (mem : memory) (offset : N) (n: nat) : word (n*8) :=
   match n with
-  | O => WO
-  | S n' => bbv.Word.combine (mem offset) (mload' mem (wplus offset WOne) n')
+  | O => WO : word (0*8)
+  | S n' => bbv.Word.combine (mem offset) (mload'' mem (offset + 1)%N n')
   end.
-  
+
+Definition mload' (mem : memory) (offset : EVMWord) (n: nat) : word (n*8) :=
+  mload'' mem (wordToN offset) n.
+
 Definition mload (mem : memory) (offset : EVMWord) : EVMWord :=
   mload' mem offset 32.
 
@@ -75,21 +78,24 @@ Definition split1_byte {sz : nat} (w : word ((S sz)*8)) : word ((S 0)*8) :=
 Definition split2_byte {sz : nat} (w : word ((S sz)*8)):=
   split2 8 (sz*8) w.
 
-Fixpoint mstore {sz : nat} (mem : memory) : (word (sz*8)) -> EVMWord -> memory :=
+Fixpoint mstore' {sz : nat} (mem : memory) : (word (sz*8)) -> N -> memory :=
   match sz with
   | O => fun _ _ => mem
   | S sz1' =>
       fun value offset =>
         let byte := split1_byte value in (* split1 8 (8*sz1') value in *)
-        let mem' := fun offset' => if (weqb offset' offset) then byte else mem offset' in
-        mstore mem' (split2_byte value) (wplus offset WOne)
+        let mem' := fun offset' => if (offset' =? offset)%N then byte else mem offset' in
+        mstore' mem' (split2_byte value) (offset+1)%N
   end.
 
+Definition mstore {sz : nat} (mem : memory) (value : word (sz*8)) (offset: EVMWord) : memory :=
+  mstore' mem value (wordToN offset).
 
-Definition sload (strg : storage) (key : EVMWord) := strg key.
+Definition sload (strg : storage) (key : EVMWord) := strg (wordToN key).
 
 Definition sstore (strg : storage) (key : EVMWord) (value : EVMWord) :=
-  fun key' => if (weqb key' key) then value else strg key'.
+  let nkey := (wordToN key) in
+  fun key' => if (key' =? nkey)%N then value else strg key'.
 
 
 
@@ -98,7 +104,8 @@ Definition mload_c (st : state) (ops : stack_op_instr_map) : option state :=
   | offset::stk => let v := mload (get_memory_st st) offset in
                    let st' := set_stack_st st (v::stk) in
                    Some st'
-  | _ => None end.
+  | _ => None
+  end.
 
 
 
@@ -109,15 +116,17 @@ Definition mstore8_c (st : state) (ops : stack_op_instr_map) : option state :=
       let st' := set_memory_st st mem in
       let st'' := set_stack_st st' stk in
       Some st''
-  | _ => None end.
+  | _ => None
+  end.
 
-Definition mstore_c (st : state) (ops : stack_op_instr_map) : option state :=
+Definition mstore_c (st : state) (ops : stack_op_instr_map)  : option state :=
   match get_stack_st st with
   | offset::value::stk =>
       let mem := mstore (get_memory_st st) value offset in
       let st' := set_memory_st st mem in
       let st'' := set_stack_st st' stk in Some st''
-  | _ => None end.
+  | _ => None
+  end.
 
 Definition sload_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
@@ -125,7 +134,8 @@ Definition sload_c (st : state) (ops : stack_op_instr_map) : option state :=
       let v := sload (get_storage_st st) key in
       let st' := set_stack_st st (v::stk) in
       Some st'
-  | _ => None end.
+  | _ => None
+  end.
 
 Definition sstore_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
@@ -134,7 +144,8 @@ Definition sstore_c (st : state) (ops : stack_op_instr_map) : option state :=
       let st' := set_store_st st strg in
        let st'' := set_stack_st st' stk in
       Some st''
-  | _ => None end.
+  | _ => None
+  end.
 
 (* just return 0 for now *)
 Definition sha3_c (st : state) (ops : stack_op_instr_map) : option state :=
@@ -145,8 +156,8 @@ Definition sha3_c (st : state) (ops : stack_op_instr_map) : option state :=
       let v := f (wordToNat size) (mload' (get_memory_st st) offset (wordToNat size)) in
       let st' := set_stack_st st (v::stk) in
       Some st'
-  | _ =>
-None end.
+  | _ => None
+  end.
 
 Definition exec_stack_op_intsr_c (label : stack_op_instr) (st : state) (ops : stack_op_instr_map)  : option state :=
   match (ops label) with
