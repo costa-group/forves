@@ -31,7 +31,7 @@ reverse order, the first in the list is the last update. *)
   
 Definition update_memory' (mem: memory) (update : memory_update EVMWord) :=
   match update with
-  | U_MSTORE _ offset value => mstore mem offset value
+  | U_MSTORE _ offset value => mstore mem value offset
   | U_MSTORE8 _ offset value => mstore mem (split1_byte (value: word ((S (pred BytesInEVMWord))*8))) offset 
   end.
 

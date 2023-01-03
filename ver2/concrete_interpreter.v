@@ -59,14 +59,13 @@ Definition swap_c (k : nat) (st : state) (ops : stack_op_instr_map) : option sta
   | None => None
   | Some stk' => Some (set_stack_st st stk')
   end.
-
-Definition mload' (mem : memory) (offset : EVMWord) :=
-  fix mload_fix (n : nat) : word (n * 8) :=
-    match n with
-    | O => WO
-    | S n' => bbv.Word.combine (mem (wplus offset (natToWord EVMWordSize n))) (mload_fix n')
-    end.
-
+   
+Fixpoint mload' (mem : memory) (offset : EVMWord) (n: nat) : word (n*8) :=
+  match n with
+  | O => WO
+  | S n' => bbv.Word.combine (mem offset) (mload' mem (wplus offset WOne) n')
+  end.
+  
 Definition mload (mem : memory) (offset : EVMWord) : EVMWord :=
   mload' mem offset 32.
 
@@ -83,9 +82,8 @@ Fixpoint mstore {sz : nat} (mem : memory) : (word (sz*8)) -> EVMWord -> memory :
       fun value offset =>
         let byte := split1_byte value in (* split1 8 (8*sz1') value in *)
         let mem' := fun offset' => if (weqb offset' offset) then byte else mem offset' in
-        mstore mem (split2_byte value) (wplus offset WOne)
+        mstore mem' (split2_byte value) (wplus offset WOne)
   end.
-
 
 
 Definition sload (strg : storage) (key : EVMWord) := strg key.

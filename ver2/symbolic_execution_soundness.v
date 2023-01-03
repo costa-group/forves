@@ -2196,10 +2196,12 @@ Proof.
 
     assert(E_stk_st' := E_stk_st).
     rewrite H_st_eq_st' in E_stk_st'.
-    
+
     rewrite <- H_st_inst_sst'_l in E_stk_st'.
     simpl in E_stk_st'.
-    injection E_stk_st' as _ _ E_stk_st'_stk.
+    injection E_stk_st' as E_stk_st'_offset E_stk_st'_value E_stk_st'_stk.
+    rewrite E_stk_st'_offset.
+    rewrite E_stk_st'_value.
     rewrite E_stk_st'_stk.
     reflexivity.
 Qed.
@@ -2317,7 +2319,7 @@ Proof.
     rewrite E_strg_mapo.
 
     (* thge case of eval_smemory *)
-
+ 
     unfold eval_smemory.
     rewrite smap_preserved_when_updating_stack_sst.
     rewrite smap_preserved_when_updating_memory_sst.
@@ -2333,7 +2335,7 @@ Proof.
     rewrite E_eval_sstack_3.
 
     unfold eval_smemory in E_mem.
-    rewrite E_get_smap_sst in E_mem.
+    rewrite E_get_smap_sst in E_mem. 
     destruct (map_option
               (eval_common.EvalCommon.instantiate_memory_update
                  (fun sv : sstack_val =>
@@ -2343,10 +2345,13 @@ Proof.
 
     rewrite H_st_eq_st'.
     rewrite <- H_st_inst_sst'_l.
-    simpl.
     unfold make_st.
+    unfold set_memory_st.
+    unfold set_stack_st.
+
     injection E_mem as E_mem.
-    rewrite E_mem.
+    rewrite <- E_mem.
+    unfold get_memory_st.
     injection E_strg as E_strg.
     rewrite E_strg.
 
@@ -2355,8 +2360,15 @@ Proof.
     
     rewrite <- H_st_inst_sst'_l in E_stk_st'.
     simpl in E_stk_st'.
-    injection E_stk_st' as _ _ E_stk_st'_stk.
-    rewrite E_stk_st'_stk.
+
+    unfold eval_common.EvalCommon.update_memory at 1.
+    fold eval_common.EvalCommon.update_memory.
+    unfold eval_common.EvalCommon.update_memory'.
+
+    injection E_stk_st' as E_stk_st'_offset E_stk_st'_value E_stk_st'_stk.
+    rewrite E_stk_st'_offset.
+    rewrite E_stk_st'_value.  
+    rewrite E_stk_st'_stk. 
     reflexivity.
 Qed.
 
