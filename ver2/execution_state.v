@@ -6,6 +6,7 @@ Import Constants.
 Require Import List.
 Import ListNotations.
 
+Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Arith.
 Require Import Nat.
 Require Import Bool.
@@ -278,6 +279,54 @@ Definition eq_execution_states (st1 st2: state) : Prop :=
 
 (* Facts *)
 
+(* A state is equal to itself *)
+Lemma eq_execution_states_refl:
+  forall (st: state), eq_execution_states st st.
+Proof.
+  intros.
+  unfold eq_execution_states.
+  intuition. (* this proves the stack and context equivalence *)
+  + unfold eq_memory. intro. reflexivity.
+  + unfold eq_storage. intro. reflexivity.
+Qed.
+
+
+(* States equivalence -> states equality. This requires the functional extension, whcih is consistent. *)
+Lemma eq_execution_states_ext:
+  forall (st st': state),
+    eq_execution_states st st' -> st = st'.
+Proof.
+  intros st st' H_eq.
+  destruct st eqn:E_st.
+  destruct st' eqn:E_st'.
+  unfold eq_execution_states in H_eq.
+  simpl in H_eq.
+  destruct H_eq as [H_eq_stack [H_eq_mem [H_eq_strg H_eq_ctx]]].
+
+  unfold eq_stack in H_eq_stack.
+  rewrite H_eq_stack.
+  unfold eq_memory in H_eq_mem.
+  apply functional_extensionality in H_eq_mem.
+  rewrite H_eq_mem.
+  unfold eq_storage in H_eq_strg.
+  apply functional_extensionality in H_eq_strg. (* functional extension *)
+  rewrite H_eq_strg.
+  unfold eq_context in H_eq_ctx.
+  rewrite H_eq_ctx.
+  reflexivity.
+Qed.
+
+(* Equal states have stack of the same length *)
+Lemma eq_execution_states_stack_len:
+  forall st st',
+    eq_execution_states st st' ->
+    length (get_stack_st st) = length (get_stack_st st').
+Proof.
+  intros st st' H_eq_states.
+  apply eq_execution_states_ext in H_eq_states.
+  rewrite H_eq_states.
+  reflexivity.
+Qed.
 
 Lemma memory_preserved_when_updating_stack_st:
   forall st stk,

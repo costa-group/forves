@@ -11,11 +11,8 @@ concrete_interpreter.v
 symbolic_execution.v
 symbolic_state.v
 symbolic_state_eval.v
+valid_symbolic_state.v
+symbolic_state_eval_facts.v
 symbolic_execution_soundness.v
+load_solvers.v
 
-flat_symbolic_state.v
-flat_symbolic_state_eval.v
-flat_symbolic_state_eval_soundness.v
-
-flat_symbolic_state_cmp.v
-flat_symbolic_state_cmp_soundness.v

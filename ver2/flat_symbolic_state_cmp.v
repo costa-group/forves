@@ -41,27 +41,8 @@ Import EvalCommon.
 Module FlatSymbolicStateCmp.
 
   
-Definition fold_right_two_lists {A B: Type} (f : A -> B -> bool) :=
-  fix fold_right_fix (v : list A) : list B -> bool :=
-    match v with
-    | [] => fun w =>  match w with
-                      | [] => true
-                      | _ => false
-                      end
-    |vh::vt =>
-       fun w => match w with
-                | [] => false
-                | wh::wt =>
-                    if (f vh wh) then
-                      (fold_right_fix vt wt)
-                    else
-                      false
-                end
-    end.
-
 
 Definition mload_cmp_type := nat -> sexpr -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.
-
 Definition sload_cmp_type := nat -> sexpr -> flat_sstorage -> flat_sstorage -> nat -> stack_op_instr_map -> bool.
 Definition sha3_cmp_type  := nat -> sexpr -> sexpr -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.
 Definition smemory_cmp_type := nat -> flat_smemory -> flat_smemory -> nat -> stack_op_instr_map -> bool.

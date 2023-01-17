@@ -1,5 +1,5 @@
 Require Import bbv.Word.
-Require Import Nat.
+Require Import Nat. 
 Require Import Coq.NArith.NArith.
 
 Require Import FORVES.constants.
@@ -7,6 +7,9 @@ Import Constants.
 
 Require Import FORVES.program.
 Import Program.
+
+Require Import FORVES.stack_operation_instructions.
+Import StackOpInstrs.
 
 Require Import List.
 Import ListNotations.
@@ -49,6 +52,10 @@ Inductive scontext :=
   | SymCtx. 
 Definition empty_scontext : scontext := SymCtx.
 
+
+
+(* Symbolic map: type, constructor, getters and setters *)
+
 Inductive smap_value : Type :=
 | SymBasicVal (val: sstack_val)
 | SymPUSHTAG (val: N)
@@ -59,7 +66,42 @@ Inductive smap_value : Type :=
 
 Definition sbindings : Type := list (nat*smap_value).
 Inductive smap := SymMap (maxid : nat) (bindings: sbindings).
+
+Definition get_maxidx_smap (m: smap) :=
+  match m with
+  | SymMap maxidx _ => maxidx
+  end.
+
+Definition get_bindings_smap (m: smap) :=
+  match m with
+  | SymMap _ sb => sb
+  end.
+
 Definition empty_smap : smap := SymMap 0 [].
+
+
+Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
+  match sm with
+  | SymMap maxidx bindings =>
+      let sm' := SymMap (S maxidx) ((pair maxidx value)::bindings) in
+      pair maxidx sm'
+  end.
+
+Fixpoint find_in_sbinding (idx: nat) (sb: sbindings) : option smap_value :=
+  match sb with
+  | [] => None
+  | (idx',value)::sb' =>
+      if ( idx' =? idx ) then
+        Some value
+      else
+        find_in_sbinding idx sb'
+  end.
+
+Definition find_in_smap (idx: nat) (m: smap): option smap_value :=
+  find_in_sbinding idx (get_bindings_smap m).
+
+
+(* Symbolic state: type, constructor, getters and setters *)
 
 Inductive sstate :=
 | SymExState (instk_height: nat) (sstk: sstack) (smem: smemory) (sstg: sstorage) (sctx : scontext) (sm: smap).
@@ -132,83 +174,27 @@ Definition set_smap_sst (sst : sstate) (sm: smap) : sstate :=
   | SymExState instk_height sstk smem sstrg sctx _ => SymExState instk_height sstk smem sstrg sctx sm
   end.
 
-Definition get_bindings_smap(sm: smap) :=
-  match sm with
-  | SymMap maxid bindings => bindings
-  end.
-
-Definition get_maxid_smap(sm: smap) :=
-  match sm with
-  | SymMap maxid bindings => maxid
-  end.
-
-  
-Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
-  match sm with
-  | SymMap maxid bindings =>
-      let sm' := SymMap (S maxid) ((pair maxid value)::bindings) in
-       pair maxid sm'
-  end.
-
-Fixpoint find_in_smap' (key : nat) (sm : list (nat*smap_value)) : option smap_value :=
-  match sm with
-  | [] => None
-  | (pair k sv)::sm' => if k =? key then Some sv else find_in_smap' key sm'
-  end.
-
-Definition find_in_smap (key : nat) (sm : smap) : option smap_value :=
-  match sm with
-  | SymMap maxid map => find_in_smap' key map
-  end.
+ 
 
 
-(* MaxID is > any fresh variable in the map *)
-Fixpoint fresh_var_gt_map (idx: nat) (map: sbindings) : Prop :=
-match map with 
-| nil => True
-| (k,v)::t => idx > k /\ fresh_var_gt_map idx t
-end.
+(* Abstraction over memory/storage comparators *) 
 
-(* Fresh variables in a map are strictly decreasing *)
-Fixpoint strictly_decreasing_map (a: sbindings) : Prop :=
-match a with
-| [] => True
-| (var1, e1)::t1 => match t1 with 
-                    | [] => True
-                    | (var2, e2)::t2 => var1 > var2 /\ 
-                                        strictly_decreasing_map t1
-                    end
-end.
+Definition sstack_val_cmp_type := sstack_val -> sstack_val -> bool.
 
-Definition valid_sstate (sst: sstate) : Prop :=
-match get_smap_sst sst with 
-| SymMap maxid m =>
-    (fresh_var_gt_map maxid m) /\
-      (strictly_decreasing_map m)
-end.
+(* eval offset1 size1 smem1 offset2 size2 smem2 -> bool *)
+Definition sha3_cmp_type  := sstack_val_cmp_type -> sstack_val -> sstack_val -> smemory -> sstack_val -> sstack_val -> smemory -> bool.
+
+(* eval smem1 smem2 -> bool *)  
+Definition smemory_cmp_type := sstack_val_cmp_type -> smemory -> smemory -> bool.
+
+(* sstrg1 sstrg2 -> bool *)
+Definition sstorage_cmp_type := sstack_val_cmp_type -> sstorage -> sstorage -> bool.
+
+
 
 (* Facts *)
 
 
-Lemma fresh_var_gt_map_maxid_S:
-  forall  sm maxid,
-    fresh_var_gt_map maxid sm ->
-    fresh_var_gt_map (S maxid) sm.
-Proof.
-  induction sm as [|v sm' IHsm'].
-  - auto.
-  - intros.
-    unfold fresh_var_gt_map in H.
-    fold fresh_var_gt_map in H.
-    destruct v as [k kvalue].
-    destruct H.
-    unfold fresh_var_gt_map.
-    fold fresh_var_gt_map.
-    split.
-    + auto.
-    + apply IHsm'.
-      apply H0.
-Qed.
 
 Lemma instk_height_preserved_when_updating_stack_sst:
   forall sst sstk,
@@ -358,89 +344,6 @@ Proof.
 Qed.
 
 
-Lemma valid_empty_sstate:
-  forall k, valid_sstate (gen_empty_sstate k).
-Proof.
-  intro.
-  unfold gen_empty_sstate.
-  unfold make_sst.
-  unfold valid_sstate.
-  simpl.
-  auto.
-Qed.
-
-Lemma add_to_map_valid_sstate:
-  forall sst key sm value,
-    valid_sstate sst ->
-    (key,sm) = add_to_smap (get_smap_sst sst) value ->
-    valid_sstate (set_smap_sst sst sm).
-Proof.
-  intros sst key sm value H_valid_sst H_add_to_smap.
-
-  unfold valid_sstate in H_valid_sst.
-  destruct (get_smap_sst sst) as [maxid m] eqn:E_get_smap.
-  destruct H_valid_sst as [H_valid_sst_l H_valid_sst_r].
-
-  unfold valid_sstate.
-  rewrite set_and_then_get_smap_sst.
-  simpl in H_add_to_smap.
-  injection H_add_to_smap as H_add_to_smap_1 H_add_to_smap_2.
-  rewrite H_add_to_smap_2.
-  
-  split.
-  + simpl.
-    split.
-    apply Gt.gt_Sn_n.
-    apply fresh_var_gt_map_maxid_S.
-    apply H_valid_sst_l.
-  + destruct m.
-    ++ intuition.
-    ++ unfold fresh_var_gt_map in H_valid_sst_l.
-       fold fresh_var_gt_map in H_valid_sst_l.
-       destruct p.
-       destruct H_valid_sst_l as [H_valid_sst_l_1 H_valid_sst_l_2].
-       unfold strictly_decreasing_map.
-       intuition.
-Qed.
-
-Lemma valid_sstate_sstack_change:
-  forall sst sstk,
-    valid_sstate sst ->
-    valid_sstate (set_stack_sst sst sstk).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
-Qed.
-
-Lemma valid_sstate_smemory_change:
-  forall sst smem,
-    valid_sstate sst ->
-    valid_sstate (set_memory_sst sst smem).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
-Qed.
-
-Lemma valid_sstate_sstorage_change:
-  forall sst sstrg,
-    valid_sstate sst ->
-    valid_sstate (set_memory_sst sst sstrg).
-Proof.
-  intros.
-  unfold valid_sstate in H.
-  destruct sst.
-  destruct sm.
-  simpl.
-  apply H.
-Qed.
 
 
 End SymbolicState.

@@ -42,6 +42,24 @@ Definition map_option {A B : Type} (f: A -> option B)  :=
                   end
     end.
 
+Definition fold_right_two_lists {A B: Type} (f : A -> B -> bool) :=
+  fix fold_right_fix (v : list A) : list B -> bool :=
+    match v with
+    | [] => fun w =>  match w with
+                      | [] => true
+                      | _ => false
+                      end
+    |vh::vt =>
+       fun w => match w with
+                | [] => false
+                | wh::wt =>
+                    if (f vh wh) then
+                      (fold_right_fix vt wt)
+                    else
+                      false
+                end
+    end.
+
 
 (******* stack manipulation operators ********)
 
@@ -224,7 +242,40 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma map_option_app1:
+  forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl: list B),
+    map_option f (l1++l2) = Some (rl) ->
+    exists rl1 rl2, rl=rl1++rl2 /\ length rl1 = length l1 /\ length rl2 = length l2.
+Proof.
+  induction l1 as [|e l1' IHl1'].
+  - intros.
+    simpl in H.
+    exists []. exists rl.
+    simpl.
+    split; try split; try reflexivity.
+    apply map_option_len in H.
+    symmetry.
+    apply H.
+  - intros.
+    simpl in H.
+    destruct (f e) eqn:E_f_e; try discriminate.
+    destruct (map_option f (l1' ++ l2)) eqn:E_mapo; try discriminate.
+    injection H as H. 
+    pose proof (IHl1' l2 l E_mapo) as IHl1'_0.
+    destruct IHl1'_0 as [rl1 [rl2 [IHl1'_0_1 [IHl1'_0_2 IHl1'_3]]]].
+    rewrite <- H.
+    exists (b::rl1).
+    exists rl2.
+    split.
+    + rewrite <- app_comm_cons.
+      rewrite  IHl1'_0_1.
+      reflexivity.
+    + split.
+      * simpl. rewrite   IHl1'_0_2. reflexivity.
+      * apply   IHl1'_3.
+Qed.
 
+    
 Lemma map_option_app2:
   forall (A B: Type) (f: A->option B) (l1 l2: list A) (rl1 rl2: list B),
     length l1 = length rl1 ->
@@ -475,7 +526,48 @@ Qed.
 
                   
                 
-                
-  
+Lemma app_same_len:
+  forall {A} (l1 l2 rl1 rl2 : list A),
+    length l1 = length rl1 ->
+    length l2 = length rl2 ->
+    l1++l2 = rl1++rl2 ->
+    l1 = rl1 /\ l2 = rl2.
+Proof.
+  induction l1 as [|a l1' IHl1'].
+  - simpl.
+    intros l2 rl1 rl2 H_len_l1_rl1 H_l1_rl2 H_app.
+    symmetry in H_len_l1_rl1.
+    apply length_zero_iff_nil in H_len_l1_rl1.
+    rewrite H_len_l1_rl1.
+    rewrite H_len_l1_rl1 in H_app.
+    simpl in H_app.
+    rewrite H_app.
+    split; try reflexivity.
+  - simpl.
+    intros l2 rl1 rl2 H_len_l1_rl1 H_l1_rl2 H_app.
+    destruct rl1 as [|b rl1']; try discriminate.
+    simpl in H_len_l1_rl1.
+    injection H_len_l1_rl1 as H_len_l1_rl1.
+    Search app.
+    rewrite <- app_comm_cons in H_app.
+    injection H_app as H_a_b H_app'.
+    pose proof (IHl1' l2 rl1' rl2 H_len_l1_rl1 H_l1_rl2 H_app') as [IH1 IH2].
+    split.
+    + rewrite H_a_b.
+      rewrite IH1.
+      reflexivity.
+    + apply IH2.
+Qed.
 
+Lemma skipn_same_len:
+  forall {A B} (n: nat) (l1 :list A) (l2 : list B),
+    length l1 = length l2 ->
+    length (skipn n l1) = length (skipn n l2).
+Proof.
+  intros A B n l1 l2 H_len.
+  repeat rewrite skipn_length.
+  rewrite H_len.
+  reflexivity.
+Qed.
+  
 End Misc.
