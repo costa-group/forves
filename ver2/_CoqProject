@@ -16,6 +16,7 @@ symbolic_state_eval_facts.v
 symbolic_execution_soundness.v
 memory_ops_solvers.v
 storage_ops_solvers.v
+symbolic_state_cmp.v
 
 flat_symbolic_state.v
 flat_symbolic_state_eval.v
