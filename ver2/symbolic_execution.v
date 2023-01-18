@@ -17,8 +17,11 @@ Import Misc.
 Require Import FORVES.stack_operation_instructions.
 Import StackOpInstrs.
 
-Require Import FORVES.load_solvers.
-Import LoadSolvers.
+Require Import FORVES.memory_ops_solvers.
+Import MemoryOpsSolvers.
+
+Require Import FORVES.storage_ops_solvers.
+Import StorageOpsSolvers.
 
 Require Import List.
 Import ListNotations.

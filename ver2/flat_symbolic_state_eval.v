@@ -113,16 +113,11 @@ Fixpoint eval_sexpr (fsv : sexpr) (stk: stack) (mem: memory) (strg: storage) (ct
       end
   end.
 
-Definition eval_flat_sstack (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option stack :=
-  let instk_height := (get_instk_height_fsst fsst) in
-  if (length stk) =? instk_height then
-    map_option (fun sv => eval_sexpr sv stk mem strg ctx ops) (get_stack_fsst fsst)
-  else
-    None.
+Definition eval_flat_sstack (fsstk: flat_sstack) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map) : option stack :=
+  map_option (fun sv => eval_sexpr sv stk mem strg ctx ops) fsstk.
 
-Definition eval_flat_smemory (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option memory :=
+Definition eval_flat_smemory (fsmem: flat_smemory) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map) : option memory :=
   let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
-  let fsmem := get_memory_fsst fsst in
   match map_option f_eval_mem_update fsmem with
   | None => None
   | Some updates =>
@@ -130,9 +125,8 @@ Definition eval_flat_smemory (stk: stack) (mem: memory) (strg: storage) (ctx: co
       Some mem'
   end.
 
-Definition eval_flat_sstorage (stk: stack) (mem: memory) (strg: storage) (ctx: context) (fsst: flat_sstate) (ops: stack_op_instr_map) : option storage :=
+Definition eval_flat_sstorage (fsstrg: flat_sstorage) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map) : option storage :=
   let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops) in
-  let fsstrg := get_storage_fsst fsst in
   match map_option f_eval_strg_update fsstrg with
   | None => None
   | Some updates =>
@@ -142,22 +136,29 @@ Definition eval_flat_sstorage (stk: stack) (mem: memory) (strg: storage) (ctx: c
 
 Definition eval_flat_sstate (st: state) (fsst: flat_sstate) (ops: stack_op_instr_map) : option state :=
   let stk := get_stack_st st in
-    let mem := get_memory_st st in
-    let strg := get_storage_st st in
-    let ctx := get_context_st st in
-    match eval_flat_sstack stk mem strg ctx fsst ops with
+  let mem := get_memory_st st in
+  let strg := get_storage_st st in
+  let ctx := get_context_st st in
+  let instk_height := get_instk_height_fsst fsst in
+  let fsstk := get_stack_fsst fsst in
+  let fsmem := get_memory_fsst fsst in 
+  let fsstrg := get_storage_fsst fsst in
+  if instk_height =? length stk then
+    match eval_flat_sstack fsstk stk mem strg ctx ops with
     | None => None
     | Some stk' =>
-        match eval_flat_smemory stk mem strg ctx fsst ops with
+        match eval_flat_smemory fsmem stk mem strg ctx ops with
         | None => None
         | Some mem' =>
-            match eval_flat_sstorage stk mem strg ctx fsst ops with
+            match eval_flat_sstorage fsstrg stk mem strg ctx ops with
             | None => None
             | Some strg' =>
                 let sst' := make_st stk' mem' strg' ctx in
                 Some sst'
             end
         end
-  end.
+    end
+  else
+    None.
 
 End FlatSymbolicStateEval.
