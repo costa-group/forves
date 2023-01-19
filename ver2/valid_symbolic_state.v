@@ -37,6 +37,8 @@ Definition valid_sstack_value (instk_height: nat) (maxidx: nat) (value : sstack_
   | FreshVar idx => idx < maxidx
   end.
 
+(* All InStackVar in the sstack are smaller than instk_height and all the 
+   FreshVar in the sstack are less than maxidx *)
 Fixpoint valid_sstack (instk_height: nat) (maxidx: nat) (sstk : sstack) : Prop :=
   match sstk with
   | [] => True
