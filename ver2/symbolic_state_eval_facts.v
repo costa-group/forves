@@ -543,7 +543,7 @@ Lemma eval_sstate_succ:
     valid_sstate sst ops ->
     get_instk_height_sst sst = length (get_stack_st st) ->
     exists st',
-      eval_sstate st sst ops =  Some st'.
+      eval_sstate st sst ops = Some st'.
 Proof.
   intros st sst ops H_valid_sstate H_instk_height.
   unfold valid_sstate in H_valid_sstate.

@@ -35,7 +35,7 @@ Module MemoryOpsSolvers.
 
 (* sv smem instk_height m ops -> load_res *)
 Definition mload_solver_type := sstack_val -> smemory -> nat -> smap -> stack_op_instr_map -> smap_value.
-
+            
 Definition mload_solver_valid_res (mload_solver: mload_solver_type) :=
   forall m smem soffset instk_height smv ops,
     valid_smemory instk_height (get_maxidx_smap m) smem -> (* The memory is valid *)
