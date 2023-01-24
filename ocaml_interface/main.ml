@@ -19,7 +19,7 @@ let process_alg n =
 let speclist =
   [
     ("-alg", Arg.Int process_alg, "The algorithm to apply, use 0 for evm_eq_block_chkr, 1 for evm_eq_block_chkr', and 2 for evm_eq_block_chkr'' (default: 2)");
-    ("-opt", Arg.String parse_opts, "A list of comma-separated optimizations (without white spaces) to be applied iteratively. Available optimizations are: add_zero mul_one mul_zero not_not div_one eq_zero gt_one lt_one or_zero sub_x_x iszero3 and_and_l and_and_r. By default all optimizations are applied. Example: add_zero,not_not,gt_one")
+    ("-opt", Arg.String parse_opts, "A list of comma-separated optimizations (without white spaces) to be applied iteratively. Available optimizations are: eval add_zero mul_one mul_zero not_not div_one eq_zero gt_one lt_one or_zero sub_x_x iszero3 and_and_l and_and_r. By default all optimizations are applied. Example: eval,add_zero,not_not,gt_one")
   ]
 
 
@@ -47,7 +47,6 @@ let main () =
       let i = ref 0 in
       try
         while true do
-          i := !i+1;
           let p_opt = read_line() in (* read the optimized block *)
           let p = read_line() in     (* read the original block *)
           let k = read_line() in     (* read input statck size *)
@@ -57,6 +56,7 @@ let main () =
           match r with
           | None -> Printf.printf "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;
           | Some b -> Printf.printf "Example %d: %B\n" !i b;
+          i := !i+1;
         done
       with
       | End_of_file -> ();

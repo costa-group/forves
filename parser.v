@@ -286,6 +286,7 @@ Definition str_to_opt (s : string) : option optim :=
   | "iszero3"%string   => Some optimize_iszero3
   | "and_and_l"%string => Some optimize_and_and_l
   | "and_and_r"%string => Some optimize_and_and_r
+  | "eval"%string      => Some optimize_eval
   | _ => None
   end.
 
@@ -304,10 +305,10 @@ Fixpoint strs_to_opts (l : list string) : option (list optim) :=
 
 Definition parse_opts (l : list string) : option optim :=
   match l with
-  | [] => Some (apply_pipeline_n_times our_optimization_pipeline 50)
+  | [] => Some (apply_pipeline_n_times our_optimization_pipeline 10)
   | _ => match (strs_to_opts l) with
          | None => None
-         | Some opts => Some (apply_pipeline_n_times opts 50)
+         | Some opts => Some (apply_pipeline_n_times opts 10)
          end
   end.
 
