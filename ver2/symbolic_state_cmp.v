@@ -66,7 +66,8 @@ Definition symbolic_state_cmp_snd (f_cmp : sstack_val_cmp) :=
     forall stk mem strg ctx,
       length stk = instk_height ->
       eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops.
-
+      (*Enrique: shouldn't it use eval_sstate instead of eval_sstack_val and
+        complete (packed) symbolic states? *)
 End SymbolicStateCmp.
 
   
