@@ -59,7 +59,7 @@ Definition sstack_val_cmp_snd (f_cmp : sstack_val_cmp) :=
 Definition symbolic_state_cmp := sstate -> sstate -> stack_op_instr_map -> bool.
 
 
-
+(*
 Definition symbolic_state_cmp_snd (f_cmp : sstack_val_cmp) :=
   forall sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
     f_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
@@ -68,6 +68,34 @@ Definition symbolic_state_cmp_snd (f_cmp : sstack_val_cmp) :=
       eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops.
       (*Enrique: shouldn't it use eval_sstate instead of eval_sstack_val and
         complete (packed) symbolic states? *)
+*)
+
+(* Enrique: version with eval_sstate *)
+Definition symbolic_state_cmp_snd (f_cmp : symbolic_state_cmp) :=
+  forall sst1 sst2 ops instk_height,
+    f_cmp sst1 sst2 ops = true ->
+    forall st,
+      length (get_stack_st st) = instk_height ->
+      eval_sstate st sst1 ops = eval_sstate st sst2 ops.
+
+
+(* Definition of symbolic state comparator *)
+
+(* Trivially sound comparator that always returns false *)
+Definition dummy_symbolic_state_cmp : symbolic_state_cmp :=
+  fun (sst1: sstate) =>
+  fun (sst2: sstate) =>
+  fun (ops: stack_op_instr_map) => 
+  false.
+  
+Lemma dummy_symbolic_state_cmp_snd: symbolic_state_cmp_snd dummy_symbolic_state_cmp.
+Proof.
+unfold symbolic_state_cmp_snd.
+intros sst1 sst2 ops instk_height Hdummy.
+unfold dummy_symbolic_state_cmp in Hdummy.
+discriminate.
+Qed.
+
 End SymbolicStateCmp.
 
   

@@ -26,3 +26,5 @@ flat_symbolic_state_cmp.v
 flat_symbolic_state_cmp_soundness.v
 
 optimizations_def.v
+
+checker.v

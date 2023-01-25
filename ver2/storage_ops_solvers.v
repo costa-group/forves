@@ -85,5 +85,34 @@ Definition sstorage_updater_correct_res (sstorage_updater: sstorage_updater_type
 
 Definition sstorage_updater_snd (sstorage_updater: sstorage_updater_type) :=
   sstorage_updater_valid_res sstorage_updater /\ sstorage_updater_correct_res sstorage_updater.
+  
+  
+  
+  
+  (* Definition of solvers *)  
+
+(* Doesn't check the storage for the value, just returns an abstract load *)
+Definition basic_sload_solver : sload_solver_type := 
+  fun (soffset: sstack_val) => 
+  fun (sstrg: sstorage) =>
+  fun (instk_height: nat) =>
+  fun (m: smap) =>
+  fun (ops: stack_op_instr_map) =>
+  SymSLOAD soffset sstrg.
+
+Lemma basic_sload_solver_snd: sload_solver_snd basic_sload_solver.
+Admitted.
+
+(* Doesn't check the storage, just appends the abstract store *)
+Definition basic_sstorage_updater : sstorage_updater_type :=
+  fun (update: storage_update sstack_val) =>
+  fun (sstrg: sstorage) => 
+  fun (instk_height: nat) => 
+  fun (m: smap) => 
+  fun (ops: stack_op_instr_map) =>
+  (update::sstrg).
+
+Lemma basic_sstorage_updater_snd: sstorage_updater_snd basic_sstorage_updater.
+Admitted.
 
 End StorageOpsSolvers.
