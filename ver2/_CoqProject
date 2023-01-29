@@ -18,6 +18,7 @@ symbolic_execution_soundness.v
 memory_ops_solvers.v
 storage_ops_solvers.v
 symbolic_state_cmp.v
+symbolic_state_cmp_impl.v
 
 optimizations_def.v
 
