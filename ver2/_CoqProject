@@ -19,12 +19,6 @@ memory_ops_solvers.v
 storage_ops_solvers.v
 symbolic_state_cmp.v
 
-flat_symbolic_state.v
-flat_symbolic_state_eval.v
-flat_symbolic_state_eval_soundness.v
-flat_symbolic_state_cmp.v
-flat_symbolic_state_cmp_soundness.v
-
 optimizations_def.v
 
 checker.v
