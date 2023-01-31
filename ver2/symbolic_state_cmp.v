@@ -123,6 +123,10 @@ Definition make_sstack_val_cmp_ext_1 (smemory_cmp: smemory_cmp_t) (sstorage_cmp:
   (fun d sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops => sstack_value_cmp smemory_cmp sstorage_cmp sha3_cmp d sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
 
 
+Definition sstack_val_cmp_d0 (sstack_value_cmp: sstack_val_cmp_ext_2_t) :=
+  forall smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
+   sstack_value_cmp smemory_cmp sstorage_cmp sha3_cmp 0 sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops = false.
+
 Definition safe_smemory_cmp_d (smemory_cmp: smemory_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_1_t) (d: nat) :=
   forall smem1 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
     valid_bindings instk_height maxidx1 sb1 ops ->
@@ -133,7 +137,7 @@ Definition safe_smemory_cmp_d (smemory_cmp: smemory_cmp_t) (sstack_val_cmp: ssta
     forall stk mem strg ctx,
       exists mem',
            eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem' /\
-             eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem'.
+             eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem'.
 
 Definition safe_sstorage_cmp_d (sstorage_cmp: sstorage_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_1_t) (d: nat) :=
   forall sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
@@ -145,7 +149,7 @@ Definition safe_sstorage_cmp_d (sstorage_cmp: sstorage_cmp_t) (sstack_val_cmp: s
     forall stk mem strg ctx,
     exists strg',
       eval_sstorage sstrg1 maxidx1 sb1 stk mem strg ctx ops = Some strg' /\
-        eval_sstorage sstrg1 maxidx1 sb1 stk mem strg ctx ops = Some strg'.
+        eval_sstorage sstrg2 maxidx2 sb2 stk mem strg ctx ops = Some strg'.
 
 Definition safe_sha3_cmp_d (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_1_t) (d: nat) :=
   forall soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
@@ -161,7 +165,7 @@ Definition safe_sha3_cmp_d (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cm
     forall stk mem strg ctx,
       exists offset1 size1 mem1 offset2 size2 mem2,
       eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem1 /\
-      eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem2 /\
+      eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem2 /\
       eval_sstack_val soffset1 stk mem strg ctx maxidx1 sb1 ops = Some offset1 /\
       eval_sstack_val ssize1 stk mem strg ctx maxidx1 sb1 ops = Some size1 /\
       eval_sstack_val soffset2 stk mem strg ctx maxidx1 sb1 ops = Some offset2 /\
@@ -181,6 +185,18 @@ Definition safe_sstack_val_cmp_ext_2_d (smemory_cmp: smemory_cmp_t) (sstorage_cm
       eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = Some v /\
       eval_sstack_val sv2 stk mem strg ctx maxidx2 sb2 ops = Some v.
 
+Definition safe_sstack_val_cmp_ext_1_d (sstack_val_cmp: sstack_val_cmp_ext_1_t) (d: nat) :=
+  forall sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
+    valid_sstack_value instk_height maxidx1 sv1 ->
+    valid_sstack_value instk_height maxidx2 sv2 ->
+    valid_bindings instk_height maxidx1 sb1 ops ->
+    valid_bindings instk_height maxidx2 sb2 ops ->
+    sstack_val_cmp d sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
+    forall stk mem strg ctx,
+    exists v,
+      eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = Some v /\
+      eval_sstack_val sv2 stk mem strg ctx maxidx2 sb2 ops = Some v.
+
 
 Definition safe_smemory_cmp (smemory_cmp: smemory_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_1_t) :=
   forall d, safe_smemory_cmp_d smemory_cmp sstack_val_cmp d.
@@ -194,40 +210,200 @@ Definition safe_sha3_cmp (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_
 Definition safe_sstack_val_cmp_ext_2 (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
   forall d, safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp d.
 
-Definition safe_smemory_cmp_wrt_sstack_value_cmp (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
-  forall d,
-    safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp d ->
-    safe_smemory_cmp_d smemory_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d.
+Definition safe_sstack_val_cmp_ext_1 (sstack_val_cmp: sstack_val_cmp_ext_1_t) :=
+  forall d, safe_sstack_val_cmp_ext_1_d sstack_val_cmp d.
 
-Definition safe_sstorage_cmp_wrt_sstack_value_cmp (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
-  forall d,
-    safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp d ->
-    safe_sstorage_cmp_d sstorage_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d.
 
-Definition safe_sha3_cmp_wrt_sstack_value_cmp (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
-  forall d,
-    safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp d ->
-    safe_sha3_cmp_d sha3_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d.
+Definition safe_smemory_cmp_wrt_sstack_value_cmp (smemory_cmp: smemory_cmp_t) :=
+  forall (d: nat) (sstack_val_cmp: sstack_val_cmp_ext_1_t),
+    safe_sstack_val_cmp_ext_1_d sstack_val_cmp d ->
+    safe_smemory_cmp_d smemory_cmp sstack_val_cmp d.
 
-Definition safe_sstack_value_cmp_wrt_others (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
-  forall d,
+Definition safe_sstorage_cmp_wrt_sstack_value_cmp (sstorage_cmp: sstorage_cmp_t) :=
+  forall (d: nat) (sstack_val_cmp: sstack_val_cmp_ext_1_t),
+    safe_sstack_val_cmp_ext_1_d sstack_val_cmp d ->
+    safe_sstorage_cmp_d sstorage_cmp sstack_val_cmp d.
+
+Definition safe_sha3_cmp_wrt_sstack_value_cmp  (sha3_cmp: sha3_cmp_t) :=
+  forall (d: nat) (sstack_val_cmp: sstack_val_cmp_ext_1_t),
+    safe_sstack_val_cmp_ext_1_d sstack_val_cmp d ->
+    safe_sha3_cmp_d sha3_cmp sstack_val_cmp d.
+
+Definition safe_sstack_value_cmp_wrt_others (sstack_val_cmp: sstack_val_cmp_ext_2_t) :=
+  forall (d: nat) (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t),   
     safe_smemory_cmp_d smemory_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d ->
     safe_sstorage_cmp_d sstorage_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d ->
     safe_sha3_cmp_d sha3_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d ->
     safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp (S d).
 
-Lemma safe_gh:
-  forall (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t),
-    safe_smemory_cmp_wrt_sstack_value_cmp smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp ->
-    safe_sstorage_cmp_wrt_sstack_value_cmp smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp ->
-    safe_sha3_cmp_wrt_sstack_value_cmp smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp ->
-    safe_sstack_value_cmp_wrt_others smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp ->
-    safe_smemory_cmp smemory_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
-    safe_sstorage_cmp sstorage_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
-    safe_sha3_cmp sha3_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
-      safe_sstack_val_cmp_ext_2  smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp.
+Lemma make_sstack_val_cmp_d0:
+  forall (sstack_value_cmp: sstack_val_cmp_ext_2_t),
+    sstack_val_cmp_d0 sstack_value_cmp ->
+    forall (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
+      (make_sstack_val_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_value_cmp) 0) sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops = (fun sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops => false) sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops.
 Proof.
-Admitted.
+  intros.
+  unfold sstack_val_cmp_d0 in H.
+  pose proof (H smemory_cmp sstorage_cmp sha3_cmp) as H_sstack_val_cmp_d0.
+  unfold make_sstack_val_cmp_ext_1.
+  unfold make_sstack_val_cmp.
+  apply H_sstack_val_cmp_d0.
+Qed.
+
+Search (?P1 ?x /\ ?P2 ?x).
+
+Lemma forall_dist_over_and:
+  forall (P1 P2 : nat -> Prop),
+    (forall d, P1 d /\ P2 d) <->
+              ((forall d, P1 d)/\(forall d, P2 d)).
+Proof.
+  intros.
+  split.
+  - split.
+    + intro. apply H.
+    + intro. apply H.
+  - intuition.
+Qed.
+
+Lemma safe_ext_2_implies_safe_ext_1:
+  forall d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp,
+    safe_sstack_val_cmp_ext_2_d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp d ->
+    safe_sstack_val_cmp_ext_1_d (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) d.
+Proof.
+  intros d smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_ext_2.
+  unfold safe_sstack_val_cmp_ext_2_d in H_ext_2.
+  unfold make_sstack_val_cmp_ext_1.
+  unfold safe_sstack_val_cmp_ext_1_d.
+  apply H_ext_2.
+Qed.
+
+
+Lemma safe_smemory_sstorage_sha3_cmp:
+  forall (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t),
+    sstack_val_cmp_d0 sstack_val_cmp ->
+    safe_smemory_cmp_wrt_sstack_value_cmp smemory_cmp ->
+    safe_sstorage_cmp_wrt_sstack_value_cmp sstorage_cmp ->
+    safe_sha3_cmp_wrt_sstack_value_cmp sha3_cmp ->
+    safe_sstack_value_cmp_wrt_others sstack_val_cmp ->
+    safe_smemory_cmp smemory_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp)/\
+    safe_sstorage_cmp sstorage_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
+    safe_sha3_cmp sha3_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp).
+Proof.
+  intros smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval.
+
+  unfold safe_smemory_cmp.
+  unfold safe_sstorage_cmp.
+  unfold safe_sha3_cmp.
+  unfold safe_smemory_cmp_wrt_sstack_value_cmp in H_s_mem.
+  unfold safe_sstorage_cmp_wrt_sstack_value_cmp in H_s_strg.
+  unfold safe_sha3_cmp_wrt_sstack_value_cmp in H_s_sha3.
+  unfold safe_sstack_value_cmp_wrt_others in H_s_ssval.
+  
+  rewrite <- forall_dist_over_and.
+  rewrite <- forall_dist_over_and.
+  
+  induction d as [|d'].
+  - split.
+    + apply H_s_mem.
+      unfold safe_sstack_val_cmp_ext_1_d.
+      intros.
+      unfold sstack_val_cmp_d0 in H_d0.
+      pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
+      unfold make_sstack_val_cmp_ext_1 in H3.
+      rewrite H4 in H3.
+      discriminate.
+    + split.
+      * apply H_s_strg.
+        unfold safe_sstack_val_cmp_ext_1_d.
+        intros.
+        unfold sstack_val_cmp_d0 in H_d0.
+        pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
+        unfold make_sstack_val_cmp_ext_1 in H3.
+        rewrite H4 in H3.
+        discriminate.
+      * apply H_s_sha3.
+        unfold safe_sstack_val_cmp_ext_1_d.
+        intros.
+        unfold sstack_val_cmp_d0 in H_d0.
+        pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
+        unfold make_sstack_val_cmp_ext_1 in H3.
+        rewrite H4 in H3.
+        discriminate.
+  - destruct IHd' as [IHd'_mem [IHd'_strg IHd'_sha3]].
+    pose proof (H_s_ssval d' smemory_cmp sstorage_cmp sha3_cmp IHd'_mem IHd'_strg IHd'_sha3) as H_s_ssval_Sd'.
+    apply safe_ext_2_implies_safe_ext_1 in H_s_ssval_Sd'.
+    split.
+    + apply H_s_mem.
+      apply H_s_ssval_Sd'.
+    + split.
+      * apply H_s_strg.
+        apply H_s_ssval_Sd'.
+      * apply H_s_sha3.
+        apply H_s_ssval_Sd'.
+Qed.
+
+
+Lemma safe_sstack_val_cmp:
+  forall (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t),
+    sstack_val_cmp_d0 sstack_val_cmp ->
+    safe_smemory_cmp_wrt_sstack_value_cmp smemory_cmp ->
+    safe_sstorage_cmp_wrt_sstack_value_cmp sstorage_cmp ->
+    safe_sha3_cmp_wrt_sstack_value_cmp sha3_cmp ->
+    safe_sstack_value_cmp_wrt_others sstack_val_cmp ->
+    safe_sstack_val_cmp_ext_2 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp.
+Proof.
+  intros smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval.
+  pose proof (safe_smemory_sstorage_sha3_cmp smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval) as [H_smem [H_sstrg H_sha3]].
+  unfold safe_sstack_value_cmp_wrt_others in H_s_ssval.
+  unfold safe_sstack_val_cmp_ext_2.
+
+  destruct d as [|d'].
+  - unfold safe_sstack_val_cmp_ext_2_d.
+    intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_sstack_val_cmp_d0.
+    unfold sstack_val_cmp_d0 in H_d0.
+    pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops) as H_d0.
+    rewrite H_d0 in H_sstack_val_cmp_d0.
+    discriminate.
+  -
+    unfold safe_smemory_cmp in H_smem. pose proof (H_smem d') as H_smem.
+    unfold safe_sstorage_cmp in H_sstrg. pose proof (H_sstrg d') as H_sstrg.
+    unfold safe_sha3_cmp in H_sha3. pose proof (H_sha3 d') as H_sha3.
+    
+    pose proof (H_s_ssval d' smemory_cmp sstorage_cmp sha3_cmp H_smem H_sstrg H_sha3) as H_s_ssval_Sd'.
+
+    apply H_s_ssval_Sd'.
+Qed.
+
+
+Lemma safe_all_cmp:
+  forall (smemory_cmp: smemory_cmp_t) (sstorage_cmp: sstorage_cmp_t) (sha3_cmp: sha3_cmp_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t),
+    sstack_val_cmp_d0 sstack_val_cmp ->
+    safe_smemory_cmp_wrt_sstack_value_cmp smemory_cmp ->
+    safe_sstorage_cmp_wrt_sstack_value_cmp sstorage_cmp ->
+    safe_sha3_cmp_wrt_sstack_value_cmp sha3_cmp ->
+    safe_sstack_value_cmp_wrt_others sstack_val_cmp ->
+    
+    safe_sstack_val_cmp_ext_2 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp /\
+      safe_smemory_cmp smemory_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
+      safe_sstorage_cmp sstorage_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp) /\
+      safe_sha3_cmp sha3_cmp (make_sstack_val_cmp_ext_1 smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp).
+
+Proof.
+  intros smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval.
+  split.
+  - apply safe_sstack_val_cmp.
+    + apply H_d0.
+    + apply H_s_mem.
+    + apply H_s_strg.
+    + apply H_s_sha3.
+    + apply H_s_ssval.
+  - apply safe_smemory_sstorage_sha3_cmp.
+    + apply H_d0.
+    + apply H_s_mem.
+    + apply H_s_strg.
+    + apply H_s_sha3.
+    + apply H_s_ssval.
+Qed.
 
 End SymbolicStateCmp.
 
