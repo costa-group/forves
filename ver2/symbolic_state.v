@@ -64,7 +64,8 @@ Inductive smap_value : Type :=
 | SymSLOAD (key: sstack_val) (sstrg : sstorage)
 | SymSHA3 (offset: sstack_val) (size: sstack_val) (smem : smemory).
 
-Definition sbindings : Type := list (nat*smap_value).
+Definition sbinding : Type := nat*smap_value.
+Definition sbindings : Type := list sbinding.
 Inductive smap := SymMap (maxid : nat) (bindings: sbindings).
 
 Definition get_maxidx_smap (m: smap) :=
