@@ -9,7 +9,7 @@ include_identical = False
 
 #
 #
-bytecode_vocab = [ 'ADD', 'MUL', 'NOT', 'SUB', 'DIV', 'SDIV', 'MOD', 'SMOD', 'ADDMOD', 'MULMOD', 'EXP', 'SIGNEXTEND', 'LT', 'GT', 'SLT', 'SGT', 'EQ', 'ISZERO', 'AND', 'OR', 'XOR', 'BYTE', 'SHL', 'SHR', 'SAR', 'SHA3', 'KECCAK256', 'ADDRESS', 'BALANCE', 'ORIGIN', 'CALLER', 'CALLVALUE', 'CALLDATALOAD', 'CALLDATASIZE ', 'CODESIZE', 'GASPRICE', 'EXTCODESIZE', 'RETURNDATASIZE', 'EXTCODEHASH', 'BLOCKHASH', 'COINBASE', 'TIMESTAMP', 'NUMBER', 'DIFFICULTY', 'GASLIMIT', 'CHAINID', 'SELFBALANCE', 'BASEFEE', 'SLOAD', 'MLOAD', 'PC', 'MSIZE', 'GAS', 'CREATE', 'CREATE2', 'CALLDATASIZE', 'CALLDATALOAD' ]
+bytecode_vocab = [ 'ADD', 'MUL', 'NOT', 'SUB', 'DIV', 'SDIV', 'MOD', 'SMOD', 'ADDMOD', 'MULMOD', 'EXP', 'SIGNEXTEND', 'LT', 'GT', 'SLT', 'SGT', 'EQ', 'ISZERO', 'AND', 'OR', 'XOR', 'BYTE', 'SHL', 'SHR', 'SAR', 'SHA3', 'KECCAK256', 'ADDRESS', 'BALANCE', 'ORIGIN', 'CALLER', 'CALLVALUE', 'CALLDATALOAD', 'CALLDATASIZE ', 'CODESIZE', 'GASPRICE', 'EXTCODESIZE', 'RETURNDATASIZE', 'EXTCODEHASH', 'BLOCKHASH', 'COINBASE', 'TIMESTAMP', 'NUMBER', 'DIFFICULTY', 'GASLIMIT', 'CHAINID', 'SELFBALANCE', 'BASEFEE', 'SLOAD', 'MLOAD', 'PC', 'MSIZE', 'GAS', 'CREATE', 'CREATE2', 'CALLDATASIZE', 'CALLDATALOAD', 'JUMPI', 'JUMPDEST' ]
 
 #
 #
@@ -33,7 +33,11 @@ def split_bytecode(raw_instruction_str: str) -> List[str]:
         op = ops[i]
         # In theory, they should not appear inside a block, as they are removed beforehand.
         # Nevertheless, we include them just in case
-        if op.startswith("ASSIGNIMMUTABLE") or op.startswith("tag"): # or op.startswith("PUSHIMMUTABLE"):
+        if op.startswith("JUMPDEST"):
+           i += 1
+        elif op.startswith("tag"):
+           i += 2
+        elif op.startswith("ASSIGNIMMUTABLE") or op.startswith("tag"): # or op.startswith("PUSHIMMUTABLE"):
             opcodes.append(op)
             i += 1
         elif not op.startswith("PUSH"):
@@ -153,11 +157,17 @@ def print_test(bench_id,block_info, block_sfs):
         opt_bytecode = ' '.join(opt_bytecode_as_list)
         stack_size = len(block_sfs["src_ws"])
 
-        # print(opt_bytecode)
-        # print(bytecode)
-        # print(stack_size)
+        print(f'# serial number: {block_info["sn"]}')
+        print(f'# csv: {block_info["csv"]}')
+        print(f'# block id: {block_info["block_id"]}')
+        print(f'# rules applied: {block_sfs["rules"]}')
+        print(opt_bytecode)
+        print(bytecode)
+        print(stack_size)
+        print()
         return (len(bytecode_as_list),len(opt_bytecode_as_list))
     except Exception as e:
+        print(e,file=sys.stderr)
         return None
 
 #
@@ -174,6 +184,8 @@ def gen_tests(paths):
             with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
                 csv_reader = csv.DictReader(csvfile)
                 for block_info in csv_reader:
+                    block_info["csv"] = csv_filename
+                    block_info["sn"] = i
                     block_id = block_info['block_id']
                     with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
                         block_sfs = json.load(f)
@@ -182,7 +194,47 @@ def gen_tests(paths):
                             total_p = total_p + r[0]
                             total_opt_p = total_p + r[1]
                             i = i + 1
-    print(f'{total_p/i:.2f},{total_opt_p/i:.2f}')
+    print(f'{total_p/i:.2f},{total_opt_p/i:.2f}',file=sys.stderr)
+
+
+
+def solc_json_block_to_str(b):
+    s = ""
+    for o in b:
+        if 'value' in o:
+            v = f" {o['value']}"
+        else:
+            v = ""
+        if o["name"] != "JUMP":
+            s += f'{o["name"]}{v} '
+    return s[:-1]
+
+def print_test_2(bstr1, bstr2):
+    try:
+        
+        bytecode_as_list = str_to_list(bstr1)
+        opt_bytecode_as_list = str_to_list(bstr2)
+
+        bytecode = ' '.join(bytecode_as_list)
+        opt_bytecode = ' '.join(opt_bytecode_as_list)
+        stack_size = 500
+
+        print('#')
+        print(opt_bytecode)
+        print(bytecode)
+        print(stack_size)
+        print()
+    except Exception as e:
+        print(e,file=sys.stderr)
+
+def gen_tests_from_daniel_format(paths):
+    for path in paths:
+        with open(path, 'r') as f:
+            bs = json.load(f)
+            for b in bs:
+                b1 = solc_json_block_to_str(b["pre"][".code"])
+                b2 = solc_json_block_to_str(b["post"][".code"])
+                print_test_2(b1,b2)
 
 # Usage example:
 #
@@ -190,4 +242,5 @@ def gen_tests(paths):
 #
 if __name__ == "__main__":
     paths=sys.argv[1:]
-    gen_tests(paths)
+    #gen_tests(paths)
+    gen_tests_from_daniel_format(paths)
