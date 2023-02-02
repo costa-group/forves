@@ -701,3 +701,16 @@ Proof.
   exists (make_st l mem' strg' (get_context_st st)).
   reflexivity.
 Qed.
+
+
+
+
+Lemma eval_fvar_diff: forall (fvar n: nat) (stk: stack) (mem: memory) 
+  (strg: storage) (ctx: context) (maxid: nat) (smapv: smap_value) 
+  (ops: stack_op_instr_map) (sb: sbindings),
+fvar =? n = false ->
+eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid ((n, smapv) :: sb) ops =
+eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid sb ops.
+Proof.
+Admitted.
+
