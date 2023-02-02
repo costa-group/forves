@@ -81,7 +81,9 @@ Inductive stack_op_instr :=
   | MLOAD
   | PC
   | MSIZE
-  | GAS.
+  | GAS
+  | JUMPI.
+   
   
 (** PUSH, POP, DUP and SWAP are hardcoded, and the other opcodes are operators *)
 Inductive instr :=
@@ -151,6 +153,7 @@ match (a, b) with
  | (PC,PC) => true
  | (MSIZE,MSIZE) => true
  | (GAS,GAS) => true
+ | (JUMPI,JUMPI) => true
  | _ => false
 end.
 Notation "m '=?i' n" := (eq_stack_op_instr m n) (at level 100).
@@ -257,6 +260,12 @@ match args with
 end.
 
 
+Definition evm_jumpi (args: list EVMWord) : option EVMWord :=
+match args with
+ | [a; b] => Some (if weqb b WZero then WZero else a)
+ | _ => None
+ end.
+
 
 Definition uninterp0 (args: list EVMWord) : option EVMWord :=
 match args with
@@ -323,13 +332,16 @@ Definition fully_defined := [
   SUB;
   DIV;
   EXP;
-  EQ ;
+  LT;
+  GT;
+  EQ;
   ISZERO;
   AND;
   OR;
   XOR;
   SHL;
-  SHR
+  SHR;
+  JUMPI
   ].
 
 Definition is_fully_defined (i : stack_op_instr) :=
@@ -342,6 +354,7 @@ Definition is_fully_defined (i : stack_op_instr) :=
   f fully_defined.
 
 Definition evm_stack_opm : stack_op_map :=
+  JUMPI |->i StackOp false 2 evm_jumpi;
   ADD |->i StackOp true 2 evm_add;
   MUL |->i StackOp true 2 evm_mul;
   NOT |->i StackOp false 1 evm_not;
@@ -395,7 +408,6 @@ Definition evm_stack_opm : stack_op_map :=
   PC |->i StackOp false 0 uninterp0;
   MSIZE |->i StackOp false 0 uninterp0;
   GAS |->i StackOp false 0 uninterp0.
-
 
 (* ================================================================= *)
 (* ** Execution states *)

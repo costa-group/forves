@@ -236,6 +236,7 @@ Definition parse_non_push_instr (s : string) : option instr :=
                        | "GAS"%string => Some (Opcode GAS)
                       (* | "CREATE"%string => Some (Opcode CREATE)
                        | "CREATE2"%string => Some (Opcode CREATE2)*)
+                       | "JUMPI"%string => Some (Opcode JUMPI)
                        | _ => None
                        end
              end

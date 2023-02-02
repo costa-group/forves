@@ -411,6 +411,13 @@ try (
   destruct r2 as [|c r3]; try (simpl in H0; discriminate).
   simpl.
   exists (wrshift' b (wordToNat a)). reflexivity.
+- (* JUMPI *)
+  rw_coherent H eq_func H0 eq_nb_args.
+  destruct l as [|a r1]; try (simpl in H0; discriminate).
+  destruct r1 as [|b r2]; try (simpl in H0; discriminate).
+  destruct r2 as [|c r3]; try (simpl in H0; discriminate). 
+  simpl. 
+  exists (if weqb b WZero then WZero else a). reflexivity.
 Qed.
 
 Theorem evm_stack_opm_validity: valid_stack_op_map evm_stack_opm.
