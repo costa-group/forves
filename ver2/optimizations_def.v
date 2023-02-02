@@ -27,7 +27,7 @@ Require Import List.
 Import ListNotations.
 
 Require Import symbolic_state_cmp_impl.
-Import SymbolicStateCmpImp.
+Import SymbolicStateCmpImpl.
 
 Require Import symbolic_state_eval_facts.
 
@@ -134,16 +134,16 @@ Qed.
 
 
 (* Type of a function that optimizes a single smap_value *)
-Definition opt_smap_value_type := smap_value -> sstack_val_cmp -> sbindings -> 
+Definition opt_smap_value_type := smap_value -> sstack_val_cmp_t -> sbindings -> 
   nat -> nat -> stack_op_instr_map -> smap_value*bool.
 
  
 (* 'opt' is sound if optimizing the head binding (idx,val) results in a list 
    of sbindings that preserves evaluations *)
 Definition opt_sbinding_snd (opt: opt_smap_value_type) :=
-forall (val val': smap_value) (fcmp: sstack_val_cmp) (sb: sbindings) 
+forall (val val': smap_value) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
   (maxidx: nat) (instk_height: nat) (ops: stack_op_instr_map) (flag: bool),
-sstack_val_cmp_snd fcmp ->
+safe_sstack_val_cmp fcmp ->
 opt val fcmp sb maxidx instk_height ops = (val', flag) ->
   forall idx stk mem strg ctx v,
   (*instk_height = length stk ->*)
@@ -168,7 +168,7 @@ val = val'.*)
 
 (* Applies smap value optimization to the first suitable entry in sbindings *)
 Fixpoint optimize_first_sbindings (opt_sbinding: opt_smap_value_type) 
-  (fcmp: sstack_val_cmp) (sb: sbindings) (maxid instk_height: nat) 
+  (fcmp: sstack_val_cmp_t) (sb: sbindings) (maxid instk_height: nat) 
   (ops: stack_op_instr_map): sbindings*bool :=
 match sb with
 | [] => (sb,false)
@@ -186,9 +186,9 @@ end.
 (* If opt is sound when optimizing the first entry in the bindings, then 
    the optimize_first_sbindings will preserve the bindings *)
 Lemma opt_sbinding_preserves: 
-forall (opt: opt_smap_value_type) (fcmp: sstack_val_cmp) (sb sb': sbindings) 
+forall (opt: opt_smap_value_type) (fcmp: sstack_val_cmp_t) (sb sb': sbindings) 
   (maxid instk_height: nat) (ops: stack_op_instr_map) (flag: bool),
-sstack_val_cmp_snd fcmp ->
+safe_sstack_val_cmp fcmp ->
 opt_sbinding_snd opt ->
 optimize_first_sbindings opt fcmp sb maxid instk_height ops = (sb', flag) ->
 preserv_sbindings sb sb' maxid ops.
@@ -241,7 +241,7 @@ Qed.
 
 
 Definition optimize_first_sstate (opt: opt_smap_value_type) 
-  (fcmp: sstack_val_cmp) (maxid instk_height: nat) 
+  (fcmp: sstack_val_cmp_t) (maxid instk_height: nat) 
   (ops: stack_op_instr_map) (sst: sstate): sstate*bool :=
 match sst with 
 | SymExState instk_height sstk smem sstg sctx (SymMap maxid bindings) =>
@@ -260,7 +260,7 @@ end.
 (* ADD(X,0) or ADD(0,X) = X *)
 Definition optimize_add_0_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
-fun (fcmp: sstack_val_cmp) =>
+fun (fcmp: sstack_val_cmp_t) =>
 fun (sb: sbindings) =>
 fun (maxid: nat) =>
 fun (instk_height: nat) =>
@@ -282,7 +282,7 @@ Proof.
 Admitted.
 
 (* *)
-Definition optimize_add_0 (fcmp: sstack_val_cmp) (sst: sstate) := 
+Definition optimize_add_0 (fcmp: sstack_val_cmp_t) (sst: sstate) := 
 let instk_height := get_instk_height_sst sst in
 let maxid := get_maxidx_smap (get_smap_sst sst)
 in optimize_first_sstate optimize_add_0_sbinding fcmp maxid instk_height
