@@ -241,8 +241,8 @@ Qed.
 
 
 Definition optimize_first_sstate (opt: opt_smap_value_type) 
-  (fcmp: sstack_val_cmp_t) (maxid instk_height: nat) 
-  (ops: stack_op_instr_map) (sst: sstate): sstate*bool :=
+  (fcmp: sstack_val_cmp_t) (ops: stack_op_instr_map) (sst: sstate)
+  : sstate*bool :=
 match sst with 
 | SymExState instk_height sstk smem sstg sctx (SymMap maxid bindings) =>
     match optimize_first_sbindings opt fcmp bindings maxid instk_height ops with
@@ -252,6 +252,16 @@ match sst with
     end
 end.
 
+Lemma optimize_first_sstate_valid: forall (opt: opt_smap_value_type) 
+  (fcmp: sstack_val_cmp_t) (ops: stack_op_instr_map) (sst sst': sstate)
+  (flag: bool),
+valid_sstate sst ops ->  
+optimize_first_sstate opt fcmp ops sst = (sst', flag) ->
+valid_sstate sst' ops.
+Proof.
+(* optimize_first_sstate does not change maxidx or stack_height, and does not
+   change any fresh variable in the bindings, only one smap_value *)
+Admitted.
 
 
 
@@ -282,32 +292,36 @@ Proof.
 Admitted.
 
 (* *)
-Definition optimize_add_0 (fcmp: sstack_val_cmp_t) (sst: sstate) := 
-let instk_height := get_instk_height_sst sst in
-let maxid := get_maxidx_smap (get_smap_sst sst)
-in optimize_first_sstate optimize_add_0_sbinding fcmp maxid instk_height
-  evm_stack_opm.
-
-
-
-(*
-Lemma opt_add_0_flag_sound: 
-opt_smap_value_flag_sound optimize_add_0_smap_value.
+Definition optimize_add_0 (fcmp: sstack_val_cmp_t) (sst: sstate):
+  (sstate * bool) := 
+optimize_first_sstate optimize_add_0_sbinding fcmp evm_stack_opm sst.
+  
+Theorem optimize_add_0_snd: forall (fcmp: sstack_val_cmp_t),
+safe_sstack_val_cmp fcmp ->
+optim_snd (optimize_add_0 fcmp).
 Proof.
-unfold opt_smap_value_flag_sound.
-intros val val' fcmp sb maxid instk_height ops Hopt.
-unfold optimize_add_0_smap_value in Hopt.
-destruct val eqn: HH; try (injection Hopt; auto).
-destruct args as [| arg1 r1]; try (injection Hopt; auto).
-destruct r1 as [| arg2 r2]; try (injection Hopt; auto).
-destruct r2; try (injection Hopt; auto).
-destruct (fcmp arg1 (Val WZero) maxid sb maxid sb instk_height ops); 
-  try discriminate.
-destruct (fcmp arg2 (Val WZero) maxid sb maxid sb instk_height ops);
-  try discriminate.
-injection Hopt. auto.
-Qed.
-*)
+intros fcmp Hsafe_fcmp.
+unfold optim_snd. intros sst sst' b Hvalid_sst Hoptim.
+unfold optimize_add_0 in Hoptim.
+split.
+- apply optimize_first_sstate_valid with (opt:=optimize_add_0_sbinding)
+    (fcmp:=fcmp)(sst:=sst)(flag:=b); try assumption.
+- intros st st'.
+  unfold optimize_first_sstate in Hoptim.
+  destruct sst as [instk_height sstk smem sstg sctx smap].
+  destruct smap as [maxid bindings].
+  destruct (optimize_first_sbindings optimize_add_0_sbinding fcmp bindings
+              maxid instk_height evm_stack_opm) 
+    as [bindings' flag] eqn: eq_opt_first.
+  injection Hoptim as eq_sst' eq_flag.
+  rewrite <- eq_sst'.
+  pose proof (opt_sbinding_preserves optimize_add_0_sbinding fcmp bindings
+    bindings' maxid instk_height evm_stack_opm flag Hsafe_fcmp
+    optimize_add_0_sbinding_snd eq_opt_first) as Hpreserves.
+  pose proof (preserv_sbindings_sstate bindings bindings' maxid evm_stack_opm
+    Hpreserves st st' instk_height sstk smem sstg sctx).
+  intuition.
+Qed.  
 
 
 End Optimizations_Def.

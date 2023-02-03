@@ -25,6 +25,9 @@ Import MemoryOpsSolvers.
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
 
+Require Import FORVES.valid_symbolic_state.
+Import ValidSymbolicState.
+
 Require Import FORVES.symbolic_execution_soundness.
 Import SymbolicExecutionSoundness.
 
@@ -126,14 +129,15 @@ destruct Hinst_sst_opt as [out_es_opt' [Heval_sst_opt Heq_out_es_opt]].
 apply eq_execution_states_ext in Heq_out_es_opt.
 rewrite <- Heq_out_es_opt in Heval_sst_opt.
 unfold optim_snd in Hopt_snd.
-pose proof (Hopt_snd sst_p sst_p' flag_p Hvalid_sst eq_optimize_p) as [_ Hp].
+pose proof (Hopt_snd sst_p sst_p' flag_p Hvalid_sst eq_optimize_p) as 
+  [Hvalid_sst_p' Hp].
 pose proof (Hp in_es out_es_p Heval_sst_p) as Hevalp.
 pose proof (Hopt_snd sst_opt sst_opt' flag_opt Hvalid_sst_opt eq_optimize_popt)
-  as [_ Hopt].
+  as [Hvalid_sst_opt' Hopt].
 pose proof (Hopt in_es out_es_opt Heval_sst_opt) as Hevalopt.
 unfold symbolic_state_cmp_snd in Hcmp.
-pose proof (Hcmp sst_p' sst_opt' evm_stack_opm height Hchkr_true in_es Hlen_stk
-  ) as Heq_eval_sst_p_opt.
+pose proof (Hcmp sst_p' sst_opt' evm_stack_opm Hvalid_sst_p' Hvalid_sst_opt'
+      Hchkr_true in_es) as Heq_eval_sst_p_opt.
 rewrite -> Hevalopt in Heq_eval_sst_p_opt.
 rewrite -> Hevalp in Heq_eval_sst_p_opt.
 injection Heq_eval_sst_p_opt as eq_out_es.
