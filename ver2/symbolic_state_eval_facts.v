@@ -565,6 +565,7 @@ Qed.
 
 
 
+<<<<<<< HEAD
 
 Lemma eval_sstack_val'_preserved_when_depth_extended:
   forall d maxidx sb sv v stk mem strg ctx ops,
@@ -788,4 +789,15 @@ Proof.
   apply eval_sstack_val'_preserved_when_depth_extended_le with (d1:=d1); intuition.
 Qed.
 
+Lemma eval_fvar_diff: forall (fvar n: nat) (stk: stack) (mem: memory) 
+  (strg: storage) (ctx: context) (maxid: nat) (smapv: smap_value) 
+  (ops: stack_op_instr_map) (sb: sbindings),
+fvar =? n = false ->
+eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid ((n, smapv) :: sb) ops =
+eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid sb ops.
+Proof.
+Admitted.
+
 End SymbolicStateEvalFacts.
+
+
