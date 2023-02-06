@@ -562,11 +562,6 @@ Proof.
   reflexivity.
 Qed.
 
-
-
-
-<<<<<<< HEAD
-
 Lemma eval_sstack_val'_preserved_when_depth_extended:
   forall d maxidx sb sv v stk mem strg ctx ops,
     eval_sstack_val' d sv stk mem strg ctx maxidx sb ops = Some v ->
