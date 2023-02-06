@@ -569,5 +569,5 @@ Proof.
   rewrite H_len.
   reflexivity.
 Qed.
-  
+
 End Misc.

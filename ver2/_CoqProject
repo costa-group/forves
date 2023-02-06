@@ -22,7 +22,6 @@ symbolic_state_cmp_impl.v
 symbolic_state_cmp_soundness.v
 sstack_val_cmp_impl.v
 
-sstack_val_cmp_impl.v
 
 optimizations_def.v
 

@@ -31,13 +31,7 @@ Import ValidSymbolicState.
 Require Import FORVES.symbolic_state_eval.
 Import SymbolicStateEval.
 
-
-
-
-
-(*
-Fixpoint eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (ctx: context) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=  
-*)
+Module SymbolicStateEvalFacts.
 
 Lemma n_Sm_neq_lt:
   forall n m,
@@ -60,140 +54,6 @@ Proof.
   apply H.
 Qed.
 
-
-Lemma valid_follow_in_smap:
-  forall sb sv instk_height maxidx ops smv maxidx' sb',
-    valid_sstack_value instk_height maxidx sv ->
-    valid_bindings instk_height maxidx sb ops ->
-    follow_in_smap sv maxidx sb = Some (FollowSmapVal smv maxidx' sb') ->
-    valid_smap_value instk_height maxidx' ops smv /\
-      valid_bindings instk_height maxidx' sb' ops /\
-      (not_basic_value_smv smv = true -> maxidx > maxidx').
-Proof.
-  induction sb as [|p sb'' IHsb''].
-  - intros sv instk_height maxidx ops smv maxidx' sb' H_valid_sv H_valid_sb H_follow.
-    destruct sv eqn:E_sv.
-    + simpl in H_valid_sv.
-      simpl in H_valid_sb.
-      simpl in H_follow.
-      injection H_follow as H_smv H_maxidx' H_sb'.
-      rewrite <- H_sb'.
-      rewrite <- H_smv.
-      rewrite <- H_maxidx'.
-      simpl.
-      split; try intuition.
-      
-    + simpl in H_valid_sv.
-      simpl in H_valid_sb.
-      simpl in H_follow.
-      injection H_follow as H_smv H_maxidx' H_sb'.
-      rewrite <- H_sb'.
-      rewrite <- H_smv.
-      rewrite <- H_maxidx'.
-      simpl.
-      split; try intuition.
-    + discriminate.
-  - intros sv instk_height maxidx ops smv maxidx' sb' H_valid_sv H_valid_sb H_follow.
-    destruct sv eqn:E_sv.
-    + simpl in H_valid_sv.
-      simpl in H_valid_sb.
-      simpl in H_follow.
-      injection H_follow as H_smv H_maxidx' H_sb'.
-      rewrite <- H_sb'.
-      rewrite <- H_smv.
-      rewrite <- H_maxidx'.
-      simpl.
-      split; try intuition.
-    + simpl in H_valid_sv.
-      simpl in H_valid_sb.
-      simpl in H_follow.
-      injection H_follow as H_smv H_maxidx' H_sb'.
-      rewrite <- H_sb'.
-      rewrite <- H_smv.
-      rewrite <- H_maxidx'.
-      simpl.
-      split; try intuition.
-    + destruct p as [idx value] eqn:E_p.
-      simpl in H_valid_sv.
-      simpl in H_valid_sb.
-      simpl in H_follow.
-      destruct H_valid_sb as [H_valid_sb_0 [H_valid_sb_1 H_valid_sb_2]].
-      destruct (idx =? var) eqn:E_n_var.
-      * destruct (is_fresh_var_smv value) as [idx'|] eqn:E_is_fresh_var_value.
-        ** destruct value eqn:E_value; try discriminate.
-           destruct val; try discriminate.
-           simpl in E_is_fresh_var_value.
-           injection E_is_fresh_var_value as E_is_fresh_var_value.
-           simpl in H_valid_sb_1.
-           rewrite E_is_fresh_var_value in H_valid_sb_1.
-
-           assert(H_valid_sstack_value_FreshVar_idx': valid_sstack_value instk_height idx (FreshVar idx')). intuition.
-
-           pose proof (IHsb'' (FreshVar idx') instk_height idx ops smv maxidx' sb' H_valid_sstack_value_FreshVar_idx' H_valid_sb_2 H_follow) as IHsb''_0.
-           intuition.
-           
-        ** injection H_follow as  H_value H_idx H_sb''.
-           rewrite <- H_idx.
-           rewrite <- H_sb''.
-           rewrite <- H_value.
-           split.
-           *** apply H_valid_sb_1.
-           *** split.
-               ***** apply H_valid_sb_2.
-               ***** intro H_not_basic_value.
-               destruct value; try intuition.
-      * apply Nat.eqb_neq in E_n_var.
-        assert(H_valid_sstack_value_FreshVar_idx': valid_sstack_value instk_height idx (FreshVar var)). simpl. intuition.
-        pose proof (IHsb'' (FreshVar var) instk_height idx ops smv maxidx' sb' H_valid_sstack_value_FreshVar_idx' H_valid_sb_2 H_follow) as IHsb''_0.
-        intuition.
-Qed.
-
-Lemma follow_in_smap_suc:
-  forall sb sv instk_height maxidx ops,
-    valid_sstack_value instk_height maxidx sv ->
-    valid_bindings instk_height maxidx sb ops ->
-    exists smv maxidx' sb',
-      follow_in_smap sv maxidx sb = Some (FollowSmapVal smv maxidx' sb') /\
-      is_fresh_var_smv smv = None.
-Proof.
-  induction sb as [| p sb' IHsb'].
-  - intros sv instk_height maxidx ops H_valid_sv H_valid_bs.
-    destruct sv eqn:E_sv.
-    + simpl. exists (SymBasicVal (Val val)). exists maxidx. exists [].
-      split; try reflexivity.
-    + simpl. exists (SymBasicVal (InStackVar var)). exists maxidx. exists [].
-      split; try reflexivity.
-    + simpl in H_valid_bs.
-      simpl in H_valid_sv.
-      intuition.
-  - intros sv instk_height maxidx ops H_valid_sv H_valid_bs.
-    destruct sv eqn:E_sv.
-    + simpl. exists (SymBasicVal (Val val)). exists maxidx. exists (p :: sb'). split; try reflexivity.
-    + simpl. exists (SymBasicVal (InStackVar var)). exists maxidx. exists (p :: sb'). split; try reflexivity.
-    + destruct p as [key value].      
-      simpl in H_valid_bs.
-      destruct H_valid_bs as [H_valid_bs_0 [H_valid_bs_1 H_valid_bs_2]].
-      simpl in H_valid_sv.
-      simpl.
-      destruct (key =? var) eqn:E_key_var.
-      * destruct (is_fresh_var_smv value) as [idx'|] eqn:E_is_fresh_var_smv_value.
-        ** apply IHsb' with (instk_height:=instk_height)(ops:=ops).
-           *** simpl.
-               destruct value; try discriminate.
-               simpl in E_is_fresh_var_smv_value.
-               destruct val; try discriminate.
-               injection E_is_fresh_var_smv_value as E_is_fresh_var_smv_value.
-               simpl in H_valid_bs_1.
-               intuition.
-           *** apply H_valid_bs_2.
-        ** exists value. exists key. exists sb'.
-           split; try reflexivity.
-           apply E_is_fresh_var_smv_value.
-      * apply IHsb' with (instk_height:=instk_height)(ops:=ops).
-        ** simpl.
-           apply Nat.eqb_neq in E_key_var. intuition.
-        ** apply H_valid_bs_2.
-Qed.
 
 Lemma eval_sstack_val'_succ:
   forall d instk_height sv stk mem strg ctx maxidx sb ops,
@@ -701,3 +561,231 @@ Proof.
   exists (make_st l mem' strg' (get_context_st st)).
   reflexivity.
 Qed.
+
+
+
+
+
+Lemma eval_sstack_val'_preserved_when_depth_extended:
+  forall d maxidx sb sv v stk mem strg ctx ops,
+    eval_sstack_val' d sv stk mem strg ctx maxidx sb ops = Some v ->
+    eval_sstack_val' (S d) sv stk mem strg ctx maxidx sb ops = Some v.
+Proof.
+  induction d as [|d' IHd'].
+  - discriminate.
+  - intros maxidx sb sv v stk mem strg ctx ops H_eval_sstack_val'_d.
+
+    assert(H_mapo:
+            forall args maxidx sb l,
+            (map_option (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx sb ops) args) = Some l ->
+            (map_option (fun sv' : sstack_val => eval_sstack_val' (S d') sv' stk mem strg ctx maxidx sb ops) args) = Some l).
+
+    (* proof of assert *)
+    + induction args as [|a args' IHargs'].
+      * intuition.
+      * intros maxidx0 sb0 l H_mapo.
+        simpl in H_mapo.
+        destruct (eval_sstack_val' d' a stk mem strg ctx maxidx0 sb0 ops) eqn:E_eval_sstack_val'; try discriminate.
+        destruct (map_option (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb0 ops) args') eqn:E_mapo'; try discriminate.
+        pose proof (IHargs' maxidx0 sb0 l0 E_mapo') as IHargs'_0.
+        pose proof (IHd' maxidx0 sb0 a e stk mem strg ctx ops E_eval_sstack_val') as IHd'_0.
+        unfold map_option.
+        rewrite <- map_option_ho.
+        rewrite IHd'_0.
+        rewrite IHargs'_0.
+        apply   H_mapo.
+    (* end proof of assert *)
+
+    + remember (S d') as dd.
+      rewrite Heqdd in H_eval_sstack_val'_d.
+      simpl.
+      simpl in H_eval_sstack_val'_d.
+      destruct (follow_in_smap sv maxidx sb) as [x|] eqn:E_follow; try discriminate.
+      destruct x eqn:E_x; try reflexivity.
+      destruct smv eqn:E_smv.
+      * apply H_eval_sstack_val'_d.
+      * apply H_eval_sstack_val'_d.
+      * destruct (ops label) eqn:E_label.
+        destruct (length args =? n) eqn:E_len; try discriminate.
+        destruct (map_option (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx key sb0 ops) args) eqn:E_mapo; try discriminate.
+        pose proof (H_mapo args key sb0 l E_mapo) as E_mapo_0.
+        rewrite E_mapo_0.
+        apply H_eval_sstack_val'_d.
+      * assert(H_mapo_mem :
+                forall args maxidx sb l,
+                  (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx sb ops)) args) = Some l ->
+                  (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' (S d') sv' stk mem strg ctx maxidx sb ops)) args) = Some l).
+                (* proof of assert *)
+            ** induction args as [|a args' IHargs'].
+               *** intuition.
+               *** intros maxidx0 sb1 l H_mapo_mem.
+                   simpl in H_mapo_mem.
+                   unfold eval_common.EvalCommon.instantiate_memory_update in H_mapo_mem at 1.
+                   destruct a eqn:E_a.
+                   **** destruct (eval_sstack_val' d' offset0 stk mem strg ctx maxidx0 sb1 ops) eqn:E_offset0; try discriminate.
+                        destruct (eval_sstack_val' d' value stk mem strg ctx maxidx0 sb1 ops) eqn:E_value; try discriminate.
+                        destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb1 ops)) args') eqn:E_mapo_args'; try discriminate.
+                        pose proof (IHd' maxidx0 sb1 offset0 e stk mem strg ctx ops E_offset0) as IHd'_0.
+                        pose proof (IHd' maxidx0 sb1 value e0 stk mem strg ctx ops E_value) as IHd'_1.
+                        pose proof (IHargs' maxidx0 sb1 l0 E_mapo_args') as IHargs'_0.
+                        rewrite <- Heqdd.
+                        simpl.
+                        rewrite IHd'_0.
+                        rewrite IHd'_1.
+                        rewrite Heqdd.
+                        rewrite IHargs'_0.
+                        apply H_mapo_mem.
+                   **** destruct (eval_sstack_val' d' offset0 stk mem strg ctx maxidx0 sb1 ops) eqn:E_offset0; try discriminate.
+                        destruct (eval_sstack_val' d' value stk mem strg ctx maxidx0 sb1 ops) eqn:E_value; try discriminate.
+                        destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb1 ops)) args') eqn:E_mapo_args'; try discriminate.
+                        pose proof (IHd' maxidx0 sb1 offset0 e stk mem strg ctx ops E_offset0) as IHd'_0.
+                        pose proof (IHd' maxidx0 sb1 value e0 stk mem strg ctx ops E_value) as IHd'_1.
+                        pose proof (IHargs' maxidx0 sb1 l0 E_mapo_args') as IHargs'_0.
+                        rewrite <- Heqdd.
+                        simpl.
+                        rewrite IHd'_0.
+                        rewrite IHd'_1.
+                        rewrite Heqdd.
+                        rewrite IHargs'_0.
+                        apply H_mapo_mem.
+            (* end proof of assert *)
+            ** destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d' sv stk mem strg ctx key sb0 ops)) smem) eqn:E_mapo_smem; try discriminate.
+               pose proof (H_mapo_mem smem key sb0 l E_mapo_smem) as H_mapo_mem_0.
+               rewrite Heqdd.
+               rewrite H_mapo_mem_0.
+               destruct (eval_sstack_val' d' offset stk mem strg ctx key sb0 ops) eqn:E_eval_sstack_val'_offset; try discriminate.
+               pose proof (IHd' key sb0 offset e stk mem strg ctx ops E_eval_sstack_val'_offset) as IHd'_0.
+               rewrite <- Heqdd.
+               rewrite IHd'_0.
+               apply H_eval_sstack_val'_d.
+
+      * assert(H_mapo_strg :
+                forall args maxidx sb l,
+                  (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx sb ops)) args) = Some l ->
+                  (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv' : sstack_val => eval_sstack_val' (S d') sv' stk mem strg ctx maxidx sb ops)) args) = Some l).
+                (* proof of assert *)
+            ** induction args as [|a args' IHargs'].
+               *** intuition.
+               *** intros maxidx0 sb1 l H_mapo_strg.
+                   simpl in H_mapo_strg.
+                   unfold eval_common.EvalCommon.instantiate_storage_update in H_mapo_strg at 1.
+                   destruct a eqn:E_a.
+                   destruct (eval_sstack_val' d' key1 stk mem strg ctx maxidx0 sb1 ops) eqn:E_key1; try discriminate.
+                   destruct (eval_sstack_val' d' value stk mem strg ctx maxidx0 sb1 ops) eqn:E_value; try discriminate.
+                   destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb1 ops)) args') eqn:E_mapo_args'; try discriminate.
+                        pose proof (IHd' maxidx0 sb1 key1 e stk mem strg ctx ops E_key1) as IHd'_0.
+                        pose proof (IHd' maxidx0 sb1 value e0 stk mem strg ctx ops E_value) as IHd'_1.
+                        pose proof (IHargs' maxidx0 sb1 l0 E_mapo_args') as IHargs'_0.
+                        rewrite <- Heqdd.
+                        simpl.
+                        rewrite IHd'_0.
+                        rewrite IHd'_1.
+                        rewrite Heqdd.
+                        rewrite IHargs'_0.
+                        apply H_mapo_strg.
+            (* end proof of assert *)
+            ** destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' d' sv stk mem strg ctx key sb0 ops)) sstrg) eqn:E_mapo_sstrg; try discriminate.
+               pose proof (H_mapo_strg sstrg key sb0 l E_mapo_sstrg) as H_mapo_strg_0.
+               rewrite Heqdd.
+               rewrite H_mapo_strg_0.
+               destruct (eval_sstack_val' d' key0 stk mem strg ctx key sb0 ops) eqn:E_eval_sstack_val'_offset; try discriminate.
+               pose proof (IHd' key sb0 key0 e stk mem strg ctx ops E_eval_sstack_val'_offset) as IHd'_0.
+               rewrite <- Heqdd.
+               rewrite IHd'_0.
+               apply H_eval_sstack_val'_d.
+      * assert(H_mapo_mem :
+                forall args maxidx sb l,
+                  (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx sb ops)) args) = Some l ->
+                  (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' (S d') sv' stk mem strg ctx maxidx sb ops)) args) = Some l).
+                (* proof of assert *)
+            ** induction args as [|a args' IHargs'].
+               *** intuition.
+               *** intros maxidx0 sb1 l H_mapo_mem.
+                   simpl in H_mapo_mem.
+                   unfold eval_common.EvalCommon.instantiate_memory_update in H_mapo_mem at 1.
+                   destruct a eqn:E_a.
+                   **** destruct (eval_sstack_val' d' offset0 stk mem strg ctx maxidx0 sb1 ops) eqn:E_offset0; try discriminate.
+                        destruct (eval_sstack_val' d' value stk mem strg ctx maxidx0 sb1 ops) eqn:E_value; try discriminate.
+                        destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb1 ops)) args') eqn:E_mapo_args'; try discriminate.
+                        pose proof (IHd' maxidx0 sb1 offset0 e stk mem strg ctx ops E_offset0) as IHd'_0.
+                        pose proof (IHd' maxidx0 sb1 value e0 stk mem strg ctx ops E_value) as IHd'_1.
+                        pose proof (IHargs' maxidx0 sb1 l0 E_mapo_args') as IHargs'_0.
+                        rewrite <- Heqdd.
+                        simpl.
+                        rewrite IHd'_0.
+                        rewrite IHd'_1.
+                        rewrite Heqdd.
+                        rewrite IHargs'_0.
+                        apply H_mapo_mem.
+                   **** destruct (eval_sstack_val' d' offset0 stk mem strg ctx maxidx0 sb1 ops) eqn:E_offset0; try discriminate.
+                        destruct (eval_sstack_val' d' value stk mem strg ctx maxidx0 sb1 ops) eqn:E_value; try discriminate.
+                        destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv' : sstack_val => eval_sstack_val' d' sv' stk mem strg ctx maxidx0 sb1 ops)) args') eqn:E_mapo_args'; try discriminate.
+                        pose proof (IHd' maxidx0 sb1 offset0 e stk mem strg ctx ops E_offset0) as IHd'_0.
+                        pose proof (IHd' maxidx0 sb1 value e0 stk mem strg ctx ops E_value) as IHd'_1.
+                        pose proof (IHargs' maxidx0 sb1 l0 E_mapo_args') as IHargs'_0.
+                        rewrite <- Heqdd.
+                        simpl.
+                        rewrite IHd'_0.
+                        rewrite IHd'_1.
+                        rewrite Heqdd.
+                        rewrite IHargs'_0.
+                        apply H_mapo_mem.
+            (* end proof of assert *)
+      ** destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d' sv stk mem strg ctx key sb0 ops)) smem) eqn:E_mapo_smem; try discriminate.
+        destruct (eval_sstack_val' d' offset stk mem strg ctx key sb0 ops) eqn:E_eval_offset; try discriminate.
+        destruct (eval_sstack_val' d' size stk mem strg ctx key sb0 ops) eqn:E_eval_size; try discriminate.
+        pose proof (H_mapo_mem smem key sb0 l E_mapo_smem) as E_mapo_0.
+        pose proof (IHd' key sb0 offset e stk mem strg ctx ops E_eval_offset) as IHd'_0.
+        pose proof (IHd' key sb0 size e0 stk mem strg ctx ops E_eval_size) as IHd'_1.
+        rewrite IHd'_0.
+        rewrite IHd'_1.
+        rewrite Heqdd.
+        rewrite E_mapo_0.
+        apply H_eval_sstack_val'_d.
+Qed.
+
+Lemma eval_sstack_val'_preserved_when_depth_extended_by_i:
+  forall i d maxidx sb sv v stk mem strg ctx ops,
+    eval_sstack_val' d sv stk mem strg ctx maxidx sb ops = Some v ->
+    eval_sstack_val' (d+i) sv stk mem strg ctx maxidx sb ops = Some v.
+Proof.
+  induction i as [|i' IHi'].
+  - intros. rewrite Nat.add_0_r. apply H.
+  - intros d maxidx sb sv v stk mem strg ctx ops H_eval_d.
+    + pose proof (IHi' d maxidx sb sv v stk mem strg ctx ops H_eval_d) as IHi'_0.
+      rewrite Nat.add_succ_r.
+      apply eval_sstack_val'_preserved_when_depth_extended.
+      apply IHi'_0.
+Qed.
+
+Lemma a_lt_b_a_plus_i_eq_b:
+  forall a b,
+    a <= b ->  a+(b-a) = b.
+Proof.
+  intuition.
+Qed.
+  
+Lemma eval_sstack_val'_preserved_when_depth_extended_le:
+  forall d1 d2 maxidx sb sv v stk mem strg ctx ops,
+    d1 <= d2 ->
+    eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops = Some v ->
+    eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops = Some v.
+Proof.
+  intros d1 d2 maxidx sb sv v stk mem strg ctx ops H_d1_le_d2 H_eval_d1.
+  apply a_lt_b_a_plus_i_eq_b in H_d1_le_d2.
+  rewrite <- H_d1_le_d2.
+  apply eval_sstack_val'_preserved_when_depth_extended_by_i.
+  apply H_eval_d1.
+Qed.
+
+Lemma eval_sstack_val'_preserved_when_depth_extended_lt:
+  forall d1 d2 maxidx sb sv v stk mem strg ctx ops,
+    d1 < d2 ->
+    eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops = Some v ->
+    eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops = Some v.
+Proof.
+  intros.
+  apply eval_sstack_val'_preserved_when_depth_extended_le with (d1:=d1); intuition.
+Qed.
+
+End SymbolicStateEvalFacts.

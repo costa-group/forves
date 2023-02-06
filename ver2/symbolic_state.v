@@ -88,18 +88,39 @@ Definition add_to_smap (sm : smap) (value : smap_value) : prod nat smap :=
       pair maxidx sm'
   end.
 
-Fixpoint find_in_sbinding (idx: nat) (sb: sbindings) : option smap_value :=
-  match sb with
-  | [] => None
-  | (idx',value)::sb' =>
-      if ( idx' =? idx ) then
-        Some value
-      else
-        find_in_sbinding idx sb'
+Inductive follow_in_smap_ret_t :=
+| FollowSmapVal (smv : smap_value) (key: nat) (sb: sbindings).
+
+
+Definition is_fresh_var_smv (smv: smap_value) :=
+  match smv with
+  | SymBasicVal (FreshVar idx) => Some idx
+  | _ => None
   end.
 
-Definition find_in_smap (idx: nat) (m: smap): option smap_value :=
-  find_in_sbinding idx (get_bindings_smap m).
+Definition not_basic_value_smv (smv: smap_value) :=
+  match smv with
+  | SymBasicVal _ => false
+  | _ => true
+  end.
+
+Fixpoint follow_in_smap (sv: sstack_val) (maxidx: nat) (sb: sbindings) : option follow_in_smap_ret_t :=
+  match sv with
+  | Val v => Some (FollowSmapVal (SymBasicVal (Val v)) maxidx sb)
+  | InStackVar n => Some (FollowSmapVal (SymBasicVal (InStackVar n)) maxidx sb)
+  | FreshVar idx =>
+      match sb with
+      | [] => None
+      | (key,smv)::sb' =>
+          if key =? idx then
+            match is_fresh_var_smv smv with
+            | Some idx' => follow_in_smap (FreshVar idx') key sb'
+            | Node => Some (FollowSmapVal smv key sb')
+            end
+          else follow_in_smap sv key sb'
+      end
+  end.
+
 
 
 (* Symbolic state: type, constructor, getters and setters *)
