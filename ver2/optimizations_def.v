@@ -197,13 +197,14 @@ Qed.
 Definition opt_smap_value_type := smap_value -> sstack_val_cmp_t -> sbindings -> 
   nat -> nat -> stack_op_instr_map -> smap_value*bool.
 
- 
+
 (* 'opt' is sound if optimizing the head binding (idx,val) results in a list 
    of sbindings that preserves evaluations *)
 Definition opt_sbinding_snd (opt: opt_smap_value_type) :=
 forall (val val': smap_value) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
   (maxidx: nat) (instk_height: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
+(* valid_bindings instk_height maxidx ((idx,val)::sb) evm_stack_opm *)
 (* TODO valid_bindings instk_height maxidx sb evm_stack_opm ->*)
 opt val fcmp sb maxidx instk_height evm_stack_opm = (val', flag) ->
   forall idx stk mem strg ctx v,
@@ -215,7 +216,7 @@ opt val fcmp sb maxidx instk_height evm_stack_opm = (val', flag) ->
     cfake4 : instk_height = length stk
   *)
   (
-    (*valid_sstack_value instk_height maxidx val' /\*)
+    (* valid_bindings instk_height maxidx ((idx,val')::sb) evm_stack_opm /\*)
      eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val)::sb) 
        evm_stack_opm = Some v -> 
      eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val')::sb) 
@@ -256,8 +257,10 @@ forall (opt: opt_smap_value_type) (fcmp: sstack_val_cmp_t) (sb sb': sbindings)
   (maxid instk_height: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
 opt_sbinding_snd opt ->
+(* valid_bindings instk_height maxid sb evm_stack_opm -> *)
 optimize_first_sbindings opt fcmp sb maxid instk_height = (sb', flag) ->
 preserv_sbindings sb sb' maxid evm_stack_opm.
+(* /\ valid_bindings instk_height maxid sb' evm_stack_opm *)
 Proof.
 intros opt fcmp sb. revert opt fcmp.
 induction sb as [|h rsb IH].

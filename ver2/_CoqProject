@@ -25,3 +25,5 @@ sstack_val_cmp_impl.v
 optimizations_def.v
 
 checker.v
+
+tests.v
