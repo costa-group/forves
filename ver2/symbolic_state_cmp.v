@@ -158,9 +158,10 @@ Definition safe_sstack_val_cmp (f_cmp : sstack_val_cmp_t) :=
     valid_bindings instk_height maxidx2 sb2 ops ->
     f_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
     forall stk mem strg ctx,
-    exists v,
-      eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = Some v /\
-        eval_sstack_val sv2 stk mem strg ctx maxidx2 sb2 ops = Some v.
+      length stk = instk_height ->
+      exists v,
+        eval_sstack_val sv1 stk mem strg ctx maxidx1 sb1 ops = Some v /\
+          eval_sstack_val sv2 stk mem strg ctx maxidx2 sb2 ops = Some v.
 
 Definition safe_smemory_cmp_ext_d (smemory_cmp: smemory_cmp_ext_t) (sstack_val_cmp: sstack_val_cmp_ext_1_t) (d: nat) :=
     forall d', d' <= d -> safe_smemory_cmp (smemory_cmp (sstack_val_cmp d')).
@@ -278,7 +279,7 @@ Proof.
       destruct d'; try discriminate.
       unfold sstack_val_cmp_fail_for_d_eq_0 in H_d0.
       pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
-      rewrite H4 in H3.
+      rewrite H5 in H3.
       discriminate H3.
     + split.
       * apply H_s_strg.
@@ -290,7 +291,7 @@ Proof.
         destruct d'; try discriminate.
         unfold sstack_val_cmp_fail_for_d_eq_0 in H_d0.
         pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
-        rewrite H4 in H3.
+        rewrite H5 in H3.
         discriminate.
       * apply H_s_sha3.
         unfold safe_sstack_val_cmp_ext_1_d.
@@ -301,7 +302,7 @@ Proof.
         destruct d'; try discriminate.
         unfold sstack_val_cmp_fail_for_d_eq_0 in H_d0.
         pose proof (H_d0 smemory_cmp sstorage_cmp sha3_cmp sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops).
-        rewrite H4 in H3.
+        rewrite H5 in H3.
         discriminate.
   - destruct IHd' as [IHd'_mem [IHd'_strg IHd'_sha3]].
     pose proof (H_s_ssval d' smemory_cmp sstorage_cmp sha3_cmp IHd'_mem IHd'_strg IHd'_sha3) as H_s_ssval_Sd'.
