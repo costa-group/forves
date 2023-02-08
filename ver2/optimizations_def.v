@@ -198,38 +198,21 @@ Definition opt_smap_value_type := smap_value -> sstack_val_cmp_t -> sbindings ->
   nat -> nat -> stack_op_instr_map -> smap_value*bool.
 
 
-(* 'opt' is sound if optimizing the head binding (idx,val) results in a list 
-   of sbindings that preserves evaluations *)
+(* 'opt' is sound if optimizing the head in a valid bindings (idx,val)::sb 
+   results in a valid bindings (idx,val') that preserves evaluations *)
 Definition opt_sbinding_snd (opt: opt_smap_value_type) :=
 forall (val val': smap_value) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
-  (maxidx: nat) (instk_height: nat) (flag: bool),
+  (maxidx: nat) (instk_height: nat) (idx: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
-(* valid_bindings instk_height maxidx ((idx,val)::sb) evm_stack_opm *)
-(* TODO valid_bindings instk_height maxidx sb evm_stack_opm ->*)
+valid_bindings instk_height maxidx ((idx,val)::sb) evm_stack_opm ->
 opt val fcmp sb maxidx instk_height evm_stack_opm = (val', flag) ->
-  forall idx stk mem strg ctx v,
-  (* TODO instk_height = length stk *)
-  (* TODO for proving soundness I need to use a safe fcmp such that 
-    cfake1 : valid_sstack_value instk_height maxidx arg1
-    cfake2 : valid_sstack_value instk_height maxidx (Val WZero)
-    cfake3 : valid_bindings instk_height maxidx sb evm_stack_opm
-    cfake4 : instk_height = length stk
-  *)
-  (
-    (* valid_bindings instk_height maxidx ((idx,val')::sb) evm_stack_opm /\*)
-     eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val)::sb) 
+  valid_bindings instk_height maxidx ((idx,val')::sb) evm_stack_opm /\
+  forall stk mem strg ctx v,
+    instk_height = length stk ->
+    eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val)::sb) 
        evm_stack_opm = Some v -> 
-     eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val')::sb) 
-       evm_stack_opm = Some v).
-       
-(* The flag is sound if when false then the original value is not changed *)
-(* LESS USEFUL *)
-(*
-Definition opt_smap_value_flag_sound (fopt: opt_smap_value_type) :=
-forall (val val': smap_value) (fcmp: sstack_val_cmp) 
-  (sb: sbindings) (maxid: nat) (instk_height: nat) (ops: stack_op_instr_map),
-fopt val fcmp sb maxid instk_height ops = (val', false) ->
-val = val'.*)
+    eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val')::sb) 
+       evm_stack_opm = Some v.
 
 
 (* Applies smap value optimization to the first suitable entry in sbindings *)
@@ -250,6 +233,18 @@ match sb with
 end.
 
 
+Lemma optimize_first_valid: forall (opt: opt_smap_value_type) 
+  (fcmp: sstack_val_cmp_t) (sb sb': sbindings) (maxid instk_height: nat) 
+  (flag: bool),
+safe_sstack_val_cmp fcmp ->
+opt_sbinding_snd opt ->
+valid_bindings instk_height maxid sb evm_stack_opm ->
+optimize_first_sbindings opt fcmp sb maxid instk_height = (sb', flag) ->
+valid_bindings instk_height maxid sb' evm_stack_opm.
+Proof.
+Admitted.
+
+
 (* If opt is sound when optimizing the first entry in the bindings, then 
    the optimize_first_sbindings will preserve the bindings *)
 Lemma opt_sbinding_preserves: 
@@ -257,22 +252,23 @@ forall (opt: opt_smap_value_type) (fcmp: sstack_val_cmp_t) (sb sb': sbindings)
   (maxid instk_height: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
 opt_sbinding_snd opt ->
-(* valid_bindings instk_height maxid sb evm_stack_opm -> *)
+valid_bindings instk_height maxid sb evm_stack_opm ->
 optimize_first_sbindings opt fcmp sb maxid instk_height = (sb', flag) ->
 preserv_sbindings sb sb' maxid evm_stack_opm.
-(* /\ valid_bindings instk_height maxid sb' evm_stack_opm *)
 Proof.
 intros opt fcmp sb. revert opt fcmp.
 induction sb as [|h rsb IH].
 - intros opt fcmp sb' maxid instk_height flag Hfcmp_snd Hopt_sbinding_snd 
-    Hoptimize_first_sbindings.
+    Hvalid Hoptimize_first_sbindings.
   simpl in Hoptimize_first_sbindings.
   injection Hoptimize_first_sbindings as eq_sb' _.
   rewrite <- eq_sb'.
   unfold preserv_sbindings. intuition.
 - intros opt fcmp sb' maxid instk_height flag Hfcmp_snd Hopt_sbinding_snd 
-    Hoptimize_first_sbindings.
+    Hvalid Hoptimize_first_sbindings.
   destruct h as [n smapv] eqn: eq_h.
+  assert (Hoptimize_first_sbindings_copy := Hoptimize_first_sbindings).
+  assert (Hvalid_copy := Hvalid).
   unfold optimize_first_sbindings in Hoptimize_first_sbindings.
   destruct (opt smapv fcmp rsb maxid instk_height evm_stack_opm) as [val' b] 
     eqn: eq_opt_val.
@@ -289,9 +285,14 @@ induction sb as [|h rsb IH].
       rewrite -> eq_fvar_n.
       rewrite -> eq_fvar_n in Heval_sb.
     unfold opt_sbinding_snd in Hopt_sbinding_snd.
-    pose proof (Hopt_sbinding_snd smapv val' fcmp rsb maxid instk_height
-      true Hfcmp_snd eq_opt_val n stk mem strg ctx v) as Hpres_fvar. 
-    apply Hpres_fvar in Heval_sb.
+    apply optimize_first_valid with (opt:=opt)(fcmp:=fcmp)(sb':=sb')(flag:=flag)
+      in Hvalid; try assumption.
+    pose proof (Hopt_sbinding_snd smapv val' fcmp rsb maxid instk_height n true
+      Hfcmp_snd Hvalid_copy eq_opt_val). 
+    (* TODO stk). mem). strg).  ctx v) as Hpres_fvar.
+          true Hfcmp_snd eq_opt_val n stk mem strg ctx v) as Hpres_fvar. *)
+    Admitted.
+(*    apply Hpres_fvar in Heval_sb.
     assumption.
     * rewrite -> eval_fvar_diff; try assumption.
       rewrite -> eval_fvar_diff in Heval_sb; try assumption.
@@ -305,7 +306,7 @@ induction sb as [|h rsb IH].
       Hopt_sbinding_snd eq_optimize_first_rs) as Hpreserv_rs.
     apply preserv_sbindings_ext.
     assumption.
-Qed.
+Qed.*)
 
 
 
