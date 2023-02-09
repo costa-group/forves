@@ -31,6 +31,9 @@ Import ValidSymbolicState.
 Require Import FORVES.symbolic_state_eval.
 Import SymbolicStateEval.
 
+Require Import FORVES.eval_common.
+Import EvalCommon.
+
 Module SymbolicStateEvalFacts.
 
 Lemma n_Sm_neq_lt:
@@ -783,6 +786,92 @@ Proof.
   intros.
   apply eval_sstack_val'_preserved_when_depth_extended_le with (d1:=d1); intuition.
 Qed.
+
+
+Lemma instantiate_memory_update_preserved_when_depth_ext_le:
+  forall d1 d2 stk mem strg ctx maxidx sb ops u u',
+    d1 <= d2 ->
+    EvalCommon.instantiate_memory_update
+      (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) u = Some u' -> 
+    EvalCommon.instantiate_memory_update
+      (fun sv : sstack_val => eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops) u = Some u'.
+  Proof.
+    intros d1 d2 stk mem strg ctx maxidx sb ops u u' H_d1_le_d2 H_mem_u.
+    destruct u as [soffset svalue|soffset svalue].
+    - simpl.
+      simpl in H_mem_u.
+      destruct (eval_sstack_val' d1 soffset stk mem strg ctx maxidx sb ops) as [offset|] eqn:E_eval_soffset; try discriminate.
+      destruct (eval_sstack_val' d1 svalue stk mem strg ctx maxidx sb ops) as [value|] eqn:E_eval_svalue; try discriminate.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb soffset offset stk mem strg ctx ops H_d1_le_d2 E_eval_soffset) as E_eval_soffset_d2.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb svalue value stk mem strg ctx ops H_d1_le_d2 E_eval_svalue) as E_eval_svalue_d2.
+      rewrite E_eval_soffset_d2.
+      rewrite E_eval_svalue_d2.
+      rewrite <- H_mem_u.
+      reflexivity.
+    - simpl.
+      simpl in H_mem_u.
+      destruct (eval_sstack_val' d1 soffset stk mem strg ctx maxidx sb ops) as [offset|] eqn:E_eval_soffset; try discriminate.
+      destruct (eval_sstack_val' d1 svalue stk mem strg ctx maxidx sb ops) as [value|] eqn:E_eval_svalue; try discriminate.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb soffset offset stk mem strg ctx ops H_d1_le_d2 E_eval_soffset) as E_eval_soffset_d2.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb svalue value stk mem strg ctx ops H_d1_le_d2 E_eval_svalue) as E_eval_svalue_d2.
+      rewrite E_eval_soffset_d2.
+      rewrite E_eval_svalue_d2.
+      rewrite <- H_mem_u.
+      reflexivity.
+  Qed.      
+    
+  
+  Lemma instantiate_memory_update_mapo_preserved_when_depth_ext_le:
+    forall smem d1 d2 stk mem strg ctx maxidx sb ops updates,
+      d1 <= d2 ->
+      map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops)) smem = Some updates ->
+      map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops)) smem = Some updates.
+  Proof.
+    induction smem as [|u smem' IHsmem'].
+    - intros d1 d2 stk mem strg ctx maxidx sb ops updates H_d1_le_d2 H_mapo.
+      simpl.
+      simpl in H_mapo.
+      rewrite <- H_mapo.
+      reflexivity.
+    - intros d1 d2 stk mem strg ctx maxidx sb ops updates H_d1_le_d2 H_mapo.
+      simpl in H_mapo.
+      destruct (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) u) as [elem_value|] eqn:E_inst_mem_up; try discriminate.
+      destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops)) smem') as [rs_val|] eqn:E_inst_mapo; try discriminate.
+      pose proof (instantiate_memory_update_preserved_when_depth_ext_le d1 d2 stk mem strg ctx maxidx sb ops u elem_value H_d1_le_d2 E_inst_mem_up) as E_inst_mem_up_d2.
+      pose proof (IHsmem' d1 d2 stk mem strg ctx maxidx sb ops rs_val H_d1_le_d2 E_inst_mapo) as E_inst_mapo_d2.
+      simpl.
+      rewrite E_inst_mem_up_d2.
+      rewrite E_inst_mapo_d2.
+      rewrite <- H_mapo.
+      reflexivity.
+  Qed.
+      
+  Lemma eval_sstack_val'_mapo_preserved_when_depth_ext_le:
+    forall sstk d1 d2 stk mem strg ctx maxidx sb ops stk',
+      d1 <= d2 ->
+      map_option (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) sstk = Some stk' ->
+      map_option (fun sv : sstack_val => eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops) sstk = Some stk'.
+  Proof.
+    induction sstk as [|sv sstk' IHsstk'].
+    - intros d1 d2 stk mem strg ctx maxidx sb ops stk' H_d1_le_d2 H_mapo.
+      simpl.
+      simpl in H_mapo.
+      rewrite <- H_mapo.
+      reflexivity.
+    - intros d1 d2 stk mem strg ctx maxidx sb ops stk' H_d1_le_d2 H_mapo.
+      simpl in H_mapo.
+      destruct (eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) as [elem_val|] eqn:E_eval_sstack; try discriminate.
+      destruct (map_option (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) sstk') as [rs_val|] eqn:E_inst_mapo; try discriminate.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb sv elem_val stk mem strg ctx ops H_d1_le_d2 E_eval_sstack) as H_eval_sstack_val'_d2.
+      pose proof (IHsstk' d1 d2 stk mem strg ctx maxidx sb ops rs_val H_d1_le_d2 E_inst_mapo) as E_inst_mapo_d2.
+      simpl.
+      rewrite H_eval_sstack_val'_d2.
+      rewrite E_inst_mapo_d2.
+      rewrite <- H_mapo.
+      reflexivity.
+  Qed.
+      
+
 
 Lemma eval_fvar_diff: forall (fvar n: nat) (stk: stack) (mem: memory) 
   (strg: storage) (ctx: context) (maxid: nat) (smapv: smap_value) 

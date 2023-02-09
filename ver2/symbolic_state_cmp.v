@@ -140,15 +140,15 @@ Definition safe_sha3_cmp (sha3_cmp: sha3_cmp_t) :=
     valid_smemory instk_height maxidx2 smem2 ->
     sha3_cmp soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
     forall stk mem strg ctx,
-      exists offset1 size1 mem1 offset2 size2 mem2,
+      exists offset1 size1 mem1 offset2 size2 mem2 v,
       eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem1 /\
       eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem2 /\
       eval_sstack_val soffset1 stk mem strg ctx maxidx1 sb1 ops = Some offset1 /\
       eval_sstack_val ssize1 stk mem strg ctx maxidx1 sb1 ops = Some size1 /\
       eval_sstack_val soffset2 stk mem strg ctx maxidx2 sb2 ops = Some offset2 /\
       eval_sstack_val ssize2 stk mem strg ctx maxidx2 sb2 ops = Some size2 /\
-      (get_keccak256_ctx ctx) (wordToNat size1) (mload' mem1 offset1 (wordToNat size1)) =
-      (get_keccak256_ctx ctx) (wordToNat size2) (mload' mem2 offset2 (wordToNat size2)).
+      (get_keccak256_ctx ctx) (wordToNat size1) (mload' mem1 offset1 (wordToNat size1)) = v /\
+      (get_keccak256_ctx ctx) (wordToNat size2) (mload' mem2 offset2 (wordToNat size2)) = v.
 
 Definition safe_sstack_val_cmp (f_cmp : sstack_val_cmp_t) :=
   forall sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
