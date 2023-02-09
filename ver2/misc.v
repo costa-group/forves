@@ -118,6 +118,31 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma fold_right_two_lists_ho:
+  forall A B f l1 l2,
+  fold_right_two_lists f l1 l2 =
+  (fix fold_right_fix (v : list A) : list B -> bool :=
+    match v with
+    | [] => fun w =>  match w with
+                      | [] => true
+                      | _ => false
+                      end
+    |vh::vt =>
+       fun w => match w with
+                | [] => false
+                | wh::wt =>
+                    if (f vh wh) then
+                      (fold_right_fix vt wt)
+                    else
+                      false
+                end
+    end) l1 l2.
+Proof.
+  reflexivity.
+Qed.
+
+
   
 (* When map_option succeeds, the length of the result list is
   as the length of the input list *)

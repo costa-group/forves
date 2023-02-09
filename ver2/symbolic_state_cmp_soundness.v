@@ -54,18 +54,21 @@ Module SymbolicStateCmpSoundness.
       safe_sstack_val_cmp sstack_val_cmp ->
       fold_right_two_lists (fun e1 e2 : sstack_val => sstack_val_cmp e1 e2 maxidx1 sb1 maxidx2 sb2 instk_height ops) sstk1 sstk2 = true ->
       forall stk mem strg ctx,
-        eval_sstack sstk1 maxidx1 sb1 stk mem strg ctx ops = eval_sstack sstk2 maxidx2 sb2 stk mem strg ctx ops.
+        length stk = instk_height ->
+        exists v,
+          eval_sstack sstk1 maxidx1 sb1 stk mem strg ctx ops = Some v /\
+            eval_sstack sstk2 maxidx2 sb2 stk mem strg ctx ops = Some v.
   
   Proof.
     intro sstack_val_cmp.
     induction sstk1 as [|sv1 sstk1' IHsstk1'].
     - intros.
       destruct sstk2.
-      + simpl. reflexivity.
+      + simpl. exists []. split; reflexivity.
       + discriminate.
     - intros sstk2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sstk1 H_valid_sstk2 H_valid_sb1 H_valid_sb2 H_safe_sstack_val_cmp H_fold.
 
-      intros stk mem strg ctx.
+      intros stk mem strg ctx H_len_stk.
 
       destruct sstk2 as [|sv2 sstk2']; try discriminate.
       simpl in H_fold.
@@ -80,13 +83,17 @@ Module SymbolicStateCmpSoundness.
       simpl in H_valid_sstk2.
       destruct H_valid_sstk2 as [H_valid_sv2 H_valid_sstk2'].
 
-      pose proof (H_safe_sstack_val_cmp' sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 E_cmp_sv1_sv2 stk mem strg ctx) as H_safe_sstack_val_cmp'.
-
-      pose proof (IHsstk1' sstk2' maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sstk1' H_valid_sstk2' H_valid_sb1 H_valid_sb2 H_safe_sstack_val_cmp H_fold stk mem strg ctx) as IHsstk1'_0.
+      pose proof (H_safe_sstack_val_cmp' sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 E_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstack_val_cmp'.
+      destruct H_safe_sstack_val_cmp' as [v [H_eval_sv1 H_eval_sv2]].
+      pose proof (IHsstk1' sstk2' maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sstk1' H_valid_sstk2' H_valid_sb1 H_valid_sb2 H_safe_sstack_val_cmp H_fold stk mem strg ctx H_len_stk) as IHsstk1'_0.
+      destruct IHsstk1'_0 as [l [H_eval_sstk1' H_eval_sstk2']].
       simpl eval_sstack.
-      rewrite H_safe_sstack_val_cmp'.
-      rewrite IHsstk1'_0.
-      reflexivity.
+      rewrite H_eval_sv1.
+      rewrite H_eval_sv2.
+      rewrite H_eval_sstk1'.
+      rewrite H_eval_sstk2'.
+      exists  (v :: l).
+      split; reflexivity.
   Qed.
 
       
@@ -148,13 +155,17 @@ Module SymbolicStateCmpSoundness.
 
     (* stack *)
     unfold compare_sstack in E_sstack_cmp.
-    pose proof (sstack_cmp_snd sstack_val_cmp).
+
+    destruct (get_instk_height_sst sst1 =? length (get_stack_st st)) eqn:E_len_stk; try reflexivity.
+    apply Nat.eqb_eq in E_len_stk as E_len_stk_eq.
+    symmetry in E_len_stk_eq.
+   pose proof (sstack_cmp_snd sstack_val_cmp (get_stack_sst sst1) (get_stack_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sstack_sst1 H_valid_sstack_sst2 H_valid_sst1_sb H_valid_sst2_sb H_safe_sstack_val_cmp E_sstack_cmp) as H_sstack_cmp_snd.
     
-    pose proof (sstack_cmp_snd sstack_val_cmp (get_stack_sst sst1) (get_stack_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sstack_sst1 H_valid_sstack_sst2 H_valid_sst1_sb H_valid_sst2_sb H_safe_sstack_val_cmp E_sstack_cmp) as H_sstack_cmp_snd.
-    
-    pose proof (H_sstack_cmp_snd (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st)) as H_sstack_cmp_snd.
-    rewrite H_sstack_cmp_snd.
-    reflexivity.
+   pose proof (H_sstack_cmp_snd (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) E_len_stk_eq) as H_sstack_cmp_snd.
+   destruct H_sstack_cmp_snd as [v [H_eval_sstk1 H_eval_sstk2]].
+   rewrite H_eval_sstk1.
+   rewrite H_eval_sstk2.
+   reflexivity.
   Qed.
     
 
