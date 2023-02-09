@@ -108,7 +108,7 @@ Module SymbolicStateCmpSoundness.
   Proof.
     intros sstack_val_cmp smemory_cmp sstorage_cmp H_safe_sstack_val_cmp H_safe_smemory_cmp H_safe_sstorage_cmp.
     unfold symbolic_state_cmp_snd.
-    intros sst1 sst2 ops H_valid_sst1 H_valid_sst2 H_sstate_cmp.
+    intros sst1 sst2 ops H_valid_sst1 H_valid_sst2 H_sstate_cmp st H_len_sst1 H_len_sst2.
 
     unfold sstate_cmp in H_sstate_cmp.
     destruct (get_instk_height_sst sst1 =? get_instk_height_sst sst2) eqn:E_instk_height; try discriminate.
@@ -129,7 +129,6 @@ Module SymbolicStateCmpSoundness.
     unfold valid_smap in H_valid_sst2.
     destruct H_valid_sst2 as [[_ [_ H_valid_sst2_sb]] [H_valid_sstack_sst2 [H_valid_smemory_sst2 H_valid_sstorage_sst2]]].
 
-    intro st.
     unfold eval_sstate.
     rewrite <- E_instk_height_eq.
 
@@ -156,16 +155,24 @@ Module SymbolicStateCmpSoundness.
     (* stack *)
     unfold compare_sstack in E_sstack_cmp.
 
-    destruct (get_instk_height_sst sst1 =? length (get_stack_st st)) eqn:E_len_stk; try reflexivity.
-    apply Nat.eqb_eq in E_len_stk as E_len_stk_eq.
-    symmetry in E_len_stk_eq.
-   pose proof (sstack_cmp_snd sstack_val_cmp (get_stack_sst sst1) (get_stack_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sstack_sst1 H_valid_sstack_sst2 H_valid_sst1_sb H_valid_sst2_sb H_safe_sstack_val_cmp E_sstack_cmp) as H_sstack_cmp_snd.
-    
-   pose proof (H_sstack_cmp_snd (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) E_len_stk_eq) as H_sstack_cmp_snd.
-   destruct H_sstack_cmp_snd as [v [H_eval_sstk1 H_eval_sstk2]].
-   rewrite H_eval_sstk1.
-   rewrite H_eval_sstk2.
-   reflexivity.
+    destruct (get_instk_height_sst sst1 =? length (get_stack_st st)) eqn:E_len_stk.
+
+    + apply Nat.eqb_eq in E_len_stk as E_len_stk_eq.
+      symmetry in E_len_stk_eq.
+      pose proof (sstack_cmp_snd sstack_val_cmp (get_stack_sst sst1) (get_stack_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sstack_sst1 H_valid_sstack_sst2 H_valid_sst1_sb H_valid_sst2_sb H_safe_sstack_val_cmp E_sstack_cmp) as H_sstack_cmp_snd.
+      
+      pose proof (H_sstack_cmp_snd (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) E_len_stk_eq) as H_sstack_cmp_snd.
+      destruct H_sstack_cmp_snd as [v [H_eval_sstk1 H_eval_sstk2]].
+      rewrite H_eval_sstk1.
+      rewrite H_eval_sstk2.
+      
+      exists (make_st v mem' strg' (get_context_st st)).
+      split; reflexivity.
+    + rewrite H_len_sst1 in E_len_stk.
+      apply Nat.eqb_neq in E_len_stk.
+      assert (H_neq_false: forall (x:nat),  x <> x -> False). intuition.
+      apply H_neq_false in E_len_stk.
+      contradiction E_len_stk.
   Qed.
     
 

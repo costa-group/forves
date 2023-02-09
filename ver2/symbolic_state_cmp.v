@@ -50,7 +50,11 @@ Definition symbolic_state_cmp_snd (f_cmp : symbolic_state_cmp) :=
     valid_sstate sst2 ops ->
     f_cmp sst1 sst2 ops = true ->
     forall st,
-      eval_sstate st sst1 ops = eval_sstate st sst2 ops.
+      length (get_stack_st st) = (get_instk_height_sst sst1) ->
+      length (get_stack_st st) = (get_instk_height_sst sst2) ->
+      exists st',
+        eval_sstate st sst1 ops = Some st' /\
+          eval_sstate st sst2 ops = Some st'.
 
 
 (* Definition of symbolic state comparator *)
