@@ -845,7 +845,56 @@ Lemma instantiate_memory_update_preserved_when_depth_ext_le:
       rewrite <- H_mapo.
       reflexivity.
   Qed.
-      
+
+  Lemma instantiate_sotrage_update_preserved_when_depth_ext_le:
+  forall d1 d2 stk mem strg ctx maxidx sb ops u u',
+    d1 <= d2 ->
+    EvalCommon.instantiate_storage_update
+      (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) u = Some u' -> 
+    EvalCommon.instantiate_storage_update
+      (fun sv : sstack_val => eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops) u = Some u'.
+  Proof.
+    intros d1 d2 stk mem strg ctx maxidx sb ops u u' H_d1_le_d2 H_strg_u.
+    destruct u as [skey svalue].
+    simpl.
+    simpl in H_strg_u.
+
+    destruct (eval_sstack_val' d1 skey stk mem strg ctx maxidx sb ops) as [key|] eqn:E_eval_skey; try discriminate.
+    destruct (eval_sstack_val' d1 svalue stk mem strg ctx maxidx sb ops) as [value|] eqn:E_eval_svalue; try discriminate.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb skey key stk mem strg ctx ops H_d1_le_d2 E_eval_skey) as E_eval_skey_d2.
+      pose proof (eval_sstack_val'_preserved_when_depth_extended_le d1 d2 maxidx sb svalue value stk mem strg ctx ops H_d1_le_d2 E_eval_svalue) as E_eval_svalue_d2.
+      rewrite E_eval_skey_d2.
+      rewrite E_eval_svalue_d2.
+      rewrite <- H_strg_u.
+      reflexivity.
+  Qed.
+    
+  
+  Lemma instantiate_storage_update_mapo_preserved_when_depth_ext_le:
+    forall sstrg d1 d2 stk mem strg ctx maxidx sb ops updates,
+      d1 <= d2 ->
+      map_option (EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops)) sstrg = Some updates ->
+      map_option (EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' d2 sv stk mem strg ctx maxidx sb ops)) sstrg = Some updates.
+  Proof.
+    induction sstrg as [|u sstrg' IHsstrg'].
+    - intros d1 d2 stk mem strg ctx maxidx sb ops updates H_d1_le_d2 H_mapo.
+      simpl.
+      simpl in H_mapo.
+      rewrite <- H_mapo.
+      reflexivity.
+    - intros d1 d2 stk mem strg ctx maxidx sb ops updates H_d1_le_d2 H_mapo.
+      simpl in H_mapo.
+      destruct (EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops) u) as [elem_value|] eqn:E_inst_strg_up; try discriminate.
+      destruct (map_option (EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' d1 sv stk mem strg ctx maxidx sb ops)) sstrg') as [rs_val|] eqn:E_inst_mapo; try discriminate.
+      pose proof (instantiate_sotrage_update_preserved_when_depth_ext_le d1 d2 stk mem strg ctx maxidx sb ops u elem_value H_d1_le_d2 E_inst_strg_up) as E_inst_strg_up_d2.
+      pose proof (IHsstrg' d1 d2 stk mem strg ctx maxidx sb ops rs_val H_d1_le_d2 E_inst_mapo) as E_inst_mapo_d2.
+      simpl.
+      rewrite E_inst_strg_up_d2.
+      rewrite E_inst_mapo_d2.
+      rewrite <- H_mapo.
+      reflexivity.
+  Qed.
+
   Lemma eval_sstack_val'_mapo_preserved_when_depth_ext_le:
     forall sstk d1 d2 stk mem strg ctx maxidx sb ops stk',
       d1 <= d2 ->
