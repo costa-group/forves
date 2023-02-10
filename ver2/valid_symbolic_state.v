@@ -90,6 +90,7 @@ Fixpoint valid_bindings (instk_height: nat) (maxid: nat) (sb: sbindings) (ops: s
   end.
 
 
+(*
 (* MaxIDX is > any fresh variable in the map *)
 Fixpoint fresh_var_gt_map (idx: nat) (sb: sbindings) : Prop :=
 match sb with 
@@ -105,11 +106,9 @@ match sb with
                      | [] => True
                      | (var2, e2)::_ => var1 > var2 /\ strictly_decreasing_map sb'
                      end
-end.
+end.*)
 
 Definition valid_smap (instk_height: nat) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map): Prop :=
-    fresh_var_gt_map maxidx sb /\
-    strictly_decreasing_map sb /\
     valid_bindings instk_height maxidx sb ops.
 
 Definition valid_sstate (sst: sstate) (ops: stack_op_instr_map): Prop :=
@@ -126,7 +125,7 @@ Definition valid_sstate (sst: sstate) (ops: stack_op_instr_map): Prop :=
     valid_sstorage instk_height maxidx sstrg.
 
 
-Lemma fresh_var_gt_map_maxidx_S:
+(*Lemma fresh_var_gt_map_maxidx_S:
   forall sb maxidx,
     fresh_var_gt_map maxidx sb ->
     fresh_var_gt_map (S maxidx) sb.
@@ -144,7 +143,7 @@ Proof.
     + auto.
     + apply IHsm'.
       apply H0.
-Qed.
+Qed.*)
 
 
 Lemma valid_sstack_app:
@@ -252,11 +251,11 @@ Proof.
   unfold valid_sstate.
   split; split.
   
-  + unfold valid_smap.
+  (*+ unfold valid_smap.
     simpl.
     auto.
   + simpl.
-    auto.
+    auto.*)
   + simpl.
     induction k as [|k' IHsk'].    
     * simpl.
@@ -286,47 +285,26 @@ Proof.
   destruct m' as [maxidx' sb'] eqn:E_m'.
   
   unfold valid_smap in H_valid_m.
-  destruct H_valid_m as [H_valid_m_0 [H_valid_m_1 H_valid_m_2]].
+  (*destruct H_valid_m as [H_valid_m_0 [H_valid_m_1 H_valid_m_2]].*)
+  (*destruct H_valid_m as [H_valid_m_0 [H_valid_m_1 H_valid_m_2]].*)
 
   assert(H_add' :=  H_add).
   simpl in H_add'.
   injection H_add' as H_maxidx H_maxidx' H_sb'.  
 
-  unfold valid_smap.  
+  unfold valid_smap.
 
+  rewrite <- H_sb'.
+  simpl.
   split.
-  
-  (* the case of fresh_var_gt_map *)
-  - rewrite <- H_sb'.
-    simpl.
-    intuition. (* this removes maxidx' > maxidx *)
-    rewrite <- H_maxidx'.
-    apply fresh_var_gt_map_maxidx_S.
-    apply H_valid_m_0.
-    
-  - split.
-    
-    (* the case of strictly_decreasing_map *)
-    + rewrite <- H_sb'.
-      simpl.
-      destruct sb as [|p sb'']; try intuition.
-      destruct p as [key v].
-      split.
-      * simpl in H_valid_m_0. apply H_valid_m_0.
-      * apply H_valid_m_1.
 
-    (* the case of valid_bindings *)
-    + rewrite <- H_sb'.
-      simpl.
-      split.
-
-      * intuition.
-      * simpl in H_valid_smv.
-        split.
+  * intuition.
+  * simpl in H_valid_smv.
+    split.
         
-        ** apply H_valid_smv.
-        ** simpl in H_valid_m_2.
-           apply H_valid_m_2.
+    ** apply H_valid_smv.
+    ** simpl in H_valid_m.
+       apply H_valid_m.
 Qed. 
 
 Lemma add_to_smap_valid_sstack:

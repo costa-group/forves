@@ -96,10 +96,7 @@ Fixpoint compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: ssto
                   (* the nested if is to avoid using band *)
                   if (if compare_sstack_val_rec soffset1 soffset2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
                         if compare_sstack_val_rec ssize1 ssize2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
-                          if smemory_cmp compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
-                            true
-                          else
-                            false
+                           smemory_cmp compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops 
                         else
                           false
                       else

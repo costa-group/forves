@@ -547,17 +547,17 @@ Proof.
   rewrite H_instk_height_eq.
 
   unfold valid_smap in H_valid_smap.
-  destruct H_valid_smap as [_ [_ H_valid_sb]].
+  (*destruct H_valid_smap as [_ [_ H_valid_sb]].*)
 
-  pose proof (eval_sstack_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_stack_sst sst) H_instk_height H_valid_sstk H_valid_sb) as H_eval_sstack_succ.
+  pose proof (eval_sstack_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_stack_sst sst) H_instk_height H_valid_sstk H_valid_smap) as H_eval_sstack_succ.
   destruct H_eval_sstack_succ as [l H_eval_sstack_succ].
   rewrite H_eval_sstack_succ.
 
-  pose proof (eval_smemory_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_memory_sst sst) H_instk_height H_valid_smem H_valid_sb) as H_eval_smemory_succ.
+  pose proof (eval_smemory_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_memory_sst sst) H_instk_height H_valid_smem H_valid_smap) as H_eval_smemory_succ.
   destruct H_eval_smemory_succ as [mem' H_eval_smemory_succ].
   rewrite H_eval_smemory_succ.
 
-  pose proof (eval_sstorage_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_storage_sst sst) H_instk_height H_valid_sstrg H_valid_sb) as H_eval_sstorage_succ.
+  pose proof (eval_sstorage_succ (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) (get_bindings_smap (get_smap_sst sst)) (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) ops (get_storage_sst sst) H_instk_height H_valid_sstrg H_valid_smap) as H_eval_sstorage_succ.
   destruct H_eval_sstorage_succ as [strg' H_eval_sstorage_succ].
   rewrite H_eval_sstorage_succ.
 
@@ -927,7 +927,7 @@ Lemma eval_fvar_diff: forall (fvar n: nat) (stk: stack) (mem: memory)
   (ops: stack_op_instr_map) (sb: sbindings),
 fvar =? n = false ->
 eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid ((n, smapv) :: sb) ops =
-eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid sb ops.
+eval_sstack_val (FreshVar fvar) stk mem strg ctx n sb ops.
 Proof.
 Admitted.
 
