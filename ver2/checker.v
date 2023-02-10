@@ -31,6 +31,12 @@ Import ValidSymbolicState.
 Require Import FORVES.symbolic_execution_soundness.
 Import SymbolicExecutionSoundness.
 
+Require Import FORVES.symbolic_state_eval.
+Import SymbolicStateEval.
+
+Require Import FORVES.symbolic_state.
+Import SymbolicState.
+
 Require Import List.
 Import ListNotations.
 
@@ -69,10 +75,25 @@ match evm_sym_exec smem_updater sstrg_updater mload_solver sload_solver
     | Some sst_p => let (sst_opt', _) := opt sst_opt in 
                     let (sst_p',   _) := opt sst_p in
                     fcmp sst_p' sst_opt' evm_stack_opm
-                    (* Replace by other useful sound sst comparator or 
-                       a parameter + premise about its soundness *)
     end
 end.
+
+(****************************)
+(* TODO: move to other file *)
+Lemma evm_sym_exec_sst_height: forall smemory_updater sstorage_updater 
+  mload_solver sload_solver p instk_height ops sst,
+evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p
+    instk_height ops = Some sst ->
+get_instk_height_sst sst = instk_height.
+Proof.
+intros smemory_updater sstorage_updater mload_solver sload_solver p 
+  instk_height ops sst.
+unfold evm_sym_exec.
+(* Long but "simple" *)
+Admitted.
+(*************************)
+
+
 
 Lemma equiv_checker''_correct: forall (opt_p p: block) 
   (smem_updater: smemory_updater_type) (sstrg_updater: sstorage_updater_type) 
@@ -131,23 +152,26 @@ rewrite <- Heq_out_es_opt in Heval_sst_opt.
 unfold optim_snd in Hopt_snd.
 pose proof (Hopt_snd sst_p sst_p' flag_p Hvalid_sst eq_optimize_p) as 
   [Hvalid_sst_p' Hp].
+destruct Hp as [Hinstk_height_sst_p Hp].
 pose proof (Hp in_es out_es_p Heval_sst_p) as Hevalp.
 pose proof (Hopt_snd sst_opt sst_opt' flag_opt Hvalid_sst_opt eq_optimize_popt)
   as [Hvalid_sst_opt' Hopt].
+destruct Hopt as [Hinstk_height_sst_opt Hopt].
 pose proof (Hopt in_es out_es_opt Heval_sst_opt) as Hevalopt.
 unfold symbolic_state_cmp_snd in Hcmp.
+apply evm_sym_exec_sst_height in eq_symb_exec_p as Hinstk_height.
+rewrite <- Hinstk_height in Hlen_stk.
+rewrite -> Hinstk_height_sst_p in Hlen_stk.
 pose proof (Hcmp sst_p' sst_opt' evm_stack_opm Hvalid_sst_p' Hvalid_sst_opt'
-      Hchkr_true in_es) as Heq_eval_sst_p_opt.
-rewrite -> Hevalopt in Heq_eval_sst_p_opt.
-rewrite -> Hevalp in Heq_eval_sst_p_opt.
-injection Heq_eval_sst_p_opt as eq_out_es.
-split; try split; try split; try split; try split.
-- assumption.
-- assumption.
-- rewrite -> eq_out_es. reflexivity.
-- rewrite -> eq_out_es. reflexivity.
-- rewrite -> eq_out_es. reflexivity.
-- rewrite -> eq_out_es. reflexivity.
+      Hchkr_true in_es Hlen_stk) as [st [Heq_eval_sst_p Heq_eval_sst_opt]].
+rewrite -> Hevalopt in Heq_eval_sst_opt.
+rewrite -> Hevalp in Heq_eval_sst_p.
+injection Heq_eval_sst_p as eq_st_out_es_p.
+injection Heq_eval_sst_opt as eq_st_out_es_opt.
+rewrite <- eq_st_out_es_opt in eq_st_out_es_p.
+rewrite <- eq_st_out_es_p.
+rewrite <- eq_st_out_es_p in Hconcr_opt.
+split; try split; try split; try split; try split; try intuition.
 Qed.
 
 Theorem evm_eq_block_chkr''_snd: forall (opt: optim) 

@@ -122,12 +122,12 @@ Module SymbolicStateCmpSoundness.
 
     unfold valid_sstate in H_valid_sst1.
     unfold valid_smap in H_valid_sst1.
-    destruct H_valid_sst1 as [[_ [_ H_valid_sst1_sb]] [H_valid_sstack_sst1 [H_valid_smemory_sst1 H_valid_sstorage_sst1]]].
+    destruct H_valid_sst1 as [H_valid_sst1_sb [H_valid_sstack_sst1 [H_valid_smemory_sst1 H_valid_sstorage_sst1]]].
 
     unfold valid_sstate in H_valid_sst2.
     rewrite <- E_instk_height_eq in H_valid_sst2.
     unfold valid_smap in H_valid_sst2.
-    destruct H_valid_sst2 as [[_ [_ H_valid_sst2_sb]] [H_valid_sstack_sst2 [H_valid_smemory_sst2 H_valid_sstorage_sst2]]].
+    destruct H_valid_sst2 as [H_valid_sst2_sb [H_valid_sstack_sst2 [H_valid_smemory_sst2 H_valid_sstorage_sst2]]].
 
     unfold eval_sstate.
     rewrite <- E_instk_height_eq.

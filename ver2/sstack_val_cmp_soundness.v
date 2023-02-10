@@ -518,7 +518,7 @@ Module SStackValCmpImplSoundness.
         split; reflexivity.
 
       + admit.
-  Qed.
+  Admitted.
   
              
              
