@@ -108,7 +108,7 @@ Module SymbolicStateCmpSoundness.
   Proof.
     intros sstack_val_cmp smemory_cmp sstorage_cmp H_safe_sstack_val_cmp H_safe_smemory_cmp H_safe_sstorage_cmp.
     unfold symbolic_state_cmp_snd.
-    intros sst1 sst2 ops H_valid_sst1 H_valid_sst2 H_sstate_cmp st H_len_sst1 H_len_sst2.
+    intros sst1 sst2 ops H_valid_sst1 H_valid_sst2 H_sstate_cmp st H_len_sst1.
 
     unfold sstate_cmp in H_sstate_cmp.
     destruct (get_instk_height_sst sst1 =? get_instk_height_sst sst2) eqn:E_instk_height; try discriminate.
