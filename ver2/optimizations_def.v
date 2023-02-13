@@ -47,7 +47,6 @@ Import ListNotations.
 
 Module Optimizations_Def.
 
-Search eval_sstack_val'.
 
 Definition optim := sstate -> sstate*bool.
 
@@ -224,7 +223,8 @@ Proof.
 Admitted.
 
 
-(* Changing a preseving sbinding in a sstate preserves successful evaluations *)
+(* Changing a preseving sbinding in a sstate preserves successful 
+   evaluations *)
 Lemma preserv_sbindings_sstate :
 forall (sb1 sb2: sbindings) (maxidx: nat) 
   (ops: stack_op_instr_map) (instk_height: nat), 
@@ -269,8 +269,14 @@ Qed.
 
 
 (* Type of a function that optimizes a single smap_value *)
-Definition opt_smap_value_type := smap_value -> sstack_val_cmp_t -> sbindings -> 
-  nat -> nat -> stack_op_instr_map -> smap_value*bool.
+Definition opt_smap_value_type := 
+  smap_value ->            (* val *)
+  sstack_val_cmp_t ->      (* fcmp *) 
+  sbindings ->             (* sb *)
+  nat ->                   (* maxid *) 
+  nat ->                   (* instk_height *)
+  stack_op_instr_map ->    (* ops *)
+  smap_value*bool.         (* (val', flag) *)
 
 
 (* TODO: remove *)
@@ -319,6 +325,126 @@ match sb with
 end.
 
 
+Lemma valid_sstack_value_succ: forall instk_height n sv,
+valid_sstack_value instk_height n sv ->
+valid_sstack_value instk_height (S n) sv.
+Proof.
+intros instk_height n sv Hvalid.
+unfold valid_sstack_value in Hvalid.
+destruct sv as [v|var|fvar].
+- intuition.
+- intuition.
+- simpl. intuition.
+Qed.
+
+Lemma valid_sstack_succ: forall instk_height n sstk,
+valid_sstack instk_height n sstk ->
+valid_sstack instk_height (S n) sstk.
+Proof.
+intros instk_height n sstk. revert instk_height n. 
+induction sstk as [| h r IH].
+- intuition.
+- intros instk_height n Hvalid.
+  unfold valid_sstack in Hvalid.
+  destruct Hvalid as [Hvalid_sstack_value Hvalid_sstack'].
+  fold valid_sstack in Hvalid_sstack'.
+  unfold valid_sstack.
+  split.
+  + apply valid_sstack_value_succ. assumption.
+  + fold valid_sstack. apply IH. assumption.
+Qed.
+
+Lemma valid_smemory_update_succ: forall instk_height n mem_upd,
+valid_smemory_update instk_height n mem_upd ->
+valid_smemory_update instk_height (S n) mem_upd.
+Proof.
+intros instk_height n mem_upd Hvalid.
+destruct mem_upd eqn: eq_mem_upd.
+- simpl in Hvalid.
+  destruct Hvalid as [Hvalid_offset Hvalid_value].
+  simpl. split.
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_sstack_value_succ. assumption.
+- simpl in Hvalid.
+  destruct Hvalid as [Hvalid_offset Hvalid_value].
+  simpl. split.
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_sstack_value_succ. assumption.
+Qed.
+
+
+Lemma valid_smemory_succ: forall instk_height n smem,
+valid_smemory instk_height n smem ->
+valid_smemory instk_height (S n) smem.
+Proof.
+intros instk_height n smem. revert instk_height n.
+induction smem as [|mem_upd rmem IH]. 
+- intuition.
+- intros instk_height n Hvalid.
+  unfold valid_smemory in Hvalid.
+  destruct Hvalid as [Hvalid_mem_upd Hvalid_smem_r].
+  fold valid_smemory in Hvalid_smem_r.
+  simpl. split.
+  + apply valid_smemory_update_succ. assumption.
+  + apply IH. assumption.
+Qed.
+
+
+Lemma valid_sstorage_succ: forall instk_height n sstr,
+valid_sstorage instk_height n sstr ->
+valid_sstorage instk_height (S n) sstr.
+Proof.
+intros instk_height n sstr. revert instk_height n.
+induction sstr as [|sstr_upd rsstr IH].
+- intuition.
+- intros instk_height n Hvalid.
+  unfold valid_sstorage in Hvalid.
+  destruct Hvalid as [Hvalid_sstr_upd Hvalid_rsstr].
+  fold valid_sstorage in Hvalid_rsstr.
+  simpl. split.
+  + destruct (sstr_upd) eqn: eq_sstr_upd.
+    unfold valid_sstorage_update in Hvalid_sstr_upd.
+    destruct Hvalid_sstr_upd as [Hvalid_key Hvalid_value].
+    simpl. split.
+    * apply valid_sstack_value_succ. assumption.
+    * apply valid_sstack_value_succ. assumption.
+  + apply IH. assumption.
+Qed.
+
+
+Lemma valid_smap_value_succ: forall instk_height n ops smapv,
+valid_smap_value instk_height n ops smapv ->
+valid_smap_value instk_height (S n) ops smapv.
+Proof.
+intros instk_height n ops smapv Hvalid.
+unfold valid_smap_value in Hvalid.
+destruct smapv as [v|tag|label args|offset smem|key sstr|offset size mem]
+  eqn: eq_smapv.
+- simpl. apply valid_sstack_value_succ. assumption.
+- intuition.
+- unfold valid_stack_op_instr in Hvalid. 
+  destruct (ops label) as [nargs f Hcomm Hctx] eqn: eq_ops_label.
+  destruct Hvalid as [Hlen Hvalid2].
+  simpl. unfold valid_stack_op_instr. rewrite -> eq_ops_label.
+  split; try assumption.
+  apply valid_sstack_succ. assumption.
+- destruct Hvalid as [Hvalid_offset Hvalid_smem].
+  unfold valid_smap_value.
+  split. 
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_smemory_succ. assumption.
+- destruct Hvalid as [Hvalid_key Hvalid_sstr].
+  simpl. split.
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_sstorage_succ. assumption.
+- destruct Hvalid as [Hvalid_offset [Hvalid_size Hvalid_smem]].
+  simpl. split; try split.
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_sstack_value_succ. assumption.
+  + apply valid_smemory_succ. assumption.
+Qed.
+
+
 Lemma optimize_first_valid: forall (opt: opt_smap_value_type) 
   (fcmp: sstack_val_cmp_t) (sb sb': sbindings) (maxid instk_height: nat) 
   (flag: bool),
@@ -328,14 +454,51 @@ valid_bindings instk_height maxid sb evm_stack_opm ->
 optimize_first_sbindings opt fcmp sb instk_height = (sb', flag) ->
 valid_bindings instk_height maxid sb' evm_stack_opm.
 Proof.
-Admitted.
+intros opt fcmp sb. revert opt fcmp.
+induction sb as [| h rsb IH].
+- intros opt fcmp sb' maxid instk_height flag Hsafe_fcmp Hopt_snd Hvalid_sb
+  Hoptimize_first.
+  simpl in Hoptimize_first.
+  injection Hoptimize_first as eq_sb' _.
+  rewrite <- eq_sb'.
+  intuition.
+- intros opt fcmp sb' maxid instk_height flag Hsafe_fcmp Hopt_snd Hvalid_sb
+  Hoptimize_first.
+  assert (Hvalid_sb_copy := Hvalid_sb).
+  unfold valid_bindings in Hvalid_sb.
+  destruct h as [idx value] eqn: eq_h.
+  destruct Hvalid_sb as [Hmaxid [Hvalid_smap_value Hvalid_bindings_rsb]].
+  fold valid_bindings in Hvalid_bindings_rsb.
+  simpl in Hoptimize_first.
+  destruct (opt value fcmp rsb idx instk_height evm_stack_opm) as [val' b]
+    eqn: eq_opt_value.
+  destruct b eqn: eq_b.
+  + injection Hoptimize_first as eq_sb' eq_flag.
+    rewrite <- eq_sb'. simpl.
+    split; try assumption.
+    split.
+    * unfold opt_sbinding_snd in Hopt_snd.
+      pose proof (Hopt_snd value val' fcmp rsb maxid instk_height idx true
+      Hsafe_fcmp Hvalid_sb_copy eq_opt_value) as Hsnd_value.
+      destruct Hsnd_value as [Hvalid_value _].
+      unfold valid_bindings in Hvalid_value.
+      intuition.
+    * unfold opt_sbinding_snd in Hopt_snd.
+      pose proof (Hopt_snd value val' fcmp rsb maxid instk_height idx true
+      Hsafe_fcmp Hvalid_sb_copy eq_opt_value) as Hsnd_value.
+      destruct Hsnd_value as [Hvalid_value _].
+      unfold valid_bindings in Hvalid_value.
+      intuition.
+  + destruct (optimize_first_sbindings opt fcmp rsb instk_height) 
+      as [rs' flag'] eqn: eq_optimize_rsb.
+    injection Hoptimize_first as eq_sb' eq_flag.
+    rewrite <- eq_sb'. simpl.
+    split; try assumption.
+    split; try assumption.
+    apply IH with (opt:=opt)(fcmp:=fcmp)(flag:=flag'); try assumption.
+Qed.
 
 
-Lemma valid_smap_value_succ: forall instk_height n ops smapv,
-valid_smap_value instk_height n ops smapv ->
-valid_smap_value instk_height (S n) ops smapv.
-Proof.
-Admitted.
 
 
 (* If opt is sound when optimizing the first entry in the bindings, then 
@@ -369,7 +532,10 @@ induction sb as [|h rsb IH].
   split; try assumption.
   split.
   * (* valid_bindings instk_height maxid sb' evm_stack_opm *)
-    admit.
+    apply optimize_first_valid with (opt:=opt)(fcmp:=fcmp)
+      (sb:=h::rsb)(flag:=flag); try intuition.
+    + rewrite -> eq_h. assumption.
+    + rewrite -> eq_h. assumption.
   * destruct b eqn: eq_b.
     + (* Optimized first entry in sbindings *)
       injection Hoptimize_first_sbindings as eq_sb' eq_flag'.
@@ -404,7 +570,7 @@ induction sb as [|h rsb IH].
       apply preserv_sbindings_ext; try intuition.
       rewrite -> eq_maxid_n.
       apply valid_smap_value_succ; try assumption.
-Admitted.
+Qed.
 
 
 
@@ -448,7 +614,6 @@ split.
 Qed.
 
 
-
 Lemma optimize_first_sstate_preserv: forall (opt: opt_smap_value_type) 
   (fcmp: sstack_val_cmp_t) (sst sst': sstate)
   (flag: bool),
@@ -476,15 +641,15 @@ destruct (instk_height =? length (get_stack_st st)) eqn: eq_instk;
 destruct (eval_sstack sstk maxid bindings (get_stack_st st)
                 (get_memory_st st) (get_storage_st st) 
                 (get_context_st st) evm_stack_opm)
-  eqn: eq_eval_sstack; try discriminate.
+  as [s|] eqn: eq_eval_sstack; try discriminate.
 destruct (eval_smemory smem maxid bindings (get_stack_st st)
                 (get_memory_st st) (get_storage_st st) 
                 (get_context_st st) evm_stack_opm)
-  eqn: eq_eval_smem; try discriminate.
+  as [m|] eqn: eq_eval_smem; try discriminate.
 destruct (eval_sstorage sstg maxid bindings (get_stack_st st)
                 (get_memory_st st) (get_storage_st st) 
                 (get_context_st st) evm_stack_opm)
-  eqn: eq_eval_strg; try discriminate.
+  as [strg|] eqn: eq_eval_strg; try discriminate.
 unfold eval_sstate. simpl. rewrite -> eq_instk.
 simpl in Hvalid.
 unfold valid_sstate in Hvalid. simpl in Hvalid.
@@ -493,11 +658,43 @@ unfold valid_smap in Hvalid_smap.
 pose proof (opt_sbinding_preserves opt fcmp bindings bindings' maxid 
   instk_height flag' Hsafe_cmp Hopt Hvalid_smap eq_optim_first)
   as Hpreservs_bind_bind'.
-(*
-TODO
-Use Hpreservs_bind_bind' to obtain the evaluation of sstk, smem and sstrg
-*)
-Admitted.
+apply PeanoNat.Nat.eqb_eq in eq_instk.
+pose proof (preserv_sbindings_sstack bindings bindings' maxid evm_stack_opm
+  instk_height Hpreservs_bind_bind' sstk (get_stack_st st) s 
+  (get_memory_st st) (get_storage_st st) (get_context_st st)
+  eq_instk eq_eval_sstack) as eq_eval_sstack'.
+rewrite -> eq_eval_sstack'.
+pose proof (preserv_sbindings_smemory bindings bindings' maxid evm_stack_opm
+  instk_height Hpreservs_bind_bind' smem (get_stack_st st) (get_memory_st st)
+  m (get_storage_st st) (get_context_st st) eq_instk eq_eval_smem)
+  as eq_eval_smem'.
+rewrite -> eq_eval_smem'.
+pose proof (preserv_sbindings_sstorage bindings bindings' maxid evm_stack_opm
+  instk_height Hpreservs_bind_bind' (get_stack_st st) sstg (get_memory_st st)
+  (get_storage_st st) strg (get_context_st st) eq_instk eq_eval_strg)
+  as eq_eval_strg'.
+rewrite -> eq_eval_strg'.
+assumption.
+Qed.
+
+
+Lemma instk_height_optimize_sst: forall opt fcmp sst sst' flag,
+optimize_first_sstate opt fcmp sst = (sst', flag) ->
+get_instk_height_sst sst = get_instk_height_sst sst'.
+Proof.
+intros opt fcmp sst sst' flag Hoptim.
+unfold optimize_first_sstate in Hoptim.
+destruct sst eqn: eq_sst. destruct sm eqn: eq_sm.
+destruct (optimize_first_sbindings opt fcmp bindings instk_height) 
+  as [bindings' flag'] eqn: eq_optim_first.
+injection Hoptim as eq_sst' eq_flag.
+rewrite <- eq_sst'.
+reflexivity.
+Qed.
+
+
+
+
 
 
 
@@ -759,7 +956,8 @@ split.
 Admitted.
 
 
-(* *)
+(* TODO: generic for any optimization built with optimize_first_sstate 
+         from a sound sval optimization *)
 Definition optimize_add_0 (fcmp: sstack_val_cmp_t) (sst: sstate):
   (sstate * bool) := 
 optimize_first_sstate optimize_add_0_sbinding fcmp sst.
@@ -771,49 +969,24 @@ Proof.
 intros fcmp Hsafe_fcmp.
 unfold optim_snd. intros sst sst' b Hvalid_sst Hoptim.
 unfold optimize_add_0 in Hoptim.
-split.
-(*
-- pose proof (optimize_first_sstate_valid optimize_add_0_sbinding fcmp sst 
-    sst' b Hvalid_sst optimize_add_0_sbinding_snd Hoptim).
-  assumption.
-- pose proof (optimize_first_sstate_preserv optimize_add_0_sbinding fcmp sst 
-    sst' b Hvalid_sst optimize_add_0_sbinding_snd Hoptim) as [Hinstk Heval].
-  split; try assumption.*)
-(*
-unfold optimize_add_0 in Hoptim. 
-destruct sst as [instk_height sstk smem sstg sctx sm].
-unfold optimize_first_sstate in Hoptim.
-destruct sm as [maxid bindings].
-destruct (optimize_first_sbindings optimize_add_0_sbinding fcmp bindings
-  instk_height) as [bindings' flag].
-injection Hoptim as eq_sst' eq_b.
-rewrite <- eq_sst'. simpl.
-
-split.
-- (* valid_sstate sst' evm_stack_opm *)
-  admit.
-- split.
-  + 
-unfold optimize_add_0 in Hoptim.
-split.
+split. 
 - apply optimize_first_sstate_valid with (opt:=optimize_add_0_sbinding)
-    (fcmp:=fcmp)(sst:=sst)(flag:=b); try assumption.
-- intros st st'.
-  unfold optimize_first_sstate in Hoptim.
-  destruct sst as [instk_height sstk smem sstg sctx smap].
-  destruct smap as [maxid bindings].
-  destruct (optimize_first_sbindings optimize_add_0_sbinding fcmp bindings
-              maxid instk_height) 
-    as [bindings' flag] eqn: eq_opt_first.
-  injection Hoptim as eq_sst' eq_flag.
-  rewrite <- eq_sst'.
-  pose proof (opt_sbinding_preserves optimize_add_0_sbinding fcmp bindings
-    bindings' maxid instk_height flag Hsafe_fcmp
-    optimize_add_0_sbinding_snd eq_opt_first) as Hpreserves.
-  pose proof (preserv_sbindings_sstate bindings bindings' maxid evm_stack_opm
-    Hpreserves st st' instk_height sstk smem sstg sctx).
-  intuition.*)
-Admitted.
+  (fcmp:=fcmp)(sst:=sst)(flag:=b); try assumption.
+  apply optimize_add_0_sbinding_snd.
+- split.
+  + apply instk_height_optimize_sst with (opt:=optimize_add_0_sbinding)
+    (fcmp:=fcmp)(flag:=b). 
+    assumption.
+  + intros st st' Heval.
+    pose proof (instk_height_optimize_sst optimize_add_0_sbinding fcmp sst 
+      sst' b Hoptim) as Hinstk.
+    pose proof (optimize_first_sstate_preserv optimize_add_0_sbinding fcmp
+      sst sst' b Hvalid_sst optimize_add_0_sbinding_snd Hsafe_fcmp Hoptim)
+    as Hpreserv.
+    destruct Hpreserv as [_ Heval2_imp].
+    apply Heval2_imp.
+    assumption.
+Qed.
 
 
 End Optimizations_Def.
