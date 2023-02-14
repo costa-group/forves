@@ -16,12 +16,21 @@ valid_symbolic_state.v
 symbolic_state_eval_facts.v
 symbolic_execution_soundness.v
 
+memory_ops_solvers.v
+memory_ops_solvers_impl.v
+memory_ops_solvers_impl_soundness.v
+
+storage_ops_solvers.v
+storage_ops_solvers_impl.v
+storage_ops_solvers_impl_soundness.v
+
+
 symbolic_state_cmp.v
 symbolic_state_cmp_impl.v
 symbolic_state_cmp_soundness.v
 
 sstack_val_cmp_impl.v
-sstack_val_cmp_soundness.v
+sstack_val_cmp_impl_soundness.v
 
 memory_cmp_impl.v
 memory_cmp_impl_soundness.v
@@ -31,14 +40,6 @@ storage_cmp_impl_soundness.v
 
 sha3_cmp_impl.v
 sha3_cmp_impl_soundness.v
-
-memory_ops_solvers.v
-memory_ops_solvers_impl.v
-memory_ops_solvers_impl_soundness.v
-
-storage_ops_solvers.v
-storage_ops_solvers_impl.v
-storage_ops_solvers_impl_soundness.v
 
 optimizations_def.v
 
