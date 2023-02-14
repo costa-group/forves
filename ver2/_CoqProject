@@ -29,6 +29,10 @@ storage_ops_solvers.v
 storage_ops_solvers_impl.v
 storage_ops_solvers_soundness.v
 
+memory_cmp_impl.v
+
+storage_cmp_impl.v
+
 optimizations_def.v
 
 checker.v
