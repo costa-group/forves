@@ -208,9 +208,9 @@ Module BlockEquivChecker.
 
 
 
-Definition evm_eq_block_chkr
-  (smem_updater: smemory_updater_ext_type) 
-  (sstrg_updater: sstorage_updater_ext_type)
+Definition evm_eq_block_chkr'
+  (memory_updater: smemory_updater_ext_type) 
+  (storage_updater: sstorage_updater_ext_type)
   (mload_solver: mload_solver_ext_type) 
   (sload_solver: sload_solver_ext_type)
   (sstack_value_cmp_ext: sstack_val_cmp_ext_2_t)
@@ -222,14 +222,14 @@ Definition evm_eq_block_chkr
   (k: nat) 
   : bool :=
   let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
-  let smem_updater' := smem_updater sstack_value_cmp_1 in
-  let sstrg_updater' := sstrg_updater sstack_value_cmp_1 in
+  let memory_updater' := memory_updater sstack_value_cmp_1 in
+  let storage_updater' := storage_updater sstack_value_cmp_1 in
   let mload_solver' := mload_solver sstack_value_cmp_1 in
   let sload_solver' := sload_solver sstack_value_cmp_1 in
-  match evm_sym_exec smem_updater' sstrg_updater' mload_solver' sload_solver' opt_p k evm_stack_opm with
+  match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' opt_p k evm_stack_opm with
   | None => false
   | Some sst_opt => 
-      match evm_sym_exec smem_updater' sstrg_updater' mload_solver' sload_solver' p k evm_stack_opm with 
+      match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' p k evm_stack_opm with 
       | None => false
       | Some sst_p => let (sst_opt', _) := opt sst_opt in 
                       let (sst_p',   _) := opt sst_p in
@@ -242,5 +242,41 @@ Definition evm_eq_block_chkr
   end.
 
 
-
+Definition evm_eq_block_chkr
+  (memory_updater_tag: available_smemory_updaters) 
+  (storage_updater_tag: available_sstorage_updaters)
+  (mload_solver_tag: available_mload_solvers) 
+  (sload_solver_tag: available_sload_solvers)
+  (sstack_value_cmp_tag: available_sstack_val_cmp)
+  (memory_cmp_tag: available_memory_cmp)
+  (storage_cmp_tag: available_storage_cmp)
+  (sha3_cmp_tag: available_sha3_cmp)
+  (opt: optim)
+  (opt_p p: block)
+  (k: nat) : bool :=
+  match get_smemory_updater memory_updater_tag with
+  | SMemUpdater memory_updater _ =>
+      match get_sstorage_updater storage_updater_tag with
+      | SStrgUpdater storage_updater _ =>
+          match get_mload_solver mload_solver_tag with
+          | MLoadSolver mload_solver _ =>
+             match get_sload_solver sload_solver_tag with
+             | SLoadSolver sload_solver _ =>
+                 match get_sstack_val_cmp sstack_value_cmp_tag with
+                 | SStackValCmp sstack_val_cmp _ _ =>
+                     match get_memory_cmp memory_cmp_tag with
+                     | SMemCmp memory_cmp _ =>
+                         match get_storage_cmp storage_cmp_tag with 
+                         | SStrgCmp storage_cmp _ =>
+                             match get_sha3_cmp sha3_cmp_tag with
+                               | SHA3Cmp sha3_cmp _ => 
+                                   evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_val_cmp memory_cmp storage_cmp sha3_cmp opt opt_p p k
+                             end
+                         end
+                     end
+                 end
+             end
+          end
+      end
+  end.
 End BlockEquivChecker.
