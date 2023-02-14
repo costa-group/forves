@@ -101,4 +101,39 @@ Fixpoint adv_mload_solver (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset: sst
   end.
 
 
+Fixpoint adv_mload_updater_remove_mstore_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset: sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
+  match smem with
+  | [] => []
+  | (U_MSTORE _ soffset' svalue)::smem' =>
+      if sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
+        adv_mload_updater_remove_mstore_dups sstack_val_cmp soffset smem' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
+      else
+        (U_MSTORE sstack_val soffset' svalue)::(adv_mload_updater_remove_mstore_dups sstack_val_cmp soffset smem' instk_height m ops)
+  | _ => smem
+  end.
+
+Fixpoint adv_mload_updater_remove_mstore8_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset: sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
+  match smem with
+  | [] => []
+  | (U_MSTORE8 _ soffset' svalue)::smem' =>
+      if sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
+        adv_mload_updater_remove_mstore8_dups sstack_val_cmp soffset smem' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
+      else
+        (U_MSTORE8 sstack_val soffset' svalue)::(adv_mload_updater_remove_mstore8_dups sstack_val_cmp soffset smem' instk_height m ops)
+  | (U_MSTORE _ soffset' svalue)::smem' =>
+      if sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then (* this could be refined to soffset<=soffset'<=soffset+31 *)
+        adv_mload_updater_remove_mstore8_dups sstack_val_cmp soffset smem' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
+      else
+        (U_MSTORE sstack_val soffset' svalue)::(adv_mload_updater_remove_mstore8_dups sstack_val_cmp soffset smem' instk_height m ops)
+  end.
+
+Definition adv_mload_updater (sstack_val_cmp: sstack_val_cmp_ext_1_t) (update: memory_update sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
+  match update with
+  | U_MSTORE _ soffset _ =>
+      update::(adv_mload_updater_remove_mstore_dups sstack_val_cmp soffset smem instk_height m ops)
+  | U_MSTORE8 _ soffset _ =>
+      update::(adv_mload_updater_remove_mstore8_dups sstack_val_cmp soffset smem instk_height m ops)
+  end.
+
+
 End MemoryOpsSolversImpl.
