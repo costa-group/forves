@@ -41,6 +41,9 @@ Import Misc.
 Require Import FORVES.eval_common.
 Import EvalCommon.
 
+Require Import FORVES.concrete_interpreter.
+Import ConcreteInterpreter.
+
 Require Import List.
 Import ListNotations.
 
@@ -58,25 +61,6 @@ opt sst = (sst', b) ->
  get_instk_height_sst sst = get_instk_height_sst sst' /\
  forall (st st': state), eval_sstate st sst  evm_stack_opm = Some st' ->
                          eval_sstate st sst' evm_stack_opm = Some st').
-                         
-
-(*
-Lemma optim_snd_same_height: forall sst sst' b opt,
-valid_sstate sst evm_stack_opm ->
-opt sst = (sst', b) ->
-optim_snd opt ->
-get_instk_height_sst sst = get_instk_height_sst sst'.
-Proof.
-intros sst sst' b opt Hvalid_sst Hopt Hopt_snd.
-unfold optim_snd in Hopt_snd.
-pose proof (Hopt_snd sst sst' b Hvalid_sst Hopt) as [_ Heval].
-destruct sst. destruct sst'.
-unfold eval_sstate in Heval.
-simpl in Heval.
-simpl.
-Admitted.*)
-
-                   
 
 
 (* sb2 preserves all the successful evaluations of sstack_val in sb1 *)
@@ -165,6 +149,7 @@ valid_smap_value instk_height maxidx ops smapv ->
 preserv_sbindings sb1 sb2 n ops instk_height ->
 preserv_sbindings ((n,smapv)::sb1) ((n,smapv)::sb2) maxidx ops instk_height.
 Proof.
+
 (*
 intros sb1 sb2 maxidx ops n smapv instk_height Hmaxidx Hpreserv.
 unfold preserv_sbindings. 
@@ -187,6 +172,8 @@ destruct (fvar =? n) eqn: eq_n_fvar.
 *)
 Admitted.
 
+Search map_option.
+
 (* sb2 preserves all the successful evaluations of smem in sb1 *)  
 Lemma preserv_sbindings_smemory:
 forall (sb1 sb2: sbindings) (maxidx: nat) (ops: stack_op_instr_map)
@@ -206,8 +193,19 @@ induction smem as [|h r IH].
     Hlen Heval_mem.
   unfold eval_smemory in Heval_mem.
   unfold map_option in Heval_mem.
-  unfold instantiate_memory_update in Heval_mem.
-  (* TODO *)
+  unfold instantiate_memory_update in Heval_mem at 1.
+  simpl.
+  
+  (*rewrite <- map_option_ho.
+  destruct h eqn: eq_h.
+  + (* U_MSTORE *)
+    destruct (eval_sstack_val offset stk mem strg ctx maxidx sb1 ops) as
+      [offsetv|] eqn: eq_eval_offset; try discriminate.
+    destruct (eval_sstack_val value stk mem strg ctx maxidx sb1 ops) as
+      [valuev|] eqn: eq_eval_value; try discriminate.
+    fold eval_smemory in Heval_mem.
+  + (* U_MSTORE8 *)
+    admit.*)
 Admitted.
 
 (* sb2 preserves all the successful evaluations of sstorage in sb1 *)  
@@ -771,14 +769,6 @@ let ops := evm_stack_opm in
 eval_sstack_val' d (FreshVar 3) stk mem strg ctx maxidx sb ops).
 
 
-Lemma  eval'_maxidx_indep: forall d sv stk mem strg ctx n m sb ops v,
-eval_sstack_val' d sv stk mem strg ctx n sb ops = Some v ->
-eval_sstack_val' d sv stk mem strg ctx m sb ops = Some v.
-Proof.
-Admitted.
-
-
-
 Lemma evm_add_zero_l: forall ctx v,
 evm_add ctx [WZero; v] = v.
 Proof.
@@ -795,13 +785,14 @@ rewrite -> wplus_wzero_1.
 reflexivity.
 Qed.
 
+(*
 Lemma eval_freshv_top: forall maxidx idx stk mem strg ctx arg2 sb ops,
 eval_sstack_val' (S maxidx) (FreshVar idx) stk mem strg ctx maxidx
   ((idx, SymBasicVal arg2) :: sb) ops =
 eval_sstack_val' maxidx arg2 stk mem strg ctx maxidx sb ops.
 Proof.
 Admitted.
-
+*)
 
 Lemma valid_sstack_value_const: forall instk_height idx v,
 valid_sstack_value instk_height idx (Val v).
@@ -819,18 +810,6 @@ unfold valid_bindings in Hvalid.
 intuition.
 Qed.
 
-Search (eval_sstack_val').
-
-Lemma eval_stack_val'_succ_indep: forall d sv stk mem strg ctx n m sb ops v,
-eval_sstack_val' d sv stk mem strg ctx n sb ops = Some v ->
-eval_sstack_val' (S d) sv stk mem strg ctx m sb ops = Some v.
-Proof.
-intros d sv stk mem strg ctx n m sb ops v Heval.
-apply eval_sstack_val'_preserved_when_depth_extended.
-apply eval'_maxidx_indep with (n:=n).
-assumption.
-Qed.
-
 
 Lemma follow_in_smap_head_op: forall idx maxidx label args sb,
 follow_in_smap (FreshVar idx) maxidx ((idx, SymOp label args) :: sb) = 
@@ -840,16 +819,222 @@ intros. simpl. rewrite -> PeanoNat.Nat.eqb_refl.
 reflexivity.
 Qed.
 
-(*
-Lemma f: forall idx stk mem strg ctx maxidx label args sb ops v,
-eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx
-               ((idx, SymOp label args) :: sb) ops = 
-             Some v.
+
+Lemma is_fresh_var_smv_fvar: forall fvar,
+is_fresh_var_smv (SymBasicVal (FreshVar fvar)) = Some fvar.
 Proof.
-intros.
-unfold eval_sstack_val.
-unfold eval_sstack_val'.
-simpl.*)
+intuition.
+Qed.
+
+Lemma follow_in_smap_head: forall idx m sv sb,
+follow_in_smap (FreshVar idx) m ((idx, SymBasicVal sv) :: sb) =
+follow_in_smap sv idx sb.
+Proof.
+intros idx m sv sb.
+unfold follow_in_smap at 1.
+rewrite -> PeanoNat.Nat.eqb_refl.
+fold follow_in_smap.
+destruct sv as [val|var|fvar] eqn: eq_sv.
+- simpl. destruct sb; try reflexivity.
+- simpl. destruct sb; try reflexivity.
+- simpl. reflexivity.
+Qed.
+
+(* TODO: remove and use follow_in_smap_head instead *)
+Lemma follow_in_smap_head_fvar_head: forall idx m fvar sb,
+follow_in_smap (FreshVar idx) m ((idx, SymBasicVal (FreshVar fvar)) :: sb) =
+follow_in_smap (FreshVar fvar) idx sb.
+Proof.
+intros. apply follow_in_smap_head.
+Qed.
+
+
+Lemma follow_in_smap_fvar_maxidx_indep_eq: forall fvar n m sb,
+follow_in_smap (FreshVar fvar) n sb = 
+follow_in_smap (FreshVar fvar) m sb.
+Proof.
+intros fvar n m sb.
+destruct sb as [|h r].
+- reflexivity. 
+- unfold follow_in_smap.
+  reflexivity.
+Qed.
+
+Lemma follow_in_smap_instackvar: forall var maxidx sb,
+follow_in_smap (InStackVar var) maxidx sb = 
+  Some (FollowSmapVal (SymBasicVal (InStackVar var)) maxidx sb).
+Proof.
+intros var maxidx sb. 
+destruct sb as [|h r]; try intuition. 
+Qed.
+
+Lemma eval_sstack_val'_one_step: forall d' sv stk mem strg ctx maxidx sb ops,
+eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
+      match follow_in_smap sv maxidx sb with
+      | None => None
+      | Some (FollowSmapVal smv maxidx' sb') =>
+          match smv with
+          (* Concrere values are retuned *)
+          | SymBasicVal (Val v) => Some v
+
+          (* A stack element 'InStackVar n' takes its value from the n-th element of the concrete stack *)                  
+          | SymBasicVal (InStackVar n) =>
+              match nth_error stk n with
+              | Some v => Some v
+              | None => None
+              end
+
+          (* Not possible *)
+          | SymBasicVal (FreshVar _) => None
+
+          (* PUSHTAG *)
+          | SymPUSHTAG v =>
+              let tags := (get_tags_ctx ctx) in Some (tags v)
+
+          (* stack operation instruction: we evaluate the argument
+             recursively and then evaluate the corresponding operation *)
+          | SymOp label args =>
+              match ops label with
+              | OpImp nargs f _ _ =>
+                  (* first check that the number of argumets agree with what is declared in the map *)
+                  if (List.length args =? nargs) then
+                    let f_eval_list := fun (sv': sstack_val) => eval_sstack_val' d' sv' stk mem strg ctx maxidx' sb' ops in
+                    match map_option f_eval_list args with
+                    | None => None
+                    | Some vargs => Some (f ctx vargs)
+                    end
+                  else None
+              end
+ 
+            (* memory read: 
+                1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
+                2. evaluate the offset
+                3. apply the updates to the memory of the concrete initial state 'st'
+                4. look for the desired value in the memory 
+             *)
+            | SymMLOAD soffset smem =>
+                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+                | None => None
+                | Some mem_updates =>
+                    match eval_sstack_val' d' soffset stk mem strg ctx maxidx' sb' ops with (* Evaluate the offset *)
+                    | None => None
+                    | Some offset =>
+                        let mem := update_memory mem mem_updates in (* apply updates to the memory *)
+                        Some (mload mem offset) (* lookup for the desired value in the memory *)
+                    end
+                end
+                  
+            (* storage read: 
+             1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
+             2. evaluate the key
+             3. apply the updates to the storage of the concrete initial state 'st'
+                4. look for the desired value in the stroarge 
+            *)
+            | SymSLOAD skey sstrg =>
+                let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                match map_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
+                | None => None
+                | Some strg_updates =>
+                    match eval_sstack_val' d' skey stk mem strg ctx maxidx' sb' ops with (* Evaluate the key *)
+                    | None => None
+                    | Some key =>
+                        let strg := update_storage strg strg_updates in (* apply updates to the storage *)
+                        Some (sload strg key) (* lookup for the desired value in the storage *)
+                    end
+                end
+
+            (* SHA3/KECCAK256: 
+                1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
+                2. evaluate the offset/size
+                3. apply the updates to the memeory of the concrete initial state 'st'
+                4. apply the SHA3 function that is given in the context 
+             *)
+            | SymSHA3 soffset ssize smem =>
+                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
+                | None => None
+                | Some mem_updates =>
+                    match eval_sstack_val' d' soffset stk mem strg ctx maxidx' sb' ops with (* Evaluate the offset *)
+                    | None => None
+                    | Some offset =>
+                        match eval_sstack_val' d' ssize stk mem strg ctx maxidx' sb' ops with (* Evaluate the size *)
+                        | None => None
+                        | Some size =>
+                            let mem := update_memory mem mem_updates in (* apply updates to the memory *)
+                            let f_sha3 := (get_keccak256_ctx ctx) in (* get the sha3 function from the context and ... *)
+                            Some (f_sha3 (wordToNat size) (mload' mem offset (wordToNat size))) (* ... apply it to the corresponding data *)
+                        end
+                    end
+                end
+          end
+      end.
+Proof.
+intuition.
+Qed.
+
+
+Lemma eval'_maxidx_indep: forall d sv stk mem strg ctx n m sb ops v,
+eval_sstack_val' d sv stk mem strg ctx n sb ops = Some v ->
+eval_sstack_val' d sv stk mem strg ctx m sb ops = Some v.
+Proof.
+intros d sv stk mem strg ctx n m sb ops v Heval.
+destruct d as [|d']; try discriminate.
+rewrite -> eval_sstack_val'_one_step.
+rewrite -> eval_sstack_val'_one_step in Heval.
+destruct sv as [val|var|fvar] eqn: eq_sv.
+* rewrite -> follow_in_smap_val.
+  rewrite -> follow_in_smap_val in Heval.
+  assumption.
+* rewrite -> follow_in_smap_instackvar.
+  rewrite -> follow_in_smap_instackvar in Heval.
+  assumption.
+* rewrite -> follow_in_smap_fvar_maxidx_indep_eq with (m:=n).  
+  assumption.
+Qed.
+
+
+Lemma eval_sstack_val'_freshvar: forall n sv stk mem strg ctx m sb ops idx, 
+eval_sstack_val' n sv stk mem strg ctx m sb ops = 
+eval_sstack_val' n (FreshVar idx) stk mem strg ctx m 
+  ((idx, SymBasicVal sv) :: sb) ops.
+Proof.
+intros n sv stk mem strg ctx m sb ops idx.
+destruct n as [|n'] eqn: eq_n.
+- reflexivity. 
+- rewrite -> eval_sstack_val'_one_step. 
+  rewrite -> eval_sstack_val'_one_step.
+  destruct sv as [val|var|fvar] eqn: eq_fvar.
+  * rewrite -> follow_in_smap_val.
+    simpl. rewrite -> PeanoNat.Nat.eqb_refl.
+    reflexivity. 
+  * rewrite -> follow_in_smap_instackvar.
+    simpl. rewrite -> PeanoNat.Nat.eqb_refl.
+    reflexivity.
+  * rewrite -> follow_in_smap_head_fvar_head.
+    rewrite -> follow_in_smap_fvar_maxidx_indep_eq with (m:=idx).
+    reflexivity.
+Qed.
+
+
+Lemma valid_smap_value_opt_sbinding_snd: forall opt val fcmp sb idx 
+  instk_height val' flag maxidx,
+opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
+opt_sbinding_snd opt ->
+safe_sstack_val_cmp fcmp ->
+valid_bindings instk_height maxidx ((idx, val) :: sb) evm_stack_opm ->
+valid_smap_value instk_height idx evm_stack_opm val'.
+Proof.
+intros opt val fcmp sb idx instk_height val' flag maxidx Hopt Hopt_snd 
+  Hsafe_fcmp Hvalid.
+unfold opt_sbinding_snd in Hopt_snd.
+pose proof (Hopt_snd val val' fcmp sb maxidx instk_height idx flag 
+  Hsafe_fcmp Hvalid Hopt) as Hopt'.
+destruct Hopt' as [Hvalid' _].
+unfold valid_bindings in Hvalid'.
+destruct Hvalid' as [_ [Hvalid_smap _]].
+assumption.
+Qed.
 
 
 Lemma optimize_add_0_sbinding_snd:
@@ -860,11 +1045,60 @@ intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_add_0_sbinding.
 split.
 - (* valid_sbindings *)
-  simpl. simpl in Hvalid.
-  destruct Hvalid as [Hmaxidx [Hvalid_smap_value_val Hvalid_sb]].
-  split; try split; try assumption.
-  (* use general lemma for every "safe" optimization *)
-  admit.
+  (* IDEA: use general lemma for every "safe" optimization *)
+  unfold optimize_add_0_sbinding in Hoptm_add_0_sbinding.
+  destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
+    offset size smem] eqn: eq_val.
+  + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+    rewrite <- eq_val'.
+    assumption.
+  + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+    rewrite <- eq_val'.
+    assumption.
+  + destruct label eqn: eq_label; try 
+      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
+      rewrite <- eq_val'; assumption).
+    (* ADD *)
+    destruct args as [|arg1 r1] eqn: eq_args; try 
+      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
+      rewrite <- eq_val'; assumption).
+    destruct r1 as [|arg2 r2] eqn: eq_r1; try 
+      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
+      rewrite <- eq_val'; assumption).
+    destruct r2 as [|arg3 r3] eqn: eq_r2; try 
+      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
+      rewrite <- eq_val'; assumption).
+    destruct (fcmp arg1 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
+      eqn: eq_fcmp_arg1.
+    * injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+      rewrite <- eq_val'.
+      simpl in Hvalid. simpl.
+      destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
+      unfold valid_stack_op_instr in Hvalid_stack_op.
+      simpl in Hvalid_stack_op.
+      destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
+      intuition.
+    * destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height 
+        evm_stack_opm) eqn: eq_fcmp_arg2; try 
+      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
+      rewrite <- eq_val'; assumption).
+      injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+      rewrite <- eq_val'.
+      simpl in Hvalid. simpl.
+      destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
+      unfold valid_stack_op_instr in Hvalid_stack_op.
+      simpl in Hvalid_stack_op.
+      destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
+      intuition.
+  + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+    rewrite <- eq_val'.
+    assumption.
+  + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+    rewrite <- eq_val'.
+    assumption.
+  + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+    rewrite <- eq_val'.
+    assumption.    
 - (* evaluation is preserved *) 
   intros stk mem strg ctx v Hlen Heval_orig.
   assert (Hlen2 := Hlen).
@@ -925,104 +1159,65 @@ split.
     rewrite <- eq_vzero in Heval_orig.
     rewrite -> evm_add_zero_l in Heval_orig.
     rewrite <- Heval_orig.
-    
-    (*
-    TODO: from 
-    eval_arg2 : eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
-              evm_stack_opm = Some varg2
-    ->
-    eval_sstack_val' (S maxidx) (FreshVar idx) stk mem strg ctx maxidx
-      ((idx, SymBasicVal arg2) :: sb) evm_stack_opm = Some varg2
-    Should be "easy"      
-    *)
-    (*apply eval_stack_val'_succ_indep with (n:=idx).
-    pose proof (eval_freshv_top).*)
-    (*rewrite -> eq_maxid.
-    rewrite -> eval_freshv_top.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg2.*)
-      
-      
-     
-    (*  Hvalid_bindings_sb). cfake1 cfake2 cfake3 cfake3
-      fcmp_arg1_zero stk mem strg ctx Hlen2) as eq_eval_arg1.
-    pose proof (Hsafe_sstack_val_cmp arg1 (Val WZero) maxidx sb maxidx sb 
-      instk_height evm_stack_opm cfake1 cfake2 cfake3 cfake3
-      fcmp_arg1_zero stk mem strg ctx Hlen2) as eq_eval_arg1.
-    destruct eq_eval_arg1 as [v1 [eq_eval_arg1 eq_eval_zero]].
-    rewrite -> eval_sstack_val_const in eq_eval_zero.
-    injection eq_eval_zero as eq_v1_zero.
-    rewrite <- eq_v1_zero in eq_eval_arg1.
-    unfold eval_sstack_val in eq_eval_arg1.
-    pose proof (Gt.gt_Sn_n maxidx) as eq_gt_succ.
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height arg1 stk mem
-      strg ctx maxidx sb evm_stack_opm Hlen cfake1 cfake3 eq_gt_succ) as
-        [vv eq_eval'_arg1].
-    pose proof (eval_sstack_val'_preserved_when_depth_extended maxidx idx sb
-      arg1 varg1 stk mem strg ctx evm_stack_opm eval_arg1) as Heval'_arg1.
-    apply eval'_maxidx_indep with (m:=maxidx) in Heval'_arg1.
-    rewrite -> eq_eval'_arg1 in Heval'_arg1.
-    rewrite -> eq_eval_arg1 in eq_eval'_arg1.
-    injection eq_eval'_arg1 as eq_vv.
-    injection Heval'_arg1 as eq_varg1.
-    rewrite <- eq_vv in eq_varg1.
-    rewrite <- eq_varg1 in Heval_orig.
-    rewrite -> evm_add_zero_l in Heval_orig.
-    injection Heval_orig as eq_v.
-    rewrite <- eq_v.
-    unfold eval_sstack_val.
-    rewrite -> eval_freshv_top.
+    rewrite <- eval_sstack_val'_freshvar.
+    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg2.
     apply eval'_maxidx_indep with (n:=idx).
-    assumption. *)
-  * admit.
-    (*destruct (fcmp arg2 (Val WZero) maxidx sb maxidx sb instk_height)
-    eqn: fcmp_arg2_zero; try inject_rw Hoptm_add_0_sbinding eq_val'.
-    (* arg2 ~ WZero *)
-    injection Hoptm_add_0_sbinding as eq_val' _. 
+    assumption.
+  + (* arg2 ~ WZero *)
+    destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
+      eqn: fcmp_arg2_zero.
+    * injection Hoptm_add_0_sbinding as eq_val' _.
+      rewrite <- eq_val'.
+      unfold eval_sstack_val in Heval_orig.
+      simpl in Heval_orig.
+      rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
+      simpl in Heval_orig.
+      destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+        evm_stack_opm) as [varg1|] eqn: eval_arg1; try discriminate.
+      destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb 
+        evm_stack_opm) as [varg2|] eqn: eval_arg2; try discriminate.
+      unfold safe_sstack_val_cmp in Hsafe_sstack_val_cmp.
+      
+      unfold valid_bindings in Hvalid.
+      destruct Hvalid as [eq_maxid [Hvalid_smap_value Hvalid_bindings_sb]].
+      unfold valid_smap_value in Hvalid_smap_value.
+      unfold valid_stack_op_instr in Hvalid_smap_value.
+      simpl in Hvalid_smap_value.
+      destruct (Hvalid_smap_value) as [_ [Hvalid_arg1 [Hvalid_arg2 _ ]]].
+      fold valid_bindings in Hvalid_bindings_sb.
+      
+      pose proof (valid_sstack_value_const instk_height idx v) as 
+        Hvalid_zero.
+      pose proof (Hsafe_sstack_val_cmp arg2 (Val WZero) idx sb idx sb 
+        instk_height evm_stack_opm Hvalid_arg2 Hvalid_zero Hvalid_bindings_sb
+        Hvalid_bindings_sb fcmp_arg2_zero stk mem strg ctx Hlen2)
+        as [vzero [Heval_arg2 Heval_vzero]].
+      assert (Heval_arg2_copy := Heval_arg2).
+      unfold eval_sstack_val in Heval_arg2_copy.
+      rewrite -> eval_sstack_val_const in Heval_vzero.
+      rewrite <- Heval_vzero in Heval_arg2.
     
-    rewrite <- eq_val'.
-    unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
-    rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
-    simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
-      as [varg1|] eqn: eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb evm_stack_opm)
-      as [varg2|] eqn: eval_arg2; try discriminate.
-    unfold safe_sstack_val_cmp in Hsafe_sstack_val_cmp.
-    (* fake lemmas for now, should be premises obtained somewhere *)
-    pose proof (fake1 instk_height maxidx arg2) as cfake1.
-    pose proof (fake1 instk_height maxidx (Val WZero)) as cfake2.
-    pose proof (fake2 instk_height maxidx sb evm_stack_opm) as cfake3.
-    pose proof (fake3 instk_height stk) as cfake4.
-    (****)
-    pose proof (Hsafe_sstack_val_cmp arg2 (Val WZero) maxidx sb maxidx sb 
-      instk_height evm_stack_opm cfake1 cfake2 cfake3 cfake3
-      fcmp_arg2_zero stk mem strg ctx) as eq_eval_arg2.
-    rewrite -> eval_sstack_val_const in eq_eval_arg2.
-    unfold eval_sstack_val in eq_eval_arg2.
-    pose proof (Gt.gt_Sn_n maxidx) as eq_gt_succ.
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height arg2 stk mem
-      strg ctx maxidx sb evm_stack_opm cfake4 cfake1 cfake3 eq_gt_succ) as
-        [vv eq_eval'_arg2].
-    pose proof (eval_sstack_val'_preserved_when_depth_extended maxidx idx sb
-      arg2 varg2 stk mem strg ctx evm_stack_opm eval_arg2) as Heval'_arg2.
-    apply eval'_maxidx_indep with (m:=maxidx) in Heval'_arg2.
-    rewrite -> eq_eval'_arg2 in Heval'_arg2.
-    rewrite -> eq_eval_arg2 in eq_eval'_arg2.
-    injection eq_eval'_arg2 as eq_vv.
-    injection Heval'_arg2 as eq_varg2.
-    rewrite <- eq_vv in eq_varg2.
-    rewrite <- eq_varg2 in Heval_orig.
-    rewrite -> evm_add_zero_r in Heval_orig.
-    injection Heval_orig as eq_v.
-    rewrite <- eq_v.
-    unfold eval_sstack_val.
-    rewrite -> eval_freshv_top.
-    rewrite -> eval'_maxidx_indep with (n:=idx)(v:=varg1); try intuition.*)
-Admitted.
+      unfold eval_sstack_val.
+      rewrite -> eq_maxid in eval_arg2.
+      rewrite -> Heval_arg2_copy in eval_arg2.
+      injection eval_arg2 as eq_varg2.
+      injection Heval_vzero as eq_vzero.
+      rewrite <- eq_varg2 in Heval_orig.
+      rewrite <- eq_vzero in Heval_orig.
+      rewrite -> evm_add_zero_r in Heval_orig.
+      rewrite <- Heval_orig.
+      rewrite <- eval_sstack_val'_freshvar.
+      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg1.
+      apply eval'_maxidx_indep with (n:=idx).
+      assumption.
+    * injection Hoptm_add_0_sbinding as eq_val' _. 
+      rewrite <- eq_val'.
+      assumption.
+Qed.
 
 
-(* TODO: generic for any optimization built with optimize_first_sstate 
-         from a sound sval optimization *)
+(* TODO: create a generic version for any optimization built with 
+         optimize_first_sstate from a sound sval optimization *)
 Definition optimize_add_0 (fcmp: sstack_val_cmp_t) (sst: sstate):
   (sstate * bool) := 
 optimize_first_sstate optimize_add_0_sbinding fcmp sst.
