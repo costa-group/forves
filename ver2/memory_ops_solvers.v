@@ -31,10 +31,15 @@ Import SymbolicStateEval.
 Require Import FORVES.valid_symbolic_state.
 Import ValidSymbolicState.
 
+Require Import FORVES.symbolic_state_cmp.
+Import SymbolicStateCmp.
+
 Module MemoryOpsSolvers.
 
 (* sv smem instk_height m ops -> smap_value *)
 Definition mload_solver_type := sstack_val -> smemory -> nat -> smap -> stack_op_instr_map -> smap_value.
+
+Definition mload_solver_ext_type := sstack_val_cmp_ext_1_t -> sstack_val -> smemory -> nat -> smap -> stack_op_instr_map -> smap_value.
             
 Definition mload_solver_valid_res (mload_solver: mload_solver_type) :=
   forall m smem soffset instk_height smv ops,
@@ -59,9 +64,16 @@ Definition mload_solver_correct_res (mload_solver: mload_solver_type) :=
 Definition mload_solver_snd (mload_solver: mload_solver_type) :=
   mload_solver_valid_res mload_solver /\ mload_solver_correct_res mload_solver.
 
+Definition mload_solver_ext_snd (mload_solver: mload_solver_ext_type) :=
+  forall sstack_val_cmp,
+    safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+    mload_solver_snd (mload_solver sstack_val_cmp).
+
 
 (* u smem instk_height m ops -> smem' *)
 Definition smemory_updater_type := memory_update sstack_val -> smemory -> nat -> smap -> stack_op_instr_map -> smemory.
+
+Definition smemory_updater_ext_type := sstack_val_cmp_ext_1_t -> memory_update sstack_val -> smemory -> nat -> smap -> stack_op_instr_map -> smemory.
 
 
 Definition smemory_updater_valid_res (smemory_updater: smemory_updater_type) :=
@@ -85,5 +97,9 @@ Definition smemory_updater_correct_res (smemory_updater: smemory_updater_type) :
 Definition smemory_updater_snd (smemory_updater: smemory_updater_type) :=
   smemory_updater_valid_res smemory_updater /\ smemory_updater_correct_res smemory_updater.
 
+Definition smemory_updater_ext_snd (smemory_updater: smemory_updater_ext_type) :=
+  forall sstack_val_cmp,
+    safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+    smemory_updater_snd (smemory_updater sstack_val_cmp).
 
 End MemoryOpsSolvers.

@@ -41,7 +41,7 @@ Import Constants.
 
 Module Tests.
 
-
+  
 Compute (evm_exec_block_c [PUSH 1 0x7; PUSH 1 0x1; OpInstr ADD] 
                           empty_state
                           evm_stack_opm).
@@ -53,8 +53,8 @@ Compute (evm_exec_block_c [PUSH 1 0x7; PUSH 1 0x1; OpInstr ADD]
         ) 
 *)
 
-Compute (evm_sym_exec basic_smemory_updater basic_sstorage_updater basic_mload_solver
-  basic_sload_solver [PUSH 1 0x7; PUSH 1 0x1; OpInstr ADD] 0 evm_stack_opm).
+Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_mload_solver
+  trivial_sload_solver [PUSH 1 0x7; PUSH 1 0x1; OpInstr ADD] 0 evm_stack_opm).
 (* 
    Some (SymExState instk_h=0 
                     stk=[FreshVar 0] 
@@ -79,8 +79,8 @@ Compute (evm_exec_block_c [OpInstr ADD]
         ) 
 *)
 
-Compute (evm_sym_exec basic_smemory_updater basic_sstorage_updater basic_mload_solver
-  basic_sload_solver [OpInstr ADD] 3 evm_stack_opm).
+Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_mload_solver
+  trivial_sload_solver [OpInstr ADD] 3 evm_stack_opm).
 (* 
   Some (SymExState instk_h=3 
                    stk=[FreshVar 0; InStackVar 2] 
@@ -107,8 +107,8 @@ Compute (evm_exec_block_c [PUSH 1 0xFF; PUSH 1 0x0; MSTORE; PUSH 1 0x0; MLOAD]
                  empty_context
 *)
 
-Compute (evm_sym_exec basic_smemory_updater basic_sstorage_updater basic_mload_solver
-  basic_sload_solver [PUSH 1 0xFF; PUSH 1 0x0; MSTORE; PUSH 1 0x0; MLOAD] 1 evm_stack_opm).
+Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_mload_solver
+  trivial_sload_solver [PUSH 1 0xFF; PUSH 1 0x0; MSTORE; PUSH 1 0x0; MLOAD] 1 evm_stack_opm).
 (*
    Some (SymExState instk_h=1 
                     stk=[FreshVar 0; InStackVar 0]
@@ -143,8 +143,8 @@ Compute (evm_exec_block_c [PUSH 1 0x0; SLOAD; PUSH 1 0x7; MSTORE]
         )
 *)
 
-Compute (evm_sym_exec basic_smemory_updater basic_sstorage_updater basic_mload_solver
-  basic_sload_solver [PUSH 1 0x0; SLOAD; PUSH 1 0x7; MSTORE] 1 evm_stack_opm).
+Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_mload_solver
+  trivial_sload_solver [PUSH 1 0x0; SLOAD; PUSH 1 0x7; MSTORE] 1 evm_stack_opm).
 (*
    Some (SymExState instk_h=1 
                     stk=[InStackVar 0]

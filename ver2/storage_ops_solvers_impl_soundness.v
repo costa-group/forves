@@ -37,15 +37,20 @@ Import StorageOpsSolvers.
 Require Import FORVES.storage_ops_solvers_impl.
 Import StorageOpsSolversImpl.
 
-Module StorageOpsSolversSoundness.
+Module StorageOpsSolversImplSoundness.
 
  
 
-Lemma basic_sload_solver_snd: sload_solver_snd basic_sload_solver.
-Admitted.
+  Lemma trivial_sload_solver_snd: sload_solver_ext_snd trivial_sload_solver.
+  Admitted.
 
+  Lemma trivial_sstorage_updater_snd: sstorage_updater_ext_snd trivial_sstorage_updater.
+  Admitted.
+  
+  Lemma basic_sload_solver_snd: sload_solver_ext_snd basic_sload_solver.
+  Admitted.
+    
+  Lemma basic_sstorage_updater_snd: sstorage_updater_ext_snd basic_sstorage_updater.
+  Admitted.
 
-Lemma basic_sstorage_updater_snd: sstorage_updater_snd basic_sstorage_updater.
-Admitted.
-
-End StorageOpsSolversSoundness.
+End StorageOpsSolversImplSoundness.

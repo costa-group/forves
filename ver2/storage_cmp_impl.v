@@ -47,6 +47,10 @@ Module StorageCmpImpl.
 (* sstack_val_cmp sstrg1 sstrg2 maxidx1 sb1 maxid2 sb2 instk_height ops -> bool *)
 Definition sstorage_cmp_ext_t := sstack_val_cmp_t -> sstorage_cmp_t.
 
+
+Definition trivial_storage_cmp (sstack_val_cmp : sstack_val_cmp_t) (sstrg1 sstrg2 :sstorage) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+  false.
+
 Fixpoint basic_storage_cmp (sstack_val_cmp : sstack_val_cmp_t) (sstrg1 sstrg2 :sstorage) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
   match sstrg1,sstrg2 with
   | [], [] => true

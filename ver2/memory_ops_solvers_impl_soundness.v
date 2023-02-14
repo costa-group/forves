@@ -40,13 +40,19 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
 
-Module MemoryOpsSolversSoundness.
+Module MemoryOpsSolversImplSoundness.
 
-Lemma basic_mload_solver_snd: mload_solver_snd basic_mload_solver.
-Admitted.
+  Lemma trivial_mload_solver_snd: mload_solver_ext_snd trivial_mload_solver.
+  Admitted.
+  
+  Lemma trivial_smemory_updater_snd: smemory_updater_ext_snd trivial_smemory_updater.
+  Admitted.
+  
+  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
+  Admitted.
+  
+  Lemma basic_smemory_updater_snd: smemory_updater_ext_snd basic_smemory_updater.
+  Admitted.
+  
 
-Lemma basic_smemory_updater_snd: smemory_updater_snd basic_smemory_updater.
-Admitted.
-
-
-End MemoryOpsSolversSoundness.
+End MemoryOpsSolversImplSoundness.

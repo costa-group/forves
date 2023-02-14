@@ -35,7 +35,6 @@ Inductive stack_op_impl :=
 | OpImp (n : nat) (f : context -> list EVMWord -> EVMWord) (H_comm : option (commutative_op f)) (H_ctx_ind: option (ctx_independent_op f)).
 
 
-
 Definition stack_op_instr_map := map stack_op_instr stack_op_impl.
 
 Definition empty_imap {A : Type} (def : A) : map stack_op_instr A :=

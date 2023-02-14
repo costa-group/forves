@@ -42,13 +42,15 @@ Import EvalCommon.
 
 Module SStackValCmpImpl.
 
+  Definition trivial_compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: sstorage_cmp_ext_t) (sha3_cmp: sha3_cmp_ext_t) (d: nat) (sv1 sv2: sstack_val) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+    false.
 
-Fixpoint compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: sstorage_cmp_ext_t) (sha3_cmp: sha3_cmp_ext_t) (d: nat) (sv1 sv2: sstack_val) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+Fixpoint basic_compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: sstorage_cmp_ext_t) (sha3_cmp: sha3_cmp_ext_t) (d: nat) (sv1 sv2: sstack_val) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
   match d with
   | 0 => false
   | S d' =>
-      let compare_sstack_val_rec :=
-        compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' in
+      let basic_compare_sstack_val_rec :=
+        basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' in
       match follow_in_smap sv1 maxidx1 sb1 with
       | None => false
       | Some (FollowSmapVal smv1 maxidx1' sb1') =>
@@ -67,15 +69,15 @@ Fixpoint compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: ssto
                   if label1 =?i label2 then
                     match ops label1 with
                       OpImp _ _ H_Comm _ =>
-                        match (fold_right_two_lists (fun e1 e2 => compare_sstack_val_rec e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2) with
+                        match (fold_right_two_lists (fun e1 e2 => basic_compare_sstack_val_rec e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2) with
                         | true => true
                         | false =>
                             match H_Comm with
                             | Some comm_proof =>
                                 match args1, args2 with
                                 | [a1;a2],[b1;b2] =>
-                                    if compare_sstack_val_rec a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops
-                                    then compare_sstack_val_rec a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                                    if basic_compare_sstack_val_rec a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                                    then basic_compare_sstack_val_rec a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops
                                     else false
                                 | _, _ => false
                                 end
@@ -85,25 +87,25 @@ Fixpoint compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: ssto
                     end
                   else false
               | SymMLOAD soffset1 smem1, SymMLOAD soffset2 smem2 =>
-                  if compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' soffset1 soffset2 maxidx1' sb1' maxidx2' sb2' instk_height ops
-                  then smemory_cmp compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                  if basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' soffset1 soffset2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                  then smemory_cmp basic_compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops
                   else false
               | SymSLOAD skey1 sstrg1, SymSLOAD skey2 sstrg2 => 
-                  if compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' skey1 skey2 maxidx1' sb1' maxidx2' sb2' instk_height ops
-                  then sstorage_cmp compare_sstack_val_rec sstrg1 sstrg2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                  if basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d' skey1 skey2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                  then sstorage_cmp basic_compare_sstack_val_rec sstrg1 sstrg2 maxidx1' sb1' maxidx2' sb2' instk_height ops
                   else false
               | SymSHA3 soffset1 ssize1 smem1, SymSHA3 soffset2 ssize2 smem2 =>
                   (* the nested if is to avoid using band *)
-                  if (if compare_sstack_val_rec soffset1 soffset2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
-                        if compare_sstack_val_rec ssize1 ssize2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
-                           smemory_cmp compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops 
+                  if (if basic_compare_sstack_val_rec soffset1 soffset2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
+                        if basic_compare_sstack_val_rec ssize1 ssize2 maxidx1' sb1' maxidx2' sb2' instk_height ops then
+                           smemory_cmp basic_compare_sstack_val_rec smem1 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops 
                         else
                           false
                       else
                         false)
                   then true
                   else 
-                    sha3_cmp compare_sstack_val_rec soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops
+                    sha3_cmp basic_compare_sstack_val_rec soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1' sb1' maxidx2' sb2' instk_height ops
               | _, _ => false
               end
           end

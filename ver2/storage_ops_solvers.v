@@ -44,6 +44,8 @@ Module StorageOpsSolvers.
 (* sv smem instk_height m ops -> load_res *)
 Definition sload_solver_type := sstack_val -> sstorage -> nat -> smap -> stack_op_instr_map -> smap_value.
 
+Definition sload_solver_ext_type := sstack_val_cmp_ext_1_t -> sstack_val -> sstorage -> nat -> smap -> stack_op_instr_map -> smap_value.
+
 Definition sload_solver_valid_res (sload_solver: sload_solver_type) :=
   forall m sstrg skey instk_height smv ops,
     valid_sstorage instk_height (get_maxidx_smap m) sstrg -> (* The storage is valid *)
@@ -67,9 +69,14 @@ Definition sload_solver_correct_res (sload_solver: sload_solver_type) :=
 Definition sload_solver_snd (sload_solver: sload_solver_type) :=
   sload_solver_valid_res sload_solver /\ sload_solver_correct_res sload_solver.
 
+Definition sload_solver_ext_snd (sload_solver: sload_solver_ext_type) :=
+  forall sstack_val_cmp,
+    safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+    sload_solver_snd (sload_solver sstack_val_cmp).
 
 (* u sstrg instk_height m ops -> strg' *)
 Definition sstorage_updater_type := storage_update sstack_val -> sstorage -> nat -> smap -> stack_op_instr_map -> sstorage.
+Definition sstorage_updater_ext_type := sstack_val_cmp_ext_1_t -> storage_update sstack_val -> sstorage -> nat -> smap -> stack_op_instr_map -> sstorage.
 
 Definition sstorage_updater_valid_res (sstorage_updater: sstorage_updater_type) :=
   forall m sstrg sstrg' u instk_height ops,
@@ -92,33 +99,11 @@ Definition sstorage_updater_correct_res (sstorage_updater: sstorage_updater_type
 Definition sstorage_updater_snd (sstorage_updater: sstorage_updater_type) :=
   sstorage_updater_valid_res sstorage_updater /\ sstorage_updater_correct_res sstorage_updater.
   
+Definition sstorage_updater_ext_snd (sstorage_updater: sstorage_updater_ext_type) :=
+  forall sstack_val_cmp,
+    safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+    sstorage_updater_snd (sstorage_updater sstack_val_cmp).
   
   
-  
-  (* Definition of solvers *)  
-
-(* Doesn't check the storage for the value, just returns an abstract load *)
-Definition basic_sload_solver : sload_solver_type := 
-  fun (soffset: sstack_val) => 
-  fun (sstrg: sstorage) =>
-  fun (instk_height: nat) =>
-  fun (m: smap) =>
-  fun (ops: stack_op_instr_map) =>
-  SymSLOAD soffset sstrg.
-
-Lemma basic_sload_solver_snd: sload_solver_snd basic_sload_solver.
-Admitted.
-
-(* Doesn't check the storage, just appends the abstract store *)
-Definition basic_sstorage_updater : sstorage_updater_type :=
-  fun (update: storage_update sstack_val) =>
-  fun (sstrg: sstorage) => 
-  fun (instk_height: nat) => 
-  fun (m: smap) => 
-  fun (ops: stack_op_instr_map) =>
-  (update::sstrg).
-
-Lemma basic_sstorage_updater_snd: sstorage_updater_snd basic_sstorage_updater.
-Admitted.
 
 End StorageOpsSolvers.

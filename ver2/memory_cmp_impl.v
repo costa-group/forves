@@ -43,18 +43,21 @@ Import EvalCommon.
 Module MemoryCmpImpl.
 
 
-Fixpoint basic_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
-  match smem1,smem2 with
-  | [], [] => true
-  | (U_MSTORE _ soffset1 svalue1)::sstrg1', (U_MSTORE _ soffset2 svalue2)::sstrg2' =>
-      if sstack_val_cmp soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops then 
-        if sstack_val_cmp svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops then
-          basic_memory_cmp sstack_val_cmp sstrg1' sstrg2' maxidx1 sb1 maxidx2 sb2 instk_height ops
+  Definition trivial_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+    false.
+  
+  Fixpoint basic_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+    match smem1,smem2 with
+    | [], [] => true
+    | (U_MSTORE _ soffset1 svalue1)::sstrg1', (U_MSTORE _ soffset2 svalue2)::sstrg2' =>
+        if sstack_val_cmp soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops then 
+          if sstack_val_cmp svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops then
+            basic_memory_cmp sstack_val_cmp sstrg1' sstrg2' maxidx1 sb1 maxidx2 sb2 instk_height ops
+          else
+            false
         else
           false
-      else
-        false
-  | (U_MSTORE8 _ soffset1 svalue1)::sstrg1', (U_MSTORE8 _ soffset2 svalue2)::sstrg2' =>
+    | (U_MSTORE8 _ soffset1 svalue1)::sstrg1', (U_MSTORE8 _ soffset2 svalue2)::sstrg2' =>
       if sstack_val_cmp soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops then 
         if sstack_val_cmp svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops then
           basic_memory_cmp sstack_val_cmp sstrg1' sstrg2' maxidx1 sb1 maxidx2 sb2 instk_height ops
@@ -63,10 +66,8 @@ Fixpoint basic_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemo
       else
         false
           
-  | _, _ => false
-  end.
-
-                                                                                                                                                                                                             
-
-
+    | _, _ => false
+    end.
+  
+  
 End MemoryCmpImpl.

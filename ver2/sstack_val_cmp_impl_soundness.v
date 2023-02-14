@@ -48,10 +48,34 @@ Import EvalCommon.
 
 Module SStackValCmpImplSoundness.
 
+  (* compare_sstack_val_trivial *)
+  Lemma trivial_compare_sstack_val_d0_snd:
+    sstack_val_cmp_fail_for_d_eq_0 trivial_compare_sstack_val.
+  Proof.
+    unfold sstack_val_cmp_fail_for_d_eq_0.
+    intros.
+    unfold trivial_compare_sstack_val.
+    reflexivity.
+  Qed.  
 
- 
-  Lemma compare_sstack_val_d0_snd:
-    sstack_val_cmp_fail_for_d_eq_0 compare_sstack_val.
+  Lemma trivial_compare_sstack_val_snd:
+    safe_sstack_value_cmp_wrt_others trivial_compare_sstack_val.
+  Proof.
+    unfold safe_sstack_value_cmp_wrt_others.
+    intros.
+    unfold safe_sstack_val_cmp_ext_2_d.
+    unfold safe_sstack_val_cmp_ext_1_d.
+    intros.
+    unfold safe_sstack_val_cmp.
+    unfold trivial_compare_sstack_val.
+    intros.
+    discriminate.
+  Qed.
+    
+
+  (* compare_sstack_val *)
+  Lemma basic_compare_sstack_val_d0_snd:
+    sstack_val_cmp_fail_for_d_eq_0 basic_compare_sstack_val.
   Proof.
     unfold sstack_val_cmp_fail_for_d_eq_0.
     intros.
@@ -59,8 +83,8 @@ Module SStackValCmpImplSoundness.
     reflexivity.
   Qed.
 
-  Lemma compare_sstack_val_snd:
-    safe_sstack_value_cmp_wrt_others compare_sstack_val.
+  Lemma basic_compare_sstack_val_snd:
+    safe_sstack_value_cmp_wrt_others basic_compare_sstack_val.
   Proof.
     unfold safe_sstack_value_cmp_wrt_others.
     induction d as [|d' IHd'].
@@ -76,7 +100,7 @@ Module SStackValCmpImplSoundness.
       unfold eval_sstack_val'. fold eval_sstack_val'.
 
       destruct d' as [|d''] eqn:E_d'; try discriminate; destruct d'' as [|d'''] eqn:E_d''; try discriminate.
-      unfold compare_sstack_val in H_cmp_sv1_sv2.
+      unfold basic_compare_sstack_val in H_cmp_sv1_sv2.
       
       pose proof (follow_in_smap_suc sb1 sv1 instk_height maxidx1 ops H_valid_sv1 H_valid_sb1) as H_follow_suc_sv1.
       destruct H_follow_suc_sv1 as [smv1 [maxidx1' [sb1' [H_follow_suc_sv1 _]]]].
@@ -207,15 +231,15 @@ Module SStackValCmpImplSoundness.
 
       assert(H_d'_le_Sd': d' <= S d'). intuition.
 
-      pose proof (safe_smemory_cmp_ext_d_lt smemory_cmp (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_smemory_cmp) as H_safe_smemory_cmp_d'.
-      pose proof (safe_sstorage_cmp_ext_d_lt sstorage_cmp (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_sstorage_cmp) as H_safe_sstorgae_cmp_d'.
-      pose proof (safe_sha3_cmp_ext_d_lt sha3_cmp (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_sha3_cmp) as H_safe_sha3_cmp_d'.
+      pose proof (safe_smemory_cmp_ext_d_lt smemory_cmp (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_smemory_cmp) as H_safe_smemory_cmp_d'.
+      pose proof (safe_sstorage_cmp_ext_d_lt sstorage_cmp (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_sstorage_cmp) as H_safe_sstorgae_cmp_d'.
+      pose proof (safe_sha3_cmp_ext_d_lt sha3_cmp (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp) d'  (S d') H_d'_le_Sd' H_safe_sha3_cmp) as H_safe_sha3_cmp_d'.
       pose proof (IHd' smemory_cmp sstorage_cmp sha3_cmp H_safe_smemory_cmp_d' H_safe_sstorgae_cmp_d' H_safe_sha3_cmp_d') as H_safe_sstack_value_cmp_cmp_Sd'.
       
       assert(H_d'0_le_Sd': d'0 <= S d'). intuition.
         
 
-      pose proof (safe_sstack_val_cmp_ext_2_d_le compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 (S d') H_d'0_le_Sd' H_safe_sstack_value_cmp_cmp_Sd') as H_safe_sstack_value_cmp_cmp_d'0.
+      pose proof (safe_sstack_val_cmp_ext_2_d_le basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 (S d') H_d'0_le_Sd' H_safe_sstack_value_cmp_cmp_Sd') as H_safe_sstack_value_cmp_cmp_d'0.
 
       pose proof (follow_in_smap_suc sb1 sv1 instk_height maxidx1 ops H_valid_sv1 H_valid_sb1) as H_follow_suc_sv1.
       destruct H_follow_suc_sv1 as [smv1 [maxidx1' [sb1' [H_follow_suc_sv1 _]]]].
@@ -283,7 +307,7 @@ Module SStackValCmpImplSoundness.
                 forall args1 args2,
                   valid_sstack instk_height maxidx1' args1 ->
                   valid_sstack instk_height maxidx2' args2 ->
-                  fold_right_two_lists (fun e1 e2 : sstack_val => compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2 = true ->
+                  fold_right_two_lists (fun e1 e2 : sstack_val => basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2 = true ->
                   exists args',
                     map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx1') sv' stk mem strg ctx maxidx1' sb1' ops) args1 = Some args' /\
                       map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx2') sv' stk mem strg ctx maxidx2' sb2' ops) args2 = Some args').
@@ -298,7 +322,7 @@ Module SStackValCmpImplSoundness.
              intros H_valid_sstack_args1 H_valid_sstack_args2 H_fldr.
              unfold fold_right_two_lists in H_fldr.
              rewrite <- fold_right_two_lists_ho in H_fldr.
-             destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 a1_1 a1_2
+             destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 a1_1 a1_2
                          maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_a1_1_a1_2; try discriminate.
              simpl in H_valid_sstack_args1.
              destruct H_valid_sstack_args1 as [H_valid_a1_1 H_valid_arg1'].
@@ -323,7 +347,7 @@ Module SStackValCmpImplSoundness.
         (* ending proof of assert *)
         * destruct (fold_right_two_lists
                       (fun e1 e2 : sstack_val =>
-                       compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2'
+                       basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2'
                          instk_height ops) args args0) eqn:E_fldr.
           ** pose proof (H_fldr args args0 H_follow_valid_sv1_0_1 H_follow_valid_sv2_0_1 E_fldr) as H_fldr_0.
              destruct H_fldr_0 as [args' [H_fldr_0_0 H_fldr_0_1]].
@@ -352,7 +376,7 @@ Module SStackValCmpImplSoundness.
              destruct args0 as [|b2 args0]; try discriminate.
              destruct args0; try discriminate.
 
-             destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_a1_b2; try discriminate.
+             destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_a1_b2; try discriminate.
 
              simpl in H_follow_valid_sv1_0_1.
              destruct H_follow_valid_sv1_0_1 as [H_follow_valid_a1 [H_follow_valid_a2 _]].
@@ -389,7 +413,7 @@ Module SStackValCmpImplSoundness.
              unfold commutative_op in H_f_comm_proof.
              rewrite H_f_comm_proof.
              split; reflexivity.
-      + destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_offset_offset0; try discriminate.
+      + destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_offset_offset0; try discriminate.
 
         simpl in H_follow_valid_sv1.
         destruct H_follow_valid_sv1 as [[H_valid_offset H_valid_smem] [H_valid_sb1' H_maxidx1_gt_maxidx1']].
@@ -453,7 +477,7 @@ Module SStackValCmpImplSoundness.
         exists (concrete_interpreter.ConcreteInterpreter.mload mem' v).
         split; reflexivity.
         
-      + destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_key_key0; try discriminate.
+      + destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_key_key0; try discriminate.
 
         simpl in H_follow_valid_sv1.
         destruct H_follow_valid_sv1 as [[H_valid_key H_valid_sstrg] [H_valid_sb1' H_maxidx1_gt_maxidx1']].
@@ -530,20 +554,20 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as H_maxidx2_gt_maxidx2'.
 
         destruct (if
-                     compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1'
+                     basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1'
                        maxidx2' sb2' instk_height ops
                     then
                      if
-                      compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 size size0 maxidx1' sb1'
+                      basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 size size0 maxidx1' sb1'
                         maxidx2' sb2' instk_height ops
                      then
-                       smemory_cmp (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0) smem smem0
+                       smemory_cmp (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0) smem smem0
                          maxidx1' sb1' maxidx2' sb2' instk_height ops
                      else false
                    else false) eqn:E_std_sha3.
 
-        * destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_offset_offset0; try discriminate.
-          destruct (compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_size_size0; try discriminate.
+        * destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_offset_offset0; try discriminate.
+          destruct (basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops) eqn:E_cmp_size_size0; try discriminate.
 
 
 
