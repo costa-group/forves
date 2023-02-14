@@ -31,6 +31,12 @@ Import SymbolicStateEval.
 Require Import FORVES.valid_symbolic_state.
 Import ValidSymbolicState.
 
+Require Import FORVES.valid_symbolic_state.
+Import ValidSymbolicState.
+
+Require Import FORVES.symbolic_state_cmp.
+Import SymbolicStateCmp.
+
 Module StorageOpsSolvers.
 
 

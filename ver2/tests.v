@@ -8,11 +8,14 @@ Import Constants.
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
 
-Require Import FORVES.memory_ops_solvers.
-Import MemoryOpsSolvers.
+Require Import FORVES.storage_ops_solvers_impl.
+Import StorageOpsSolversImpl.
 
-Require Import FORVES.storage_ops_solvers.
-Import StorageOpsSolvers.
+Require Import FORVES.memory_ops_solvers_impl.
+Import MemoryOpsSolversImpl.
+
+Require Import FORVES.symbolic_state_cmp.
+Import SymbolicStateCmp.
 
 Require Import FORVES.program.
 Import Program.

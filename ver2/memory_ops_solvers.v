@@ -86,32 +86,4 @@ Definition smemory_updater_snd (smemory_updater: smemory_updater_type) :=
   smemory_updater_valid_res smemory_updater /\ smemory_updater_correct_res smemory_updater.
 
 
-
-(* Definition of solvers *)  
-
-(* Doesn't check the memory for the value, just returns an abstract load *)
-Definition basic_mload_solver: mload_solver_type :=
-  fun (soffset: sstack_val) =>
-  fun (smem: smemory) =>
-  fun (instk_height: nat) =>
-  fun (m: smap) =>
-  fun (ops: stack_op_instr_map) =>
-  SymMLOAD soffset smem.
-
-Lemma basic_mload_solver_snd: mload_solver_snd basic_mload_solver.
-Admitted.
-
-(* Doesn't check the memory, just appends the abstract store *)
-Definition basic_smemory_updater: smemory_updater_type :=
-  fun (update: memory_update sstack_val) =>
-  fun (smem: smemory) =>
-  fun (instk_height: nat) =>
-  fun (m: smap) =>
-  fun (ops: stack_op_instr_map) =>
-  (update::smem).
-
-Lemma basic_smemory_updater_snd: smemory_updater_snd basic_smemory_updater.
-Admitted.
-
-
 End MemoryOpsSolvers.
