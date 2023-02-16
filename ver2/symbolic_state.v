@@ -115,7 +115,7 @@ Fixpoint follow_in_smap (sv: sstack_val) (maxidx: nat) (sb: sbindings) : option 
           if key =? idx then
             match is_fresh_var_smv smv with
             | Some idx' => follow_in_smap (FreshVar idx') key sb'
-            | Node => Some (FollowSmapVal smv key sb')
+            | None => Some (FollowSmapVal smv key sb')
             end
           else follow_in_smap sv key sb'
       end
