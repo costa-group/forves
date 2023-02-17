@@ -554,7 +554,6 @@ pose proof (map_option_preserv_functs
 assumption.
 Qed.
 
-
 Lemma preserv_sbindings_ext: forall (sb1 sb2: sbindings) 
   (maxidx: nat) (ops: stack_op_instr_map) (n: nat) (smapv: smap_value)
   (instk_height: nat),
@@ -596,15 +595,17 @@ split.
                unfold eval_sstack_val in Heval. simpl in Heval.
                rewrite -> PeanoNat.Nat.eqb_refl in Heval.
                assumption. 
-            ** simpl in Hfresh. discriminate. 
+            ** (* If no chain of fvars *)
+               simpl in Hfresh. discriminate.
                (*rewrite -> Hmaxidx in Heval. 
-               admit.*)
-               (*rewrite -> eval_stack_val_fvar_chain in Heval.
+               (*admit.*)
+               rewrite -> eval_stack_val_fvar_chain in Heval.
                rewrite -> Hmaxidx.
                rewrite -> eval_stack_val_fvar_chain.
-               pose proof (Hpreserv (FreshVar fvarv) stk mem strg ctx v
+               (*pose proof (Hpreserv (FreshVar fvarv) stk mem strg ctx v
                  Hlen Heval). 
                assumption.*)
+               admit.*)
          ++ unfold eval_sstack_val in Heval. simpl in Heval. 
             rewrite -> PeanoNat.Nat.eqb_refl in Heval.
             unfold eval_sstack_val. simpl. 
@@ -789,6 +790,14 @@ Proof.
 simpl.
 intuition.
 Qed.
+
+
+Fixpoint bindings_no_freshvar (sb: sbindings) : Prop :=
+match sb with
+| [] => True
+| (n,val)::r => (is_fresh_var_smv val = None) /\ bindings_no_freshvar r
+end.
+
 
 (* 'opt' is sound if optimizing the head in a valid bindings (idx,val)::sb 
    results in a valid bindings (idx,val')::sb that preserves evaluations *)
@@ -1442,6 +1451,148 @@ Proof.
 Admitted. 
 
 
+(* Weak version of valid_bindings that do not require sb to be a 
+   decreasing sequence (maxid, _);(maxid-1,_);...;(0,_) 
+   Useful when you need to use only the information of the values being
+   well-formed wrt. instk_height and maxid
+*)
+Fixpoint valid_bindings' (instk_height: nat) (maxid: nat) (sb: sbindings) (ops: stack_op_instr_map): Prop :=
+  match sb with
+  | [] => True
+  | (idx,value)::sb' => valid_smap_value instk_height idx ops value /\ valid_bindings' instk_height maxid sb' ops
+  end.
+  
+      
+Lemma valid_bindings'_succ: forall sb instk_height k ops,
+valid_bindings' instk_height k sb ops ->
+valid_bindings' instk_height (S k) sb ops.
+Proof.
+induction sb as [| h t IH].
+- intuition.
+- intros instk_height k ops Hvalid_k.
+  simpl in Hvalid_k. simpl.
+  destruct h as [key smv] eqn: eq_h.
+  intuition.
+Qed.
+  
+Lemma valid_bindings_bindings': forall sb instk_height k ops,
+valid_bindings instk_height k sb ops ->
+valid_bindings' instk_height k sb ops.
+Proof.
+induction sb as [|h t IH].
+- intros instk_height k ops Hvalid.
+  simpl. intuition.
+- intros instk_height k ops Hvalid.
+  simpl in Hvalid. simpl.
+  destruct h as [key smv] eqn: eq_h.
+  destruct Hvalid as [eq_k [eq_valid_smap_value eq_valid_bindings]].
+  split.
+  + assumption.
+  + pose proof (IH instk_height key ops eq_valid_bindings). 
+    apply valid_bindings'_succ in H.
+    rewrite -> eq_k.
+    assumption.
+Qed.
+
+
+Lemma is_fresh_var_some: forall v idx,
+is_fresh_var_smv v = Some idx ->
+v = SymBasicVal (FreshVar idx).
+Proof.
+intros v idx His_fresh.
+destruct v; try (simpl in His_fresh; discriminate).
+simpl in His_fresh.
+destruct val as [v|var|fvar]; try discriminate.
+injection His_fresh as eq_fvar.
+rewrite -> eq_fvar.
+reflexivity.
+Qed.
+
+
+Lemma valid_bindings'_follow_valid_smap: forall sb instk_height idx ops smv
+  sv n' sb',
+valid_bindings' instk_height idx sb ops ->
+valid_sstack_value instk_height idx sv ->
+follow_in_smap sv idx sb = Some (FollowSmapVal smv n' sb') ->
+valid_smap_value instk_height n' ops smv /\
+n' <= idx.
+Proof.
+induction sb as [|h t IH].
+- intros instk_height idx ops smv sv n' sb' Hvalid_sb Hvalid_sv Hfollow. 
+  simpl in Hfollow. 
+  destruct sv as [val|var|fvar] eqn: eq_sv.
+  + injection Hfollow as eq_smv eq_n' eq_sb'.
+    rewrite <- eq_smv. rewrite <- eq_n'.
+    split; try intuition.
+  + injection Hfollow as eq_smv eq_n' eq_sb'.
+    rewrite <- eq_smv. rewrite <- eq_n'.
+    split.
+    * simpl. simpl in Hvalid_sv. assumption.
+    * intuition.
+  + discriminate.
+- intros instk_height idx ops smv sv n' sb' Hvalid_sb Hvalid_sv Hfollow. 
+  simpl in Hfollow. 
+  destruct sv as [val|var|fvar] eqn: eq_sv.
+  + injection Hfollow as eq_smv eq_n' eq_sb'.
+    rewrite <- eq_smv. rewrite <- eq_n'.
+    split; try intuition.
+  + injection Hfollow as eq_smv eq_n' eq_sb'.
+    rewrite <- eq_smv. rewrite <- eq_n'.
+    split.
+    * simpl. simpl in Hvalid_sv. assumption.
+    * intuition.
+  + destruct h as [k v] eqn: eq_h. 
+    destruct (k =? fvar) eqn: eq_k_fvar.
+    * simpl in Hvalid_sb.
+      destruct Hvalid_sb as [eq_valid_k Hvalid_t].
+      destruct (is_fresh_var_smv v) as [idx'|] eqn: eq_fresh_v.
+      -- apply IH with (sv:=(FreshVar idx'))(sb':=sb');
+           try assumption. 
+         ++ apply is_fresh_var_some in eq_fresh_v.
+            rewrite -> eq_fresh_v in eq_valid_k.
+            simpl in eq_valid_k.
+            simpl. simpl in Hvalid_sv.
+            apply PeanoNat.Nat.eqb_eq in eq_k_fvar.
+            intuition.
+         ++ rewrite -> follow_in_smap_fvar_maxidx_indep_eq with (m:=idx) 
+              in Hfollow. assumption.
+      -- simpl in Hvalid_sv. pose proof (IH instk_height idx ops smv). 
+         apply PeanoNat.Nat.eqb_eq in eq_k_fvar.
+         injection Hfollow as eq_smv eq_k eq_t.
+         rewrite <- eq_k_fvar in Hvalid_sv.
+         rewrite <- eq_k.
+         rewrite <- eq_smv.
+         intuition.
+    * simpl in Hvalid_sb.
+      destruct Hvalid_sb as [eq_valid_k Hvalid_t].
+      rewrite -> follow_in_smap_fvar_maxidx_indep_eq with (m:=idx) in Hfollow.
+      apply IH with(sv:=(FreshVar fvar))(sb':=sb'); try assumption.
+Qed.
+
+
+Lemma valid_smap_value_incr: forall (m instk_height n : nat) 
+  (ops : stack_op_instr_map) (smapv : smap_value),
+valid_smap_value instk_height n ops smapv ->
+valid_smap_value instk_height (n+m) ops smapv.
+Proof.
+induction m as [|m' IH].
+- intuition. rewrite -> PeanoNat.Nat.add_0_r. assumption.
+- intros instk_height n ops smap_value Hvalid_n.
+  rewrite -> PeanoNat.Nat.add_succ_r.
+  apply valid_smap_value_succ in Hvalid_n.
+  apply IH in Hvalid_n.
+  intuition.
+Qed.  
+
+Lemma leq_add: forall n m, 
+n <= m -> exists k, n+k=m.
+Proof.
+intros n m Hleq. (*IH?? *)
+destruct n as [|n'] eqn: eq_n.
+- exists m. intuition.
+- admit.
+Admitted.
+
 
 Lemma optimize_add_0_sbinding_snd:
 opt_sbinding_snd optimize_add_0_sbinding.
@@ -1476,18 +1627,33 @@ split.
       rewrite <- eq_val'; assumption).
     destruct (fcmp arg1 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
       eqn: eq_fcmp_arg1.
-    * (* val' es valid *)
-      admit.
-      (*
-      injection Hoptm_add_0_sbinding as eq_val' eq_flag.
-      rewrite <- eq_val'.
-      simpl in Hvalid. simpl.
-      destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
-      unfold valid_stack_op_instr in Hvalid_stack_op.
-      simpl in Hvalid_stack_op.
-      destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
-      intuition.*)
-    * (* val' es valid *)
+    * (* arg2_plain es valid wrt. maxidx *)
+      destruct (follow_in_smap arg2 idx sb) as [arg2_plain_o|] 
+        eqn: eq_follow_arg2.
+      -- destruct arg2_plain_o as [arg2_plain n' sb'] eqn: eq_arg2_plain_o.
+         injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+         rewrite <- eq_val'.
+         simpl in Hvalid. simpl.
+         destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
+         unfold valid_stack_op_instr in Hvalid_stack_op.
+         simpl in Hvalid_stack_op.
+         destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
+         split; try split; try assumption.
+         pose proof (valid_bindings_bindings' sb instk_height idx 
+           evm_stack_opm Hvalid_sb) as Hvalid'_sb.
+         destruct Hvalid_arg2 as [Hvalid_arg2 _].
+         pose proof (valid_bindings'_follow_valid_smap sb instk_height idx
+           evm_stack_opm arg2_plain arg2 n' sb' Hvalid'_sb Hvalid_arg2
+           eq_follow_arg2) as Hvalid_follow.
+         destruct Hvalid_follow as [Hvalid_arg2_plain n'_leq_idx].
+         apply leq_add in n'_leq_idx as [delta eq_idx].
+         apply valid_smap_value_incr with (m:=delta) in Hvalid_arg2_plain.
+         rewrite <- eq_idx.
+         assumption.
+      -- (* contradiction because of Hvalid: arg2 should be completely 
+            defined in sb *)
+         admit.
+    * (* arg1_plain es valid wrt. maxidx *)
       admit.
       (*destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height 
         evm_stack_opm) eqn: eq_fcmp_arg2; try 
