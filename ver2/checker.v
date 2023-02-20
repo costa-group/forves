@@ -41,6 +41,9 @@ Require Import FORVES.symbolic_state_eval.
 Import SymbolicStateEval.
 
 Require Import FORVES.symbolic_state.
+Import Optimizations_Def.
+
+Require Import FORVES.optimizations_def.
 Import SymbolicState.
 
 Require Import List.
@@ -84,8 +87,86 @@ match evm_sym_exec smem_updater sstrg_updater mload_solver sload_solver
     end
 end.
 
+
 (****************************)
 (* TODO: move to other file *)
+
+Lemma empty_sstate_len: forall instk_height,
+let sst := gen_empty_sstate instk_height in
+get_instk_height_sst sst = instk_height.
+Proof.
+intuition.
+Qed.
+
+
+Lemma evm_sym_exec_instr_sst_height_preserv: forall smemory_updater 
+  sstorage_updater mload_solver sload_solver instr ops sst sst',
+evm_exec_instr_s smemory_updater sstorage_updater mload_solver sload_solver 
+  instr sst ops = Some sst' ->
+get_instk_height_sst sst = get_instk_height_sst sst'.
+Proof.
+intros smemory_updater sstorage_updater mload_solver sload_solver instr ops sst
+  sst' Hsymb_exec_instr.
+destruct sst as [instk_height sstk smem sstg sctx sm] eqn: eq_sst.
+destruct instr eqn: eq_instr.
+- simpl in Hsymb_exec_instr.
+  unfold push_s in Hsymb_exec_instr.
+  destruct (misc.Misc.push (Val (Word.NToWord constants.Constants.EVMWordSize v))
+   (get_stack_sst (SymExState instk_height sstk smem sstg sctx sm)));
+   try discriminate.
+  simpl in Hsymb_exec_instr. injection Hsymb_exec_instr as eq_sst'.
+  rewrite <- eq_sst'. simpl. reflexivity.
+- simpl in Hsymb_exec_instr.
+  unfold pushtag_s in Hsymb_exec_instr.
+  destruct (add_to_smap (get_smap_sst (SymExState instk_height sstk smem sstg 
+    sctx sm)) (SymPUSHTAG v)).
+  destruct (misc.Misc.push (FreshVar n) (get_stack_sst (SymExState instk_height
+    sstk smem sstg sctx sm))); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. reflexivity.
+- 
+  (*
+
+  | POP => pop_s sst ops
+  | DUP pos => dup_s pos sst ops
+  | SWAP pos => swap_s pos sst ops
+  | MLOAD => mload_s mload_solver sst ops
+  | MSTORE8 => mstore8_s smem_updater sst ops
+  | MSTORE => mstore_s smem_updater sst ops
+  | SLOAD => sload_s sload_solver sst ops
+  | SSTORE => sstore_s sstrg_updater sst ops
+  | SHA3 => sha3_s sst ops
+  | KECCAK256 => sha3_s sst ops
+  | OpInstr label => exec_stack_op_intsr_s label sst ops 
+  *)
+Admitted.
+
+Lemma evm_sym_exec_block_sst_height_preserv: forall smemory_updater 
+  sstorage_updater mload_solver sload_solver p ops sst sst',
+evm_exec_block_s smemory_updater sstorage_updater mload_solver sload_solver p
+  sst ops = Some sst' ->
+get_instk_height_sst sst = get_instk_height_sst sst'.
+Proof.
+intros smemory_updater sstorage_updater mload_solver sload_solver p.
+revert smemory_updater sstorage_updater mload_solver sload_solver.
+induction p as [|instr rp IH].
+- intros smemory_updater sstorage_updater mload_solver sload_solver ops sst 
+    sst' Hsymb_exec_block.
+  simpl in Hsymb_exec_block.
+  injection Hsymb_exec_block as eq_sst'. rewrite <- eq_sst'.
+  reflexivity.
+- intros smemory_updater sstorage_updater mload_solver sload_solver ops sst 
+    sst' Hsymb_exec_block.
+  simpl in Hsymb_exec_block.
+  destruct (evm_exec_instr_s smemory_updater sstorage_updater mload_solver 
+    sload_solver instr sst ops) as [sst1|] eqn: eq_exec_instr;
+    try discriminate.
+  apply IH in Hsymb_exec_block.
+  apply evm_sym_exec_instr_sst_height_preserv in eq_exec_instr.
+  rewrite <- eq_exec_instr in Hsymb_exec_block.
+  assumption.
+Qed.
+
+
 Lemma evm_sym_exec_sst_height: forall smemory_updater sstorage_updater 
   mload_solver sload_solver p instk_height ops sst,
 evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p
@@ -93,12 +174,64 @@ evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p
 get_instk_height_sst sst = instk_height.
 Proof.
 intros smemory_updater sstorage_updater mload_solver sload_solver p 
-  instk_height ops sst.
-unfold evm_sym_exec.
-(* Long but "simple" *)
-Admitted.
+  instk_height ops sst Hsymb_exec.
+unfold evm_sym_exec in Hsymb_exec.
+apply evm_sym_exec_block_sst_height_preserv in Hsymb_exec.
+rewrite -> empty_sstate_len in Hsymb_exec.
+symmetry.
+assumption.
+Qed.
+
 (*************************)
 
+
+Lemma symbolic_exec_bindings_nofv: forall 
+  (p: block)
+  (smemory_updater : smemory_updater_type) 
+  (sstorage_updater : sstorage_updater_type)
+  (mload_solver : mload_solver_type) (sload_solver : sload_solver_type) 
+  (instk_height h : nat) 
+  sstk smem sstg sctx smap
+  (ops : stack_op_instr_map),
+evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p 
+  instk_height ops = Some (SymExState h sstk smem sstg sctx smap) -> 
+bindings_no_freshvar (get_bindings_smap smap).
+Proof.
+induction p as [| instr rp IH].
+- admit.
+- admit.
+Admitted.
+
+
+Lemma symbolic_exec_valid_sstate_fv: 
+forall (smemory_updater : smemory_updater_type) 
+       (sstorage_updater : sstorage_updater_type)
+       (mload_solver : mload_solver_type) (sload_solver : sload_solver_type) 
+       (p : block) (instk_height : nat) (sst : sstate) 
+       (ops : stack_op_instr_map),
+smemory_updater_snd smemory_updater ->
+sstorage_updater_snd sstorage_updater ->
+mload_solver_snd mload_solver ->
+sload_solver_snd sload_solver ->
+evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p 
+  instk_height ops = Some sst ->
+valid_sstate_fv sst ops.
+Proof.
+intros smemory_updater sstorage_updater mload_solver sload_solver p 
+  instk_height sst ops Hsmem_upd Hsstrg_upd Hmload Hsload Hsym_exec.
+unfold valid_sstate_fv.
+split.
+- pose proof (symbolic_exec_snd smemory_updater sstorage_updater mload_solver
+    sload_solver p instk_height sst ops Hsmem_upd Hsstrg_upd Hmload Hsload 
+    Hsym_exec) as H.
+  intuition.
+- destruct sst as [h sstk smem sstg sctx smap] eqn: eq_sst. 
+  simpl. 
+  pose proof (symbolic_exec_bindings_nofv p smemory_updater sstorage_updater 
+    mload_solver sload_solver instk_height h sstk smem sstg sctx smap ops
+    Hsym_exec).
+  assumption.
+Qed.
 
 
 Lemma equiv_checker''_correct: forall (opt_p p: block) 
@@ -135,14 +268,24 @@ destruct (evm_sym_exec smem_updater sstrg_updater mload_solver
 destruct (evm_sym_exec smem_updater sstrg_updater mload_solver
           sload_solver p height evm_stack_opm) 
             as [sst_p|] eqn: eq_symb_exec_p; try discriminate.
+
 pose proof (symbolic_exec_snd smem_updater sstrg_updater mload_solver 
   sload_solver opt_p height sst_opt evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_opt) as [Hvalid_sst_opt Hconcr_opt'].
+  Hmload_solver Hsload_solver eq_symb_exec_opt) as [_ Hconcr_opt'].
+pose proof (symbolic_exec_valid_sstate_fv smem_updater sstrg_updater mload_solver 
+  sload_solver opt_p height sst_opt evm_stack_opm Hsmemory_upd Hstrg_upd 
+  Hmload_solver Hsload_solver eq_symb_exec_opt) as Hvalid_sst_opt.
+  
 rewrite <- Hget_stk in Hlen_stk.
 pose proof (Hconcr_opt' in_es Hlen_stk) as [out_es_opt [Hconcr_opt Hinst_sst_opt]].
+
 pose proof (symbolic_exec_snd smem_updater sstrg_updater mload_solver 
   sload_solver p height sst_p evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_p) as [Hvalid_sst Hconcr_p']. 
+  Hmload_solver Hsload_solver eq_symb_exec_p) as [_ Hconcr_p'].
+pose proof (symbolic_exec_valid_sstate_fv smem_updater sstrg_updater mload_solver 
+  sload_solver p height sst_p evm_stack_opm Hsmemory_upd Hstrg_upd 
+  Hmload_solver Hsload_solver eq_symb_exec_p) as Hvalid_sst.
+
 pose proof (Hconcr_p' in_es Hlen_stk) as [out_es_p [Hconcr_p Hinst_sst]].
 exists out_es_opt. exists out_es_p.
 destruct (opt sst_p) as [sst_p' flag_p] eqn: eq_optimize_p.
@@ -168,6 +311,10 @@ unfold symbolic_state_cmp_snd in Hcmp.
 apply evm_sym_exec_sst_height in eq_symb_exec_p as Hinstk_height.
 rewrite <- Hinstk_height in Hlen_stk.
 rewrite -> Hinstk_height_sst_p in Hlen_stk.
+unfold valid_sstate_fv in Hvalid_sst_p'.
+destruct Hvalid_sst_p' as [Hvalid_sst_p' _].
+unfold valid_sstate_fv in Hvalid_sst_opt'.
+destruct Hvalid_sst_opt' as [Hvalid_sst_opt' _].
 pose proof (Hcmp sst_p' sst_opt' evm_stack_opm Hvalid_sst_p' Hvalid_sst_opt'
       Hchkr_true in_es Hlen_stk) as [st [Heq_eval_sst_p Heq_eval_sst_opt]].
 rewrite -> Hevalopt in Heq_eval_sst_opt.

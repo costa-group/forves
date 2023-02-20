@@ -50,9 +50,8 @@ Import ListNotations.
 
 Module Optimizations_Def.
 
+(**************************************)
 (* auxiliary results about evaluation *)
-
-
 Lemma valid_sstack_value_const: forall instk_height idx v,
 valid_sstack_value instk_height idx (Val v).
 Proof.
@@ -310,7 +309,7 @@ Qed.
 
 
 
-
+(*
 (* TODO can it be used for proving preserv_sbindings_ext??? *)
 Lemma eval_stack_val_fvar_chain: forall n1 n2 stk mem strg ctx maxidx sb 
   ops,
@@ -324,7 +323,7 @@ rewrite -> eval_sstack_val'_one_step.
 rewrite -> eval_sstack_val'_one_step.
 rewrite -> follow_in_smap_chain.
 Admitted.
-
+*)
 
 Lemma eval'_maxidx_indep_eq:
   forall (d : nat) (sv : sstack_val) (stk : stack) 
@@ -349,17 +348,33 @@ destruct sv as [val|var|fvar] eqn: eq_sv.
 Qed.
 
 
-(********************)
 
+
+
+(********************)
 
 
 Definition optim := sstate -> sstate*bool.
 
+
+Fixpoint bindings_no_freshvar (sb: sbindings) : Prop :=
+match sb with
+| [] => True
+| (n,val)::r => (is_fresh_var_smv val = None) /\ bindings_no_freshvar r
+end.
+
+
+Definition valid_sstate_fv (sst: sstate) (ops: stack_op_instr_map): Prop :=
+let m := get_smap_sst sst in
+let sb := get_bindings_smap m in
+  valid_sstate sst ops /\
+  bindings_no_freshvar sb.
+
 Definition optim_snd (opt: optim) : Prop := 
 forall (sst: sstate) (sst': sstate) (b: bool),
-valid_sstate sst evm_stack_opm ->
+valid_sstate_fv sst evm_stack_opm ->
 opt sst = (sst', b) ->
-(valid_sstate sst' evm_stack_opm /\ 
+(valid_sstate_fv sst' evm_stack_opm /\ 
  get_instk_height_sst sst = get_instk_height_sst sst' /\
  forall (st st': state), eval_sstate st sst  evm_stack_opm = Some st' ->
                          eval_sstate st sst' evm_stack_opm = Some st').
@@ -554,6 +569,65 @@ pose proof (map_option_preserv_functs
 assumption.
 Qed.
 
+
+Lemma same_instantiate_memory_update: forall (f g: sstack_val -> option EVMWord),
+(forall x (r: EVMWord), f x = Some r -> g x = Some r) ->
+forall (mem_upd: memory_update sstack_val) v,
+instantiate_memory_update f mem_upd = Some v ->
+instantiate_memory_update g mem_upd = Some v.
+Proof.
+intros f g Hpreserv mem_upd v Heval.
+destruct mem_upd as [offset val|offset val].
+- unfold instantiate_memory_update in Heval. 
+  destruct (f offset) as [offsetv|] eqn: eq_eval_offset; try discriminate.
+  destruct (f val) as [valv|] eqn: eq_eval_val; try discriminate.
+  apply Hpreserv in eq_eval_offset; try assumption.
+  apply Hpreserv in eq_eval_val; try assumption.
+  unfold instantiate_memory_update.
+  rewrite -> eq_eval_offset.
+  rewrite -> eq_eval_val.
+  rewrite <- Heval. reflexivity.
+- unfold instantiate_memory_update in Heval. 
+  destruct (f offset) as [offsetv|] eqn: eq_eval_offset; try discriminate.
+  destruct (f val) as [valv|] eqn: eq_eval_val; try discriminate.
+  apply Hpreserv in eq_eval_offset; try assumption.
+  apply Hpreserv in eq_eval_val; try assumption.
+  unfold instantiate_memory_update.
+  rewrite -> eq_eval_offset.
+  rewrite -> eq_eval_val.
+  rewrite <- Heval. reflexivity.
+Qed.
+
+(*
+Lemma map_option_sstack: forall maxidx stk mem strg ctx n sb1 sb2 ops 
+  instk_height args vargs,
+map_option (fun sv' : sstack_val =>
+              eval_sstack_val' maxidx sv' stk mem strg ctx n sb1 ops)
+              args = Some vargs ->
+(forall (sv : sstack_val) (stk : stack)
+             (mem : memory) (strg : storage) (ctx : context) 
+             (v : EVMWord),
+           instk_height = length stk ->
+           eval_sstack_val' maxidx sv stk mem strg ctx n sb1 ops = Some v ->
+           eval_sstack_val' maxidx sv stk mem strg ctx n sb2 ops = Some v) ->
+instk_height = length stk ->
+map_option (fun sv' : sstack_val =>
+              eval_sstack_val' maxidx sv' stk mem strg ctx n sb2 ops)
+            args = Some vargs.
+Proof.
+intros maxidx stk mem strg ctx n sb1 sb2 ops instk_height args vargs Hmapo
+  Hpreserv Hlen.
+pose proof (map_option_fun_sstack maxidx stk mem strg ctx n sb1 sb2 ops 
+  instk_height Hpreserv Hlen) as Hfunct_equiv.
+pose proof (map_option_preserv_functs 
+  ((fun sv' : sstack_val =>
+                eval_sstack_val' maxidx sv' stk mem strg ctx n sb1 ops))
+  (fun sv' : sstack_val =>
+   eval_sstack_val' maxidx sv' stk mem strg ctx n sb2 ops) args vargs
+  Hmapo Hfunct_equiv).
+assumption.
+Qed.*)
+
 Lemma preserv_sbindings_ext: forall (sb1 sb2: sbindings) 
   (maxidx: nat) (ops: stack_op_instr_map) (n: nat) (smapv: smap_value)
   (instk_height: nat),
@@ -595,17 +669,8 @@ split.
                unfold eval_sstack_val in Heval. simpl in Heval.
                rewrite -> PeanoNat.Nat.eqb_refl in Heval.
                assumption. 
-            ** (* If no chain of fvars *)
+            ** (* NO chain of fvars *)
                simpl in Hfresh. discriminate.
-               (*rewrite -> Hmaxidx in Heval. 
-               (*admit.*)
-               rewrite -> eval_stack_val_fvar_chain in Heval.
-               rewrite -> Hmaxidx.
-               rewrite -> eval_stack_val_fvar_chain.
-               (*pose proof (Hpreserv (FreshVar fvarv) stk mem strg ctx v
-                 Hlen Heval). 
-               assumption.*)
-               admit.*)
          ++ unfold eval_sstack_val in Heval. simpl in Heval. 
             rewrite -> PeanoNat.Nat.eqb_refl in Heval.
             unfold eval_sstack_val. simpl. 
@@ -634,6 +699,25 @@ split.
             rewrite -> PeanoNat.Nat.eqb_refl.
             unfold eval_sstack_val in Hpreserv.
             rewrite <- Hmaxidx in Hpreserv.
+            destruct (map_option
+                       (instantiate_memory_update
+                         (fun sv : sstack_val => eval_sstack_val' maxidx sv stk
+                            mem strg ctx n sb1 ops)) smem)
+              as [mem_updates|] eqn: eq_mem_upd; try discriminate.
+            destruct (eval_sstack_val' maxidx offset stk mem strg ctx n sb1 ops)
+              as [offsetv|] eqn: eq_eval_offset; try discriminate.
+            injection Heval as eq_v.
+            rewrite <- eq_v.
+            pose proof (map_option_fun_sstack maxidx stk mem strg ctx n sb1
+              sb2 ops instk_height Hpreserv) Hlen as eq_functs.
+            apply Hpreserv in eq_eval_offset; try assumption.
+            pose proof (same_instantiate_memory_update
+            ((fun sv' : sstack_val => eval_sstack_val' maxidx sv' stk mem strg ctx n sb1 ops))
+            ((fun sv' : sstack_val => eval_sstack_val' maxidx sv' stk mem strg ctx n sb2 ops))
+            eq_functs).
+            (* TODO continue here applying map_option *)
+            
+            
             admit.
          ++ unfold eval_sstack_val in Heval. simpl in Heval. 
             rewrite -> PeanoNat.Nat.eqb_refl in Heval.
@@ -792,12 +876,6 @@ intuition.
 Qed.
 
 
-Fixpoint bindings_no_freshvar (sb: sbindings) : Prop :=
-match sb with
-| [] => True
-| (n,val)::r => (is_fresh_var_smv val = None) /\ bindings_no_freshvar r
-end.
-
 
 (* 'opt' is sound if optimizing the head in a valid bindings (idx,val)::sb 
    results in a valid bindings (idx,val')::sb that preserves evaluations *)
@@ -806,6 +884,7 @@ forall (val val': smap_value) (fcmp: sstack_val_cmp_t) (sb: sbindings)
   (maxidx: nat) (instk_height: nat) (idx: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
 valid_bindings instk_height maxidx ((idx,val)::sb) evm_stack_opm ->
+bindings_no_freshvar ((idx,val)::sb) ->
 opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
   valid_bindings instk_height maxidx ((idx,val')::sb) evm_stack_opm /\
   is_fresh_var_smv val' = None /\
@@ -840,13 +919,14 @@ opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
 opt_sbinding_snd opt ->
 safe_sstack_val_cmp fcmp ->
 valid_bindings instk_height maxidx ((idx, val) :: sb) evm_stack_opm ->
+bindings_no_freshvar ((idx,val)::sb) ->
 valid_smap_value instk_height idx evm_stack_opm val'.
 Proof.
 intros opt val fcmp sb idx instk_height val' flag maxidx Hopt Hopt_snd 
-  Hsafe_fcmp Hvalid.
+  Hsafe_fcmp Hvalid Hbind_nofv.
 unfold opt_sbinding_snd in Hopt_snd.
 pose proof (Hopt_snd val val' fcmp sb maxidx instk_height idx flag 
-  Hsafe_fcmp Hvalid Hopt) as Hopt'.
+  Hsafe_fcmp Hvalid Hbind_nofv Hopt) as Hopt'.
 destruct Hopt' as [Hvalid' _].
 unfold valid_bindings in Hvalid'.
 destruct Hvalid' as [_ [Hvalid_smap _]].
@@ -980,19 +1060,21 @@ Lemma optimize_first_valid: forall (opt: opt_smap_value_type)
 safe_sstack_val_cmp fcmp ->
 opt_sbinding_snd opt ->
 valid_bindings instk_height maxid sb evm_stack_opm ->
+bindings_no_freshvar sb ->
 optimize_first_sbindings opt fcmp sb instk_height = (sb', flag) ->
-valid_bindings instk_height maxid sb' evm_stack_opm.
+valid_bindings instk_height maxid sb' evm_stack_opm /\
+bindings_no_freshvar sb'.
 Proof.
 intros opt fcmp sb. revert opt fcmp.
 induction sb as [| h rsb IH].
 - intros opt fcmp sb' maxid instk_height flag Hsafe_fcmp Hopt_snd Hvalid_sb
-  Hoptimize_first.
+  Hbind_nofv Hoptimize_first.
   simpl in Hoptimize_first.
   injection Hoptimize_first as eq_sb' _.
   rewrite <- eq_sb'.
   intuition.
 - intros opt fcmp sb' maxid instk_height flag Hsafe_fcmp Hopt_snd Hvalid_sb
-  Hoptimize_first.
+  Hbind_nofv Hoptimize_first.
   assert (Hvalid_sb_copy := Hvalid_sb).
   unfold valid_bindings in Hvalid_sb.
   destruct h as [idx value] eqn: eq_h.
@@ -1008,23 +1090,37 @@ induction sb as [| h rsb IH].
     split.
     * unfold opt_sbinding_snd in Hopt_snd.
       pose proof (Hopt_snd value val' fcmp rsb maxid instk_height idx true
-      Hsafe_fcmp Hvalid_sb_copy eq_opt_value) as Hsnd_value.
+      Hsafe_fcmp Hvalid_sb_copy Hbind_nofv eq_opt_value) as Hsnd_value.
       destruct Hsnd_value as [Hvalid_value _].
       unfold valid_bindings in Hvalid_value.
       intuition.
     * unfold opt_sbinding_snd in Hopt_snd.
       pose proof (Hopt_snd value val' fcmp rsb maxid instk_height idx true
-      Hsafe_fcmp Hvalid_sb_copy eq_opt_value) as Hsnd_value.
+      Hsafe_fcmp Hvalid_sb_copy Hbind_nofv eq_opt_value) as Hsnd_value.
       destruct Hsnd_value as [Hvalid_value _].
       unfold valid_bindings in Hvalid_value.
+      intuition.
+    * unfold opt_sbinding_snd in Hopt_snd.
+      pose proof (Hopt_snd value val' fcmp rsb maxid instk_height idx true
+      Hsafe_fcmp Hvalid_sb_copy Hbind_nofv eq_opt_value) as Hsnd_value.
+      destruct Hsnd_value as [_ [Hnofv _]].
+      simpl in Hbind_nofv. destruct Hbind_nofv as [_ Hbind_nofv_rsb].
       intuition.
   + destruct (optimize_first_sbindings opt fcmp rsb instk_height) 
       as [rs' flag'] eqn: eq_optimize_rsb.
     injection Hoptimize_first as eq_sb' eq_flag.
-    rewrite <- eq_sb'. simpl.
-    split; try assumption.
-    split; try assumption.
-    apply IH with (opt:=opt)(fcmp:=fcmp)(flag:=flag'); try assumption.
+    rewrite <- eq_sb'.
+    split. 
+    * simpl. split; try assumption.
+      split; try assumption.
+      simpl in Hbind_nofv.
+      destruct Hbind_nofv as [_ Hbind_nofv_rsb].
+      apply IH with (opt:=opt)(fcmp:=fcmp)(flag:=flag'); try assumption.
+    * destruct Hbind_nofv as [is_fresh_value Hbind_nofv_rsb].
+      pose proof (IH opt fcmp rs' idx instk_height flag' Hsafe_fcmp Hopt_snd
+        Hvalid_bindings_rsb Hbind_nofv_rsb eq_optimize_rsb) as H.
+      destruct H as [_ Hbind_nofv_rs'].
+      simpl. intuition.
 Qed.
 
 
@@ -1038,19 +1134,20 @@ forall (opt: opt_smap_value_type) (fcmp: sstack_val_cmp_t) (sb sb': sbindings)
 safe_sstack_val_cmp fcmp ->
 opt_sbinding_snd opt ->
 valid_bindings instk_height maxid sb evm_stack_opm ->
+bindings_no_freshvar sb -> 
 optimize_first_sbindings opt fcmp sb instk_height = (sb', flag) ->
 preserv_sbindings sb sb' maxid evm_stack_opm instk_height.
 Proof.
 intros opt fcmp sb. revert opt fcmp.
 induction sb as [|h rsb IH].
 - intros opt fcmp sb' maxid instk_height flag Hfcmp_snd Hopt_sbinding_snd 
-    Hvalid Hoptimize_first_sbindings.
+    Hvalid Hbind_nofv Hoptimize_first_sbindings.
   simpl in Hoptimize_first_sbindings.
   injection Hoptimize_first_sbindings as eq_sb' _.
   rewrite <- eq_sb'.
   unfold preserv_sbindings. intuition.
 - intros opt fcmp sb' maxid instk_height flag Hfcmp_snd Hopt_sbinding_snd 
-    Hvalid Hoptimize_first_sbindings.
+    Hvalid Hbind_nofv Hoptimize_first_sbindings.
   destruct h as [n smapv] eqn: eq_h.
   assert (Hoptimize_first_sbindings_copy := Hoptimize_first_sbindings).
   assert (Hvalid_copy := Hvalid).
@@ -1063,6 +1160,7 @@ induction sb as [|h rsb IH].
   * (* valid_bindings instk_height maxid sb' evm_stack_opm *)
     apply optimize_first_valid with (opt:=opt)(fcmp:=fcmp)
       (sb:=h::rsb)(flag:=flag); try intuition.
+    + rewrite -> eq_h. assumption.
     + rewrite -> eq_h. assumption.
     + rewrite -> eq_h. assumption.
   * destruct b eqn: eq_b.
@@ -1080,7 +1178,7 @@ induction sb as [|h rsb IH].
          rewrite -> eq_fvar_n in Heval_sb.
          unfold opt_sbinding_snd in Hopt_sbinding_snd.
          pose proof (Hopt_sbinding_snd smapv val' fcmp rsb maxid instk_height n
-           true Hfcmp_snd Hvalid eq_opt_val) as [Hvalid2 [Hfresh Heval_imp]].
+           true Hfcmp_snd Hvalid Hbind_nofv eq_opt_val) as [Hvalid2 [Hfresh Heval_imp]].
          pose proof (Heval_imp stk mem strg ctx v Hlen Heval_sb).
          assumption.
       -- rewrite -> eval_fvar_diff; try assumption.
@@ -1094,8 +1192,11 @@ induction sb as [|h rsb IH].
       unfold valid_bindings in Hvalid.
       destruct Hvalid as [eq_maxid_n [Hvalid_smap Hvalid_rsb]].
       fold valid_bindings in Hvalid_rsb.
+      simpl in Hbind_nofv.
+      destruct Hbind_nofv as [_ Hbind_nofv_rsb].
       pose proof (IH opt fcmp rs' n instk_height flag' Hfcmp_snd
-        Hopt_sbinding_snd Hvalid_rsb eq_optimize_first_rs) as Hpreserv_rs.
+        Hopt_sbinding_snd Hvalid_rsb Hbind_nofv_rsb eq_optimize_first_rs) 
+        as Hpreserv_rs.
       apply preserv_sbindings_ext; try intuition.
       unfold opt_sbinding_snd in Hopt_sbinding_snd.
       (* is_fresh_var_smv smapv = None 
@@ -1116,18 +1217,23 @@ match sst with
     end
 end.
 
+
+
 Lemma optimize_first_sstate_valid: forall (opt: opt_smap_value_type) 
   (fcmp: sstack_val_cmp_t) (sst sst': sstate)
   (flag: bool),
-valid_sstate sst evm_stack_opm ->
+valid_sstate_fv sst evm_stack_opm ->
 opt_sbinding_snd opt ->
 safe_sstack_val_cmp fcmp ->
 optimize_first_sstate opt fcmp sst = (sst', flag) ->
-valid_sstate sst' evm_stack_opm.
+valid_sstate_fv sst' evm_stack_opm.
 Proof.
 intros opt fcmp sst sst' flag Hvalid Hopt Hsafe_cmp Hopt_first.
 unfold valid_sstate in Hvalid.
 destruct sst. destruct sm. simpl in Hvalid.
+unfold valid_sstate_fv in Hvalid.
+destruct Hvalid as [Hvalid Hbind_nofv].
+simpl in Hbind_nofv.
 destruct Hvalid as [Hvalid_smap [Hvalid_sstack [Hvalid_smemory Hvalid_sstorage]]].
 unfold optimize_first_sstate in Hopt_first.
 destruct (optimize_first_sbindings opt fcmp bindings instk_height) as
@@ -1135,19 +1241,26 @@ destruct (optimize_first_sbindings opt fcmp bindings instk_height) as
 injection Hopt_first as eq_sst' eq_flag'.
 rewrite <- eq_sst'.
 unfold valid_sstate. simpl.
-split.
-- unfold valid_smap in Hvalid_smap.
+unfold valid_sstate_fv. split.
+- split.
+  + unfold valid_smap in Hvalid_smap.
   pose proof (optimize_first_valid opt fcmp bindings bindings' maxid 
-    instk_height flag' Hsafe_cmp Hopt Hvalid_smap eq_optim_first).
-  assumption.
-- split; try split; try assumption.
+    instk_height flag' Hsafe_cmp Hopt Hvalid_smap Hbind_nofv eq_optim_first).
+  simpl. intuition.
+  + split; try split; try assumption.
+- simpl. 
+  unfold valid_smap in Hvalid_smap.
+  pose proof (optimize_first_valid opt fcmp bindings bindings' maxid 
+    instk_height flag' Hsafe_cmp Hopt Hvalid_smap Hbind_nofv eq_optim_first) 
+    as H.
+  intuition.
 Qed.
 
 
 Lemma optimize_first_sstate_preserv: forall (opt: opt_smap_value_type) 
   (fcmp: sstack_val_cmp_t) (sst sst': sstate)
   (flag: bool),
-valid_sstate sst evm_stack_opm ->
+valid_sstate_fv sst evm_stack_opm ->
 opt_sbinding_snd opt ->
 safe_sstack_val_cmp fcmp ->
 optimize_first_sstate opt fcmp sst = (sst', flag) ->
@@ -1182,11 +1295,12 @@ destruct (eval_sstorage sstg maxid bindings (get_stack_st st)
   as [strg|] eqn: eq_eval_strg; try discriminate.
 unfold eval_sstate. simpl. rewrite -> eq_instk.
 simpl in Hvalid.
-unfold valid_sstate in Hvalid. simpl in Hvalid.
+unfold valid_sstate_fv in Hvalid. 
+destruct Hvalid as [Hvalid Hbind_nofv]. simpl in Hvalid.
 destruct Hvalid as [Hvalid_smap [Hvalid_sstack [Hvalid_smem Hvalid_strg]]].
 unfold valid_smap in Hvalid_smap.
 pose proof (opt_sbinding_preserves opt fcmp bindings bindings' maxid 
-  instk_height flag' Hsafe_cmp Hopt Hvalid_smap eq_optim_first)
+  instk_height flag' Hsafe_cmp Hopt Hvalid_smap Hbind_nofv eq_optim_first)
   as Hpreservs_bind_bind'.
 apply PeanoNat.Nat.eqb_eq in eq_instk.
 pose proof (preserv_sbindings_sstack bindings bindings' maxid evm_stack_opm
@@ -1584,22 +1698,105 @@ induction m as [|m' IH].
   intuition.
 Qed.  
 
+
 Lemma leq_add: forall n m, 
 n <= m -> exists k, n+k=m.
 Proof.
-intros n m Hleq. (*IH?? *)
-destruct n as [|n'] eqn: eq_n.
-- exists m. intuition.
-- admit.
-Admitted.
+intros n m. revert n.
+induction m as [|m' IH].
+- intros n Hleq. exists 0. intuition.
+- intros n Hleq.
+  destruct n as [|n'] eqn: eq_n.
+  + exists (S m'). intuition.
+  + apply Le.le_S_n in Hleq.
+    apply IH in Hleq as [k' eq_n'_k'].
+    exists k'. intuition.
+Qed.
 
+
+Lemma leq_diff_lt: forall n m,
+n <= m -> n <> m -> n < m.
+Proof.
+intros n m Hleq Hdiff.
+intuition.
+Qed.
+
+
+(* Calling follow_in_smap with valid bindings and a valid smap_value 
+   cannot return None *)
+Lemma valid_follow_not_none: forall instk_height idx sv sb ops,
+valid_sstack_value instk_height idx sv ->
+valid_bindings instk_height idx sb ops ->
+follow_in_smap sv idx sb <> None.
+Proof.
+intros instk_height idx sv sb. revert instk_height idx sv.
+induction sb as [| h t IH].
+- intros instk_height idx sv ops Hvalid_sstack Hvalid_bindings.
+  destruct sv as [val|var|fvar] eqn: eq_sv.
+  + simpl. intuition. discriminate.
+  + simpl. intuition. discriminate.
+  + simpl. simpl in Hvalid_sstack. simpl in Hvalid_bindings. 
+    intuition.
+- intros instk_height idx sv ops Hvalid_sstack Hvalid_bindings.
+  destruct sv as [val|var|fvar] eqn: eq_sv.
+  + simpl. intuition. discriminate.
+  + simpl. intuition. discriminate.
+  + simpl. destruct h as [key smv] eqn: eq_h.
+    destruct (key =? fvar) eqn: eq_key_fvar.
+    * destruct (is_fresh_var_smv) eqn: eq_is_fresh.
+      -- apply is_fresh_var_some in eq_is_fresh.
+         rewrite eq_is_fresh in Hvalid_bindings.
+         simpl in Hvalid_bindings.
+         destruct Hvalid_bindings as [Hidx [Hn_key Hvalid_t]].
+         apply IH with (instk_height:=instk_height)(ops:=ops); try assumption.
+      -- intuition. discriminate. 
+    * simpl in Hvalid_bindings.
+      destruct Hvalid_bindings as [Hidx [Hvalid_smap Hvalid_t]].
+      apply IH with (instk_height:=instk_height)(ops:=ops); try assumption.
+      simpl. simpl in Hvalid_sstack.
+      rewrite -> Hidx in Hvalid_sstack.
+      apply Lt.lt_n_Sm_le in Hvalid_sstack.
+      apply leq_diff_lt; try assumption.
+      apply EqNat.beq_nat_false.
+      rewrite PeanoNat.Nat.eqb_sym. assumption.
+Qed.
+
+
+
+Lemma follow_succ_no_fv: forall sb sb' smv idx a idx',
+follow_in_smap smv idx sb = Some (FollowSmapVal a idx' sb') ->
+is_fresh_var_smv a = None.
+Proof.
+induction sb as [| h t IH].
+- intros sb' smv idx a idx' Hfollow.
+  simpl in Hfollow. 
+  destruct smv as [val|var|fvar]; 
+    try (injection Hfollow as eq_a _ _;
+         rewrite <- eq_a;
+         reflexivity).
+  discriminate.
+- intros sb' smv idx a idx' Hfollow.
+  destruct h as [key value].
+  simpl in Hfollow.
+  destruct smv as [val|var|fvar];
+    try (injection Hfollow as eq_a _ _;
+         rewrite <- eq_a;
+         reflexivity).
+  destruct (key =? fvar) eqn: eq_key_fvar.
+  + destruct (is_fresh_var_smv value) eqn: eq_is_fresh.
+    * apply IH in Hfollow. assumption. 
+    * injection Hfollow as eq_a_value _ _.
+      rewrite <- eq_a_value.
+      assumption.
+  + apply IH in Hfollow. assumption.
+Qed.
 
 Lemma optimize_add_0_sbinding_snd:
 opt_sbinding_snd optimize_add_0_sbinding.
 Proof.
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
-  Hvalid Hoptm_add_0_sbinding.
+  Hvalid Hbind_nofv Hoptm_add_0_sbinding.
 split.
 - (* valid_sbindings *)
   (* IDEA: use general lemma for every "safe" optimization *)
@@ -1652,22 +1849,57 @@ split.
          assumption.
       -- (* contradiction because of Hvalid: arg2 should be completely 
             defined in sb *)
-         admit.
+         unfold valid_bindings in Hvalid.
+         destruct Hvalid as [_ [Hvalid_smap Hvalid_sb]].
+         fold valid_bindings in Hvalid_sb.
+         simpl in Hvalid_smap.
+         unfold valid_stack_op_instr in Hvalid_smap.
+         simpl in Hvalid_smap.
+         destruct Hvalid_smap as [_ [_ [Hvalid_arg2 _]]].
+         pose proof (valid_follow_not_none instk_height idx arg2 sb 
+           evm_stack_opm Hvalid_arg2 Hvalid_sb) as valid_diff_none.
+         rewrite -> eq_follow_arg2 in valid_diff_none.
+         intuition.
     * (* arg1_plain es valid wrt. maxidx *)
-      admit.
-      (*destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height 
-        evm_stack_opm) eqn: eq_fcmp_arg2; try 
-      (injection Hoptm_add_0_sbinding as eq_val' eq_flag;
-      rewrite <- eq_val'; assumption).
-      injection Hoptm_add_0_sbinding as eq_val' eq_flag.
-      rewrite <- eq_val'.
-      simpl in Hvalid. simpl.
-      destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
-      unfold valid_stack_op_instr in Hvalid_stack_op.
-      simpl in Hvalid_stack_op.
-      destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
-      intuition.
-      *)
+      destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
+        eqn: eq_fcmp_arg2.
+      -- destruct (follow_in_smap arg1 idx sb) as [arg1_plain_o|] 
+           eqn: eq_follow_arg1.
+        ++ destruct arg1_plain_o as [arg1_plain n' sb'] eqn: eq_arg1_plain_o.
+           injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+           rewrite <- eq_val'.
+           simpl in Hvalid. simpl.
+           destruct Hvalid as [Hmaxidx [Hvalid_stack_op Hvalid_sb]].
+           unfold valid_stack_op_instr in Hvalid_stack_op.
+           simpl in Hvalid_stack_op.
+           destruct Hvalid_stack_op as [_ [Hvalid_arg1 Hvalid_arg2]].
+           split; try split; try assumption.
+           pose proof (valid_bindings_bindings' sb instk_height idx 
+             evm_stack_opm Hvalid_sb) as Hvalid'_sb.
+           pose proof (valid_bindings'_follow_valid_smap sb instk_height idx
+             evm_stack_opm arg1_plain arg1 n' sb' Hvalid'_sb Hvalid_arg1
+             eq_follow_arg1) as Hvalid_follow.
+           destruct Hvalid_follow as [Hvalid_arg1_plain n'_leq_idx].
+           apply leq_add in n'_leq_idx as [delta eq_idx].
+           apply valid_smap_value_incr with (m:=delta) in Hvalid_arg1_plain.
+           rewrite <- eq_idx.
+           assumption.
+        ++ (* contradiction because of Hvalid: arg1 should be completely 
+              defined in sb *)
+           unfold valid_bindings in Hvalid.
+           destruct Hvalid as [_ [Hvalid_smap Hvalid_sb]].
+           fold valid_bindings in Hvalid_sb.
+           simpl in Hvalid_smap.
+           unfold valid_stack_op_instr in Hvalid_smap.
+           simpl in Hvalid_smap.
+           destruct Hvalid_smap as [_ [Hvalid_arg1 [_ _]]].
+           pose proof (valid_follow_not_none instk_height idx arg1 sb 
+             evm_stack_opm Hvalid_arg1 Hvalid_sb) as valid_diff_none.
+           rewrite -> eq_follow_arg1 in valid_diff_none.
+           intuition.
+      -- injection Hoptm_add_0_sbinding as eq_val' eq_flag.
+         rewrite <- eq_val'.
+         assumption.
   + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
     rewrite <- eq_val'.
     assumption.
@@ -1680,7 +1912,44 @@ split.
 - split.
   + (* is_fresh_var_smv val' = None 
        by definition of optimize_add_0_sbinding *)
-    admit.
+    unfold optimize_add_0_sbinding in Hoptm_add_0_sbinding.
+    destruct (val) as [bval|tag|op args|offset smem|key strg|offset key smem] 
+      eqn: eq_val; try (injection Hoptm_add_0_sbinding as eq_val' _;
+                        rewrite <- eq_val'; intuition).
+    * simpl in Hbind_nofv.
+      destruct bval as [bval_val|bval_var|bval_fvar]; try intuition.
+    * destruct op eqn: eq_b; try (injection Hoptm_add_0_sbinding as eq_val' _;
+                       rewrite <- eq_val'; intuition).
+      destruct args as [|arg1 r1] eqn: eq_args; 
+        try (injection Hoptm_add_0_sbinding as eq_val' _;
+             rewrite <- eq_val'; intuition).
+      destruct r1 as [|arg2 r2] eqn: eq_r1;
+      try (injection Hoptm_add_0_sbinding as eq_val' _;
+           rewrite <- eq_val'; intuition).
+      destruct r2 as [|arg3 r3] eqn: eq_r2;
+      try (injection Hoptm_add_0_sbinding as eq_val' _;
+           rewrite <- eq_val'; intuition).
+      destruct (fcmp arg1 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
+        eqn: fcmp_arg1.
+      -- destruct (follow_in_smap arg2 idx sb) as [f2|] eqn: eq_follow_arg2;
+         try (injection Hoptm_add_0_sbinding as eq_val' _;
+              rewrite <- eq_val'; intuition).
+         destruct f2 as [arg2_plain idx2 sb2]. 
+         injection Hoptm_add_0_sbinding as eq_val' _.
+         rewrite <- eq_val'. 
+         apply follow_succ_no_fv in eq_follow_arg2.
+         assumption.
+      -- destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height evm_stack_opm);
+         try (injection Hoptm_add_0_sbinding as eq_val' _;
+              rewrite <- eq_val'; intuition).
+         destruct (follow_in_smap arg1 idx sb) as [f1|] eqn: eq_follow_arg1;
+            try (injection Hoptm_add_0_sbinding as eq_val' _;
+                 rewrite <- eq_val'; intuition).
+         destruct f1 as [arg1_plain idx1 sb1].
+         injection Hoptm_add_0_sbinding as eq_val' _.         
+         rewrite <- eq_val'. 
+         apply follow_succ_no_fv in eq_follow_arg1.
+         assumption.
   + (* evaluation is preserved *) 
     intros stk mem strg ctx v Hlen Heval_orig.
     assert (Hlen2 := Hlen).
@@ -1810,7 +2079,7 @@ split.
       -- injection Hoptm_add_0_sbinding as eq_val' _. 
          rewrite <- eq_val'.
          assumption.
-Admitted.
+Qed.
 
 
 (* TODO: create a generic version for any optimization built with 
@@ -1824,7 +2093,7 @@ safe_sstack_val_cmp fcmp ->
 optim_snd (optimize_add_0 fcmp).
 Proof.
 intros fcmp Hsafe_fcmp.
-unfold optim_snd. intros sst sst' b Hvalid_sst Hoptim.
+unfold optim_snd. intros sst sst' b Hvalid_sst_fv Hoptim.
 unfold optimize_add_0 in Hoptim.
 split. 
 - apply optimize_first_sstate_valid with (opt:=optimize_add_0_sbinding)
@@ -1838,7 +2107,7 @@ split.
     pose proof (instk_height_optimize_sst optimize_add_0_sbinding fcmp sst 
       sst' b Hoptim) as Hinstk.
     pose proof (optimize_first_sstate_preserv optimize_add_0_sbinding fcmp
-      sst sst' b Hvalid_sst optimize_add_0_sbinding_snd Hsafe_fcmp Hoptim)
+      sst sst' b Hvalid_sst_fv optimize_add_0_sbinding_snd Hsafe_fcmp Hoptim)
     as Hpreserv.
     destruct Hpreserv as [_ Heval2_imp].
     apply Heval2_imp.
@@ -1846,6 +2115,6 @@ split.
 Qed.
 
 
-
+Search (eval_sstack_val').
 
 End Optimizations_Def.
