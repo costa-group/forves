@@ -61,10 +61,11 @@ Definition sload_solver_correct_res (sload_solver: sload_solver_type) :=
     add_to_smap m smv = (idx1, m1) ->
     exists idx2 m2,
       add_to_smap m (SymSLOAD skey sstrg) = (idx2, m2) /\
-      forall stk mem strg ctx,
-      exists v,
-        eval_sstack_val(FreshVar idx1) stk mem strg ctx (get_maxidx_smap m1) (get_bindings_smap m1) ops = Some v /\
-          eval_sstack_val(FreshVar idx2) stk mem strg ctx (get_maxidx_smap m2) (get_bindings_smap m2) ops = Some v.
+        forall stk mem strg ctx,
+          length stk = instk_height ->
+          exists v,
+            eval_sstack_val(FreshVar idx1) stk mem strg ctx (get_maxidx_smap m1) (get_bindings_smap m1) ops = Some v /\
+              eval_sstack_val(FreshVar idx2) stk mem strg ctx (get_maxidx_smap m2) (get_bindings_smap m2) ops = Some v.
 
 Definition sload_solver_snd (sload_solver: sload_solver_type) :=
   sload_solver_valid_res sload_solver /\ sload_solver_correct_res sload_solver.
@@ -91,6 +92,7 @@ Definition sstorage_updater_correct_res (sstorage_updater: sstorage_updater_type
     valid_sstorage_update instk_height (get_maxidx_smap m) u -> (* The update is valid *)    
     sstorage_updater u sstrg instk_height m ops = sstrg' ->
     forall stk mem strg ctx,
+      length stk = instk_height ->
       exists strg1 strg2,
         eval_sstorage (u::sstrg) (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some strg1 /\
           eval_sstorage sstrg' (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some strg2 /\

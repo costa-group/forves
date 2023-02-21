@@ -1,4 +1,4 @@
-Require Import Arith.   
+Require Import Arith.     
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
@@ -2247,7 +2247,7 @@ Proof.
     injection H_correct_sload_l as H_maxidx' H_m2'.
     rewrite <- H_maxidx' in H_correct_sload_r.
     rewrite <- H_m2' in H_correct_sload_r.
-    pose proof (H_correct_sload_r (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st)) as H_correct_sload_r.
+    pose proof (H_correct_sload_r (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_sload_r.
     destruct H_correct_sload_r as [v H_correct_sload_r].
     destruct H_correct_sload_r as [H_correct_sload_r_0 H_correct_sload_r_1].
     unfold get_maxidx_smap in H_correct_sload_r_1.
@@ -2409,7 +2409,7 @@ Proof.
     destruct H_sstorage_updater_snd as [H_sstorage_updater_valid H_sstorage_updater_correct].
 
     unfold sstorage_updater_correct_res in H_sstorage_updater_correct.
-    pose proof (H_sstorage_updater_correct (get_smap_sst sst) (get_storage_sst sst) sstrg' u (get_instk_height_sst sst) ops H_valid_sst_sstorage H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st)) as H_correct_sstrg'.
+    pose proof (H_sstorage_updater_correct (get_smap_sst sst) (get_storage_sst sst) sstrg' u (get_instk_height_sst sst) ops H_valid_sst_sstorage H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_sstrg'.
 
     destruct  H_correct_sstrg' as [strg1 [strg2 [H_eval_u_strg_sst [H_eval_sstrg' H_eq_str1_strg2]]]].
 
@@ -2586,7 +2586,7 @@ Proof.
     injection H_correct_mload_l as H_maxidx' H_m2'.
     rewrite <- H_maxidx' in H_correct_mload_r.
     rewrite <- H_m2' in H_correct_mload_r.
-    pose proof (H_correct_mload_r (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st)) as H_correct_mload_r.
+    pose proof (H_correct_mload_r (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_mload_r.
     destruct H_correct_mload_r as [v H_correct_mload_r].
     destruct H_correct_mload_r as [H_correct_mload_r_0 H_correct_mload_r_1].
     unfold get_maxidx_smap in H_correct_mload_r_1.
@@ -2752,7 +2752,7 @@ Proof.
     destruct H_smemory_updater_snd as [H_smemory_updater_valid H_smemory_updater_correct].
 
     unfold smemory_updater_correct_res in H_smemory_updater_correct.
-    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st)) as H_correct_smem'.
+    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
 
     destruct  H_correct_smem' as [mem1 [mem2 [H_eval_u_mem_sst [H_eval_smem' H_eq_mem1_mem2]]]].
 
@@ -2916,7 +2916,7 @@ Proof.
     destruct H_smemory_updater_snd as [H_smemory_updater_valid H_smemory_updater_correct].
 
     unfold smemory_updater_correct_res in H_smemory_updater_correct.
-    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st)) as H_correct_smem'.
+    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
 
     destruct  H_correct_smem' as [mem1 [mem2 [H_eval_u_mem_sst [H_eval_smem' H_eq_mem1_mem2]]]].
 

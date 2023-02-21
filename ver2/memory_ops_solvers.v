@@ -57,9 +57,10 @@ Definition mload_solver_correct_res (mload_solver: mload_solver_type) :=
     exists idx2 m2,
       add_to_smap m (SymMLOAD soffset smem) = (idx2, m2) /\
         forall stk mem strg ctx,
-        exists v,
-          eval_sstack_val(FreshVar idx1) stk mem strg ctx (get_maxidx_smap m1) (get_bindings_smap m1) ops = Some v /\
-            eval_sstack_val(FreshVar idx2) stk mem strg ctx (get_maxidx_smap m2) (get_bindings_smap m2) ops = Some v.
+          length stk = instk_height ->
+          exists v,
+            eval_sstack_val(FreshVar idx1) stk mem strg ctx (get_maxidx_smap m1) (get_bindings_smap m1) ops = Some v /\
+              eval_sstack_val(FreshVar idx2) stk mem strg ctx (get_maxidx_smap m2) (get_bindings_smap m2) ops = Some v.
 
 Definition mload_solver_snd (mload_solver: mload_solver_type) :=
   mload_solver_valid_res mload_solver /\ mload_solver_correct_res mload_solver.
@@ -89,6 +90,7 @@ Definition smemory_updater_correct_res (smemory_updater: smemory_updater_type) :
     valid_smemory_update instk_height (get_maxidx_smap m) u -> (* The update is valid *)    
     smemory_updater u smem instk_height m ops = smem' ->
     forall stk mem strg ctx,
+      length stk = instk_height ->
       exists mem1 mem2,
         eval_smemory (u::smem) (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some mem1 /\
           eval_smemory smem' (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some mem2 /\
