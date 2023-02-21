@@ -1,4 +1,4 @@
-Require Import Arith.     
+Require Import Arith.      
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word. 
@@ -1824,7 +1824,7 @@ Lemma dup_elem_snd:
     nth_error stk' k = Some v ->
         eval_sstack_val sv stk mem strg ctx maxidx sb ops = Some v.
 Proof.
-  induction k as [|k' IHk'].
+  induction k as [|k' IHk']. 
   - intros.
     destruct sstk; destruct stk'; try discriminate.
     simpl in H0. injection H0 as H0.       
@@ -2752,7 +2752,7 @@ Proof.
     destruct H_smemory_updater_snd as [H_smemory_updater_valid H_smemory_updater_correct].
 
     unfold smemory_updater_correct_res in H_smemory_updater_correct.
-    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
+    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smap H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
 
     destruct  H_correct_smem' as [mem1 [mem2 [H_eval_u_mem_sst [H_eval_smem' H_eq_mem1_mem2]]]].
 
@@ -2916,7 +2916,7 @@ Proof.
     destruct H_smemory_updater_snd as [H_smemory_updater_valid H_smemory_updater_correct].
 
     unfold smemory_updater_correct_res in H_smemory_updater_correct.
-    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
+    pose proof (H_smemory_updater_correct (get_smap_sst sst) (get_memory_sst sst) smem' u (get_instk_height_sst sst) ops H_valid_sst_smap H_valid_sst_smemory H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_smem'.
 
     destruct  H_correct_smem' as [mem1 [mem2 [H_eval_u_mem_sst [H_eval_smem' H_eq_mem1_mem2]]]].
 

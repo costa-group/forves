@@ -87,6 +87,7 @@ Definition smemory_updater_valid_res (smemory_updater: smemory_updater_type) :=
 
 Definition smemory_updater_correct_res (smemory_updater: smemory_updater_type) :=
   forall m smem smem' u instk_height ops,
+    valid_smap instk_height (get_maxidx_smap m) (get_bindings_smap m) ops -> (* The smap is valid *)
     valid_smemory instk_height (get_maxidx_smap m) smem -> (* The memory is valid *)
     valid_smemory_update instk_height (get_maxidx_smap m) u -> (* The update is valid *)    
     smemory_updater u smem instk_height m ops = smem' ->
