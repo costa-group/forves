@@ -55,6 +55,7 @@ Definition sload_solver_valid_res (sload_solver: sload_solver_type) :=
 
 Definition sload_solver_correct_res (sload_solver: sload_solver_type) :=
   forall m sstrg skey instk_height smv ops idx1 m1,
+    valid_smap instk_height (get_maxidx_smap m) (get_bindings_smap m) ops -> (* The smap is valid *)
     valid_sstorage instk_height (get_maxidx_smap m) sstrg -> (* The storage is valid *)
     valid_sstack_value instk_height (get_maxidx_smap m) skey -> (* The key is valid *)    
     sload_solver skey sstrg instk_height m ops = smv -> (* The value was resolved *)

@@ -50,6 +50,7 @@ Definition mload_solver_valid_res (mload_solver: mload_solver_type) :=
 
 Definition mload_solver_correct_res (mload_solver: mload_solver_type) :=
   forall m smem soffset instk_height smv ops idx1 m1,
+    valid_smap instk_height (get_maxidx_smap m) (get_bindings_smap m) ops -> (* The smap is valid *)
     valid_smemory instk_height (get_maxidx_smap m) smem -> (* The memory is valid *)
     valid_sstack_value instk_height (get_maxidx_smap m) soffset -> (* The offset is valid *)    
     mload_solver soffset smem instk_height m ops = smv -> (* The value was resolved *)

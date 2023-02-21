@@ -1,7 +1,7 @@
 Require Import Arith.     
 Require Import Nat.
 Require Import Bool.
-Require Import bbv.Word.
+Require Import bbv.Word. 
 Require Import Coq.NArith.NArith.
 Require Import List.
 Import ListNotations.
@@ -2238,7 +2238,7 @@ Proof.
     symmetry in E_smv.
     pose proof (H_valid_sload_solver_valid (get_smap_sst sst) (get_storage_sst sst) skey (get_instk_height_sst sst) smv ops H_valid_sst_sstorage H_valid_skey E_smv) as H_valid_smv.
 
-    pose proof (H_valid_sload_solver_correct (get_smap_sst sst) (get_storage_sst sst) skey (get_instk_height_sst sst) smv ops key sm' H_valid_sst_sstorage H_valid_skey E_smv E_add_to_smap) as H_correct_sload.
+    pose proof (H_valid_sload_solver_correct (get_smap_sst sst) (get_storage_sst sst) skey (get_instk_height_sst sst) smv ops key sm' H_valid_sst_smap H_valid_sst_sstorage H_valid_skey E_smv E_add_to_smap) as H_correct_sload.
 
     destruct (get_smap_sst sst) as [maxidx sb] eqn:E_smap_sst.
     simpl in H_correct_sload.
@@ -2577,7 +2577,7 @@ Proof.
     symmetry in E_smv.
     pose proof (H_valid_mload_solver_valid (get_smap_sst sst) (get_memory_sst sst) soffset (get_instk_height_sst sst) smv ops H_valid_sst_smemory H_valid_soffset E_smv) as H_valid_smv.
 
-    pose proof (H_valid_mload_solver_correct (get_smap_sst sst) (get_memory_sst sst) soffset (get_instk_height_sst sst) smv ops key sm' H_valid_sst_smemory H_valid_soffset E_smv E_add_to_smap) as H_correct_mload.
+    pose proof (H_valid_mload_solver_correct (get_smap_sst sst) (get_memory_sst sst) soffset (get_instk_height_sst sst) smv ops key sm' H_valid_sst_smap H_valid_sst_smemory H_valid_soffset E_smv E_add_to_smap) as H_correct_mload.
 
     destruct (get_smap_sst sst) as [maxidx sb] eqn:E_smap_sst.
     simpl in H_correct_mload.
