@@ -1629,7 +1629,11 @@ Qed.
 Lemma follow_suffix: forall sb sv idx sv' idx' sb',
 follow_in_smap sv idx sb = Some (FollowSmapVal sv' idx' sb') ->
 exists prefix, sb = prefix ++ (idx',sv')::sb'.
-Proof.
+Proof. (* TODO: only true for fresh variables, FIX *)
+intros.
+destruct sv as [val|var|fvar].
+- destruct sb as [|h t]. 
+  + simpl in H. unfold follow_in_smap in H.
 Admitted.
 (*induction sb as [| h t IH].
 - intros sv idx sv' idx' sb' Hfollow. simpl in Hfollow.
@@ -1810,6 +1814,41 @@ rewrite -> eq_mapo2.
 reflexivity.
 Qed.
 
+Search (instantiate_storage_update).
+
+Lemma map_option_preserv_prefix_inst_strg: forall d stk mem strg ctx sb1 sb ops
+  sstrg strg_updates prefix instk_height n m1 m2,
+map_option (instantiate_storage_update (fun sv : sstack_val =>
+  eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops)) sstrg 
+    = Some strg_updates ->
+sb = prefix ++ sb1 ->
+valid_bindings instk_height n sb ops ->
+map_option (instantiate_storage_update (fun sv : sstack_val =>
+  eval_sstack_val' d sv stk mem strg ctx m2 sb ops)) sstrg 
+    = Some strg_updates.
+Proof.
+intros d stk mem strg ctx sb1 sb ops sstrg strg_updates prefix instk_height n 
+  m1 m2 Hmapo Hprefix Hvalid.
+pose proof (eval_sstack_val'_extend_sb_indep instk_height n d stk mem strg 
+  ctx m1 m2 sb sb1 ops prefix Hvalid Hprefix) as Heq_evals.
+pose proof (lambda_eval'_eq d stk mem strg ctx m1 m2 sb1 sb ops Heq_evals)
+  as Heq_lambdas.
+pose proof (same_instantiate_storage_update
+  (fun sv0 : sstack_val =>
+               eval_sstack_val' d sv0 stk mem strg ctx m1 sb1 ops)
+  (fun sv0 : sstack_val =>
+               eval_sstack_val' d sv0 stk mem strg ctx m2 sb ops)
+  Heq_lambdas) as Heq_lambdas_inst_strg.
+pose proof (map_option_preserv_functs
+  (instantiate_storage_update (fun sv : sstack_val =>
+     eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops))
+  (instantiate_storage_update (fun sv : sstack_val =>
+     eval_sstack_val' d sv stk mem strg ctx m2 sb ops)) 
+  sstrg strg_updates Hmapo Heq_lambdas_inst_strg) as eq_mapo2.
+rewrite -> eq_mapo2.
+reflexivity.
+Qed.
+
 
 Lemma eval_sstack_val'_follow_in_smap: forall d sv stk mem strg ctx m
   sb ops v maxidx' sb' n sv_plain instk_height,
@@ -1822,6 +1861,9 @@ eval_sstack_val' d (FreshVar n) stk mem strg ctx m
 Proof.
 intros d sv stk mem strg ctx m sb ops v maxidx' sb' n sv_plain 
   instk_height Hvalid Heval Hfollow.
+(* TODO: destruct sv, the current proof is valid for freshvars.
+         for values and instackvars it should be straightforward
+*)
 destruct d as [|d'].
 - simpl in Heval. discriminate.
 - simpl in Heval. 
@@ -1878,7 +1920,25 @@ destruct d as [|d'].
     rewrite -> eq_eval_offset2.
     reflexivity.
   + (* SymSLOAD key sstrg *)
-    admit.
+    destruct (map_option
+            (instantiate_storage_update
+               (fun sv : sstack_val =>
+                eval_sstack_val' d' sv stk mem strg ctx maxid1 sb1 ops))
+            sstrg) as [strg_updates|] eqn: eq_mapo; try discriminate.
+    destruct (eval_sstack_val' d' key stk mem strg ctx maxid1 sb1 ops)
+      as [keyv|] eqn: eq_eval_key; try discriminate.
+    rewrite -> app_cons_head in eq_prefix.
+    rewrite <- Heval.
+    pose proof (map_option_preserv_prefix_inst_strg d' stk mem strg ctx sb1
+      sb ops sstrg strg_updates (prefix ++ [(maxid1, SymSLOAD key sstrg)])
+      instk_height n maxid1 n eq_mapo eq_prefix Hvalid) as eq_mapo2.
+    rewrite -> eq_mapo2.
+    pose proof (eval_sstack_val'_extend_sb_indep instk_height n d' stk mem 
+      strg ctx maxid1 n sb sb1 ops 
+      (prefix ++ [(maxid1, SymSLOAD key sstrg)]) Hvalid eq_prefix
+      key keyv eq_eval_key) as eq_eval_key2.
+    rewrite -> eq_eval_key2.
+    reflexivity.
   + (* SymSHA3 offset size smem *)
     destruct (map_option
             (instantiate_memory_update
@@ -1906,7 +1966,7 @@ destruct d as [|d'].
       size sizev eq_eval_size) as eq_eval_size2.
     rewrite -> eq_eval_size2.
     reflexivity.
-Admitted. 
+Qed.
 
 
 (* Weak version of valid_bindings that do not require sb to be a 
