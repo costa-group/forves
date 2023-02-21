@@ -2,6 +2,8 @@ Require Import bbv.Word.
 Require Import Nat. 
 Require Import Coq.NArith.NArith.
 
+Require Import Coq.Logic.FunctionalExtensionality.
+
 Require Import FORVES.constants.
 Import Constants.
 
@@ -1588,7 +1590,7 @@ Lemma follow_in_smap_prefix: forall fvar n m sb' r instk_height idx sb ops
   prefix,
 follow_in_smap (FreshVar fvar) n sb' = Some r ->
 valid_bindings instk_height idx sb ops ->
-prefix ++ sb' = sb ->
+sb = prefix ++ sb' ->
 follow_in_smap (FreshVar fvar) m (prefix ++ sb') = Some r.
 Proof.
 (* Idea: If a FreshVar fvar is evaluated in sb' then it must appear in sb'. 
@@ -1597,17 +1599,71 @@ Proof.
          result in sb' *)
 Admitted.
 
+Lemma follow_no_fresh: forall sb sv idx sv' idx' sb',
+follow_in_smap sv idx sb = Some (FollowSmapVal sv' idx' sb') ->
+is_fresh_var_smv sv' = None.
+Proof.
+induction sb as [| h t IH].
+- intros sv idx sv' idx' sb' Hfollow. simpl in Hfollow.
+  destruct sv as [val|var|fvar].
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + discriminate.
+- intros sv idx sv' idx' sb' Hfollow. simpl in Hfollow.
+  destruct sv as [val|var|fvar].
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + destruct h as [key smv] eqn: eq_h.
+    destruct (key =? fvar) eqn: eq_key_fvar.
+    * destruct (is_fresh_var_smv smv) as [idx2|] eqn: eq_is_fresh.
+      -- apply IH in Hfollow. assumption.
+      -- injection Hfollow as eq_sv' _ _.
+         rewrite <- eq_sv'. assumption.
+    * apply IH in Hfollow. assumption.
+Qed.
 
+Lemma follow_suffix: forall sb sv idx sv' idx' sb',
+follow_in_smap sv idx sb = Some (FollowSmapVal sv' idx' sb') ->
+exists prefix, sb = prefix ++ (idx',sv')::sb'.
+Proof.
+Admitted.
+(*induction sb as [| h t IH].
+- intros sv idx sv' idx' sb' Hfollow. simpl in Hfollow.
+  destruct sv as [val|var|fvar].
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + discriminate.
+- intros sv idx sv' idx' sb' Hfollow. simpl in Hfollow.
+  destruct sv as [val|var|fvar].
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + injection Hfollow as eq_sv' _ _.
+    rewrite <- eq_sv'. reflexivity.
+  + destruct h as [key smv] eqn: eq_h.
+    destruct (key =? fvar) eqn: eq_key_fvar.
+    * destruct (is_fresh_var_smv smv) as [idx2|] eqn: eq_is_fresh.
+      -- apply IH in Hfollow. assumption.
+      -- injection Hfollow as eq_sv' _ _.
+         rewrite <- eq_sv'. assumption.
+    * apply IH in Hfollow. assumption.
+Qed.*)
 
-Lemma eval_sstack_val'_extend_sb: forall instk_height n sv stk mem strg ctx 
-  idx sb sb' ops v prefix,
+Lemma eval_sstack_val'_extend_sb: forall instk_height n stk mem strg ctx 
+  idx sb sb' ops prefix,
 valid_bindings instk_height idx sb ops ->
+sb = prefix ++ sb' ->
+forall sv v,
 eval_sstack_val' n sv stk mem strg ctx idx sb' ops = Some v ->
-prefix ++ sb' = sb ->
 eval_sstack_val' n sv stk mem strg ctx idx sb ops = Some v.
 Proof.
-intros instk_height n sv stk mem strg ctx idx sb sb' ops v prefix.
-intros Hvalid Heval Hprefix.
+intros instk_height n stk mem strg ctx idx sb sb' ops prefix.
+intros Hvalid Hprefix sv v Heval.
 destruct n as [|n'] eqn: eq_n; try intuition.
 destruct sv as [val|var|fvar] eqn: eq_sv.
 - rewrite -> eval_sstack_val'_const.
@@ -1622,29 +1678,234 @@ destruct sv as [val|var|fvar] eqn: eq_sv.
   rewrite -> eval_sstack_val'_one_step.
   pose proof (follow_in_smap_prefix fvar idx idx sb' follow_smap instk_height
     idx sb ops prefix Hfollow Hvalid Hprefix) as Hfollow'.
-  rewrite -> Hprefix in Hfollow'.
+  rewrite <- Hprefix in Hfollow'.
   rewrite -> Hfollow'.
   assumption.
 Qed.
-  
 
-Lemma eval_sstack_val'_follow_in_smap: forall maxidx sv stk mem strg ctx idx
+
+Lemma eval_sstack_val'_extend_sb_indep: forall instk_height n d stk mem strg ctx 
+  m1 m2 sb sb' ops prefix,
+valid_bindings instk_height n sb ops ->
+sb = prefix ++ sb' ->
+forall sv v, 
+eval_sstack_val' d sv stk mem strg ctx m1 sb' ops = Some v ->
+eval_sstack_val' d sv stk mem strg ctx m2 sb ops = Some v.
+Proof.
+intros instk_height n d stk mem strg ctx m1 m2 sb sb' ops prefix.
+intros Hvalid Hprefix sv v Heval.
+rewrite -> eval'_maxidx_indep_eq with (m:=n) in Heval.
+pose proof (eval_sstack_val'_extend_sb instk_height d stk mem strg ctx n
+  sb sb' ops prefix Hvalid Hprefix sv v Heval) as Heval2.
+rewrite -> eval'_maxidx_indep_eq with (m:=m2) in Heval2.
+assumption.
+Qed.
+
+
+Lemma lambda_eval'_maxid_indep_eq: forall d stk mem strg ctx n m sb1 ops,
+(fun sv : sstack_val =>
+             eval_sstack_val' d sv stk mem strg ctx n sb1 ops) = 
+(fun sv : sstack_val =>
+             eval_sstack_val' d sv stk mem strg ctx m sb1 ops).
+Proof.
+intros.
+apply functional_extensionality_dep.
+intros x.
+apply eval'_maxidx_indep_eq.
+Qed.
+
+
+(*
+Lemma 
+valid_bindings instk_height idx sb ops ->
+prefix ++ sb' = sb ->
+eval_sstack_val' d' sv stk mem strg ctx n sb1 ops = Some v ->
+eval_sstack_val' d' sv stk mem strg ctx n sb ops = Some v*)
+
+Search ((_ :: _) ++ _).
+
+Lemma app_cons_head: forall {A: Type} (l1 l2: list A) (x: A),
+l1 ++ (x::l2) = (l1 ++ [x]) ++ l2.
+Proof.
+induction l1 as [|h t IH].
+- intuition.
+- intros l2 x. rewrite <- app_comm_cons at 1.
+  rewrite <- app_comm_cons at 1.
+  rewrite -> IH.
+  rewrite <- app_comm_cons at 1.
+  reflexivity.
+Qed.
+
+
+Lemma lambda_eval'_eq: forall d stk mem strg ctx m1 m2 sb1 sb2 ops,
+(forall (sv : sstack_val) (v : EVMWord),
+    eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops = Some v ->
+    eval_sstack_val' d sv stk mem strg ctx m2 sb2 ops = Some v) ->
+(forall sv v,
+   (fun sv : sstack_val =>
+      eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops) sv = Some v ->
+   (fun sv : sstack_val => 
+      eval_sstack_val' d sv stk mem strg ctx m2 sb2 ops) sv = Some v).
+Proof.
+intuition.
+Qed.
+
+
+Lemma map_option_preserv_prefix: forall d stk mem strg ctx sb1 sb ops
+  args vargs prefix instk_height n m1 m2,
+map_option (fun sv : sstack_val =>
+  eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops) args = Some vargs ->
+sb = prefix ++ sb1 ->
+valid_bindings instk_height n sb ops ->
+map_option (fun sv : sstack_val => 
+  eval_sstack_val' d sv stk mem strg ctx m2 sb ops) args = Some vargs.
+Proof.
+intros d stk mem strg ctx sb1 sb ops args vargs prefix instk_height n m1 m2.
+intros Hmapo Hprefix Hvalid.
+pose proof (eval_sstack_val'_extend_sb_indep instk_height n d stk mem strg 
+  ctx m1 m2 sb sb1 ops prefix Hvalid Hprefix) as Heq_evals.
+pose proof (lambda_eval'_eq d stk mem strg ctx m1 m2 sb1 sb ops Heq_evals) as
+  Hlambda_eq.
+pose proof (map_option_preserv_functs
+  (fun sv0 : sstack_val =>
+     eval_sstack_val' d sv0 stk mem strg ctx m1 sb1 ops)
+  (fun sv0 : sstack_val =>
+     eval_sstack_val' d sv0 stk mem strg ctx m2 sb ops) 
+  args vargs Hmapo Hlambda_eq) as eq_mapo2.
+rewrite -> eq_mapo2.
+reflexivity.  
+Qed.
+
+
+Lemma map_option_preserv_prefix_inst_mem: forall d stk mem strg ctx sb1 sb ops
+  smem mem_updates prefix instk_height n m1 m2,
+map_option (instantiate_memory_update (fun sv : sstack_val =>
+  eval_sstack_val' d sv stk mem strg ctx m1 sb1 ops)) smem = 
+    Some mem_updates ->
+sb = prefix ++ sb1 ->
+valid_bindings instk_height n sb ops ->
+map_option (instantiate_memory_update (fun sv : sstack_val =>
+  eval_sstack_val' d sv stk mem strg ctx m2 sb ops)) smem = 
+    Some mem_updates.
+Proof.
+intros d stk mem strg ctx sb1 sb ops smem mem_updates prefix instk_height n 
+  m1 m2 Hmapo Hprefix Hvalid.
+pose proof (eval_sstack_val'_extend_sb_indep instk_height n d stk mem strg 
+  ctx m1 m2 sb sb1 ops prefix Hvalid Hprefix) as Heq_evals.
+pose proof (lambda_eval'_eq d stk mem strg ctx m1 m2 sb1 sb ops Heq_evals)
+  as Heq_lambdas.
+pose proof (same_instantiate_memory_update
+  (fun sv0 : sstack_val =>
+               eval_sstack_val' d sv0 stk mem strg ctx m1 sb1 ops)
+  (fun sv0 : sstack_val =>
+               eval_sstack_val' d sv0 stk mem strg ctx m2 sb ops)
+  Heq_lambdas) as Heq_lambdas_inst_mem.  
+pose proof (map_option_preserv_functs
+  (instantiate_memory_update (fun sv0 : sstack_val =>
+     eval_sstack_val' d sv0 stk mem strg ctx m1 sb1 ops))
+  (instantiate_memory_update (fun sv0 : sstack_val => 
+     eval_sstack_val' d sv0 stk mem strg ctx m2 sb ops))
+  smem mem_updates Hmapo Heq_lambdas_inst_mem ) as eq_mapo2.
+rewrite -> eq_mapo2.
+reflexivity.
+Qed.
+
+
+Lemma eval_sstack_val'_follow_in_smap: forall d sv stk mem strg ctx m
   sb ops v maxidx' sb' n sv_plain instk_height,
 valid_bindings instk_height n sb ops ->  
-eval_sstack_val' maxidx sv stk mem strg ctx idx sb ops 
+eval_sstack_val' d sv stk mem strg ctx n sb ops 
   = Some v ->
-follow_in_smap sv idx sb = Some (FollowSmapVal sv_plain maxidx' sb') ->
-eval_sstack_val' maxidx (FreshVar n) stk mem strg ctx idx 
+follow_in_smap sv n sb = Some (FollowSmapVal sv_plain maxidx' sb') ->
+eval_sstack_val' d (FreshVar n) stk mem strg ctx m 
   ((n, sv_plain) :: sb) ops = Some v.
 Proof.
-(* Idea: 
-    a) the evaluation of the parts of sv_plain are done in sb'
-    b) by definition of follow_in_smap, prefix++sb'=sb
-    c) Then the evaluation of the parts of sv_plain can be done also in 
-         sb=prefix++sb'
-    
-    We need case distinction on the 6 cases of sv_plain
-*)
+intros d sv stk mem strg ctx m sb ops v maxidx' sb' n sv_plain 
+  instk_height Hvalid Heval Hfollow.
+destruct d as [|d'].
+- simpl in Heval. discriminate.
+- simpl in Heval. 
+  destruct (follow_in_smap sv n sb) as [fsmap|] eqn: eq_follow_sv;
+    try discriminate.
+  destruct fsmap as [sv1 maxid1 sb1] eqn: eq_fsmap.
+  pose proof (follow_suffix sb sv n sv1 maxid1 sb1 eq_follow_sv)
+    as eq_follow_suff.
+  destruct eq_follow_suff as [prefix eq_prefix].
+  simpl. rewrite -> PeanoNat.Nat.eqb_refl.
+  injection Hfollow as eq_sv_plain eq_maxidx' eq_sb'.
+  apply follow_no_fresh in eq_follow_sv.
+  rewrite <- eq_sv_plain.
+  rewrite -> eq_follow_sv.
+  case sv1 as [basicv|tag|op args|offset smem|key sstrg|offset size smem]
+    eqn: eq_sv1.
+  + (* SymBasicVal basicv *)
+    destruct basicv as [val|var|fvar] eqn: eq_basicv; try assumption.
+  + (* SymPUSHTAG tag *)
+    assumption.
+  + (* SymOp op args *)
+    destruct (ops op) as [nargs f H_comm H_ctx_ind] eqn: eq_ops_op.
+    destruct (length args =? nargs) eqn: eq_len; try discriminate.
+    destruct (map_option
+               (fun sv' : sstack_val =>
+               eval_sstack_val' d' sv' stk mem strg ctx maxid1 sb1 ops) args)
+      as [vargs|] eqn: eq_mapo; try discriminate.
+    rewrite <- Heval.
+    rewrite -> lambda_eval'_maxid_indep_eq with (m:=maxid1).
+    rewrite -> app_cons_head in eq_prefix.
+    pose proof (map_option_preserv_prefix d' stk mem strg ctx sb1 sb ops
+      args vargs (prefix ++ [(maxid1, SymOp op args)]) instk_height n 
+      maxid1 maxid1 eq_mapo eq_prefix Hvalid) as eq_mapo2.
+    rewrite -> eq_mapo2.
+    reflexivity.
+  + (* SymMLOAD offset smem *)
+    destruct (map_option
+            (instantiate_memory_update
+               (fun sv : sstack_val =>
+                eval_sstack_val' d' sv stk mem strg ctx maxid1 sb1 ops))
+            smem) as [mem_updates|] eqn: eq_mapo; try discriminate.
+    destruct (eval_sstack_val' d' offset stk mem strg ctx maxid1 sb1 ops)  
+      as [offsetv|] eqn: eq_eval_offset; try discriminate.
+    rewrite <- Heval.
+    rewrite -> app_cons_head in eq_prefix.
+    pose proof (map_option_preserv_prefix_inst_mem d' stk mem strg ctx sb1
+      sb ops smem mem_updates (prefix ++ [(maxid1, SymMLOAD offset smem)])
+      instk_height n maxid1 n eq_mapo eq_prefix Hvalid) as eq_mapo2.
+    rewrite -> eq_mapo2.
+    pose proof (eval_sstack_val'_extend_sb_indep instk_height n d' stk mem 
+      strg ctx maxid1 n sb sb1 ops 
+      (prefix ++ [(maxid1, SymMLOAD offset smem)]) Hvalid eq_prefix
+      offset offsetv eq_eval_offset) as eq_eval_offset2.
+    rewrite -> eq_eval_offset2.
+    reflexivity.
+  + (* SymSLOAD key sstrg *)
+    admit.
+  + (* SymSHA3 offset size smem *)
+    destruct (map_option
+            (instantiate_memory_update
+               (fun sv : sstack_val =>
+                eval_sstack_val' d' sv stk mem strg ctx maxid1 sb1 ops))
+            smem) as [mem_updates|] eqn: eq_mapo; try discriminate.
+    destruct (eval_sstack_val' d' offset stk mem strg ctx maxid1 sb1 ops)
+      as [offsetv|] eqn: eq_eval_offset; try discriminate.
+    destruct (eval_sstack_val' d' size stk mem strg ctx maxid1 sb1 ops)
+      as [sizev|] eqn: eq_eval_size; try discriminate.
+    rewrite <- Heval.
+    rewrite -> app_cons_head in eq_prefix.
+    pose proof (map_option_preserv_prefix_inst_mem d' stk mem strg ctx sb1
+      sb ops smem mem_updates (prefix ++ [(maxid1, SymSHA3 offset size smem)])
+      instk_height n maxid1 n eq_mapo eq_prefix Hvalid) as eq_mapo2.
+    rewrite -> eq_mapo2.
+    pose proof (eval_sstack_val'_extend_sb_indep instk_height n d' stk mem 
+      strg ctx maxid1 n sb sb1 ops 
+      (prefix ++ [(maxid1, SymSHA3 offset size smem)]) Hvalid eq_prefix
+      offset offsetv eq_eval_offset) as eq_eval_offset2.
+    rewrite -> eq_eval_offset2.
+    pose proof (eval_sstack_val'_extend_sb_indep instk_height n d' stk mem 
+      strg ctx maxid1 n sb sb1 ops 
+      (prefix ++ [(maxid1, SymSHA3 offset size smem)]) Hvalid eq_prefix
+      size sizev eq_eval_size) as eq_eval_size2.
+    rewrite -> eq_eval_size2.
+    reflexivity.
 Admitted. 
 
 
@@ -2196,6 +2457,9 @@ split.
     apply Heval2_imp.
     assumption.
 Qed.
+
+Print Assumptions optimize_add_0_sbinding_snd.
+
 
 
 Search (eval_sstack_val').
