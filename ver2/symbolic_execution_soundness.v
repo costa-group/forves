@@ -2409,7 +2409,7 @@ Proof.
     destruct H_sstorage_updater_snd as [H_sstorage_updater_valid H_sstorage_updater_correct].
 
     unfold sstorage_updater_correct_res in H_sstorage_updater_correct.
-    pose proof (H_sstorage_updater_correct (get_smap_sst sst) (get_storage_sst sst) sstrg' u (get_instk_height_sst sst) ops H_valid_sst_sstorage H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_sstrg'.
+    pose proof (H_sstorage_updater_correct (get_smap_sst sst) (get_storage_sst sst) sstrg' u (get_instk_height_sst sst) ops H_valid_sst_smap H_valid_sst_sstorage H_valid_u E_updater (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) E_stack_len_st_eq_sst_r) as H_correct_sstrg'.
 
     destruct  H_correct_sstrg' as [strg1 [strg2 [H_eval_u_strg_sst [H_eval_sstrg' H_eq_str1_strg2]]]].
 
