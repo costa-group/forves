@@ -89,6 +89,7 @@ Definition sstorage_updater_valid_res (sstorage_updater: sstorage_updater_type) 
 
 Definition sstorage_updater_correct_res (sstorage_updater: sstorage_updater_type) :=
   forall m sstrg sstrg' u instk_height ops,
+    valid_smap instk_height (get_maxidx_smap m) (get_bindings_smap m) ops -> (* The smap is valid *)
     valid_sstorage instk_height (get_maxidx_smap m) sstrg -> (* The storage is valid *)
     valid_sstorage_update instk_height (get_maxidx_smap m) u -> (* The update is valid *)    
     sstorage_updater u sstrg instk_height m ops = sstrg' ->

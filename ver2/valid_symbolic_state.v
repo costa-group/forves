@@ -111,6 +111,7 @@ end.*)
 Definition valid_smap (instk_height: nat) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map): Prop :=
     valid_bindings instk_height maxidx sb ops.
 
+
 Definition valid_sstate (sst: sstate) (ops: stack_op_instr_map): Prop :=
   let instk_height := get_instk_height_sst sst in
   let sstk := get_stack_sst sst in
@@ -765,7 +766,7 @@ Proof.
   intuition.
 Qed.
 
-(* a memory update is valid when its key and value are valid *)
+(* a storage update is valid when its key and value are valid *)
 Lemma valid_sstorage_update_kv:
   forall instk_height maxidx skey svalue,
     valid_sstack_value instk_height maxidx skey ->
@@ -777,6 +778,33 @@ Proof.
   unfold valid_sstorage_update.
   intuition.
 Qed.
+
+
+(* a storage update is valid when its key and value are valid *)
+Lemma valid_sstorage_when_extended_with_valid_update:
+  forall instk_height maxidx u sstrg,
+    valid_sstorage_update instk_height maxidx u ->
+    valid_sstorage instk_height maxidx sstrg ->
+    valid_sstorage instk_height maxidx (u::sstrg).
+Proof.
+  intros instk_height maxidx u sstrg H_valid_u H_valid_sstrg.
+  simpl.
+  intuition.
+Qed.
+
+(* FreshVar idx is valid when idx < maxidx *)
+Lemma valid_sstack_val_freshvar:
+  forall instk_height maxidx idx,
+    idx < maxidx ->
+    valid_sstack_value instk_height maxidx (FreshVar idx).
+Proof.
+  intros instk_height maxidx idx H_id_lt_maxid.
+  simpl.
+  apply H_id_lt_maxid.
+Qed.
+
+
+
 
 (* Lemmas about generation of valid smap values *)
 
