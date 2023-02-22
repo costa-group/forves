@@ -255,8 +255,6 @@ intuition.
 Qed.
 
 
-
-
 Lemma eval'_maxidx_indep: forall d sv stk mem strg ctx n m sb ops v,
 eval_sstack_val' d sv stk mem strg ctx n sb ops = Some v ->
 eval_sstack_val' d sv stk mem strg ctx m sb ops = Some v.
@@ -1540,33 +1538,6 @@ reflexivity.
 Qed.
 
 
-(*
-Lemma follow_in_smap_freshvar_lt: forall fvar idx smv key sb sb' 
-  instk_height ops,
-valid_bindings instk_height idx sb ops ->
-follow_in_smap (FreshVar fvar) idx sb = Some (FollowSmapVal smv key sb') ->
-key < fvar.
-Proof.
-intros fvar idx smv key sb. revert fvar idx smv key.
-induction sb as [|h t IH].
-- intros fvar idx smv key sb' instk_height ops Hvalid Hfollow.
-  simpl in Hfollow. discriminate.
-- intros fvar idx smv key sb' instk_height ops Hvalid Hfollow.
-  unfold valid_bindings in Hvalid.
-  destruct h as [n v] eqn: eq_h.
-  fold valid_bindings in Hvalid.
-  destruct Hvalid as [Hidx [_ Hvalid_t]].
-  unfold follow_in_smap in Hfollow.
-  destruct (n =? fvar) eqn: eq_n_fvar.
-  + destruct (is_fresh_var_smv v) as [idx'|] eqn: eq_is_fresh.
-    * fold follow_in_smap in Hfollow.
-      admit.
-    * admit.
-  + fold follow_in_smap in Hfollow.
-    admit.
-Admitted.*)
-
-
 Lemma eval_sstack_val'_diff:
   forall (fvar idx : nat) (stk : stack) (mem : memory) 
     (strg : storage) (ctx : context) (d a b: nat) 
@@ -1585,18 +1556,194 @@ reflexivity.
 Qed.
 
 
-Lemma follow_in_smap_prefix: forall fvar n m sb' r instk_height idx sb ops
-  prefix,
-follow_in_smap (FreshVar fvar) n sb' = Some r ->
-valid_bindings instk_height idx sb ops ->
-sb = prefix ++ sb' ->
-follow_in_smap (FreshVar fvar) m (prefix ++ sb') = Some r.
+Lemma follow_in_smap_gt: forall fvar n1 n2 sb r instk_height ops,
+follow_in_smap (FreshVar fvar) n1 sb = Some r ->
+valid_bindings instk_height n2 sb ops ->
+n2 > fvar.
 Proof.
-(* Idea: If a FreshVar fvar is evaluated in sb' then it must appear in sb'. 
-         You can extend sb with any valid prefix because 'fvar' cannot 
-         appear in that prefix, so follow_in_smap will reach the same
-         result in sb' *)
-Admitted.
+intros fvar n1 n2 sb. revert n1 n2.
+induction sb as [| h t IH].
+- intros n1 n2 r instk_height ops.
+  intros Hfollow Hvalid.
+  simpl in Hfollow. discriminate.
+- intros n1 n2 r instk_height ops.
+  intros Hfollow Hvalid.
+  destruct h as [k v].
+  simpl in Hfollow.
+  simpl in Hvalid.
+  destruct Hvalid as [eq_n2 [_ Hvalid_t]].
+  destruct (k =? fvar) eqn: eq_k_fvar.
+  + destruct (is_fresh_var_smv v) as [idx|].
+    * rewrite -> PeanoNat.Nat.eqb_eq in eq_k_fvar.
+      intuition.
+    * rewrite -> PeanoNat.Nat.eqb_eq in eq_k_fvar.
+      intuition.
+  + pose proof (IH k k r instk_height ops Hfollow Hvalid_t).
+    intuition.
+Qed.
+
+
+Lemma valid_bindings_unique_n: forall n1 n2 sb ops instk_height,
+valid_bindings instk_height n1 sb ops ->
+valid_bindings instk_height n2 sb ops ->
+n1 = n2.
+Proof.
+intros n1 n2 sb ops instk_height.
+intros Hvalid_n1 Hvalid_n2.
+destruct sb as [| h t].
+- simpl in Hvalid_n1.
+  simpl in Hvalid_n2.
+  intuition.
+- destruct h as [k v].
+  simpl in Hvalid_n1.
+  destruct Hvalid_n1 as [eq_n1 [_ Hvalid_k]].
+  destruct Hvalid_n2 as [eq_n2 [_ _]].
+  intuition.
+Qed.
+
+
+Lemma valid_bindings_decr_head: forall n1 k1 k2 v1 v2 instk_height t ops,
+valid_bindings instk_height n1 ((k1, v1) :: ((k2, v2) :: t)) ops ->
+k1 > k2.
+Proof.
+intros n1 k1 k2 v1 v2 instk_height t ops.
+intros Hvalid.
+simpl in Hvalid.
+intuition.
+Qed.
+
+
+Lemma valid_bindings_gte: forall instk_height n1 sb ops prefix sb',
+valid_bindings instk_height n1 sb ops ->
+sb = prefix ++ sb' ->
+exists n2, valid_bindings instk_height n2 sb' ops /\
+           forall k v, In (k,v) prefix -> k >= n2.
+Proof.
+intros instk_height n1 sb ops prefix.
+revert instk_height n1 sb ops.
+induction prefix as [|h t IH].
+- intros instk_height n1 sb ops sb'.
+  intros Hvalid Hprefix.
+  simpl in Hprefix. rewrite <- Hprefix.
+  exists n1. split.
+  + assumption.
+  + intros k v Hin. intuition.
+- intros instk_height n1 sb ops sb'.
+  intros Hvalid Hprefix.
+  simpl in Hprefix. rewrite -> Hprefix in Hvalid.
+  destruct h as [k1 v1] eqn: eq_h.
+  assert (Hvalid_copy := Hvalid).
+  simpl in Hvalid. destruct Hvalid as [eq_n1 [Hvalid_smap Hvalid_t_pref]].
+  assert (t ++ sb' = t ++ sb') as eq_t_sb'; try reflexivity.
+  pose proof (IH instk_height k1 (t ++ sb') ops sb' Hvalid_t_pref eq_t_sb') 
+    as H.
+  destruct H as [n2 [Hvalid' Hin_impl]].
+  exists n2.
+  split; try assumption.
+  intros k v Hin.
+  simpl in Hin. destruct Hin.
+  + injection H as eq_k eq_v.
+    rewrite <- eq_k.
+    destruct t as [|h2 t2] eqn: eq_t.
+    * simpl in Hvalid_t_pref.
+      simpl in Hvalid_copy.
+      destruct Hvalid_copy as [_ [_ Hvalid_t']].
+      pose proof (valid_bindings_unique_n k1 n2 sb' ops instk_height
+        Hvalid_t_pref Hvalid').
+      intuition.
+    * destruct h2 as [k2 v2] eqn: eq_h2.
+      rewrite <- app_comm_cons in Hvalid_copy.
+      pose proof (valid_bindings_decr_head n1 k1 k2 v1 v2 instk_height
+        (t2 ++ sb') ops Hvalid_copy) as k1_gt_k2.
+      assert (In (k2, v2) ((k2, v2) :: t2)) as Hin_k2; try intuition.
+      pose proof (Hin_impl k2 v2 Hin_k2) as H.
+      intuition.
+  + apply Hin_impl with (v:=v); try assumption.
+Qed.
+
+
+Lemma follow_in_smap_prefix_gt: forall fvar n1 n2 sb' r instk_height sb 
+  ops prefix,
+follow_in_smap (FreshVar fvar) n1 sb' = Some r ->
+valid_bindings instk_height n2 sb ops ->
+sb = prefix ++ sb' ->
+forall k v, In (k,v) prefix -> k > fvar.
+Proof.
+intros fvar n1 n2 sb' r instk_height sb ops prefix.
+intros Hfollow Hvalid Hprefix.
+intros k v Hin.
+pose proof (valid_bindings_gte instk_height n2 sb ops prefix sb' Hvalid
+  Hprefix) as Hvalid_gte.
+destruct Hvalid_gte as [nn [Hvalid_sb' Hk_in_prefix]].
+pose proof (Hk_in_prefix k v Hin) as k_gte_nn.
+pose proof (follow_in_smap_gt fvar n1 nn sb' r instk_height ops Hfollow
+  Hvalid_sb').
+intuition.
+Qed.
+
+Print Assumptions follow_in_smap_prefix_gt.
+
+
+Lemma gt_neq: forall n m, n > m -> n =? m = false.
+Proof.
+intros n m. revert n.
+induction m as [|m' IH].
+- intros n Hgt.
+  destruct n as [|n']; try intuition.
+- intros n Hgt. 
+  destruct n as [|n'].
+  + intuition.
+  + simpl. apply Gt.gt_S_n in Hgt.
+    intuition.
+Qed.
+
+
+Lemma follow_in_smap_prefix_diff: forall fvar n1 n2 sb' r instk_height sb 
+  ops prefix,
+follow_in_smap (FreshVar fvar) n1 sb' = Some r ->
+valid_bindings instk_height n2 sb ops ->
+sb = prefix ++ sb' ->
+forall k v, In (k,v) prefix -> k =? fvar = false.
+Proof.
+intros fvar n1 n2 sb' r instk_height sb ops prefix.
+intros Hfollow Hvalid Hprefix.
+intros k v Hin.
+pose proof (follow_in_smap_prefix_gt fvar n1 n2 sb' r instk_height sb ops 
+  prefix Hfollow Hvalid Hprefix k v Hin) as k_gte_n2.
+apply gt_neq. assumption.
+Qed.
+
+
+Lemma follow_in_smap_prefix: forall fvar n1 n2 sb' r instk_height n3 sb ops
+  prefix,
+follow_in_smap (FreshVar fvar) n1 sb' = Some r ->
+valid_bindings instk_height n2 sb ops ->
+sb = prefix ++ sb' ->
+follow_in_smap (FreshVar fvar) n3 (prefix ++ sb') = Some r.
+Proof.
+intros fvar n1 n2 sb' r instk_height n3 sb ops prefix.
+revert fvar n1 n2 sb' r instk_height n3 sb ops.
+induction prefix as [| h t IH].
+- intros fvar n1 n2 sb' r instk_height n3 sb ops.
+  intros Hfollow Hvalid Hprefix.
+  simpl.
+  rewrite -> follow_in_smap_fvar_maxidx_indep_eq with (m:=n1).
+  assumption.
+- intros fvar n1 n2 sb' r instk_height n3 sb ops.
+  intros Hfollow Hvalid Hprefix.
+  destruct h as [k v] eqn: eq_h.
+  assert (In (k,v) ((k, v) :: t)) as Hin; try intuition.
+  pose proof (follow_in_smap_prefix_diff fvar n1 n2 sb' r instk_height sb
+    ops (((k, v) :: t)) Hfollow Hvalid Hprefix k v Hin) as Hk_fvar.
+  simpl. rewrite -> Hk_fvar.
+  rewrite Hprefix in Hvalid. simpl in Hvalid.
+  destruct Hvalid as [_ [_ Hvalid_t]].
+  assert (t ++ sb' = t ++ sb') as eq_t; try reflexivity.
+  pose proof (IH fvar n1 k sb' r instk_height k (t ++ sb') ops Hfollow
+    Hvalid_t eq_t).
+  assumption.
+Qed.
+
 
 Lemma follow_no_fresh: forall sb sv idx sv' idx' sb',
 follow_in_smap sv idx sb = Some (FollowSmapVal sv' idx' sb') ->
@@ -2201,6 +2348,12 @@ induction sb as [| h t IH].
   + apply IH in Hfollow. assumption.
 Qed.
 
+
+(* TODO split into 3 smaller proofs:
+   a) valid_sbindings
+   b) is_fresh_var_smv val' = None  <-- trivial in many optimizations
+   c) preserves evaluations
+*)
 Lemma optimize_add_0_sbinding_snd:
 opt_sbinding_snd optimize_add_0_sbinding.
 Proof.
@@ -2523,9 +2676,6 @@ split.
     apply Heval2_imp.
     assumption.
 Qed.
-
-Print Assumptions optimize_add_0_sbinding_snd.
-
 
 
 End Optimizations_Def.
