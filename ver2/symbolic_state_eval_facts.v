@@ -919,17 +919,7 @@ Lemma instantiate_memory_update_preserved_when_depth_ext_le:
       rewrite <- H_mapo.
       reflexivity.
   Qed.
-      
 
-
-Lemma eval_fvar_diff: forall (fvar n: nat) (stk: stack) (mem: memory) 
-  (strg: storage) (ctx: context) (maxid: nat) (smapv: smap_value) 
-  (ops: stack_op_instr_map) (sb: sbindings),
-fvar =? n = false ->
-eval_sstack_val (FreshVar fvar) stk mem strg ctx maxid ((n, smapv) :: sb) ops =
-eval_sstack_val (FreshVar fvar) stk mem strg ctx n sb ops.
-Proof.
-Admitted.
 
 End SymbolicStateEvalFacts.
 
