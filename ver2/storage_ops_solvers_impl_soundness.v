@@ -80,6 +80,7 @@ Module StorageOpsSolversImplSoundness.
       exists v.
       split; apply H9.
   Qed.
+
   
   Lemma trivial_sstorage_updater_snd: sstorage_updater_ext_snd trivial_sstorage_updater.
   Proof.

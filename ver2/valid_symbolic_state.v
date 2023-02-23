@@ -766,6 +766,18 @@ Proof.
   intuition.
 Qed.
 
+(* a memory is still valid when extended with a valid update *)
+Lemma valid_smemeory_when_extended_with_valid_update:
+  forall instk_height maxidx u smem,
+    valid_smemory_update instk_height maxidx u ->
+    valid_smemory instk_height maxidx smem ->
+    valid_smemory instk_height maxidx (u::smem).
+Proof.
+  intros instk_height maxidx u smem H_valid_u H_valid_smem.
+  simpl.
+  intuition.
+Qed.
+
 (* a storage update is valid when its key and value are valid *)
 Lemma valid_sstorage_update_kv:
   forall instk_height maxidx skey svalue,
@@ -780,7 +792,7 @@ Proof.
 Qed.
 
 
-(* a storage update is valid when its key and value are valid *)
+(* a storage is still valid when extended with a valid update *)
 Lemma valid_sstorage_when_extended_with_valid_update:
   forall instk_height maxidx u sstrg,
     valid_sstorage_update instk_height maxidx u ->
