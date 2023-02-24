@@ -140,6 +140,7 @@ destruct instr eqn: eq_instr.
   *)
 Admitted.
 
+
 Lemma evm_sym_exec_block_sst_height_preserv: forall smemory_updater 
   sstorage_updater mload_solver sload_solver p ops sst sst',
 evm_exec_block_s smemory_updater sstorage_updater mload_solver sload_solver p
@@ -184,331 +185,9 @@ Qed.
 
 (*************************)
 
-Lemma add_to_smap_nofv: forall sm smv key sm',
-add_to_smap sm smv = (key, sm') ->
-bindings_no_freshvar (get_bindings_smap sm) ->
-is_fresh_var_smv smv = None ->
-bindings_no_freshvar (get_bindings_smap sm').
-Proof.
-intros sm smv key sm'.
-intros Hadd_to_smap Hbindings_nofv His_fresh.
-unfold add_to_smap in Hadd_to_smap.
-destruct sm as [maxidx bindings].
-injection Hadd_to_smap as _ eq_sm'.
-simpl in Hbindings_nofv.
-rewrite <- eq_sm'. simpl.
-intuition.
-Qed.
 
 
-
-Definition mload_solver_nofv (solver: mload_solver_type) :=
-forall soffset smem instk_height sm ops,
-is_fresh_var_smv (solver soffset smem instk_height sm ops) = None.
-
-Definition sload_solver_nofv (solver: sload_solver_type) :=
-forall soffset smem instk_height sm ops,
-is_fresh_var_smv (solver soffset smem instk_height sm ops) = None.
-
-
-
-Lemma symbolic_exec_instr_bindings_nofv: forall instr smemory_updater 
-  sstorage_updater mload_solver sload_solver sst ops sst',
-evm_exec_instr_s smemory_updater sstorage_updater mload_solver sload_solver
-instr sst ops = Some sst' ->
-bindings_no_freshvar (get_bindings_smap (get_smap_sst sst)) ->
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->
-bindings_no_freshvar (get_bindings_smap (get_smap_sst sst')).
-Proof.
-intros instr smemory_updater sstorage_updater mload_solver sload_solver sst
-  ops sst'.
-intros Hsymb_exec Hbind_nofv_sst Hmsolver_nofv Hssolver_nofv.
-destruct sst as [instk_height sstk smem sstg sctx sm] eqn: eq_sst.
-destruct instr eqn: eq_instr.
-- (* PUSH size v *)
-  simpl in Hsymb_exec. unfold push_s in Hsymb_exec.
-  destruct (misc.Misc.push
-                 (Val (Word.NToWord constants.Constants.EVMWordSize v))
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)))
-    as [sstk'|]; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* PUSHTAG v *)
-  simpl in Hsymb_exec. unfold pushtag_s in Hsymb_exec.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (SymPUSHTAG v)) eqn: eq_add_to_smap; try discriminate.
-  destruct (misc.Misc.push (FreshVar n)
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)));
-    try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=SymPUSHTAG v)(key:=n); try assumption.
-  intuition.
-- (* POP *)
-  simpl in Hsymb_exec. unfold pop_s in Hsymb_exec.
-  destruct (misc.Misc.pop
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)))
-    as [sstk'|]; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* DUP pos *)
-  simpl in Hsymb_exec. unfold dup_s in Hsymb_exec.
-  destruct (misc.Misc.dup pos
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)))
-    as [sstk'|]; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* SWAP pos *)
-  simpl in Hsymb_exec. unfold swap_s in Hsymb_exec.
-  destruct (misc.Misc.swap pos
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)))
-    as [sstk'|]; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* MLOAD *)
-  simpl in Hsymb_exec. unfold mload_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm));
-    try discriminate.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (mload_solver s
-                     (get_memory_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     (get_instk_height_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     (get_smap_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     ops)) eqn: eq_add_to_smap.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst. 
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=((mload_solver s
-                      (get_memory_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      (get_instk_height_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      (get_smap_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      ops)))(key:=n); try assumption.
-  unfold mload_solver_nofv in Hmsolver_nofv.
-  pose proof (Hmsolver_nofv s (get_memory_sst (SymExState instk_height sstk smem sstg sctx sm))
-     (get_instk_height_sst (SymExState instk_height sstk smem sstg sctx sm))
-     (get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)) ops).
-  assumption.
-- (* MSTORE *)
-  simpl in Hsymb_exec. unfold mstore_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm)); 
-    try discriminate.
-  destruct s0; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* MSTORE8 *)
-  simpl in Hsymb_exec. unfold mstore8_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm)); 
-    try discriminate.
-  destruct s0; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* SLOAD *)
-  simpl in Hsymb_exec. unfold sload_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm));
-    try discriminate.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (sload_solver s
-                     (get_storage_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     (get_instk_height_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     (get_smap_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))
-                     ops)) eqn: eq_add_to_smap.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst. 
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=sload_solver s
-                      (get_storage_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      (get_instk_height_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      (get_smap_sst
-                         (SymExState instk_height sstk smem sstg sctx sm))
-                      ops)(key:=n); try assumption.
-  unfold sload_solver_nofv in Hssolver_nofv.
-  pose proof (Hssolver_nofv s (get_storage_sst (SymExState instk_height sstk smem sstg sctx sm))
-     (get_instk_height_sst (SymExState instk_height sstk smem sstg sctx sm))
-     (get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)) ops).
-  assumption.
-- (* SSTORE *)
-  simpl in Hsymb_exec. unfold sstore_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm)); 
-    try discriminate.
-  destruct s0; try discriminate.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  assumption.
-- (* SHA3 *)
-  simpl in Hsymb_exec. unfold sha3_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm)); 
-    try discriminate.
-  destruct s0; try discriminate.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (SymSHA3 s s0
-                     (get_memory_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))))
-    eqn: eq_add_to_smap.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=(SymSHA3 s s0 (get_memory_sst (SymExState instk_height sstk smem 
-      sstg sctx sm))))(key:=n); try assumption.
-  intuition.
-- (* KECCAK256 *)
-  simpl in Hsymb_exec. unfold sha3_s in Hsymb_exec.
-  destruct (get_stack_sst
-                 (SymExState instk_height sstk smem sstg sctx sm)); 
-    try discriminate.
-  destruct s0; try discriminate.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (SymSHA3 s s0
-                     (get_memory_sst
-                        (SymExState instk_height sstk smem sstg sctx sm))))
-    eqn: eq_add_to_smap.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=(SymSHA3 s s0 (get_memory_sst (SymExState instk_height sstk smem 
-      sstg sctx sm))))(key:=n); try assumption.
-  intuition.
-- (* OpInstr label *)
-  simpl in Hsymb_exec. unfold exec_stack_op_intsr_s in Hsymb_exec.
-  destruct (ops label); try discriminate.
-  destruct (misc.Misc.firstn_e n
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)));
-    try discriminate.
-  destruct (misc.Misc.skipn_e n
-                 (get_stack_sst
-                    (SymExState instk_height sstk smem sstg sctx sm)));
-    try discriminate.
-  destruct (add_to_smap
-                  (get_smap_sst
-                     (SymExState instk_height sstk smem sstg sctx sm))
-                  (SymOp label l)) eqn: eq_add_to_smap.
-  injection Hsymb_exec as eq_sst'.
-  rewrite <- eq_sst'. simpl. simpl in Hbind_nofv_sst.
-  apply add_to_smap_nofv with 
-    (sm:=(get_smap_sst (SymExState instk_height sstk smem sstg sctx sm)))
-    (smv:=SymOp label l)(key:=n0); try assumption.
-  intuition.
-Qed.
-
-
-Lemma symbolic_exec_block_bindings_nofv: forall p smemory_updater 
-  sstorage_updater mload_solver sload_solver sst ops sst',
-evm_exec_block_s smemory_updater sstorage_updater mload_solver
-               sload_solver p sst ops = Some sst' ->
-bindings_no_freshvar (get_bindings_smap (get_smap_sst sst)) ->
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->
-bindings_no_freshvar (get_bindings_smap (get_smap_sst sst')).
-Proof.
-induction p as [| instr rp IH].
-- intros smemory_updater sstorage_updater mload_solver sload_solver
-    sst ops sst'.
-  intros Hsymb_exec Hbind_nofv_sst Hmload_nofv Hsload_nofv.
-  simpl in Hsymb_exec.
-  injection Hsymb_exec as eq_sst.
-  rewrite <- eq_sst.
-  assumption.
-- intros smemory_updater sstorage_updater mload_solver sload_solver
-    sst ops sst'.
-  intros Hsymb_exec Hbind_nofv_sst Hmload_nofv Hsload_nofv.
-  simpl in Hsymb_exec.
-  destruct (evm_exec_instr_s smemory_updater sstorage_updater
-                 mload_solver sload_solver instr sst ops) 
-    as [sst1|] eqn: eq_exec_instr; try discriminate.
-  pose proof (symbolic_exec_instr_bindings_nofv instr smemory_updater 
-    sstorage_updater mload_solver sload_solver sst ops sst1 eq_exec_instr
-    Hbind_nofv_sst Hmload_nofv Hsload_nofv) as Hbind_nofv_sst1.
-  pose proof (IH smemory_updater sstorage_updater mload_solver sload_solver
-    sst1 ops sst' Hsymb_exec Hbind_nofv_sst1 Hmload_nofv Hsload_nofv).
-  assumption.
-Qed.
-
-
-Lemma symbolic_exec_bindings_nofv: forall 
-  (p: block)
-  (smemory_updater : smemory_updater_type) 
-  (sstorage_updater : sstorage_updater_type)
-  (mload_solver : mload_solver_type) (sload_solver : sload_solver_type) 
-  (instk_height h : nat) 
-  sstk smem sstg sctx sm
-  (ops : stack_op_instr_map),
-evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p 
-  instk_height ops = Some (SymExState h sstk smem sstg sctx sm) -> 
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->  
-bindings_no_freshvar (get_bindings_smap sm).
-Proof.
-intros p smemory_updater sstorage_updater mload_solver sload_solver
-    instk_height h sstk smem sstg sctx sm ops.
-intros Hsymb_exec Hmload_nofv Hsload_nofv.
-unfold evm_sym_exec in Hsymb_exec. 
-assert (bindings_no_freshvar (get_bindings_smap (get_smap_sst 
-  (gen_empty_sstate instk_height)))) as Hempty_no_fv.
-- simpl. intuition.
-- pose proof (symbolic_exec_block_bindings_nofv p smemory_updater
-    sstorage_updater mload_solver sload_solver (gen_empty_sstate instk_height)
-    ops (SymExState h sstk smem sstg sctx sm) Hsymb_exec Hempty_no_fv
-    Hmload_nofv Hsload_nofv).
-  simpl in H.
-  assumption.
-Qed.
-
-
+(*
 Lemma symbolic_exec_valid_sstate_fv: 
 forall (smemory_updater : smemory_updater_type) 
        (sstorage_updater : sstorage_updater_type)
@@ -521,9 +200,7 @@ mload_solver_snd mload_solver ->
 sload_solver_snd sload_solver ->
 evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p 
   instk_height ops = Some sst ->
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->  
-valid_sstate_fv sst ops.
+valid_sstate sst ops.
 Proof.
 intros smemory_updater sstorage_updater mload_solver sload_solver p 
   instk_height sst ops Hsmem_upd Hsstrg_upd Hmload Hsload Hsym_exec
@@ -540,7 +217,7 @@ split.
     mload_solver sload_solver instk_height h sstk smem sstg sctx smap ops
     Hsym_exec Hmload_nofv Hsload_nofv).
   assumption.
-Qed.
+Qed.*)
 
 
 Lemma equiv_checker''_correct: forall (opt_p p: block) 
@@ -553,8 +230,6 @@ smemory_updater_snd smem_updater ->
 sstorage_updater_snd sstrg_updater ->
 mload_solver_snd mload_solver ->
 sload_solver_snd sload_solver ->
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->
 symbolic_state_cmp_snd fcmp ->
 evm_eq_block_chkr'' smem_updater sstrg_updater mload_solver 
   sload_solver fcmp opt opt_p p height = true ->
@@ -570,7 +245,7 @@ exists (out_es_opt out_es_p: state),
 Proof.
 intros opt_p p smem_updater sstrg_updater mload_solver sload_solver fcmp
   height opt in_es in_stk Hopt_snd Hsmemory_upd Hstrg_upd Hmload_solver 
-  Hsload_solver Hmload_nofv Hsload_nofv Hcmp
+  Hsload_solver Hcmp
   Hchkr_true Hget_stk Hlen_stk.
 unfold evm_eq_block_chkr'' in Hchkr_true.
 destruct (evm_sym_exec smem_updater sstrg_updater mload_solver
@@ -579,26 +254,14 @@ destruct (evm_sym_exec smem_updater sstrg_updater mload_solver
 destruct (evm_sym_exec smem_updater sstrg_updater mload_solver
           sload_solver p height evm_stack_opm) 
             as [sst_p|] eqn: eq_symb_exec_p; try discriminate.
-
 pose proof (symbolic_exec_snd smem_updater sstrg_updater mload_solver 
   sload_solver opt_p height sst_opt evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_opt) as [_ Hconcr_opt'].
-pose proof (symbolic_exec_valid_sstate_fv smem_updater sstrg_updater mload_solver 
-  sload_solver opt_p height sst_opt evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_opt Hmload_nofv Hsload_nofv) 
-  as Hvalid_sst_opt.
-  
+  Hmload_solver Hsload_solver eq_symb_exec_opt) as [Hvalid_sst_opt Hconcr_opt'].
 rewrite <- Hget_stk in Hlen_stk.
 pose proof (Hconcr_opt' in_es Hlen_stk) as [out_es_opt [Hconcr_opt Hinst_sst_opt]].
-
 pose proof (symbolic_exec_snd smem_updater sstrg_updater mload_solver 
   sload_solver p height sst_p evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_p) as [_ Hconcr_p'].
-pose proof (symbolic_exec_valid_sstate_fv smem_updater sstrg_updater mload_solver 
-  sload_solver p height sst_p evm_stack_opm Hsmemory_upd Hstrg_upd 
-  Hmload_solver Hsload_solver eq_symb_exec_p Hmload_nofv Hsload_nofv) 
-  as Hvalid_sst.
-
+  Hmload_solver Hsload_solver eq_symb_exec_p) as [Hvalid_sst Hconcr_p']. 
 pose proof (Hconcr_p' in_es Hlen_stk) as [out_es_p [Hconcr_p Hinst_sst]].
 exists out_es_opt. exists out_es_p.
 destruct (opt sst_p) as [sst_p' flag_p] eqn: eq_optimize_p.
@@ -624,10 +287,6 @@ unfold symbolic_state_cmp_snd in Hcmp.
 apply evm_sym_exec_sst_height in eq_symb_exec_p as Hinstk_height.
 rewrite <- Hinstk_height in Hlen_stk.
 rewrite -> Hinstk_height_sst_p in Hlen_stk.
-unfold valid_sstate_fv in Hvalid_sst_p'.
-destruct Hvalid_sst_p' as [Hvalid_sst_p' _].
-unfold valid_sstate_fv in Hvalid_sst_opt'.
-destruct Hvalid_sst_opt' as [Hvalid_sst_opt' _].
 pose proof (Hcmp sst_p' sst_opt' evm_stack_opm Hvalid_sst_p' Hvalid_sst_opt'
       Hchkr_true in_es Hlen_stk) as [st [Heq_eval_sst_p Heq_eval_sst_opt]].
 rewrite -> Hevalopt in Heq_eval_sst_opt.
@@ -640,6 +299,7 @@ rewrite <- eq_st_out_es_p in Hconcr_opt.
 split; try split; try split; try split; try split; try intuition.
 Qed.
 
+
 Theorem evm_eq_block_chkr''_snd: forall (opt: optim) 
   (smem_updater: smemory_updater_type) (sstrg_updater: sstorage_updater_type) 
   (mload_solver: mload_solver_type) (sload_solver: sload_solver_type)
@@ -649,21 +309,17 @@ smemory_updater_snd smem_updater ->
 sstorage_updater_snd sstrg_updater ->
 mload_solver_snd mload_solver ->
 sload_solver_snd sload_solver ->
-mload_solver_nofv mload_solver ->
-sload_solver_nofv sload_solver ->
 symbolic_state_cmp_snd fcmp ->
 eq_block_chkr_snd (evm_eq_block_chkr'' smem_updater 
   sstrg_updater mload_solver sload_solver fcmp opt).
 Proof.
 intros opt smem_updater sstrg_updater mload_solver sload_solver fcmp Hopt_snd 
-  Hsmemory_upd Hstrg_upd Hmload_solver Hsload_solver Hmload_nofv Hsload_nofv 
-  Hcmp. 
+  Hsmemory_upd Hstrg_upd Hmload_solver Hsload_solver Hcmp. 
 unfold eq_block_chkr_snd. intros p1 p2 k Hchecker_true.
 unfold sem_eq_blocks. intros in_st in_stk Hgetstk Hlenstk.
 pose proof (equiv_checker''_correct p1 p2 smem_updater sstrg_updater 
   mload_solver sload_solver fcmp k opt in_st in_stk Hopt_snd
-  Hsmemory_upd Hstrg_upd Hmload_solver Hsload_solver Hmload_nofv Hsload_nofv
-  Hcmp
+  Hsmemory_upd Hstrg_upd Hmload_solver Hsload_solver Hcmp
   Hchecker_true Hgetstk Hlenstk) 
   as [out_es_opt [out_es [Hconcr_p1 [Hconcr_p2 Heq_states]]]].
 exists out_es.
@@ -677,6 +333,5 @@ rewrite -> Heq_stk. rewrite -> Heq_mem.
 rewrite -> Heq_strg. rewrite -> Heq_ctx.
 auto.
 Qed.
-
 
 End Checker.
