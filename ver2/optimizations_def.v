@@ -156,29 +156,22 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
       | None => None
       | Some (FollowSmapVal smv maxidx' sb') =>
           match smv with
-          (* Concrere values are retuned *)
           | SymBasicVal (Val v) => Some v
 
-          (* A stack element 'InStackVar n' takes its value from the n-th element of the concrete stack *)                  
           | SymBasicVal (InStackVar n) =>
               match nth_error stk n with
               | Some v => Some v
               | None => None
               end
 
-          (* Not possible *)
           | SymBasicVal (FreshVar _) => None
 
-          (* PUSHTAG *)
           | SymPUSHTAG v =>
               let tags := (get_tags_ctx ctx) in Some (tags v)
 
-          (* stack operation instruction: we evaluate the argument
-             recursively and then evaluate the corresponding operation *)
           | SymOp label args =>
               match ops label with
               | OpImp nargs f _ _ =>
-                  (* first check that the number of argumets agree with what is declared in the map *)
                   if (List.length args =? nargs) then
                     let f_eval_list := fun (sv': sstack_val) => eval_sstack_val' d' sv' stk mem strg ctx maxidx' sb' ops in
                     match map_option f_eval_list args with
@@ -188,12 +181,6 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
                   else None
               end
  
-            (* memory read: 
-                1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
-                2. evaluate the offset
-                3. apply the updates to the memory of the concrete initial state 'st'
-                4. look for the desired value in the memory 
-             *)
             | SymMLOAD soffset smem =>
                 let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
                 match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
@@ -207,12 +194,6 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
                     end
                 end
                   
-            (* storage read: 
-             1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
-             2. evaluate the key
-             3. apply the updates to the storage of the concrete initial state 'st'
-                4. look for the desired value in the stroarge 
-            *)
             | SymSLOAD skey sstrg =>
                 let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
                 match map_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
@@ -226,12 +207,6 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
                     end
                 end
 
-            (* SHA3/KECCAK256: 
-                1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
-                2. evaluate the offset/size
-                3. apply the updates to the memeory of the concrete initial state 'st'
-                4. apply the SHA3 function that is given in the context 
-             *)
             | SymSHA3 soffset ssize smem =>
                 let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
                 match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
@@ -341,21 +316,7 @@ Qed.
 
 
 Definition optim := sstate -> sstate*bool.
-
-(*
-Fixpoint bindings_no_freshvar (sb: sbindings) : Prop :=
-match sb with
-| [] => True
-| (n,val)::r => (is_fresh_var_smv val = None) /\ bindings_no_freshvar r
-end.
-
-
-Definition valid_sstate_fv (sst: sstate) (ops: stack_op_instr_map): Prop :=
-let m := get_smap_sst sst in
-let sb := get_bindings_smap m in
-  valid_sstate sst ops /\
-  bindings_no_freshvar sb.
-*)  
+ 
 
 Definition optim_snd (opt: optim) : Prop := 
 forall (sst: sstate) (sst': sstate) (b: bool),
@@ -1068,10 +1029,8 @@ forall (val val': smap_value) (fcmp: sstack_val_cmp_t) (sb: sbindings)
   (maxidx: nat) (instk_height: nat) (idx: nat) (flag: bool),
 safe_sstack_val_cmp fcmp ->
 valid_bindings instk_height maxidx ((idx,val)::sb) evm_stack_opm ->
-(* bindings_no_freshvar ((idx,val)::sb) -> *)
 opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
   valid_bindings instk_height maxidx ((idx,val')::sb) evm_stack_opm /\
-  (*is_fresh_var_smv val' = None /\*)
   forall stk mem strg ctx v,
     instk_height = length stk ->
     eval_sstack_val (FreshVar idx) stk mem strg ctx maxidx ((idx,val)::sb) 
@@ -1103,7 +1062,6 @@ opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
 opt_sbinding_snd opt ->
 safe_sstack_val_cmp fcmp ->
 valid_bindings instk_height maxidx ((idx, val) :: sb) evm_stack_opm ->
-(* bindings_no_freshvar ((idx,val)::sb) -> *)
 valid_smap_value instk_height idx evm_stack_opm val'.
 Proof.
 intros opt val fcmp sb idx instk_height val' flag maxidx Hopt Hopt_snd 
@@ -1502,7 +1460,6 @@ Qed.
 
 
 (* ADD(X,0) or ADD(0,X) = X *)
-(* ADD(X,0) or ADD(0,X) = X *)
 Definition optimize_add_0_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
@@ -1521,13 +1478,6 @@ match val with
 | _ => (val, false)
 end.
 
-(*
-Check (
-optimize_add_0_sbinding 
-  (SymOp ADD [(Val WZero); (Val WOne)])
-  compare_sstack_val  
-).
-*)
 
 (* Macro to reduce the next proof *)
 Ltac inject_rw H eqname:= 
@@ -2379,7 +2329,10 @@ intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_add_0_sbinding.
 split.
 - (* valid_sbindings *)
-  (* IDEA: use general lemma for every "safe" optimization *)
+  (* IDEA: use general lemma for every "safe" optimization, i.e., 
+       if val is valid_smap_value wrt. n then val' is valid_smap_value 
+       wrt. n
+  *)
   unfold optimize_add_0_sbinding in Hoptm_add_0_sbinding.
   destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
     offset size smem] eqn: eq_val.

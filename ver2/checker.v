@@ -1,6 +1,9 @@
 Require Import FORVES.program.
 Import Program.
 
+Require Import FORVES.misc.
+Import Misc.
+
 Require Import FORVES.stack_operation_instructions.
 Import StackOpInstrs.
 
@@ -109,36 +112,165 @@ intros smemory_updater sstorage_updater mload_solver sload_solver instr ops sst
   sst' Hsymb_exec_instr.
 destruct sst as [instk_height sstk smem sstg sctx sm] eqn: eq_sst.
 destruct instr eqn: eq_instr.
-- simpl in Hsymb_exec_instr.
+- (* PUSH size v *)
+  simpl in Hsymb_exec_instr.
   unfold push_s in Hsymb_exec_instr.
-  destruct (misc.Misc.push (Val (Word.NToWord constants.Constants.EVMWordSize v))
+  destruct (push (Val (Word.NToWord constants.Constants.EVMWordSize v))
    (get_stack_sst (SymExState instk_height sstk smem sstg sctx sm)));
    try discriminate.
   simpl in Hsymb_exec_instr. injection Hsymb_exec_instr as eq_sst'.
   rewrite <- eq_sst'. simpl. reflexivity.
-- simpl in Hsymb_exec_instr.
+- (* PUSHTAG v *) 
+  simpl in Hsymb_exec_instr.
   unfold pushtag_s in Hsymb_exec_instr.
   destruct (add_to_smap (get_smap_sst (SymExState instk_height sstk smem sstg 
     sctx sm)) (SymPUSHTAG v)).
   destruct (misc.Misc.push (FreshVar n) (get_stack_sst (SymExState instk_height
     sstk smem sstg sctx sm))); try discriminate.
   injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. reflexivity.
-- 
-  (*
-
-  | POP => pop_s sst ops
-  | DUP pos => dup_s pos sst ops
-  | SWAP pos => swap_s pos sst ops
-  | MLOAD => mload_s mload_solver sst ops
-  | MSTORE8 => mstore8_s smem_updater sst ops
-  | MSTORE => mstore_s smem_updater sst ops
-  | SLOAD => sload_s sload_solver sst ops
-  | SSTORE => sstore_s sstrg_updater sst ops
-  | SHA3 => sha3_s sst ops
-  | KECCAK256 => sha3_s sst ops
-  | OpInstr label => exec_stack_op_intsr_s label sst ops 
-  *)
-Admitted.
+- (* POP *)
+  simpl in Hsymb_exec_instr.
+  unfold pop_s in Hsymb_exec_instr.
+  destruct (pop (get_stack_sst
+             (SymExState instk_height sstk smem sstg sctx sm))); 
+    try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* DUP pos *) 
+  simpl in Hsymb_exec_instr.
+  unfold dup_s in Hsymb_exec_instr.
+  destruct (dup pos (get_stack_sst
+    (SymExState instk_height sstk smem sstg sctx sm))); 
+    try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* SWAP pos *)
+  simpl in Hsymb_exec_instr.
+  unfold swap_s in Hsymb_exec_instr.
+  destruct (swap pos (get_stack_sst
+    (SymExState instk_height sstk smem sstg sctx sm))); 
+    try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* MLOAD *)
+  simpl in Hsymb_exec_instr.
+  unfold mload_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm)); 
+    try discriminate.
+  destruct (add_to_smap
+                        (get_smap_sst
+                           (SymExState instk_height sstk smem sstg sctx sm))
+                        (mload_solver s
+                           (get_memory_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm))
+                           (get_instk_height_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm))
+                           (get_smap_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm)) ops)); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* MSTORE *)
+  simpl in Hsymb_exec_instr.
+  unfold mstore_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| offset t]; try discriminate.
+  destruct t as [|value r]; try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* MSTORE8 *)
+  simpl in Hsymb_exec_instr.
+  unfold mstore8_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| offset t]; try discriminate.
+  destruct t as [|value r]; try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* SLOAD *) 
+  simpl in Hsymb_exec_instr.
+  unfold sload_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| skey t]; try discriminate.
+  destruct (add_to_smap
+                        (get_smap_sst
+                           (SymExState instk_height sstk smem sstg sctx sm))
+                        (sload_solver skey
+                           (get_storage_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm))
+                           (get_instk_height_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm))
+                           (get_smap_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm)) ops)); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* SSTORE *)
+  simpl in Hsymb_exec_instr.
+  unfold sstore_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| offset t]; try discriminate.
+  destruct t as [|svalue r]; try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* SHA3 *)
+  simpl in Hsymb_exec_instr.
+  unfold sha3_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| offset t]; try discriminate.
+  destruct t as [|svalue r]; try discriminate.
+  destruct (add_to_smap
+                        (get_smap_sst
+                           (SymExState instk_height sstk smem sstg sctx sm))
+                        (SymSHA3 offset svalue
+                           (get_memory_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm)))); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* KECCAK256 *)
+  simpl in Hsymb_exec_instr.
+  unfold sha3_s in Hsymb_exec_instr.
+  destruct (get_stack_sst
+                       (SymExState instk_height sstk smem sstg sctx sm))
+    as [| offset t]; try discriminate.
+  destruct t as [|svalue r]; try discriminate.
+  destruct (add_to_smap
+                        (get_smap_sst
+                           (SymExState instk_height sstk smem sstg sctx sm))
+                        (SymSHA3 offset svalue
+                           (get_memory_sst
+                              (SymExState instk_height sstk smem sstg sctx
+                                 sm)))); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+- (* OpInstr label *)
+  simpl in Hsymb_exec_instr.
+  unfold exec_stack_op_intsr_s in Hsymb_exec_instr.
+  destruct (ops label); try discriminate.
+  destruct (firstn_e n
+                       (get_stack_sst
+                          (SymExState instk_height sstk smem sstg sctx sm)))
+    as [s1|]; try discriminate.
+  destruct (skipn_e n (get_stack_sst
+    (SymExState instk_height sstk smem sstg sctx sm))) as [s2|]; 
+    try discriminate.
+  destruct (add_to_smap
+                        (get_smap_sst
+                           (SymExState instk_height sstk smem sstg sctx sm))
+                        (SymOp label s1)); try discriminate.
+  injection Hsymb_exec_instr as eq_sst'. rewrite <- eq_sst'. simpl. 
+  reflexivity.
+Qed.
 
 
 Lemma evm_sym_exec_block_sst_height_preserv: forall smemory_updater 
@@ -186,38 +318,6 @@ Qed.
 (*************************)
 
 
-
-(*
-Lemma symbolic_exec_valid_sstate_fv: 
-forall (smemory_updater : smemory_updater_type) 
-       (sstorage_updater : sstorage_updater_type)
-       (mload_solver : mload_solver_type) (sload_solver : sload_solver_type) 
-       (p : block) (instk_height : nat) (sst : sstate) 
-       (ops : stack_op_instr_map),
-smemory_updater_snd smemory_updater ->
-sstorage_updater_snd sstorage_updater ->
-mload_solver_snd mload_solver ->
-sload_solver_snd sload_solver ->
-evm_sym_exec smemory_updater sstorage_updater mload_solver sload_solver p 
-  instk_height ops = Some sst ->
-valid_sstate sst ops.
-Proof.
-intros smemory_updater sstorage_updater mload_solver sload_solver p 
-  instk_height sst ops Hsmem_upd Hsstrg_upd Hmload Hsload Hsym_exec
-  Hmload_nofv Hsload_nofv.
-unfold valid_sstate_fv.
-split.
-- pose proof (symbolic_exec_snd smemory_updater sstorage_updater mload_solver
-    sload_solver p instk_height sst ops Hsmem_upd Hsstrg_upd Hmload Hsload 
-    Hsym_exec) as H.
-  intuition.
-- destruct sst as [h sstk smem sstg sctx smap] eqn: eq_sst. 
-  simpl. 
-  pose proof (symbolic_exec_bindings_nofv p smemory_updater sstorage_updater 
-    mload_solver sload_solver instk_height h sstk smem sstg sctx smap ops
-    Hsym_exec Hmload_nofv Hsload_nofv).
-  assumption.
-Qed.*)
 
 
 Lemma equiv_checker''_correct: forall (opt_p p: block) 
