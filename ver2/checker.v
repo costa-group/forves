@@ -49,6 +49,9 @@ Import Optimizations_Def.
 Require Import FORVES.optimizations_def.
 Import SymbolicState.
 
+Require Import FORVES.optimizations.add_zero.
+Import Add_zero.
+
 Require Import List.
 Import ListNotations.
 
@@ -433,5 +436,15 @@ rewrite -> Heq_stk. rewrite -> Heq_mem.
 rewrite -> Heq_strg. rewrite -> Heq_ctx.
 auto.
 Qed.
+
+
+
+(* List of sound sbindings optimizations *)
+
+Inductive opt_entry :=
+| OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt).
+
+Definition opt_pipeline : list opt_entry := 
+  [OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd].
 
 End Checker.

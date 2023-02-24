@@ -41,7 +41,9 @@ storage_cmp_impl_soundness.v
 sha3_cmp_impl.v
 sha3_cmp_impl_soundness.v
 
+optimizations_common.v
 optimizations_def.v
+optimizations/add_zero.v
 
 block_equiv_checker.v
 
