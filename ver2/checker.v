@@ -439,12 +439,12 @@ Qed.
 
 
 
-(* List of sound sbindings optimizations *)
 
-Inductive opt_entry :=
-| OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt).
 
-Definition opt_pipeline : list opt_entry := 
+(* List of sound sbindings optimizations we can use *)
+
+Definition optimizations_pipeline : opt_pipeline := 
   [OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd].
+
 
 End Checker.

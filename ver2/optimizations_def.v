@@ -769,23 +769,25 @@ Qed.
 
 
 
-(* List of sound sbindings optimizations *)
+
+
+(* Pipeline of sound optimizations *)
 
 Inductive opt_entry :=
 | OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt).
 
-Definition pipeline := list opt_entry.
+Definition opt_pipeline := list opt_entry.
 
 
-(*
-1.- Apply first opt_entry: entry b c d -> (sbindings,flag)
-2.- Apply n opt_entry: entry b c d -> (sbindings, flag)
-3.- Apply pipeline one: [entry] b c d -> (sbindings, flag)
-4.- Apply pipeline n times each: [entry] b c d nat -> (sbindings, flag)
-5.- Apply pipeline n opt m
+
+(************************************************************************ 
+   Optimization strategies using optimization pipelines opt_entries and
+   optimizations pipelines
+*************************************************************************)
+
+(* Applies the optimization once in the first possible place inside
+   the bindings
 *)
-
-
 Definition optimize_first_opt_entry_sbindings (opt_entry: opt_entry)
   (fcmp: sstack_val_cmp_t) (instk_height: nat) (sb: sbindings)
     : sbindings*bool :=
@@ -794,59 +796,72 @@ match opt_entry with
     optimize_first_sbindings opt_sbinding fcmp sb instk_height
 end.
 
-(*Definition opt_sbinding_fun := sbindings -> sbindings*bool.
 
-Definition opt_sbinding_fun_preserves (f: opt_sbinding_fun) :=
-forall (sb sb': sbindings) (maxid instk_height: nat) (flag: bool),
-valid_bindings instk_height maxid sb evm_stack_opm ->
-f sb = (sb', flag) ->
-preserv_sbindings sb sb' maxid evm_stack_opm instk_height.
-
-(*
-Definition opt_e_sbinding_valid (opt_e: opt_entry):= forall 
-  (fcmp: sstack_val_cmp_t) (sb sb': sbindings) (maxid instk_height: nat) 
-  (flag: bool),
-safe_sstack_val_cmp fcmp ->
-valid_bindings instk_height maxid sb evm_stack_opm ->
-optimize_first_opt_entry_sbindings opt_e fcmp sb instk_height = (sb', flag) ->
-valid_bindings instk_height maxid sb' evm_stack_opm.*)
-
-Lemma opt_e_preserves: forall (opt_e: opt_entry) (fcmp: sstack_val_cmp_t)
-  (instk_height: nat),
-safe_sstack_val_cmp fcmp ->
-opt_sbinding_fun_preserves (
-  optimize_first_opt_entry_sbindings opt_e fcmp instk_height).
-Proof.
-intros opt_e fcmp instk_height Hsafe_cmp. 
-unfold opt_sbinding_fun_preserves.
-intros sb sb' maxid instk_height flag.
-intros Hsafe_cmp Hvalid Hoptim.
-unfold optimize_first_opt_entry_sbindings in Hoptim.
-destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
-pose proof (opt_sbinding_preserves opt fcmp sb sb' maxid instk_height flag
-  Hsafe_cmp Hopt_snd Hvalid Hoptim).
-assumption.
-Qed.
-
-Lemma opt_e_valid: forall (opt_e: opt_entry),
-opt_e_sbinding_valid opt_e.
-intros opt_e. unfold opt_e_sbinding_preserves.
-intros fcmp sb sb' maxid instk_height flag.
-intros Hsafe_cmp Hvalid Hoptim.
-unfold optimize_first_opt_entry_sbindings in Hoptim.
-destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
-pose proof (optimize_first_valid opt fcmp sb sb' maxid instk_height flag
-  Hsafe_cmp Hopt_snd Hvalid Hoptim).
-assumption.
-Qed.*)
-
-
+(* Applies the optimization once in the first possible place inside
+   the bindings __of the sstate__
+*)
 Definition optimize_first_opt_entry_sstate (opt_e: opt_entry) 
   (fcmp: sstack_val_cmp_t) (sst: sstate) : sstate*bool :=
 match opt_e with
 | OpEntry opt Hopt_snd =>
   optimize_first_sstate opt fcmp sst
 end.
+
+
+(* Applies the optimization at most n times in a sstate, stops as soon as it
+   does not change the sstate *)
+Fixpoint apply_opt_n_times (opt_e: opt_entry) (fcmp: sstack_val_cmp_t) 
+  (n: nat) (sst: sstate) : sstate*bool :=
+match n with
+| 0 => (sst, false) 
+| S n' => 
+    match optimize_first_opt_entry_sstate opt_e fcmp sst with
+    | (sst', true) => 
+        match apply_opt_n_times opt_e fcmp n' sst' with
+        | (sst'', b) => (sst'', true) 
+        end
+    | (sst', false) => (sst', false)
+    end
+end.
+(* Improvement: extra parameter as flag accumulator for final recursion, 
+     if needed for efficiency *)
+
+
+(* Applies the pipeline in order in a sstate, applying n times each 
+   optimization and continuing with the next one *)
+Fixpoint apply_opt_n_times_pipeline_once (pipe: opt_pipeline) 
+  (fcmp: sstack_val_cmp_t) (n: nat) (sst: sstate) : sstate*bool :=
+match pipe with
+| [] => (sst, false) 
+| opt_e::rp => 
+    match apply_opt_n_times opt_e fcmp n sst with
+    | (sst', flag1) => 
+        match apply_opt_n_times_pipeline_once rp fcmp n sst' with
+        | (sst'', flag2) => (sst'', orb flag1 flag2)
+        end
+    end
+end.
+
+
+(* Applies (apply_opt_n_times_pipeline n) at most k times in a sstate, stops 
+   as soon as it does not change the sstate *)
+Fixpoint apply_opt_n_times_pipeline_k (pipe: opt_pipeline)
+  (fcmp: sstack_val_cmp_t) 
+  (n k: nat) (sst: sstate) : sstate*bool :=
+match k with
+| 0 => (sst, false) 
+| S k' => 
+    match apply_opt_n_times_pipeline_once pipe fcmp n sst with
+    | (sst', true) => 
+        match apply_opt_n_times_pipeline_k pipe fcmp n k' sst'  with
+        | (sst'', b) => (sst'', true) 
+        end
+    | (sst', false) => (sst', false)
+    end
+end.
+(* Improvement: extra parameter as flag accumulator for final recursion, 
+     if needed for efficiency *)
+
 
 
 Lemma optimize_first_opt_entry_sstate_snd: forall opt_e fcmp,
@@ -875,36 +890,148 @@ split.
 Qed.
 
 
-(* TODO: define the different pipeline techniques as invocations to
-     optimize_first_opt_entry_sstate 
-     
-   - apply opt_e n times 
-   - apply [opt_e] n times each element
-   - apply [opt_e] n times each element, repeat k times (using the previous one
-*)
-
-
-(* IDEA: extra parameter as flag accumulator for final recursion, if needed *)
-Fixpoint apply_opt_n_times (opt_e: opt_entry) (fcmp: sstack_val_cmp_t) 
-  (n: nat) (sst: sstate) : sstate*bool :=
-match n with
-| 0 => (sst, false) 
-| S n' => 
-    match optimize_first_opt_entry_sstate opt_e fcmp sst with
-    | (sst', true) => 
-        match apply_opt_n_times opt_e fcmp n' sst' with
-        | (sst'', b) => (sst'', true) 
-        end
-    | (sst', false) => (sst', false)
-    end
-end.
-
 Lemma apply_opt_n_times_snd: forall opt_e fcmp n,
 safe_sstack_val_cmp fcmp ->
 optim_snd (apply_opt_n_times opt_e fcmp n).
 Proof.
-(* Induction on n *)
-Admitted.
+intros opt_e fcmp n. revert opt_e fcmp.
+induction n as [| n' IH].
+- intros opt_e fcmp Hsafe_cmp.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. injection Happly as eq_sst' _.
+  rewrite <- eq_sst'.
+  split; try assumption.
+  split.
+  + reflexivity.
+  + intuition.
+- intros opt_e fcmp Hsafe_cmp.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. 
+  destruct (optimize_first_opt_entry_sstate opt_e fcmp sst) 
+    as [sst1 flag] eqn: eq_optim.
+  destruct flag eqn: eq_flag.
+  + destruct (apply_opt_n_times opt_e fcmp n' sst1) as [sst2 flag2] 
+      eqn: eq_apply_n'.
+    injection Happly as eq_sst' _.
+    rewrite <- eq_sst'.
+    pose proof (optimize_first_opt_entry_sstate_snd opt_e fcmp Hsafe_cmp)
+      as Hoptim_snd.
+    unfold optim_snd in Hoptim_snd.
+    pose proof (Hoptim_snd sst sst1 true Hvalid eq_optim) as Hone.
+    destruct Hone as [Hvalid1 [Hinstk Heval]].
+    pose proof (IH opt_e fcmp Hsafe_cmp) as IHn'.
+    unfold optim_snd in IHn'.
+    pose proof (IHn' sst1 sst2 flag2 Hvalid1 eq_apply_n') as HIHn'.
+    destruct HIHn' as [Hvalid' [Hinstk' Heval']].
+    split; try assumption.
+    split.
+    * rewrite <- Hinstk in Hinstk'. assumption.
+    * intros st st' Heval_st. 
+      apply Heval'. apply Heval. assumption.
+  + injection Happly as eq_sst' _.
+    rewrite <- eq_sst'.
+    pose proof (optimize_first_opt_entry_sstate_snd opt_e fcmp Hsafe_cmp)
+      as Hoptim_snd.
+    unfold optim_snd in Hoptim_snd.
+    pose proof (Hoptim_snd sst sst1 false Hvalid eq_optim) as Hone.
+    destruct Hone as [Hvalid1 [Hinstk Heval]].
+    split; try assumption.
+    split; try assumption.
+Qed.
+
+
+Lemma apply_opt_n_times_pipeline_once_snd: forall pipe fcmp n,
+safe_sstack_val_cmp fcmp ->
+optim_snd (apply_opt_n_times_pipeline_once pipe fcmp n).
+Proof.
+induction pipe as [| opt_e rp IH].
+- intros fcmp n Hsafe_cmp.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. injection Happly as eq_sst' _.
+  rewrite <- eq_sst'.
+  split; try assumption.
+  split.
+  + reflexivity.
+  + intuition.
+- intros fcmp n Hsafe_cmp.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. 
+  destruct (apply_opt_n_times opt_e fcmp n sst) 
+    as [sst1 flag1] eqn: eq_optim_h.
+  destruct (apply_opt_n_times_pipeline_once rp fcmp n sst1) as [sst2 flag2] 
+    eqn: eq_optim_rp.
+  injection Happly as eq_sst' _.
+  rewrite <- eq_sst'.
+  pose proof (apply_opt_n_times_snd opt_e fcmp n Hsafe_cmp) as Hoptim_snd_h.
+  unfold optim_snd in Hoptim_snd_h.
+  pose proof (Hoptim_snd_h sst sst1 flag1 Hvalid eq_optim_h) as Hoptim_snd_h.
+  destruct Hoptim_snd_h as [Hvalid1 [Hinstk1 Heval1]].
+  pose proof (IH fcmp n Hsafe_cmp) as IH.
+  unfold optim_snd in IH.
+  pose proof (IH sst1 sst2 flag2 Hvalid1 eq_optim_rp) as IH.
+  destruct IH as [Hvalid2 [Hinstk2 Heval2]].
+  split; try assumption.
+  split.
+  + rewrite <- Hinstk2. assumption.
+  + intros st st' Heval_sst.
+    apply Heval2. apply Heval1. assumption.
+Qed.
+
+
+Lemma apply_opt_n_times_pipeline_k_snd: forall pipe fcmp n k,
+safe_sstack_val_cmp fcmp ->
+optim_snd (apply_opt_n_times_pipeline_k pipe fcmp n k).
+Proof.
+intros pipe fcmp n k. revert pipe fcmp n.
+induction k as [| k' IH].
+- intros pipe fcmp Hsafe_cmp n.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. injection Happly as eq_sst' _.
+  rewrite <- eq_sst'.
+  split; try assumption.
+  split.
+  + reflexivity.
+  + intuition.
+- intros pipe fcmp n Hsafe_cmp.
+  unfold optim_snd.
+  intros sst sst' b Hvalid Happly.
+  simpl in Happly. 
+  destruct (apply_opt_n_times_pipeline_once pipe fcmp n sst) 
+    as [sst1 flag1] eqn: eq_optim.
+  destruct flag1 eqn: eq_flag1.
+  + destruct (apply_opt_n_times_pipeline_k pipe fcmp n k' sst1) as [sst2 flag2] 
+      eqn: eq_apply_n'.
+    injection Happly as eq_sst' _.
+    rewrite <- eq_sst'.
+    pose proof (apply_opt_n_times_pipeline_once_snd pipe fcmp n Hsafe_cmp)
+      as Hoptim_snd.
+    unfold optim_snd in Hoptim_snd.
+    pose proof (Hoptim_snd sst sst1 true Hvalid eq_optim) as Hone.
+    destruct Hone as [Hvalid1 [Hinstk Heval1]].
+    pose proof (IH pipe fcmp n Hsafe_cmp) as IH.
+    unfold optim_snd in IH.
+    pose proof (IH sst1 sst2 flag2 Hvalid1 eq_apply_n') as IH.
+    destruct IH as [Hvalid' [Hinstk' Heval']].
+    split; try assumption.
+    split.
+    * rewrite <- Hinstk in Hinstk'. assumption.
+    * intros st st' Heval_st. 
+      apply Heval'. apply Heval1. assumption.
+  + injection Happly as eq_sst' _.
+    rewrite <- eq_sst'.
+    pose proof (apply_opt_n_times_pipeline_once_snd pipe fcmp n Hsafe_cmp)
+      as Hoptim_snd.
+    unfold optim_snd in Hoptim_snd.
+    pose proof (Hoptim_snd sst sst1 false Hvalid eq_optim) as Hone.
+    destruct Hone as [Hvalid1 [Hinstk Heval]].
+    split; try assumption.
+    split; try assumption.
+Qed.
 
 
 
