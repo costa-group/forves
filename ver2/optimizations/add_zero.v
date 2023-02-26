@@ -141,7 +141,7 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
     assumption.
   + injection Hoptm_add_0_sbinding as eq_val' eq_flag.
     rewrite <- eq_val'.
-    assumption.    
+    assumption.
 Qed.
 
 

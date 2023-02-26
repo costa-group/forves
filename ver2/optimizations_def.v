@@ -768,4 +768,145 @@ split; try split; try assumption.
 Qed.
 
 
+
+(* List of sound sbindings optimizations *)
+
+Inductive opt_entry :=
+| OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt).
+
+Definition pipeline := list opt_entry.
+
+
+(*
+1.- Apply first opt_entry: entry b c d -> (sbindings,flag)
+2.- Apply n opt_entry: entry b c d -> (sbindings, flag)
+3.- Apply pipeline one: [entry] b c d -> (sbindings, flag)
+4.- Apply pipeline n times each: [entry] b c d nat -> (sbindings, flag)
+5.- Apply pipeline n opt m
+*)
+
+
+Definition optimize_first_opt_entry_sbindings (opt_entry: opt_entry)
+  (fcmp: sstack_val_cmp_t) (instk_height: nat) (sb: sbindings)
+    : sbindings*bool :=
+match opt_entry with
+| OpEntry opt_sbinding Hopt_snd => 
+    optimize_first_sbindings opt_sbinding fcmp sb instk_height
+end.
+
+(*Definition opt_sbinding_fun := sbindings -> sbindings*bool.
+
+Definition opt_sbinding_fun_preserves (f: opt_sbinding_fun) :=
+forall (sb sb': sbindings) (maxid instk_height: nat) (flag: bool),
+valid_bindings instk_height maxid sb evm_stack_opm ->
+f sb = (sb', flag) ->
+preserv_sbindings sb sb' maxid evm_stack_opm instk_height.
+
+(*
+Definition opt_e_sbinding_valid (opt_e: opt_entry):= forall 
+  (fcmp: sstack_val_cmp_t) (sb sb': sbindings) (maxid instk_height: nat) 
+  (flag: bool),
+safe_sstack_val_cmp fcmp ->
+valid_bindings instk_height maxid sb evm_stack_opm ->
+optimize_first_opt_entry_sbindings opt_e fcmp sb instk_height = (sb', flag) ->
+valid_bindings instk_height maxid sb' evm_stack_opm.*)
+
+Lemma opt_e_preserves: forall (opt_e: opt_entry) (fcmp: sstack_val_cmp_t)
+  (instk_height: nat),
+safe_sstack_val_cmp fcmp ->
+opt_sbinding_fun_preserves (
+  optimize_first_opt_entry_sbindings opt_e fcmp instk_height).
+Proof.
+intros opt_e fcmp instk_height Hsafe_cmp. 
+unfold opt_sbinding_fun_preserves.
+intros sb sb' maxid instk_height flag.
+intros Hsafe_cmp Hvalid Hoptim.
+unfold optimize_first_opt_entry_sbindings in Hoptim.
+destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
+pose proof (opt_sbinding_preserves opt fcmp sb sb' maxid instk_height flag
+  Hsafe_cmp Hopt_snd Hvalid Hoptim).
+assumption.
+Qed.
+
+Lemma opt_e_valid: forall (opt_e: opt_entry),
+opt_e_sbinding_valid opt_e.
+intros opt_e. unfold opt_e_sbinding_preserves.
+intros fcmp sb sb' maxid instk_height flag.
+intros Hsafe_cmp Hvalid Hoptim.
+unfold optimize_first_opt_entry_sbindings in Hoptim.
+destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
+pose proof (optimize_first_valid opt fcmp sb sb' maxid instk_height flag
+  Hsafe_cmp Hopt_snd Hvalid Hoptim).
+assumption.
+Qed.*)
+
+
+Definition optimize_first_opt_entry_sstate (opt_e: opt_entry) 
+  (fcmp: sstack_val_cmp_t) (sst: sstate) : sstate*bool :=
+match opt_e with
+| OpEntry opt Hopt_snd =>
+  optimize_first_sstate opt fcmp sst
+end.
+
+
+Lemma optimize_first_opt_entry_sstate_snd: forall opt_e fcmp,
+safe_sstack_val_cmp fcmp ->
+optim_snd (optimize_first_opt_entry_sstate opt_e fcmp).
+Proof.
+intros opt_e fcmp Hsafe_fcmp.
+unfold optim_snd. intros sst sst' b Hvalid Hoptim_first.
+unfold optimize_first_opt_entry_sstate in Hoptim_first.
+destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
+split.
+- pose proof (optimize_first_sstate_valid opt fcmp sst sst' b Hvalid
+    Hopt_snd Hsafe_fcmp Hoptim_first).
+  assumption.
+- split.
+  + unfold optimize_first_sstate in Hoptim_first. 
+    destruct sst as [instk_height sstk smem sstg sctx smap] eqn: eq_sst.
+    destruct smap as [maxid bindings] eqn: eq_smap.
+    destruct (optimize_first_sbindings opt fcmp bindings instk_height).
+    injection Hoptim_first as eq_sst' _. 
+    rewrite <- eq_sst'. reflexivity. 
+  + pose proof (optimize_first_sstate_preserv opt fcmp sst sst' b Hvalid
+      Hopt_snd Hsafe_fcmp Hoptim_first) as H1.
+    destruct H1 as [_ H2].
+    assumption.
+Qed.
+
+
+(* TODO: define the different pipeline techniques as invocations to
+     optimize_first_opt_entry_sstate 
+     
+   - apply opt_e n times 
+   - apply [opt_e] n times each element
+   - apply [opt_e] n times each element, repeat k times (using the previous one
+*)
+
+
+(* IDEA: extra parameter as flag accumulator for final recursion, if needed *)
+Fixpoint apply_opt_n_times (opt_e: opt_entry) (fcmp: sstack_val_cmp_t) 
+  (n: nat) (sst: sstate) : sstate*bool :=
+match n with
+| 0 => (sst, false) 
+| S n' => 
+    match optimize_first_opt_entry_sstate opt_e fcmp sst with
+    | (sst', true) => 
+        match apply_opt_n_times opt_e fcmp n' sst' with
+        | (sst'', b) => (sst'', true) 
+        end
+    | (sst', false) => (sst', false)
+    end
+end.
+
+Lemma apply_opt_n_times_snd: forall opt_e fcmp n,
+safe_sstack_val_cmp fcmp ->
+optim_snd (apply_opt_n_times opt_e fcmp n).
+Proof.
+(* Induction on n *)
+Admitted.
+
+
+
+
 End Optimizations_Def.
