@@ -52,6 +52,21 @@ Import ListNotations.
 
 Module Optimizations_Common.
 
+
+Definition follow_to_val (sv: sstack_val) (maxidx: nat) (sb: sbindings) 
+  : option EVMWord :=
+match follow_in_smap sv maxidx sb with
+| Some (FollowSmapVal (SymBasicVal (Val v)) idx' sb') => Some v
+| _ => None
+end.
+
+Definition follow_to_val_args (args: sstack) (maxidx: nat) (sb: sbindings) 
+  : option (list EVMWord) :=
+let f_follow_list := fun (sv': sstack_val) => follow_to_val sv' maxidx sb in
+map_option f_follow_list args.
+
+
+
 (**************************************
    Auxiliary results about evaluation 
    used when proving optimizations 
@@ -140,6 +155,21 @@ induction m as [|m' IH].
   + exists (S m'). intuition.
   + apply Le.le_S_n in Hleq.
     apply IH in Hleq as [k' eq_n'_k'].
+    exists k'. intuition.
+Qed.
+
+
+Lemma gt_add: forall n m, 
+n > m -> exists k, n=m+k.
+Proof.
+intros n m. revert n.
+induction m as [|m' IH].
+- intros m Hgt. exists m. intuition.
+- intros n Hgt.
+  destruct n as [|n'] eqn: eq_n.
+  + intuition.
+  + apply Gt.gt_S_n in Hgt.
+    apply IH in Hgt as [k' eq_n'_k'].
     exists k'. intuition.
 Qed.
 
@@ -401,6 +431,36 @@ induction m as [|m' IH].
   apply IH in Hvalid_n.
   intuition.
 Qed.  
+
+
+Lemma valid_sstack_value_extended_by_i:  forall (i instk_height n : nat) (sv : sstack_val),
+valid_sstack_value instk_height n sv ->
+valid_sstack_value instk_height (n+i) sv.
+Proof.
+induction i as [|i' IH].
+- intros instk_height n sv Hvalid.
+  rewrite -> PeanoNat.Nat.add_0_r.
+  assumption.
+- intros instk_height n sv Hvalid.
+  rewrite -> PeanoNat.Nat.add_succ_r.
+  apply valid_sstack_value_succ.
+  apply IH.
+  assumption.
+Qed.
+
+Lemma valid_sstack_value_gt:  forall (instk_height n m : nat) (sv : sstack_val),
+valid_sstack_value instk_height n sv ->
+m > n ->
+valid_sstack_value instk_height m sv.
+Proof.
+intros instk_height n m sv.
+intros Hvalid Hgt.
+apply gt_add in Hgt.
+destruct Hgt as [k eq_m_n_k].
+rewrite -> eq_m_n_k.
+apply valid_sstack_value_extended_by_i.
+assumption.
+Qed.
 
 
 
@@ -738,6 +798,68 @@ induction sb as [| h t IH].
       assumption.
   + apply IH in Hfollow. assumption.
 Qed.
+
+
+Lemma follow_to_val_eval_eq: forall sv idx sb v d stk mem strg ctx v',
+follow_to_val sv idx sb = Some v ->
+eval_sstack_val' d sv stk mem strg ctx idx sb evm_stack_opm = Some v' ->
+v = v'.
+Proof.
+intros sv idx sb v d stk mem strg ctx v'.
+intros Hfollow Heval.
+unfold follow_to_val in Hfollow.
+destruct (follow_in_smap sv idx sb) as [fsmv|] eqn: eq_follow; try discriminate.
+destruct (fsmv) as [smv] eqn: eq_fsmv.
+destruct (smv) as [basicv|x1|x2|x3|x4|x5] eqn: eq_smv; try discriminate.
+destruct (basicv) as [val|var|fvar] eqn: eq_basicv; try discriminate.
+unfold eval_sstack_val' in Heval.
+destruct d as [|d']; try discriminate.
+rewrite -> eq_follow in Heval.
+rewrite -> Hfollow in Heval. 
+injection Heval. trivial.
+Qed.
+
+
+Lemma follow_to_val_args_eval_eq: forall args idx sb vargs maxidx stk mem strg ctx vargs',
+follow_to_val_args args idx sb = Some vargs ->
+map_option (fun sv' : sstack_val =>
+             eval_sstack_val' maxidx sv' stk mem strg ctx idx sb
+               evm_stack_opm) args = Some vargs' ->
+vargs = vargs'.
+Proof.
+induction args as [|h t IH].
+- intros idx sb vargs maxidx stk mem strg ctx vargs'.
+  intros Hfollow Hmapo.
+  simpl in Hfollow. simpl in Hmapo.
+  rewrite -> Hfollow in Hmapo.
+  injection Hmapo.
+  intuition.
+- intros idx sb vargs maxidx stk mem strg ctx vargs'.
+  intros Hfollow Hmapo.
+  simpl in Hfollow.
+  destruct (follow_to_val h idx sb) as [hv|] eqn: eq_follow_h; 
+    try discriminate.
+  destruct (follow_to_val_args t idx sb) as [tv|] eqn: eq_follow_t;
+    try discriminate.
+  simpl in Hmapo.
+  destruct (eval_sstack_val' maxidx h stk mem strg ctx idx sb evm_stack_opm)
+    as [hv'|] eqn: eq_eval_h; try discriminate.
+  destruct (map_option (fun sv' : sstack_val =>
+             eval_sstack_val' maxidx sv' stk mem strg ctx idx sb
+               evm_stack_opm) t) as [tv'|] eqn: eq_mapo_t;
+    try discriminate.
+  pose proof (IH idx sb tv maxidx stk mem strg ctx tv' eq_follow_t
+    eq_mapo_t) as eq_tv'.
+  injection Hmapo as eq_vargs'. rewrite <- eq_vargs'.
+  injection Hfollow as eq_vargs. rewrite <- eq_vargs.
+  rewrite <- eq_tv'.
+  pose proof (follow_to_val_eval_eq h idx sb hv maxidx stk mem strg ctx hv'
+    eq_follow_h eq_eval_h) as eq_hv'.
+  rewrite <- eq_hv'.
+  reflexivity.
+Qed.
+
+
 
 
 

@@ -56,7 +56,7 @@ Require Import List.
 Import ListNotations.
 
 
-Module Add_zero.
+Module Opt_add_zero.
 
 
 (* ADD(X,0) or ADD(0,X) = X *)
@@ -88,7 +88,7 @@ opt_smapv_valid_snd optimize_add_0_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n ops fcmp sb val val' flag.
-intros Hvalid_smapv_val Hoptm_add_0_sbinding.
+intros Hvalid_smapv_val Hvalid_sb Hoptm_add_0_sbinding.
 unfold optimize_add_0_sbinding in Hoptm_add_0_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val.
@@ -310,4 +310,4 @@ Qed.
 
 
 
-End Add_zero.
+End Opt_add_zero.

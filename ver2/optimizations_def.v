@@ -93,6 +93,7 @@ Definition opt_smapv_valid_snd (opt: opt_smap_value_type) :=
 forall (instk_height n: nat) (ops: stack_op_instr_map) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
   (val val': smap_value) (flag: bool),
 valid_smap_value instk_height n ops val ->
+valid_bindings instk_height n sb ops ->
 opt val fcmp sb n instk_height ops = (val', flag) ->
 valid_smap_value instk_height n ops val'.
 
@@ -763,7 +764,7 @@ unfold valid_bindings.
 destruct Hvalid as [Hmaxidx [Hvalid_smapv_val Hvalid_sb]].
 fold valid_bindings in Hvalid_sb.
 pose proof (Hopt_smapv_snd instk_height n ops fcmp sb val val' flag
-  Hvalid_smapv_val Hopt) as Hvalid_smapv_val'.
+  Hvalid_smapv_val Hvalid_sb Hopt) as Hvalid_smapv_val'.
 split; try split; try assumption.
 Qed.
 

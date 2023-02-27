@@ -50,7 +50,11 @@ Require Import FORVES.optimizations_def.
 Import SymbolicState.
 
 Require Import FORVES.optimizations.add_zero.
-Import Add_zero.
+Import Opt_add_zero.
+Require Import FORVES.optimizations.eval.
+Import Opt_eval.
+Require Import FORVES.optimizations.not_not.
+Import Opt_not_not.
 
 Require Import List.
 Import ListNotations.
@@ -444,7 +448,12 @@ Qed.
 (* List of sound sbindings optimizations we can use *)
 
 Definition optimizations_pipeline : opt_pipeline := 
-  [OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd].
+  [ 
+    OpEntry optimize_eval_sbinding optimize_eval_sbinding_snd;
+    OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd;
+    OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
+  ].
+
 
 
 End Checker.
