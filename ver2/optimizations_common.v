@@ -183,6 +183,13 @@ Qed.
 
 
 
+Lemma not_basic_value_smv_symop: forall label args,
+not_basic_value_smv (SymOp label args) = true.
+Proof.
+reflexivity.
+Qed.
+
+
 
 
 (*************************************************)

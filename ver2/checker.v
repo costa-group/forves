@@ -55,6 +55,8 @@ Require Import FORVES.optimizations.eval.
 Import Opt_eval.
 Require Import FORVES.optimizations.not_not.
 Import Opt_not_not.
+Require Import FORVES.optimizations.and_and1.
+Import Opt_and_and1.
 
 Require Import List.
 Import ListNotations.
@@ -451,7 +453,8 @@ Definition optimizations_pipeline : opt_pipeline :=
   [ 
     OpEntry optimize_eval_sbinding optimize_eval_sbinding_snd;
     OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd;
-    OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
+    OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd;
+    OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
   ].
 
 

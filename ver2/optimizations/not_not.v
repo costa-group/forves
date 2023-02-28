@@ -60,14 +60,6 @@ Import ListNotations.
 Module Opt_not_not.
 
 
-Definition follow_to_op (sv: sstack_val) (maxidx: nat) (sb: sbindings) 
-  : option follow_in_smap_ret_t :=
-match follow_in_smap sv maxidx sb with
-| Some (FollowSmapVal (SymOp op args) idx' sb') => 
-    Some (FollowSmapVal (SymOp op args) idx' sb')
-| _ => None
-end.
-
 
 (* NOT(NOT(X)) = X *)
 Definition optimize_not_not_sbinding : opt_smap_value_type := 
@@ -79,7 +71,7 @@ fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
 | SymOp NOT [arg1] => 
-  match follow_to_op arg1 maxid sb with
+  match follow_in_smap arg1 maxid sb with
   | Some (FollowSmapVal (SymOp NOT [arg2]) idx' sb') => 
       (SymBasicVal arg2, true)
   | _ => (val, false)
@@ -101,7 +93,7 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
 destruct label eqn: eq_label; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args as [|arg1 r1] eqn: eq_args; try inject_rw Hoptm_sbinding eq_val'.
 destruct r1; try inject_rw Hoptm_sbinding eq_val'.
-destruct (follow_to_op arg1 n sb) as [fsmv|] eqn: eq_follow1;
+destruct (follow_in_smap arg1 n sb) as [fsmv|] eqn: eq_follow1;
   try inject_rw Hoptm_sbinding eq_val'.
 destruct fsmv as [smv idx' sb'] eqn: eq_fsmv.
 destruct smv as [x1|x2|label2 args2|x4|x5|x6] eqn: eq_smv;
@@ -119,7 +111,6 @@ destruct Hvalid_smapv_val as [eq_len eq_valid_args1].
 simpl in eq_valid_args1.
 destruct eq_valid_args1 as [eq_valid_arg1 _].
 simpl.
-unfold follow_to_op in eq_follow1.
 destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: eq_follow_arg1;
   try discriminate.
 destruct fsmv1  as [smv1 idx1 sb1] eqn: eq_fsmv1.
@@ -133,15 +124,14 @@ pose proof (valid_follow_in_smap sb arg1 instk_height n ops
   (SymOp NOT [arg2]) idx' sb' eq_valid_arg1 Hvalid eq_follow_arg1) 
   as Hnew_valid.
 destruct Hnew_valid as [Hvalid_smap_idx' [Hvalid_sb' Himp]].
-assert (not_basic_value_smv (SymOp NOT [arg2]) = true) as not_basic_not_arg2.
-- intuition.
-- apply Himp in not_basic_not_arg2 as n_gt_idx'.
-  simpl in Hvalid_smap_idx'.
-  unfold valid_stack_op_instr in Hvalid_smap_idx'.
-  rewrite -> eq_ops in Hvalid_smap_idx'.
-  simpl in Hvalid_smap_idx'.
-  destruct Hvalid_smap_idx' as [_ [Hvalid_sstack_value_arg2_idx' _]].
-  apply valid_sstack_value_gt with (n:=idx'); try assumption.
+pose proof (not_basic_value_smv_symop NOT [arg2]) as not_basic_not_arg2.
+apply Himp in not_basic_not_arg2 as n_gt_idx'.
+simpl in Hvalid_smap_idx'.
+unfold valid_stack_op_instr in Hvalid_smap_idx'.
+rewrite -> eq_ops in Hvalid_smap_idx'.
+simpl in Hvalid_smap_idx'.
+destruct Hvalid_smap_idx' as [_ [Hvalid_sstack_value_arg2_idx' _]].
+apply valid_sstack_value_gt with (n:=idx'); try assumption.
 Qed.
 
 
@@ -169,12 +159,7 @@ split.
     
 - (* evaluation is preserved *) 
   intros stk mem strg ctx v Hlen Heval_orig.
-  (*assert (Hlen2 := Hlen).
-  rewrite -> Hlen in Hlen2.
-  rewrite <- Hlen in Hlen2 at 2.*)
   unfold optimize_not_not_sbinding in Hoptm_sbinding.
-  (*pose proof (Hvalid_maxidx instk_height maxidx idx val sb evm_stack_opm
-      Hvalid) as eq_maxidx_idx.*)
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
   (* SymOp label args *)
@@ -182,7 +167,7 @@ split.
   destruct args as [|arg1 r1] eqn: eq_args; 
     try inject_rw Hoptm_sbinding eq_val'.
   destruct r1 as [|_a _b] eqn: eq_r1; try inject_rw Hoptm_sbinding eq_val'.
-  destruct (follow_to_op arg1 idx sb) as [fsmv|] eqn: eq_follow_arg1;
+  destruct (follow_in_smap arg1 idx sb) as [fsmv|] eqn: eq_follow_arg1;
     try inject_rw Hoptm_sbinding eq_val'.
   destruct fsmv as [smv idx' sb'] eqn: eq_fsmv.
   destruct smv as [_1|_2|label2 args2|_4|_5|_6] eqn: eq_smv;
@@ -202,7 +187,7 @@ split.
   rewrite <- Heval_orig.
   destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate. 
   simpl in eq_eval_arg1_sb.
-  unfold follow_to_op in eq_follow_arg1.
+  (*unfold follow_in_smap in eq_follow_arg1.*)
   destruct (follow_in_smap arg1 idx sb) as [fsmv1|] 
     eqn: eq_follow_smap_arg1; try discriminate.
   destruct fsmv1 as [smv1 idx1 sb1] eqn: eq_fsmv1. 
@@ -215,7 +200,7 @@ split.
   destruct (eval_sstack_val' maxidx' arg2 stk mem strg ctx idx1 sb1 
     evm_stack_opm) as [arg2v|] eqn: eq_eval_arg2_sb1; try discriminate.
   injection eq_eval_arg1_sb as eq_arg1v.
-  rewrite <- eq_arg1v. simpl.
+  rewrite <- eq_arg1v. 
   
   unfold eval_sstack_val. 
   rewrite <- eval_sstack_val'_freshvar.
@@ -232,7 +217,7 @@ split.
     (S (S maxidx')) stk mem strg ctx idx1 (S maxidx') sb sb1 evm_stack_opm
     prefix Hvalid_sb1 eq_sb_prefix arg2 arg2v eq_eval_arg2_sb1)
     as eq_eval_ext.
-  rewrite -> eq_eval_ext.
+  rewrite -> eq_eval_ext. simpl.
   rewrite -> wnot_idempotent.
   reflexivity.
 Qed.

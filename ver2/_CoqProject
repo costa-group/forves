@@ -46,6 +46,7 @@ optimizations_def.v
 optimizations/add_zero.v
 optimizations/eval.v
 optimizations/not_not.v
+optimizations/and_and1.v
 
 block_equiv_checker.v
 
