@@ -64,7 +64,7 @@ Ctx
   (code : EVMAddr -> code_info ) 
   (gasprice : EVMWord)
   (outdata: chunk)
-  (blokcs : EVMWord -> block_info)
+  (blocks : EVMWord -> block_info)
   (miner : EVMAddr)
   (currblock : EVMWord)
   (gaslimit : EVMWord)
@@ -89,7 +89,7 @@ Definition empty_context : context :=
   (fun _ => CodeInfo 0 WO WZero) (* (code : EVMAddr -> code_info )  *)
   WZero (* (gasprice : EVMWord) *)
   (Chunk 0 WO) (* (outdata: chunk) *)
-  (fun _ => BlockInfo 0 WO WZero WZero) (* (blokcs : EVMWord -> block_info) *)
+  (fun _ => BlockInfo 0 WO WZero WZero) (* (blocks : EVMWord -> block_info) *)
   AZero (* (miner : EVMAddr) *)
   WZero (* (currblock : EVMWord) *)
   WZero (* (gaslimit : EVMWord) *)
@@ -149,7 +149,7 @@ Definition get_outdata_ctx (c : context) :=
   | Ctx _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_blokcs_ctx (c : context) :=
+Definition get_blocks_ctx (c : context) :=
   match c with
   | Ctx _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ => x
   end.

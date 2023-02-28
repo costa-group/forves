@@ -300,88 +300,153 @@ Lemma not_ctx_ind: ctx_independent_op evm_not.
 Proof.
   ctx_independent_tac evm_not.
 Qed.
-  
+
 
 Definition evm_byte (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
+
 
 Definition evm_shl (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wlshift' b (wordToNat a)
   | _ => WZero
   end.
+Lemma shl_ctx_ind: ctx_independent_op evm_shl.
+Proof.
+  ctx_independent_tac evm_shl.
+Qed.
+
 
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wrshift' b (wordToNat a)
   | _ => WZero
   end.
+Lemma shr_ctx_ind: ctx_independent_op evm_shr.
+Proof.
+  ctx_independent_tac evm_shr.
+Qed.
+
 
 Definition evm_sar (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
+
+
 Definition evm_address (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+NToWord EVMWordSize (wordToN (get_address_ctx ctx)).
+
 
 Definition evm_balance (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+  match args with
+  | [a] => let address := NToWord EVMAddrSize (wordToN a) in
+           (get_balance_ctx ctx) address
+  | _ => WZero
+  end.
+
 
 Definition evm_origin (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+NToWord EVMWordSize (wordToN (get_origin_ctx ctx)).
+
 
 Definition evm_caller (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+NToWord EVMWordSize (wordToN (get_caller_ctx ctx)).
+
 
 Definition evm_callvalue (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+get_callvalue_ctx ctx.
+
 
 Definition evm_calldataload (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
+
 Definition evm_calldatasize (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+match get_data_ctx ctx with
+| Chunk size data => natToWord EVMWordSize size
+end.
+
 
 Definition evm_codesize (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+let address := get_address_ctx ctx in
+let info := (get_code_ctx ctx) address in
+match info with 
+| CodeInfo size content hash => natToWord EVMWordSize size
+end.
+
 
 Definition evm_gasprice (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+get_gasprice_ctx ctx.  
+
 
 Definition evm_extcodesize (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+match args with
+| [a] => let address := NToWord EVMAddrSize (wordToN a) in
+         let info := (get_code_ctx ctx) address in
+         match info with 
+         | CodeInfo size content hash => natToWord EVMWordSize size
+         end
+| _ => WZero
+end.
+
 
 Definition evm_returndatasize (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+match get_outdata_ctx ctx with
+| Chunk size data => natToWord EVMWordSize size
+end.
+
 
 Definition evm_extcodehash (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+match args with
+| [a] => let address := NToWord EVMAddrSize (wordToN a) in
+         let info := (get_code_ctx ctx) address in
+         match info with 
+         | CodeInfo size content hash => hash
+         end
+| _ => WZero
+end.
+
 
 Definition evm_blockhash (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
+
 Definition evm_coinbase (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+NToWord EVMWordSize (wordToN (get_miner_ctx ctx)).
+
 
 Definition evm_timestamp (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+let curr_block := get_currblock_ctx ctx in
+let info := (get_blocks_ctx ctx) curr_block in
+match info with 
+| BlockInfo size content timestamp hash => timestamp
+end.
+
 
 Definition evm_number (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
 
+
 Definition evm_difficulty (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
+  
 
 Definition evm_gaslimit (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+get_gaslimit_ctx ctx.
+
 
 Definition evm_chainid (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+get_chainid_ctx ctx.
+
 
 Definition evm_selfbalance (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+let address := get_address_ctx ctx in
+(get_balance_ctx ctx) address.
+
 
 Definition evm_basefee (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+get_basefee_ctx ctx.
+
 
 Definition evm_stack_opm : stack_op_instr_map :=
   ADD |->i OpImp 2 evm_add (Some add_comm) (Some add_ctx_ind);
@@ -405,27 +470,27 @@ Definition evm_stack_opm : stack_op_instr_map :=
   OR |->i OpImp 2  evm_or (Some or_comm) (Some or_ctx_ind);
   XOR |->i OpImp 2 evm_xor (Some xor_comm) (Some xor_ctx_ind);
   NOT |->i OpImp 1 evm_not  None (Some not_ctx_ind);
-  BYTE |->i OpImp 2 evm_byte None None;
-  SHL |->i OpImp 2 evm_shl  None None;
-  SHR |->i OpImp 2 evm_shr None None;
-  SAR |->i OpImp 2 evm_sar None None;
+  BYTE |->i OpImp 2 evm_byte None None; (*TODO*)
+  SHL |->i OpImp 2 evm_shl  None (Some shl_ctx_ind);
+  SHR |->i OpImp 2 evm_shr None (Some shr_ctx_ind);
+  SAR |->i OpImp 2 evm_sar None None; (*TODO*)
   ADDRESS |->i OpImp 0 evm_address None None;
   BALANCE |->i OpImp 1  evm_balance None None;
   ORIGIN |->i OpImp 0 evm_origin None None;
   CALLER |->i  OpImp 0 evm_caller None None;
   CALLVALUE |->i OpImp 0 evm_callvalue None None;
-  CALLDATALOAD |->i OpImp 1 evm_calldataload None None;
+  CALLDATALOAD |->i OpImp 1 evm_calldataload None None; (*TODO*)
   CALLDATASIZE |->i  OpImp 0 evm_calldatasize None None;
   CODESIZE |->i OpImp 0 evm_codesize  None None;
-  GASPRICE |->i OpImp 0 evm_gasprice None None;
+  GASPRICE |->i OpImp 0 evm_gasprice None None; 
   EXTCODESIZE |->i  OpImp 1 evm_extcodesize None None;
   RETURNDATASIZE |->i OpImp 0  evm_returndatasize None None;
   EXTCODEHASH |->i OpImp 1 evm_extcodehash  None None;
-  BLOCKHASH |->i OpImp 1 evm_blockhash None None;
+  BLOCKHASH |->i OpImp 1 evm_blockhash None None; (*TODO*)
   COINBASE |->i OpImp  0 evm_coinbase None None;
   TIMESTAMP |->i OpImp 0 evm_timestamp None None;
-  NUMBER |->i OpImp 0 evm_number None None;
-  DIFFICULTY |->i OpImp 0  evm_difficulty None None;
+  NUMBER |->i OpImp 0 evm_number None None; (*TODO*)
+  DIFFICULTY |->i OpImp 0  evm_difficulty None None; (*TODO*)
   GASLIMIT |->i OpImp 0 evm_gaslimit None None;
   CHAINID |->i OpImp 0 evm_chainid None None;
   SELFBALANCE |->i OpImp 0  evm_selfbalance None None;
