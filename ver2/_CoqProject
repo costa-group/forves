@@ -48,6 +48,7 @@ optimizations/eval.v
 optimizations/not_not.v
 optimizations/and_and1.v
 optimizations/and_and2.v
+optimizations/and_origin.v
 
 block_equiv_checker.v
 

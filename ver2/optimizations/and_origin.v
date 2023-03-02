@@ -57,13 +57,33 @@ Require Import List.
 Import ListNotations.
 
 
-Module Opt_and_and2.
+Module Opt_and_origin.
 
 
-(* AND(AND(X,Y), X) = AND(X,Y)
-   AND(AND(X,Y), Y) = AND(X,Y)
- *)
-Definition optimize_and_and2_sbinding : opt_smap_value_type := 
+
+Definition two_exp_160_minus_1 : EVMWord := 
+let diff := EVMWordSize - EVMAddrSize in
+zext (wones EVMAddrSize) diff.
+
+Lemma two_exp_160_minus_1_ok: wordToN two_exp_160_minus_1 = (Npow2 160 - 1)%N.
+Proof.
+reflexivity.
+Qed.
+
+
+Definition is_origin_mask (sv1 sv2: sstack_val) (fcmp: sstack_val_cmp_t) 
+  (maxid instk_height: nat) (sb: sbindings) (ops: stack_op_instr_map) : bool :=
+match follow_in_smap sv1 maxid sb with 
+| Some (FollowSmapVal (SymOp ORIGIN []) idx' sb') => 
+    fcmp sv2 (Val two_exp_160_minus_1) maxid sb maxid sb instk_height ops
+| _ => false
+end.
+
+
+
+(* AND(ORIGIN,2^160-1) = ORIGIN
+   AND(2^160-1,ORIGIN) = ORIGIN *)
+Definition optimize_and_origin_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
 fun (sb: sbindings) =>
@@ -72,60 +92,38 @@ fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
 | SymOp AND [arg1;arg2] => 
-  match follow_in_smap arg1 maxid sb with
-  | Some (FollowSmapVal (SymOp AND [arg11;arg12]) idx' sb') => 
-      if fcmp arg11 arg2 idx' sb' maxid sb instk_height ops then 
-        (SymOp AND [arg11;arg12], true)
-      else if fcmp arg12 arg2 idx' sb' maxid sb instk_height ops then 
-        (SymOp AND [arg11;arg12], true)
-      else 
-        (val, false)
-  | _ => (val, false)
-  end
-| _ => (val, false)
+  if is_origin_mask arg1 arg2 fcmp maxid instk_height sb ops ||
+     is_origin_mask arg2 arg1 fcmp maxid instk_height sb ops 
+  then (SymOp ORIGIN [], true)
+  else (val, true)
+| _ => (val, true)
 end.
 
 
-Lemma wand_x_x: forall (x: EVMWord),
-wand x x = x.
+(*
+Lemma zext_zero_eq: forall (sz: nat) (w: word sz),
+zext w 0 = w.
+Pro
+*)
+
+
+Lemma masking_extension_word: forall (sz1 sz2: nat) (w: word sz1), 
+wand (zext w sz2) (zext (wones sz1) sz2) = zext w sz2.
 Proof.
-induction x as [|b n x' IH].
-- reflexivity.
-- unfold wand. simpl. fold wand.
-  rewrite -> andb_diag.
-  rewrite -> IH.
-  reflexivity.
-Qed.
+intros sz1 sz2. revert sz2.
+induction sz2 as [|sz2' IH].
+- intros w. admit.
+- intros w. unfold zext.
+Admitted.
 
 
-Lemma wand_wand2_1: forall (x y: EVMWord),
-wand (wand x y) x = wand x y.
-Proof.
-intros x y.
-rewrite -> wand_comm.
-rewrite -> wand_assoc.
-rewrite -> wand_x_x.
-reflexivity.
-Qed.
-
-Lemma wand_wand2_2: forall (x y: EVMWord),
-wand (wand x y) y = wand x y.
-Proof.
-intros x y.
-rewrite <- wand_assoc.
-rewrite -> wand_x_x.
-rewrite -> wand_comm.
-reflexivity.
-Qed.
-
-
-Lemma optimize_and_and2_sbinding_smapv_valid:
-opt_smapv_valid_snd optimize_and_and2_sbinding.
+Lemma optimize_and_origin_sbinding_smapv_valid:
+opt_smapv_valid_snd optimize_and_origin_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n ops fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
-unfold optimize_and_and2_sbinding in Hoptm_sbinding.
+unfold optimize_and_origin_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; 
   try inject_rw Hoptm_sbinding eq_val'.
@@ -133,57 +131,61 @@ destruct label eqn: eq_label; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args as [|arg1 r1]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r1 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-destruct (follow_in_smap arg1 n sb) as [fsmv_arg1|] eqn: eq_follow_arg1;
-  try inject_rw Hoptm_sbinding eq_val'.
-destruct fsmv_arg1 as [smv_arg1 idx' sb'] eqn: eq_fsmv_arg1.
-destruct smv_arg1 as [x1|x2|label2 args2|x4|x5|x6] eqn: eq_smv;
-  try inject_rw Hoptm_sbinding eq_val'.
-destruct label2; try inject_rw Hoptm_sbinding eq_val'.
-destruct args2 as [|arg11 r12]; try inject_rw Hoptm_sbinding eq_val'.
-destruct r12 as [|arg12 r22]; try inject_rw Hoptm_sbinding eq_val'.
-destruct r22; try inject_rw Hoptm_sbinding eq_val'.
+destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops || 
+          is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
+  eqn: is_origin; try inject_rw Hoptm_sbinding eq_val'.
+unfold orb in is_origin.
 
-assert (Hvalid_smapv_val_copy := Hvalid_smapv_val).
-simpl in Hvalid_smapv_val.
+unfold valid_smap_value in Hvalid_smapv_val.
 unfold valid_stack_op_instr in Hvalid_smapv_val.
-destruct (ops AND) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_and.
-destruct Hvalid_smapv_val as [Hlen_nargs Hvalid_arg1_arg2].
+destruct (ops AND).
+destruct Hvalid_smapv_val as [Hlen_and Hvalid_arg1_arg2].
 simpl in Hvalid_arg1_arg2.
-destruct Hvalid_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2]].
+destruct Hvalid_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2 _]].
 
-pose proof (valid_follow_in_smap sb arg1 instk_height n ops
-      (SymOp AND [arg11; arg12]) idx' sb' Hvalid_arg1 Hvalid
-      eq_follow_arg1) as Hvalid2.
-destruct Hvalid2 as [Hvalid_smap [Hvalid_sb' Himpl]].
-simpl in Hvalid_smap. unfold valid_stack_op_instr in Hvalid_smap.
-rewrite -> eq_ops_and in Hvalid_smap.
-destruct Hvalid_smap as [Hlen_nargs' Hvalid_arg11_arg12].
-simpl in Hvalid_arg11_arg12.
-destruct Hvalid_arg11_arg12 as [Hvalid_arg11 [Hvalid_arg12 _]].
-pose proof (not_basic_value_smv_symop AND [arg11; arg12]) as eq_not_basic.
-apply Himpl in eq_not_basic as n_gt_idx'.
-
-destruct (fcmp arg11 arg2 idx' sb' n sb instk_height ops) 
-  eqn: fcmp_arg1_arg11.
+destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops) 
+  eqn: is_origin_arg1_arg2.
 - injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
-  simpl. unfold valid_stack_op_instr. 
-  rewrite -> eq_ops_and. split; try assumption. 
-  simpl. split; try intuition.
-  apply valid_sstack_value_gt with (n:=idx'); try assumption.
-  apply valid_sstack_value_gt with (n:=idx'); try assumption.
-   
-- destruct (fcmp arg12 arg2 idx' sb' n sb instk_height ops) 
-  eqn: fcmp_arg1_arg22; try inject_rw Hoptm_sbinding eq_val'.
+  unfold is_origin_mask in is_origin_arg1_arg2.
+  destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: eq_follow_arg1; 
+    try discriminate.
+  destruct fsmv1 as [smv_arg1 idx1' sb1'] eqn: eq_fsmv_arg1.
+  destruct (smv_arg1) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
+  destruct label2; try discriminate.
+  destruct args2; try discriminate.
+  pose proof (valid_follow_in_smap sb arg1 instk_height n ops 
+    (SymOp ORIGIN []) idx1' sb1' Hvalid_arg1 Hvalid eq_follow_arg1)
+    as Hvalid2.
+  destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].
+  pose proof (not_basic_value_smv_symop ORIGIN []) as eq_not_basic.
+  apply Himpl in eq_not_basic as n_gt_idx1'.
+  apply gt_add in n_gt_idx1'. destruct n_gt_idx1' as [k n_gt_idx1'].
+  rewrite -> n_gt_idx1'.
+  apply valid_smap_value_incr with (m:=k) in Hvalid_smpv.
+  assumption.
+  
+- destruct (is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
+  eqn: is_origin_arg2_arg1; try discriminate.
   injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
-  simpl. unfold valid_stack_op_instr. 
-  rewrite -> eq_ops_and. split; try assumption. 
-  simpl. split. 
-  + apply valid_sstack_value_gt with (n:=idx'); try assumption.
-  + split.
-    * apply valid_sstack_value_gt with (n:=idx'); try assumption.
-    * intuition.
+  unfold is_origin_mask in is_origin_arg2_arg1.
+  destruct (follow_in_smap arg2 n sb) as [fsmv2|] eqn: eq_follow_arg2; 
+    try discriminate.
+  destruct fsmv2 as [smv_arg2 idx2' sb2'] eqn: eq_fsmv_arg2.
+  destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
+  destruct label2; try discriminate.
+  destruct args2; try discriminate.
+  pose proof (valid_follow_in_smap sb arg2 instk_height n ops 
+    (SymOp ORIGIN []) idx2' sb2' Hvalid_arg2 Hvalid eq_follow_arg2)
+    as Hvalid2.
+  destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].
+  pose proof (not_basic_value_smv_symop ORIGIN []) as eq_not_basic.
+  apply Himpl in eq_not_basic as n_gt_idx2'.
+  apply gt_add in n_gt_idx2'. destruct n_gt_idx2' as [k n_gt_idx2'].
+  rewrite -> n_gt_idx2'.
+  apply valid_smap_value_incr with (m:=k) in Hvalid_smpv.
+  assumption.
 Qed.
 
 
@@ -200,20 +202,20 @@ reflexivity.
 Qed.
 
 
-Lemma optimize_and_and2_sbinding_snd:
-opt_sbinding_snd optimize_and_and2_sbinding.
+Lemma optimize_and_origin_sbinding_snd:
+opt_sbinding_snd optimize_and_origin_sbinding.
 Proof.
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
 split.
 - (* valid_sbindings *)
-  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_and_and2_sbinding)
+  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_and_origin_sbinding)
     (fcmp:=fcmp)(flag:=flag); try assumption.
-  apply optimize_and_and2_sbinding_smapv_valid. 
+  apply optimize_and_origin_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  (*intros stk mem strg ctx v Hlen Heval_orig.
   unfold optimize_and_and2_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -392,8 +394,8 @@ split.
       injection eval_arg2_vv as eq_arg2v_argv12v.
       rewrite -> eq_arg2v_argv12v.
       rewrite -> wand_wand2_2.
-      reflexivity.
+      reflexivity.*)
 
-Qed.
+Admitted.
 
-End Opt_and_and2.
+End Opt_and_origin.

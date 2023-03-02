@@ -334,23 +334,27 @@ Definition evm_sar (ctx : context) (args : list EVMWord) : EVMWord :=
 
 
 Definition evm_address (ctx : context) (args : list EVMWord) : EVMWord :=
-NToWord EVMWordSize (wordToN (get_address_ctx ctx)).
+let diff := EVMWordSize - EVMAddrSize in
+zext (get_address_ctx ctx) diff.
 
 
 Definition evm_balance (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a] => let address := NToWord EVMAddrSize (wordToN a) in
+  | [a] => let diff := EVMWordSize - EVMAddrSize in
+           let address := split1 EVMAddrSize diff a in
            (get_balance_ctx ctx) address
   | _ => WZero
   end.
 
 
 Definition evm_origin (ctx : context) (args : list EVMWord) : EVMWord :=
-NToWord EVMWordSize (wordToN (get_origin_ctx ctx)).
+let diff := EVMWordSize - EVMAddrSize in
+zext (get_origin_ctx ctx) diff.
 
 
 Definition evm_caller (ctx : context) (args : list EVMWord) : EVMWord :=
-NToWord EVMWordSize (wordToN (get_caller_ctx ctx)).
+let diff := EVMWordSize - EVMAddrSize in
+zext (get_caller_ctx ctx) diff.
 
 
 Definition evm_callvalue (ctx : context) (args : list EVMWord) : EVMWord :=
@@ -376,12 +380,13 @@ end.
 
 
 Definition evm_gasprice (ctx : context) (args : list EVMWord) : EVMWord :=
-get_gasprice_ctx ctx.  
+get_gasprice_ctx ctx.
 
 
 Definition evm_extcodesize (ctx : context) (args : list EVMWord) : EVMWord :=
 match args with
-| [a] => let address := NToWord EVMAddrSize (wordToN a) in
+| [a] => let diff := EVMWordSize - EVMAddrSize in
+         let address := split1 EVMAddrSize diff a in
          let info := (get_code_ctx ctx) address in
          match info with 
          | CodeInfo size content hash => natToWord EVMWordSize size
@@ -398,7 +403,8 @@ end.
 
 Definition evm_extcodehash (ctx : context) (args : list EVMWord) : EVMWord :=
 match args with
-| [a] => let address := NToWord EVMAddrSize (wordToN a) in
+| [a] => let diff := EVMWordSize - EVMAddrSize in
+         let address := split1 EVMAddrSize diff a in
          let info := (get_code_ctx ctx) address in
          match info with 
          | CodeInfo size content hash => hash
@@ -412,7 +418,8 @@ Definition evm_blockhash (ctx : context) (args : list EVMWord) : EVMWord :=
 
 
 Definition evm_coinbase (ctx : context) (args : list EVMWord) : EVMWord :=
-NToWord EVMWordSize (wordToN (get_miner_ctx ctx)).
+let diff := EVMWordSize - EVMAddrSize in
+zext (get_miner_ctx ctx) diff.
 
 
 Definition evm_timestamp (ctx : context) (args : list EVMWord) : EVMWord :=
