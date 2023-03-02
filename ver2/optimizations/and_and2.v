@@ -79,7 +79,7 @@ match val with
       if fcmp arg11 arg2 idx' sb' maxid sb instk_height ops then 
         (SymOp AND [arg11;arg12], true)
       else if fcmp arg12 arg2 idx' sb' maxid sb instk_height ops then 
-        (SymOp AND [arg2;arg11], true)
+        (SymOp AND [arg11;arg12], true)
       else 
         (val, false)
   | _ => (val, false)
@@ -181,8 +181,11 @@ destruct (fcmp arg11 arg2 idx' sb' n sb instk_height ops)
   rewrite <- eq_val'. 
   simpl. unfold valid_stack_op_instr. 
   rewrite -> eq_ops_and. split; try assumption. 
-  simpl. split; try intuition.
-  apply valid_sstack_value_gt with (n:=idx'); try assumption.
+  simpl. split. 
+  + apply valid_sstack_value_gt with (n:=idx'); try assumption.
+  + split.
+    * apply valid_sstack_value_gt with (n:=idx'); try assumption.
+    * intuition.
 Qed.
 
 
@@ -198,9 +201,8 @@ intros T x y.
 reflexivity.
 Qed.
 
-Search eval_sstack_val'.
 
-Lemma optimize_and_and1_sbinding_snd:
+Lemma optimize_and_and2_sbinding_snd:
 opt_sbinding_snd optimize_and_and2_sbinding.
 Proof.
 unfold opt_sbinding_snd.
@@ -254,7 +256,7 @@ split.
   rewrite <- eq_v.
   
   destruct (fcmp arg11 arg2 idx' sb' idx sb instk_height evm_stack_opm) 
-    eqn: eq_fcmp_arg11_arg2. 
+    eqn: eq_fcmp_arg11_arg2.
   + injection Hoptm_sbinding as eq_val' _.
     rewrite <- eq_val'.
     unfold eval_sstack_val.
@@ -278,33 +280,63 @@ split.
     destruct Hvalid2 as [Hvalid_smapv_and [Hvalid_sb' Himpl]].
     pose proof (not_basic_value_smv_symop AND [arg11;arg12]) as not_basic_and.
     apply Himpl in not_basic_and.
-    
-    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg11.
-    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg11.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg12.
-    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
-      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
-      arg11 arg11v eval_arg11) as Heval_arg11_sb.
-    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
-      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
-      arg12 arg12v eval_arg12) as Heval_arg12_sb.
-    rewrite -> Heval_arg11_sb.
-    rewrite -> Heval_arg12_sb. simpl.
-    
-    (* arg11v must be equal to arg2v *)
-    (* TODO *)
+    unfold valid_smap_value in Hvalid_smapv_and.
+    unfold valid_stack_op_instr in Hvalid_smapv_and. 
+    rewrite -> evm_stack_opm_AND in Hvalid_smapv_and.
+    destruct Hvalid_smapv_and as [_ Hvalid_arg11_arg12].
+    simpl in Hvalid_arg11_arg12.
+    destruct Hvalid_arg11_arg12 as [Hvalid_arg11_idx' [Hvalid_arg12_idx' _]].
     symmetry in Hlen.
     pose proof (Hsafe_sstack_val_cmp arg11 arg2 idx' sb' idx sb instk_height 
-      evm_stack_opm). Hvalid_arg11 Hvalid_arg2 Hvalid_sb' Hvalid_sb
+      evm_stack_opm Hvalid_arg11_idx' Hvalid_arg2 Hvalid_sb' Hvalid_sb
       eq_fcmp_arg11_arg2 stk mem strg ctx Hlen) as Hcmp_eval.
     destruct Hcmp_eval as [vv [eval_arg11_vv eval_arg2_vv]].
+    unfold eval_sstack_val in eval_arg11_vv.
+    unfold eval_sstack_val in eval_arg2_vv.
+
+    assert (eval_arg11_idx := eval_arg11).
+    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg11_idx. 
     
-(*    
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg11.
-    rewrite -> eval_arg11.
-    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg12.
+    assert (eval_arg12_idx := eval_arg12).
+    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12_idx.
+    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg11_idx.
+    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg12_idx.
+    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
+      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
+      arg11 arg11v eval_arg11_idx) as Heval_arg11_sb.
+    rewrite -> Heval_arg11_sb.
+    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
+      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
+      arg12 arg12v eval_arg12_idx) as Heval_arg12_sb.
+    rewrite -> Heval_arg12_sb. simpl.
+    
+    (* arg11v must be arg2v *)
+    rewrite -> eq_idx in eval_arg2.
+    rewrite -> eval_arg2 in eval_arg2_vv.
+    assert (S idx' < S maxidx') as s_idx'_lt_s_maxidx'.
+    * intuition.
+    * rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg11_vv. 
+      apply eval_sstack_val'_preserved_when_depth_extended_lt 
+        with (d2:=S maxidx')in eval_arg11_vv; try assumption.
+      rewrite -> eval_arg11_idx in eval_arg11_vv.
+      rewrite <- eval_arg11_vv in eval_arg2_vv.
+      injection eval_arg2_vv as eq_arg2v_argv11v.
+      rewrite -> eq_arg2v_argv11v.
+      rewrite -> wand_wand2_1.
+      reflexivity.
+      
+  + destruct (fcmp arg12 arg2 idx' sb' idx sb instk_height evm_stack_opm)
+      eqn: eq_fcmp_arg12_arg2; try inject_rw Hoptm_sbinding eq_val';
+      try (rewrite -> eq_v; inject_rw Hoptm_sbinding eq_val').
+    injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold eval_sstack_val.
+    rewrite -> eval_sstack_val'_one_step. 
+    rewrite -> follow_in_smap_head_op.
+    rewrite -> evm_stack_opm_AND. 
+    rewrite -> lenght2.
+    unfold map_option.
+    
     pose proof (follow_suffix sb arg1 idx (SymOp AND [arg11; arg12]) idx' sb'
       eq_follow_arg1) as Hprefix_sb.
     destruct Hprefix_sb as [prefix Hprefix_sb].
@@ -317,107 +349,53 @@ split.
       (SymOp AND [arg11; arg12]) idx' sb' Hvalid_arg1 Hvalid_sb
       eq_follow_arg1) as Hvalid2.
     destruct Hvalid2 as [Hvalid_smapv_and [Hvalid_sb' Himpl]].
+    pose proof (not_basic_value_smv_symop AND [arg11;arg12]) as not_basic_and.
+    apply Himpl in not_basic_and.
+    unfold valid_smap_value in Hvalid_smapv_and.
+    unfold valid_stack_op_instr in Hvalid_smapv_and. 
+    rewrite -> evm_stack_opm_AND in Hvalid_smapv_and.
+    destruct Hvalid_smapv_and as [_ Hvalid_arg11_arg12].
+    simpl in Hvalid_arg11_arg12.
+    destruct Hvalid_arg11_arg12 as [Hvalid_arg11_idx' [Hvalid_arg12_idx' _]].
+    symmetry in Hlen.
+    pose proof (Hsafe_sstack_val_cmp arg12 arg2 idx' sb' idx sb instk_height 
+      evm_stack_opm Hvalid_arg12_idx' Hvalid_arg2 Hvalid_sb' Hvalid_sb
+      eq_fcmp_arg12_arg2 stk mem strg ctx Hlen) as Hcmp_eval.
+    destruct Hcmp_eval as [vv [eval_arg12_vv eval_arg2_vv]].
+    unfold eval_sstack_val in eval_arg12_vv.
+    unfold eval_sstack_val in eval_arg2_vv.
+
+    assert (eval_arg11_idx := eval_arg11).
+    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg11_idx. 
     
+    assert (eval_arg12_idx := eval_arg12).
+    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12_idx.
+    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg11_idx.
+    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg12_idx.
     pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
       mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
-      arg12 arg12v eval_arg12) as Heval_arg12_sb.
+      arg11 arg11v eval_arg11_idx) as Heval_arg11_sb.
+    rewrite -> Heval_arg11_sb.
+    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
+      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
+      arg12 arg12v eval_arg12_idx) as Heval_arg12_sb.
     rewrite -> Heval_arg12_sb. simpl.
     
-    (* arg11v must be equal to arg2v *)
-    (*TODO continue *)
-    simpl in Hvalid_smapv_and. unfold valid_stack_op_instr in Hvalid_smapv_and.
-    simpl in Hvalid_smapv_and.
-    destruct Hvalid_smapv_and as [_ [valid_arg11 [valid_arg12 _]]].
-    
-    pose proof (not_basic_value_smv_symop AND [arg11;arg12]) as not_basic_and.
-    apply Himpl in not_basic_and as idx_gt_idx'.
-     
-    symmetry in Hlen.
-    pose proof (Hsafe_sstack_val_cmp arg11 arg2 idx' sb' idx sb instk_height 
-      evm_stack_opm valid_arg11 Hvalid_arg2 Hvalid_sb' Hvalid_sb
-      eq_fcmp_arg11_arg2 stk mem strg ctx Hlen) as Hcmp_eval.
-    destruct Hcmp_eval as [vv [eval_arg11_vv eval_arg2_vv]].
-    
-    injection eq_idx as eq_idx.
-    unfold eval_sstack_val in eval_arg11_vv.
-    unfold eval_sstack_val in eval_arg2_vv.
-    rewrite <- eq_idx in eval_arg2_vv. rewrite <- eq_idx in eval_arg11.
-    rewrite -> eval_arg1 in eval_arg1_vv.
-    pose proof (not_basic_value_smv_symop AND [arg21;arg22]) as not_basic_and.
-    apply Himpl in not_basic_and.
-    rewrite -> eq_idx in eval_arg21.
-    assert (S idx' <= idx) as Hleq.
+    (* arg12v must be arg2v *)
+    rewrite -> eq_idx in eval_arg2.
+    rewrite -> eval_arg2 in eval_arg2_vv.
+    assert (S idx' < S maxidx') as s_idx'_lt_s_maxidx'.
     * intuition.
-    * pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S idx') 
-        idx idx' sb' arg21 vv stk mem strg ctx evm_stack_opm Hleq
-        eval_arg21_vv) as eval_arg21'.
-      rewrite -> eval_arg21 in eval_arg21'.
-      rewrite <- eval_arg1_vv in eval_arg21'.
-      injection eval_arg21' as eq_arg21v_arg1v.
-      rewrite -> eq_arg21v_arg1v.
-      rewrite -> wand_wand1_1.
+    * rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12_vv.
+      apply eval_sstack_val'_preserved_when_depth_extended_lt 
+        with (d2:=S maxidx')in eval_arg12_vv; try assumption.
+      rewrite -> eval_arg12_idx in eval_arg12_vv.
+      rewrite <- eval_arg12_vv in eval_arg2_vv.
+      injection eval_arg2_vv as eq_arg2v_argv12v.
+      rewrite -> eq_arg2v_argv12v.
+      rewrite -> wand_wand2_2.
       reflexivity.
 
-  + destruct (fcmp arg1 arg22 idx sb idx' sb' instk_height evm_stack_opm)
-      eqn: eq_fcmp_arg1_arg22; try inject_rw Hoptm_sbinding eq_val'.
-    rewrite <- Heval_orig.
-    simpl.
-    injection Hoptm_sbinding as eq_val' _.
-    rewrite <- eq_val'.
-    unfold eval_sstack_val.
-    rewrite -> eval_sstack_val'_one_step. 
-    rewrite -> follow_in_smap_head_op.
-    rewrite -> evm_stack_opm_AND. 
-    rewrite -> lenght2.
-    unfold map_option.
-    rewrite -> eval_arg1.
-    rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg21.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg21.
-    pose proof (follow_suffix sb arg2 idx (SymOp AND [arg21; arg22]) idx' sb'
-      eq_follow_arg2) as Hprefix_sb.
-    destruct Hprefix_sb as [prefix Hprefix_sb].
-    simpl in Hvalid.
-    destruct Hvalid as [eq_idx [Hvalid_stack_op Hvalid_sb]].
-    pose proof (eval_sstack_val'_extend_sb instk_height (S maxidx') stk
-      mem strg ctx idx sb sb' evm_stack_opm prefix Hvalid_sb Hprefix_sb
-      arg21 arg21v eval_arg21) as Heval_arg21_sb.
-    rewrite -> Heval_arg21_sb. simpl.
-    
-    unfold valid_stack_op_instr in Hvalid_stack_op. simpl in Hvalid_stack_op.
-    destruct Hvalid_stack_op as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
-    pose proof (valid_follow_in_smap sb arg2 instk_height idx evm_stack_opm
-      (SymOp AND [arg21; arg22]) idx' sb' Hvalid_arg2 Hvalid_sb
-      eq_follow_arg2) as Hvalid2.
-    destruct Hvalid2 as [Hvalid_smapv_and [Hvalid_sb' Himpl]].
-    simpl in Hvalid_smapv_and. unfold valid_stack_op_instr in Hvalid_smapv_and.
-    simpl in Hvalid_smapv_and.
-    destruct Hvalid_smapv_and as [_ [valid_arg21 [valid_arg22 _]]].
-
-    symmetry in Hlen.
-    pose proof (Hsafe_sstack_val_cmp arg1 arg22 idx sb idx' sb' instk_height 
-      evm_stack_opm Hvalid_arg1 valid_arg22 Hvalid_sb Hvalid_sb'
-      eq_fcmp_arg1_arg22 stk mem strg ctx Hlen) as Hcmp_eval.
-    destruct Hcmp_eval as [vv [eval_arg1_vv eval_arg22_vv]].
-    
-    injection eq_idx as eq_idx.
-    unfold eval_sstack_val in eval_arg1_vv.
-    unfold eval_sstack_val in eval_arg22_vv.
-    rewrite <- eq_idx in eval_arg1_vv. rewrite <- eq_idx in eval_arg1.
-    rewrite -> eval_arg1 in eval_arg1_vv.
-    pose proof (not_basic_value_smv_symop AND [arg21;arg22]) as not_basic_and.
-    apply Himpl in not_basic_and.
-    rewrite -> eq_idx in eval_arg22.
-    assert (S idx' <= idx) as Hleq.
-    * intuition.
-    * pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S idx') 
-        idx idx' sb' arg22 vv stk mem strg ctx evm_stack_opm Hleq
-        eval_arg22_vv) as eval_arg22'.
-      rewrite -> eval_arg22 in eval_arg22'.
-      rewrite <- eval_arg1_vv in eval_arg22'.
-      injection eval_arg22' as eq_arg22v_arg1v.
-      rewrite -> eq_arg22v_arg1v.
-      rewrite <- wand_wand1_2.
-      reflexivity.*)
 Qed.
 
 End Opt_and_and2.
