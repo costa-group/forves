@@ -1,3 +1,5 @@
+Require Import List.
+
 Require Import FORVES.program.
 Import Program.
 
@@ -12,6 +14,17 @@ Import ConcreteInterpreter.
 
 Require Import FORVES.optimizations_def.
 Import Optimizations_Def.
+
+Require Import FORVES.optimizations.add_zero.
+Import Opt_add_zero.
+Require Import FORVES.optimizations.eval.
+Import Opt_eval.
+Require Import FORVES.optimizations.not_not.
+Import Opt_not_not.
+Require Import FORVES.optimizations.and_and1.
+Import Opt_and_and1.
+Require Import FORVES.optimizations.and_and2.
+Import Opt_and_and2.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -205,7 +218,30 @@ Module BlockEquivChecker.
     | SStackValCmp_Trivial => SStackValCmp trivial_compare_sstack_val trivial_compare_sstack_val_snd trivial_compare_sstack_val_d0_snd
     | SStackValCmp_Basic => SStackValCmp basic_compare_sstack_val basic_compare_sstack_val_snd basic_compare_sstack_val_d0_snd
   end.
+  
+  
+Inductive available_optimization_step :=
+| OPT_eval
+| OPT_add_0
+| OPT_not_not
+| OPT_and_and1
+| OPT_and_and2.
+Definition list_opt_steps := list available_optimization_step.
 
+Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
+match tag with 
+| OPT_eval => OpEntry optimize_eval_sbinding optimize_eval_sbinding_snd
+| OPT_add_0 => OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd
+| OPT_not_not => OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
+| OPT_and_and1 => OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
+| OPT_and_and2 => OpEntry optimize_and_and2_sbinding optimize_and_and2_sbinding_snd
+end.
+
+Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=
+match l with 
+| nil => nil
+| tag::r => (get_optimization_step tag)::(get_pipeline r)
+end.
 
 
 Definition evm_eq_block_chkr'
@@ -217,7 +253,11 @@ Definition evm_eq_block_chkr'
   (smemory_cmp_ext: smemory_cmp_ext_t)
   (sstorage_cmp_ext: sstorage_cmp_ext_t)
   (sha3_cmp_ext: sha3_cmp_ext_t)
-  (opt: optim)
+  (*(opt: optim)*)
+  (opt_pipeline: opt_pipeline)
+  (opt_step_rep: nat)
+  (opt_pipeline_rep: nat)
+  (***)
   (opt_p p: block)
   (k: nat) 
   : bool :=
@@ -226,6 +266,12 @@ Definition evm_eq_block_chkr'
   let storage_updater' := storage_updater sstack_value_cmp_1 in
   let mload_solver' := mload_solver sstack_value_cmp_1 in
   let sload_solver' := sload_solver sstack_value_cmp_1 in
+  (* Builds optimization *)
+  let sstack_value_cmp := sstack_value_cmp_1 k in
+  let opt := apply_opt_n_times_pipeline_k opt_pipeline sstack_value_cmp
+               opt_step_rep opt_pipeline_rep in
+  (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
+  
   match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' opt_p k evm_stack_opm with
   | None => false
   | Some sst_opt => 
@@ -251,7 +297,12 @@ Definition evm_eq_block_chkr
   (memory_cmp_tag: available_memory_cmp)
   (storage_cmp_tag: available_storage_cmp)
   (sha3_cmp_tag: available_sha3_cmp)
-  (opt: optim)
+  
+  (*(opt: optim)*)
+  (optimization_steps: list_opt_steps)
+  (opt_step_rep: nat)
+  (opt_pipeline_rep: nat)
+  
   (opt_p p: block)
   (k: nat) : bool :=
   match get_smemory_updater memory_updater_tag with
@@ -270,7 +321,10 @@ Definition evm_eq_block_chkr
                          | SStrgCmp storage_cmp _ =>
                              match get_sha3_cmp sha3_cmp_tag with
                                | SHA3Cmp sha3_cmp _ => 
-                                   evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_val_cmp memory_cmp storage_cmp sha3_cmp opt opt_p p k
+                                   match get_pipeline optimization_steps with
+                                     | opt_pipeline =>
+                                         evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_val_cmp memory_cmp storage_cmp sha3_cmp opt_pipeline opt_step_rep opt_pipeline_rep opt_p p k
+                                     end    
                              end
                          end
                      end
