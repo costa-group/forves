@@ -25,6 +25,8 @@ Require Import FORVES.optimizations.and_and1.
 Import Opt_and_and1.
 Require Import FORVES.optimizations.and_and2.
 Import Opt_and_and2.
+Require Import FORVES.optimizations.and_origin.
+Import Opt_and_origin.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -225,7 +227,8 @@ Inductive available_optimization_step :=
 | OPT_add_0
 | OPT_not_not
 | OPT_and_and1
-| OPT_and_and2.
+| OPT_and_and2
+| OPT_and_origin.
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
@@ -235,6 +238,7 @@ match tag with
 | OPT_not_not => OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
 | OPT_and_and1 => OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
 | OPT_and_and2 => OpEntry optimize_and_and2_sbinding optimize_and_and2_sbinding_snd
+| OPT_and_origin => OpEntry optimize_and_origin_sbinding optimize_and_origin_sbinding_snd
 end.
 
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=

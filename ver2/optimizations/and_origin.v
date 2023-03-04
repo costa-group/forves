@@ -60,17 +60,6 @@ Import ListNotations.
 Module Opt_and_origin.
 
 
-
-Definition two_exp_160_minus_1 : EVMWord := 
-let diff := EVMWordSize - EVMAddrSize in
-zext (wones EVMAddrSize) diff.
-
-Lemma two_exp_160_minus_1_ok: wordToN two_exp_160_minus_1 = (Npow2 160 - 1)%N.
-Proof.
-reflexivity.
-Qed.
-
-
 Definition is_origin_mask (sv1 sv2: sstack_val) (fcmp: sstack_val_cmp_t) 
   (maxid instk_height: nat) (sb: sbindings) (ops: stack_op_instr_map) : bool :=
 match follow_in_smap sv1 maxid sb with 
@@ -98,42 +87,6 @@ match val with
   else (val, true)
 | _ => (val, true)
 end.
-
-
-Lemma wand_combine_gen: forall (n1 n2: nat) (w1 w1': word n1) 
-  (w2 w2': word n2), 
-wand
-  (Word.combine w1 w2)
-  (Word.combine w1' w2') =
-Word.combine (wand w1 w1') 
-             (wand w2 w2').
-Proof.
-Admitted.
-
-Lemma wand_combine: forall w1 w2 w1' w2', 
-@wand EVMWordSize 
-  (@Word.combine EVMAddrSize w1 (EVMWordSize - EVMAddrSize) w2)
-  (@Word.combine EVMAddrSize w1' (EVMWordSize - EVMAddrSize) w2') =
-(@Word.combine EVMAddrSize (wand w1 w1') 
-              (EVMWordSize - EVMAddrSize) (wand w2 w2')).
-Proof.
-
-Admitted.
-
-
-Lemma masking_extension_word: forall (w: word EVMAddrSize), 
-  (zext w (EVMWordSize - EVMAddrSize)) =
-  (@wand EVMWordSize
-     (@zext EVMAddrSize w (EVMWordSize - EVMAddrSize))
-     (@zext EVMAddrSize (wones EVMAddrSize) (EVMWordSize - EVMAddrSize))).
-Proof.
-intros w. unfold zext.
-rewrite -> wand_combine.
-rewrite wand_comm.
-rewrite wand_wones.
-rewrite wand_wzero.
-reflexivity.
-Qed.
 
 
 Lemma optimize_and_origin_sbinding_smapv_valid:
@@ -293,7 +246,7 @@ split.
     rewrite <- eq_vv.
     
     unfold two_exp_160_minus_1.
-    rewrite <- masking_extension_word.
+    rewrite <- masking_address_extension_word.
     reflexivity. 
 
   + unfold is_origin_mask in eq_is_origin.
@@ -353,7 +306,7 @@ split.
     
     unfold two_exp_160_minus_1.
     rewrite -> wand_comm.
-    rewrite <- masking_extension_word.
+    rewrite <- masking_address_extension_word.
     reflexivity.
 Qed.
 

@@ -46,6 +46,10 @@ Import EvalCommon.
 Require Import FORVES.concrete_interpreter.
 Import ConcreteInterpreter.
 
+Require Import Coq.Program.Equality.
+(* For dependent induction and dependent destruction *)
+
+
 Require Import List.
 Import ListNotations.
 
@@ -72,6 +76,74 @@ map_option f_follow_list args.
    used when proving optimizations 
 **************************************)
 
+
+(*************************************************)
+(* Results about bitvectors                      *)
+(*************************************************)
+
+Definition two_exp_160_minus_1 : EVMWord := 
+let diff := EVMWordSize - EVMAddrSize in
+zext (wones EVMAddrSize) diff.
+
+Lemma two_exp_160_minus_1_ok: wordToN two_exp_160_minus_1 = (Npow2 160 - 1)%N.
+Proof.
+reflexivity.
+Qed.
+
+
+(* Distribution of wand over combine *)
+Lemma wand_combine: forall (n1 n2: nat) (w1 w1': word n1) 
+  (w2 w2': word n2), 
+wand
+  (Word.combine w1 w2)
+  (Word.combine w1' w2') =
+Word.combine (wand w1 w1') 
+             (wand w2 w2').
+Proof.
+dependent induction w1.
+- intros. simpl.
+  dependent destruction w1'. simpl. reflexivity.
+- intros. simpl. 
+  dependent destruction w1'. simpl.
+  unfold wand. simpl.
+  fold wand.
+  rewrite -> IHw1.
+  reflexivity.
+Qed.
+
+(* Specialized version of wand_combine for the specific sizes *)
+Lemma wand_combine_spec: forall w1 w2 w1' w2', 
+@wand EVMWordSize 
+  (@Word.combine EVMAddrSize w1 (EVMWordSize - EVMAddrSize) w2)
+  (@Word.combine EVMAddrSize w1' (EVMWordSize - EVMAddrSize) w2') =
+(@Word.combine EVMAddrSize (wand w1 w1') 
+              (EVMWordSize - EVMAddrSize) (wand w2 w2')).
+Proof.
+intros w1 w2 w1' w2'.
+rewrite <- wand_combine.
+reflexivity.
+Qed.
+
+
+Lemma masking_address_extension_word: forall (w: word EVMAddrSize), 
+  (zext w (EVMWordSize - EVMAddrSize)) =
+  (@wand EVMWordSize
+     (@zext EVMAddrSize w (EVMWordSize - EVMAddrSize))
+     (@zext EVMAddrSize (wones EVMAddrSize) (EVMWordSize - EVMAddrSize))).
+Proof.
+intros w. unfold zext.
+rewrite -> wand_combine_spec.
+rewrite wand_comm.
+rewrite wand_wones.
+rewrite wand_wzero.
+reflexivity.
+Qed.
+
+
+
+(*************************************************)
+(* Miscellaneous results                         *)
+(*************************************************)
 
 Lemma is_fresh_var_smv_fvar: forall fvar,
 is_fresh_var_smv (SymBasicVal (FreshVar fvar)) = Some fvar.
