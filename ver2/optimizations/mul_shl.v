@@ -117,6 +117,27 @@ reflexivity.
 Qed.
 
 
+(* DIV (X, SHL(Y, 1)) = SHR(Y, X) *)
+Lemma wdiv_shl_1: forall x y,
+wdiv x (wlshift WOne y) = wrshift x y.
+Proof.
+intros x y. revert x.
+induction y as [|y' IH].
+- intros x. rewrite -> wlshift_0. rewrite -> wrshift_0.
+  admit.
+- intros x. 
+  pose proof (wlshift_mul_pow2 (S y') x) as H.
+  (*  
+  pose proof (wlshift_mul_pow2 x y) as H.
+rewrite -> H.
+rewrite wmult_comm.
+rewrite <- pow2_shl.
+reflexivity.
+Qed.*)
+Admitted.
+
+
+
 Lemma optimize_mul_shl_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_mul_shl_sbinding.
 Proof.
