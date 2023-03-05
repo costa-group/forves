@@ -22,12 +22,17 @@ def extract_rules(line):
   rules = eval(line.strip()[17:])
   return [ner for ner in rules if len(ner) > 0]
 
+""" Returns the rules in case not supported """
 def unsupported_rules(case):
   rest_rules = []
   for r in extract_rules(case[3]):
   	if r not in supported_rules and not r.startswith('EVAL ('):
   	  rest_rules.append(r)
   return rest_rules
+  
+""" Returns all rules in case, removing EVAL """
+def all_rules(case):
+  return [r for r in extract_rules(case[3]) if not r.startswith('EVAL (')]
   
 
 def main(filename):
@@ -42,7 +47,10 @@ def main(filename):
     	if len(rules) > 0:
           nblocks_rules += 1
 
-    	urules = unsupported_rules(case)  	
+    	# urules = unsupported_rules(case)
+    	urules = all_rules(case)
+    	for r in urules:
+    	    print(r)
     	#for r in urules:
     	#  all_urules[r] += 1
     	
@@ -50,8 +58,8 @@ def main(filename):
     	#  for l in case:
     	#    print(l.strip())
     	  
-  #pprint(all_urules)
-  print(f'blocks with optimization rules: {nblocks_rules}')
+  # pprint(urules)
+  # print(f'blocks with optimization rules: {nblocks_rules}')
     	  
 
 
