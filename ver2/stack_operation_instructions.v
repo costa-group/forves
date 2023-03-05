@@ -308,7 +308,7 @@ Definition evm_byte (ctx : context) (args : list EVMWord) : EVMWord :=
 
 Definition evm_shl (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wlshift' b (wordToNat a)
+  | [a;b] => wlshift b (wordToNat a)
   | _ => WZero
   end.
 Lemma shl_ctx_ind: ctx_independent_op evm_shl.
