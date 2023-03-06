@@ -104,6 +104,15 @@ induction x as [|x' IH].
   reflexivity.
 Qed.
 
+Search wlshift'.
+Lemma pow2_shl': forall x,
+wlshift' WOne x = natToWord EVMWordSize (2 ^ x).
+Proof.
+intros x.
+rewrite -> wlshift_alt.
+apply pow2_shl.
+Qed.
+
 
 Lemma wmult_shl_1: forall x y,
 wmult (wlshift WOne x) y = wlshift y x.
@@ -117,98 +126,81 @@ reflexivity.
 Qed.
 
 
-(* DIV (X, SHL(Y, 1)) = SHR(Y, X) *)
-Lemma wdiv_shl_1: forall x y,
-wdiv x (wlshift WOne y) = wrshift x y.
+Lemma wmult_shl'_1: forall x y,
+wmult (wlshift' WOne x) y = wlshift' y x.
 Proof.
-intros x y. revert x.
-induction y as [|y' IH].
-- intros x. rewrite -> wlshift_0. rewrite -> wrshift_0.
-  admit.
-- intros x. 
-  pose proof (wlshift_mul_pow2 (S y') x) as H.
-  (*  
-  pose proof (wlshift_mul_pow2 x y) as H.
-rewrite -> H.
-rewrite wmult_comm.
-rewrite <- pow2_shl.
-reflexivity.
-Qed.*)
-Admitted.
+intros x y.
+rewrite -> wlshift_alt.  rewrite -> wlshift_alt.
+apply wmult_shl_1.
+Qed.
 
+
+Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
+Proof.
+intros T x y.
+reflexivity.
+Qed.
+
+Search follow_in_smap.
+Search valid_sstack_value.
 
 
 Lemma optimize_mul_shl_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_mul_shl_sbinding.
 Proof.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n ops fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
-unfold optimize_and_origin_sbinding in Hoptm_sbinding.
+unfold optimize_mul_shl_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; 
   try inject_rw Hoptm_sbinding eq_val'.
 destruct label eqn: eq_label; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args as [|arg1 r1]; try inject_rw Hoptm_sbinding eq_val'.
-destruct r1 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
+destruct r1 as [|y r2]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops || 
-          is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
-  eqn: is_origin; try inject_rw Hoptm_sbinding eq_val'.
-unfold orb in is_origin.
-
-unfold valid_smap_value in Hvalid_smapv_val.
-unfold valid_stack_op_instr in Hvalid_smapv_val.
-destruct (ops AND).
-destruct Hvalid_smapv_val as [Hlen_and Hvalid_arg1_arg2].
-simpl in Hvalid_arg1_arg2.
-destruct Hvalid_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2 _]].
-
-destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops) 
-  eqn: is_origin_arg1_arg2.
+destruct (is_shl_1 arg1 fcmp n instk_height sb ops) as [x|] eqn: is_shl_arg1.
 - injection Hoptm_sbinding as eq_val' _.
-  rewrite <- eq_val'. 
-  unfold is_origin_mask in is_origin_arg1_arg2.
-  destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: eq_follow_arg1; 
+  rewrite <- eq_val'.
+  unfold is_shl_1 in is_shl_arg1.
+  destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: Hfollow_arg1;
     try discriminate.
-  destruct fsmv1 as [smv_arg1 idx1' sb1'] eqn: eq_fsmv_arg1.
+  destruct fsmv1 as [smv_arg1 idx' sb'].
   destruct (smv_arg1) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
   destruct label2; try discriminate.
-  destruct args2; try discriminate.
-  pose proof (valid_follow_in_smap sb arg1 instk_height n ops 
-    (SymOp ORIGIN []) idx1' sb1' Hvalid_arg1 Hvalid eq_follow_arg1)
-    as Hvalid2.
-  destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].
-  pose proof (not_basic_value_smv_symop ORIGIN []) as eq_not_basic.
-  apply Himpl in eq_not_basic as n_gt_idx1'.
-  apply gt_add in n_gt_idx1'. destruct n_gt_idx1' as [k n_gt_idx1'].
-  rewrite -> n_gt_idx1'.
-  apply valid_smap_value_incr with (m:=k) in Hvalid_smpv.
-  assumption.
-  
-- destruct (is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
-  eqn: is_origin_arg2_arg1; try discriminate.
-  injection Hoptm_sbinding as eq_val' _.
-  rewrite <- eq_val'. 
-  unfold is_origin_mask in is_origin_arg2_arg1.
-  destruct (follow_in_smap arg2 n sb) as [fsmv2|] eqn: eq_follow_arg2; 
+  destruct args2 as [|xx r2]; try discriminate.
+  destruct r2 as [|onev r2']; try discriminate.
+  destruct r2'; try discriminate.
+  destruct (fcmp onev (Val WOne) n sb n sb instk_height ops) eqn: fcmp_onev;
     try discriminate.
-  destruct fsmv2 as [smv_arg2 idx2' sb2'] eqn: eq_fsmv_arg2.
-  destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
-  destruct label2; try discriminate.
-  destruct args2; try discriminate.
-  pose proof (valid_follow_in_smap sb arg2 instk_height n ops 
-    (SymOp ORIGIN []) idx2' sb2' Hvalid_arg2 Hvalid eq_follow_arg2)
-    as Hvalid2.
-  destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].
-  pose proof (not_basic_value_smv_symop ORIGIN []) as eq_not_basic.
-  apply Himpl in eq_not_basic as n_gt_idx2'.
-  apply gt_add in n_gt_idx2'. destruct n_gt_idx2' as [k n_gt_idx2'].
-  rewrite -> n_gt_idx2'.
-  apply valid_smap_value_incr with (m:=k) in Hvalid_smpv.
-  assumption.
-*)
+    
+  simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
+  destruct (ops MUL) as [nargs_mult fmult Hcomm_mult Hctx_indep_mult].
+  destruct Hvalid_smapv_val as [_ Hvalid_sstack_arg1_y].
+  unfold valid_sstack in Hvalid_sstack_arg1_y.
+  destruct Hvalid_sstack_arg1_y as [Hvalid_arg1 [Hvalid_y _]].
+  injection is_shl_arg1 as eq_xx. rewrite -> eq_xx in Hfollow_arg1.
+  pose proof (valid_follow_in_smap sb arg1 instk_height n ops
+    (SymOp SHL [x; onev]) idx' sb' Hvalid_arg1 Hvalid Hfollow_arg1) as Himpl.
+  destruct Himpl as [Hvalid_shl [Hvalid_sb' Himpl]].
+  pose proof (not_basic_value_smv_symop SHL [x;onev]) as Hnot_basic.
+  apply Himpl in Hnot_basic.
+  unfold valid_smap_value in Hvalid_shl. 
+  unfold valid_stack_op_instr in Hvalid_shl.
+  destruct (ops SHL) as [nargs f Hcomm Hctx] eqn: eq_ops_shl.
+  destruct Hvalid_shl as [Hnargs Hvalid_idx'].
+  simpl in Hnargs.
+  unfold valid_sstack in Hvalid_idx'.
+  destruct Hvalid_idx' as [Hvalid_x _].
+  apply valid_sstack_value_gt with (m:=n) in Hvalid_x; try assumption.
+  
+  simpl. unfold valid_stack_op_instr.
+  rewrite -> eq_ops_shl.
+  rewrite <- Hnargs. simpl.
+  intuition.
+- destruct (is_shl_1 y fcmp n instk_height sb ops) eqn: is_shl_arg2;
+    try inject_rw Hoptm_sbinding eq_val'.
+  (*TODO*)
 Admitted.
 
 

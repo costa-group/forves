@@ -308,7 +308,7 @@ Definition evm_byte (ctx : context) (args : list EVMWord) : EVMWord :=
 
 Definition evm_shl (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wlshift b (wordToNat a)
+  | [a;b] => wlshift' b (wordToNat a)
   | _ => WZero
   end.
 Lemma shl_ctx_ind: ctx_independent_op evm_shl.
@@ -317,11 +317,17 @@ Proof.
 Qed.
 
 
+(* Equivalent definition better suited for the DIV_SHL optimization *)
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
+  match args with
+  | [a;b] => wdiv a (wlshift WOne (wordToNat b))
+  | _ => WZero
+  end.
+(*Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wrshift' b (wordToNat a)
   | _ => WZero
-  end.
+  end.*)
 Lemma shr_ctx_ind: ctx_independent_op evm_shr.
 Proof.
   ctx_independent_tac evm_shr.
