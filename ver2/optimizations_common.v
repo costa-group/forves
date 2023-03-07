@@ -140,6 +140,26 @@ reflexivity.
 Qed.
 
 
+Lemma pow2_shl: forall x,
+wlshift WOne x = natToWord EVMWordSize (2 ^ x).
+Proof.
+induction x as [|x' IH].
+- simpl. rewrite -> wlshift_0. reflexivity.
+- rewrite -> wlshift_mul_pow2. 
+  rewrite -> wmult_unit.
+  reflexivity.
+Qed.
+
+
+Lemma pow2_shl': forall x,
+wlshift' WOne x = natToWord EVMWordSize (2 ^ x).
+Proof.
+intros x.
+rewrite -> wlshift_alt.
+apply pow2_shl.
+Qed.
+
+
 
 (*************************************************)
 (* Miscellaneous results                         *)
@@ -1676,9 +1696,36 @@ destruct d as [|d'].
 Qed.
 
 
-
-
-
+(* Two successful evaluations return the same value in a valid prefix, 
+   regardless of the number of steps or maxidx *)
+Lemma eval_eq_prefix: forall instk_height n n' sb sb' ops sv stk mem strg 
+  ctx d d' prefix v1 v2,
+valid_bindings instk_height n sb ops ->
+n > n' ->
+sb = prefix ++ sb' ->  
+eval_sstack_val' d  sv stk mem strg ctx n  sb  ops = Some v1 ->
+eval_sstack_val' d' sv stk mem strg ctx n' sb' ops = Some v2 ->
+v1 = v2.
+Proof.
+intros instk_height n n' sb sb' ops sv stk mem strg ctx d d' prefix v1 v2.
+intros Hvalid n_gt_n' Hprefix Heval1 Heval2.
+rewrite -> eval'_maxidx_indep_eq with (m:=n) in Heval2.  
+apply eval_sstack_val'_extend_sb with (instk_height:=instk_height)(sb:=sb)
+  (prefix:=prefix) in Heval2; try assumption.
+destruct (d' <=? d) eqn: d'_lte_d.
+- rewrite -> PeanoNat.Nat.leb_le in d'_lte_d.
+  apply eval_sstack_val'_preserved_when_depth_extended_le with (d2:=d) in Heval2;
+    try assumption.  
+  rewrite -> Heval1 in Heval2.
+  injection Heval2.
+  trivial.
+- rewrite -> PeanoNat.Nat.leb_gt in d'_lte_d.
+  apply eval_sstack_val'_preserved_when_depth_extended_lt with (d2:=d') in Heval1;
+    try assumption.  
+  rewrite -> Heval1 in Heval2.
+  injection Heval2.
+  trivial.
+Qed.
 
 
 End Optimizations_Common.

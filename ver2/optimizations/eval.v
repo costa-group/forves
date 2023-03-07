@@ -95,7 +95,7 @@ Lemma optimize_eval_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_eval_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
-intros instk_height n ops fcmp sb val val' flag.
+intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
 unfold optimize_eval_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
@@ -106,7 +106,7 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
 (* SymOp label args *)
 destruct (follow_to_val_args args n sb) as [vargs|] eqn: eq_follow; 
   try inject_rw Hoptm_sbinding eq_val'.
-destruct (ops label) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_label; 
+destruct (evm_stack_opm label) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_label; 
   try inject_rw Hoptm_sbinding eq_val'.
 destruct (Hctx_indep) as [H|]; try inject_rw Hoptm_sbinding eq_val'.
 destruct (length args =? nargs); try inject_rw Hoptm_sbinding eq_val'.
@@ -130,12 +130,7 @@ split.
     
 - (* evaluation is preserved *) 
   intros stk mem strg ctx v Hlen Heval_orig.
-  (*assert (Hlen2 := Hlen).
-  rewrite -> Hlen in Hlen2.
-  rewrite <- Hlen in Hlen2 at 2.*)
   unfold optimize_eval_sbinding in Hoptm_sbinding.
-  (*pose proof (Hvalid_maxidx instk_height maxidx idx val sb evm_stack_opm
-      Hvalid) as eq_maxidx_idx.*)
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
   (* SymOp label args *)

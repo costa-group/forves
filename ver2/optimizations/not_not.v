@@ -84,7 +84,7 @@ Lemma optimize_not_not_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_not_not_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
-intros instk_height n ops fcmp sb val val' flag.
+intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
 unfold optimize_not_not_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
@@ -106,10 +106,8 @@ rewrite <- eq_val'.
 unfold valid_stack_op_instr in Hvalid_smapv_val.
 unfold valid_smap_value in Hvalid_smapv_val.
 unfold valid_stack_op_instr in Hvalid_smapv_val.
-destruct (ops NOT) as [nargs f Hcomm Hctx_indep] eqn: eq_ops.
-destruct Hvalid_smapv_val as [eq_len eq_valid_args1].
-simpl in eq_valid_args1.
-destruct eq_valid_args1 as [eq_valid_arg1 _].
+simpl in Hvalid_smapv_val.
+destruct Hvalid_smapv_val as [eq_len [eq_valid_arg1 _]].
 simpl.
 destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: eq_follow_arg1;
   try discriminate.
@@ -120,7 +118,7 @@ rewrite -> eq_op1 in eq_follow_arg1.
 rewrite -> eq_args1 in eq_follow_arg1.
 rewrite -> eq_idx1 in eq_follow_arg1.
 rewrite -> eq_sb1 in eq_follow_arg1.
-pose proof (valid_follow_in_smap sb arg1 instk_height n ops
+pose proof (valid_follow_in_smap sb arg1 instk_height n evm_stack_opm
   (SymOp NOT [arg2]) idx' sb' eq_valid_arg1 Hvalid eq_follow_arg1) 
   as Hnew_valid.
 destruct Hnew_valid as [Hvalid_smap_idx' [Hvalid_sb' Himp]].
@@ -128,7 +126,6 @@ pose proof (not_basic_value_smv_symop NOT [arg2]) as not_basic_not_arg2.
 apply Himp in not_basic_not_arg2 as n_gt_idx'.
 simpl in Hvalid_smap_idx'.
 unfold valid_stack_op_instr in Hvalid_smap_idx'.
-rewrite -> eq_ops in Hvalid_smap_idx'.
 simpl in Hvalid_smap_idx'.
 destruct Hvalid_smap_idx' as [_ [Hvalid_sstack_value_arg2_idx' _]].
 apply valid_sstack_value_gt with (n:=idx'); try assumption.

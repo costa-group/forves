@@ -93,7 +93,7 @@ Lemma optimize_and_origin_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_and_origin_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
-intros instk_height n ops fcmp sb val val' flag.
+intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
 unfold optimize_and_origin_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
@@ -103,19 +103,19 @@ destruct label eqn: eq_label; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args as [|arg1 r1]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r1 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops || 
-          is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
+destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb evm_stack_opm || 
+          is_origin_mask arg2 arg1 fcmp n instk_height sb evm_stack_opm) 
   eqn: is_origin; try inject_rw Hoptm_sbinding eq_val'.
 unfold orb in is_origin.
 
 unfold valid_smap_value in Hvalid_smapv_val.
 unfold valid_stack_op_instr in Hvalid_smapv_val.
-destruct (ops AND).
+simpl in Hvalid_smapv_val. 
 destruct Hvalid_smapv_val as [Hlen_and Hvalid_arg1_arg2].
 simpl in Hvalid_arg1_arg2.
 destruct Hvalid_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2 _]].
 
-destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops) 
+destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb evm_stack_opm) 
   eqn: is_origin_arg1_arg2.
 - injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
@@ -126,7 +126,7 @@ destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops)
   destruct (smv_arg1) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
   destruct label2; try discriminate.
   destruct args2; try discriminate.
-  pose proof (valid_follow_in_smap sb arg1 instk_height n ops 
+  pose proof (valid_follow_in_smap sb arg1 instk_height n evm_stack_opm 
     (SymOp ORIGIN []) idx1' sb1' Hvalid_arg1 Hvalid eq_follow_arg1)
     as Hvalid2.
   destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].
@@ -137,7 +137,7 @@ destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops)
   apply valid_smap_value_incr with (m:=k) in Hvalid_smpv.
   assumption.
   
-- destruct (is_origin_mask arg2 arg1 fcmp n instk_height sb ops) 
+- destruct (is_origin_mask arg2 arg1 fcmp n instk_height sb evm_stack_opm) 
   eqn: is_origin_arg2_arg1; try discriminate.
   injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
@@ -148,7 +148,7 @@ destruct (is_origin_mask arg1 arg2 fcmp n instk_height sb ops)
   destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
   destruct label2; try discriminate.
   destruct args2; try discriminate.
-  pose proof (valid_follow_in_smap sb arg2 instk_height n ops 
+  pose proof (valid_follow_in_smap sb arg2 instk_height n evm_stack_opm 
     (SymOp ORIGIN []) idx2' sb2' Hvalid_arg2 Hvalid eq_follow_arg2)
     as Hvalid2.
   destruct Hvalid2 as [Hvalid_smpv [_ Himpl]].

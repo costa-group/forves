@@ -27,6 +27,16 @@ Require Import FORVES.optimizations.and_and2.
 Import Opt_and_and2.
 Require Import FORVES.optimizations.and_origin.
 Import Opt_and_origin.
+Require Import FORVES.optimizations.mul_shl.
+Import Opt_mul_shl.
+Require Import FORVES.optimizations.div_shl.
+Import Opt_div_shl.
+Require Import FORVES.optimizations.shr_zero_x.
+Import Opt_shr_zero_x.
+Require Import FORVES.optimizations.shr_x_zero.
+Import Opt_shr_x_zero.
+Require Import FORVES.optimizations.eq_zero.
+Import Opt_eq_zero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -228,7 +238,12 @@ Inductive available_optimization_step :=
 | OPT_not_not
 | OPT_and_and1
 | OPT_and_and2
-| OPT_and_origin.
+| OPT_and_origin
+| OPT_mul_shl
+| OPT_div_shl
+| OPT_shr_zero_x
+| OPT_shr_x_zero
+| OPT_shr_eq_zero.
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
@@ -239,6 +254,11 @@ match tag with
 | OPT_and_and1 => OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
 | OPT_and_and2 => OpEntry optimize_and_and2_sbinding optimize_and_and2_sbinding_snd
 | OPT_and_origin => OpEntry optimize_and_origin_sbinding optimize_and_origin_sbinding_snd
+| OPT_mul_shl => OpEntry optimize_mul_shl_sbinding optimize_mul_shl_sbinding_snd
+| OPT_div_shl => OpEntry optimize_div_shl_sbinding optimize_div_shl_sbinding_snd
+| OPT_shr_zero_x => OpEntry optimize_shr_zero_x_sbinding optimize_shr_zero_x_sbinding_snd
+| OPT_shr_x_zero => OpEntry optimize_shr_x_zero_sbinding optimize_shr_x_zero_sbinding_snd
+| OPT_eq_zero => OpEntry optimize_eq_zero_sbinding optimize_eq_zero_sbinding_snd
 end.
 
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=

@@ -88,14 +88,15 @@ Definition opt_smap_value_type :=
   nat ->                   (* instk_height *)
   stack_op_instr_map ->    (* ops *)
   smap_value*bool.         (* (val', flag) *)
-  
+
+
 Definition opt_smapv_valid_snd (opt: opt_smap_value_type) :=
-forall (instk_height n: nat) (ops: stack_op_instr_map) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
+forall (instk_height n: nat) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
   (val val': smap_value) (flag: bool),
-valid_smap_value instk_height n ops val ->
-valid_bindings instk_height n sb ops ->
-opt val fcmp sb n instk_height ops = (val', flag) ->
-valid_smap_value instk_height n ops val'.
+valid_smap_value instk_height n evm_stack_opm val ->
+valid_bindings instk_height n sb evm_stack_opm ->
+opt val fcmp sb n instk_height evm_stack_opm = (val', flag) ->
+valid_smap_value instk_height n evm_stack_opm val'.
 
 (* 'opt' is sound if optimizing the head in a valid bindings (idx,val)::sb 
    results in a valid bindings (idx,val')::sb that preserves evaluations *)
@@ -749,21 +750,21 @@ split.
 Qed.
 
 
-Lemma valid_bindings_snd_opt: forall instk_height maxidx n val sb ops opt fcmp 
+Lemma valid_bindings_snd_opt: forall instk_height maxidx n val sb opt fcmp 
   val' flag,
-valid_bindings instk_height maxidx ((n, val) :: sb) ops ->
+valid_bindings instk_height maxidx ((n, val) :: sb) evm_stack_opm ->
 opt_smapv_valid_snd opt ->
-opt val fcmp sb n instk_height ops = (val', flag) ->
-valid_bindings instk_height maxidx ((n, val') :: sb) ops.
+opt val fcmp sb n instk_height evm_stack_opm = (val', flag) ->
+valid_bindings instk_height maxidx ((n, val') :: sb) evm_stack_opm.
 Proof.
-intros instk_height maxidx n val sb ops opt fcmp val' flag.
+intros instk_height maxidx n val sb opt fcmp val' flag.
 intros Hvalid Hopt_smapv_snd Hopt.
 unfold opt_smapv_valid_snd in Hopt_smapv_snd.
 unfold valid_bindings in Hvalid.
 unfold valid_bindings.
 destruct Hvalid as [Hmaxidx [Hvalid_smapv_val Hvalid_sb]].
 fold valid_bindings in Hvalid_sb.
-pose proof (Hopt_smapv_snd instk_height n ops fcmp sb val val' flag
+pose proof (Hopt_smapv_snd instk_height n fcmp sb val val' flag
   Hvalid_smapv_val Hvalid_sb Hopt) as Hvalid_smapv_val'.
 split; try split; try assumption.
 Qed.

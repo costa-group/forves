@@ -123,7 +123,7 @@ Lemma optimize_and_and1_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_and_and1_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
-intros instk_height n ops fcmp sb val val' flag.
+intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
 unfold optimize_and_and1_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
@@ -146,38 +146,37 @@ destruct r22; try inject_rw Hoptm_sbinding eq_val'.
 assert (Hvalid_smapv_val_copy := Hvalid_smapv_val).
 simpl in Hvalid_smapv_val.
 unfold valid_stack_op_instr in Hvalid_smapv_val.
-destruct (ops AND) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_and.
+(*destruct (ops AND) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_and.*)
 destruct Hvalid_smapv_val as [Hlen_nargs Hvalid_arg1_arg2].
 simpl in Hvalid_arg1_arg2.
 destruct Hvalid_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2]].
 
-pose proof (valid_follow_in_smap sb arg2 instk_height n ops
+pose proof (valid_follow_in_smap sb arg2 instk_height n evm_stack_opm
       (SymOp AND [arg21; arg22]) idx' sb' Hvalid_arg2 Hvalid
       eq_follow_arg2) as Hvalid2.
 destruct Hvalid2 as [Hvalid_smap [Hvalid_sb' Himpl]].
 simpl in Hvalid_smap. unfold valid_stack_op_instr in Hvalid_smap.
-rewrite -> eq_ops_and in Hvalid_smap.
+simpl in Hvalid_smap.
 destruct Hvalid_smap as [Hlen_nargs' Hvalid_arg21_arg22].
 simpl in Hvalid_arg21_arg22.
 destruct Hvalid_arg21_arg22 as [Hvalid_arg21 [Hvalid_arg22 _]].
 pose proof (not_basic_value_smv_symop AND [arg21; arg22]) as eq_not_basic.
 apply Himpl in eq_not_basic as n_gt_idx'.
 
-destruct (fcmp arg1 arg21 n sb idx' sb' instk_height ops) 
+destruct (fcmp arg1 arg21 n sb idx' sb' instk_height evm_stack_opm) 
   eqn: fcmp_arg1_arg21.
 - injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
   simpl. unfold valid_stack_op_instr. 
-  rewrite -> eq_ops_and. split; try assumption. 
+  simpl. split; try assumption. 
   simpl. split; try intuition.
   apply valid_sstack_value_gt with (n:=idx'); try assumption.
    
-- destruct (fcmp arg1 arg22 n sb idx' sb' instk_height ops) 
+- destruct (fcmp arg1 arg22 n sb idx' sb' instk_height evm_stack_opm) 
   eqn: fcmp_arg1_arg22; try inject_rw Hoptm_sbinding eq_val'.
   injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'. 
   simpl. unfold valid_stack_op_instr. 
-  rewrite -> eq_ops_and. split; try assumption. 
   simpl. split; try intuition.
   apply valid_sstack_value_gt with (n:=idx'); try assumption.
 Qed.

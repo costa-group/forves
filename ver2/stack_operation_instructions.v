@@ -320,7 +320,7 @@ Qed.
 (* Equivalent definition better suited for the DIV_SHL optimization *)
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wdiv a (wlshift WOne (wordToNat b))
+  | [shift;value] => wdiv value (wlshift' WOne (wordToNat shift))
   | _ => WZero
   end.
 (*Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
@@ -332,6 +332,14 @@ Lemma shr_ctx_ind: ctx_independent_op evm_shr.
 Proof.
   ctx_independent_tac evm_shr.
 Qed.
+
+(*
+Compute (
+let ctx := empty_context in
+let shift := natToWord EVMWordSize 2 in
+let value := natToWord EVMWordSize 255 in
+evm_shr ctx [shift;value]
+).*)
 
 
 Definition evm_sar (ctx : context) (args : list EVMWord) : EVMWord :=

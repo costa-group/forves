@@ -50,6 +50,10 @@ optimizations/and_and1.v
 optimizations/and_and2.v
 optimizations/and_origin.v
 optimizations/mul_shl.v
+optimizations/div_shl.v
+optimizations/shr_zero_x.v
+optimizations/shr_x_zero.v
+optimizations/eq_zero.v
 
 
 block_equiv_checker.v
