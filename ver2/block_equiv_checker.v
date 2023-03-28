@@ -41,6 +41,8 @@ Require Import FORVES.optimizations.sub_x_x.
 Import Opt_sub_x_x.
 Require Import FORVES.optimizations.and_zero.
 Import Opt_and_zero.
+Require Import FORVES.optimizations.div_one.
+Import Opt_div_one.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -249,7 +251,8 @@ Inductive available_optimization_step :=
 | OPT_shr_x_zero
 | OPT_eq_zero
 | OPT_sub_x_x
-| OPT_sub_and_zero.
+| OPT_and_zero
+| OPT_div_one.
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
@@ -267,6 +270,7 @@ match tag with
 | OPT_eq_zero => OpEntry optimize_eq_zero_sbinding optimize_eq_zero_sbinding_snd
 | OPT_sub_x_x => OpEntry optimize_sub_x_x_sbinding optimize_sub_x_x_sbinding_snd
 | OPT_and_zero => OpEntry optimize_and_zero_sbinding optimize_and_zero_sbinding_snd
+| OPT_div_one => OpEntry optimize_div_one_sbinding optimize_div_one_sbinding_snd
 end.
 
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=
