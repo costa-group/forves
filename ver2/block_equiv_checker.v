@@ -37,6 +37,10 @@ Require Import FORVES.optimizations.shr_x_zero.
 Import Opt_shr_x_zero.
 Require Import FORVES.optimizations.eq_zero.
 Import Opt_eq_zero.
+Require Import FORVES.optimizations.sub_x_x.
+Import Opt_sub_x_x.
+Require Import FORVES.optimizations.and_zero.
+Import Opt_and_zero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -234,7 +238,7 @@ Module BlockEquivChecker.
   
 Inductive available_optimization_step :=
 | OPT_eval
-| OPT_add_0
+| OPT_add_zero
 | OPT_not_not
 | OPT_and_and1
 | OPT_and_and2
@@ -243,13 +247,15 @@ Inductive available_optimization_step :=
 | OPT_div_shl
 | OPT_shr_zero_x
 | OPT_shr_x_zero
-| OPT_shr_eq_zero.
+| OPT_eq_zero
+| OPT_sub_x_x
+| OPT_sub_and_zero.
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
 match tag with 
 | OPT_eval => OpEntry optimize_eval_sbinding optimize_eval_sbinding_snd
-| OPT_add_0 => OpEntry optimize_add_0_sbinding optimize_add_0_sbinding_snd
+| OPT_add_zero => OpEntry optimize_add_zero_sbinding optimize_add_zero_sbinding_snd
 | OPT_not_not => OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
 | OPT_and_and1 => OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
 | OPT_and_and2 => OpEntry optimize_and_and2_sbinding optimize_and_and2_sbinding_snd
@@ -259,6 +265,8 @@ match tag with
 | OPT_shr_zero_x => OpEntry optimize_shr_zero_x_sbinding optimize_shr_zero_x_sbinding_snd
 | OPT_shr_x_zero => OpEntry optimize_shr_x_zero_sbinding optimize_shr_x_zero_sbinding_snd
 | OPT_eq_zero => OpEntry optimize_eq_zero_sbinding optimize_eq_zero_sbinding_snd
+| OPT_sub_x_x => OpEntry optimize_sub_x_x_sbinding optimize_sub_x_x_sbinding_snd
+| OPT_and_zero => OpEntry optimize_and_zero_sbinding optimize_and_zero_sbinding_snd
 end.
 
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=

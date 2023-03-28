@@ -56,11 +56,11 @@ Require Import List.
 Import ListNotations.
 
 
-Module Opt_add_zero.
+Module Opt_and_zero.
 
 
-(* ADD(X,0) or ADD(0,X) = X *)
-Definition optimize_add_zero_sbinding : opt_smap_value_type := 
+(* AND(X,0) or AND(0,X) = 0 *)
+Definition optimize_and_zero_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
 fun (sb: sbindings) =>
@@ -68,11 +68,11 @@ fun (maxid: nat) =>
 fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
-| SymOp ADD [arg1; arg2] => 
+| SymOp AND [arg1; arg2] => 
   if fcmp arg1 (Val WZero) maxid sb maxid sb instk_height ops then
-    (SymBasicVal arg2, true)
+    (SymBasicVal (Val WZero), true)
   else if fcmp arg2 (Val WZero) maxid sb maxid sb instk_height ops then
-    (SymBasicVal arg1, true)
+    (SymBasicVal (Val WZero), true)
   else
     (val, false)
 | _ => (val, false)
@@ -83,13 +83,13 @@ end.
 
 
 
-Lemma optimize_add_zero_sbinding_smapv_valid:
-opt_smapv_valid_snd optimize_add_zero_sbinding.
+Lemma optimize_and_zero_sbinding_smapv_valid:
+opt_smapv_valid_snd optimize_and_zero_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
-unfold optimize_add_zero_sbinding in Hoptm_sbinding.
+unfold optimize_and_zero_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; try (
     injection Hoptm_sbinding as eq_val' eq_flag;
@@ -98,7 +98,7 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
 destruct label eqn: eq_label; try 
       (injection Hoptm_sbinding as eq_val' eq_flag;
       rewrite <- eq_val'; assumption).
-(* ADD *)
+(* AND *)
 destruct args as [|arg1 r1] eqn: eq_args; try 
   (injection Hoptm_sbinding as eq_val' eq_flag;
   rewrite <- eq_val'; assumption).
@@ -112,60 +112,56 @@ destruct (fcmp arg1 (Val WZero) n sb n sb instk_height evm_stack_opm)
   eqn: eq_fcmp_arg1.
 * injection Hoptm_sbinding as eq_val' eq_flag.
   rewrite <- eq_val'.
-  simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
-  simpl in Hvalid_smapv_val.
-  destruct Hvalid_smapv_val as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
-  simpl.
-  assumption.
+  simpl. 
+  intuition.
 * destruct (fcmp arg2 (Val WZero) n sb n sb instk_height evm_stack_opm) 
     eqn: eq_fcmp_arg2; try (injection Hoptm_sbinding as eq_val' eq_flag;
     rewrite <- eq_val'; assumption).
   injection Hoptm_sbinding as eq_val' eq_flag.
   rewrite <- eq_val'.
-  simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
-  simpl in Hvalid_smapv_val.
-  destruct Hvalid_smapv_val as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
-  simpl.
-  assumption.
+  simpl. 
+  intuition.  
 Qed.
 
+Search wand.
 
-Lemma evm_add_zero_l: forall ctx v,
-evm_add ctx [WZero; v] = v.
+Lemma evm_and_zero_l: forall ctx v,
+evm_and ctx [WZero; v] = WZero.
 Proof.
 intros ctx v. simpl.
-rewrite -> wplus_wzero_2.
+rewrite -> wand_wzero.
 reflexivity.
 Qed.
 
 
-Lemma evm_add_zero_r: forall ctx v,
-evm_add ctx [v; WZero] = v.
+Lemma evm_and_zero_r: forall ctx v,
+evm_and ctx [v; WZero] = WZero.
 Proof.
 intros ctx v. simpl.
-rewrite -> wplus_wzero_1.
+rewrite -> wand_comm.
+rewrite -> wand_wzero.
 reflexivity.
 Qed.
 
 
-Lemma optimize_add_zero_sbinding_snd:
-opt_sbinding_snd optimize_add_zero_sbinding.
+Lemma optimize_and_zero_sbinding_snd:
+opt_sbinding_snd optimize_and_zero_sbinding.
 Proof.
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
 split.
 - (* valid_sbindings *)
-  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_add_zero_sbinding)
+  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_and_zero_sbinding)
     (fcmp:=fcmp)(flag:=flag); try assumption.
-  apply optimize_add_zero_sbinding_smapv_valid. 
+  apply optimize_and_zero_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
   intros stk mem strg ctx v Hlen Heval_orig.
   assert (Hlen2 := Hlen).
   rewrite -> Hlen in Hlen2.
   rewrite <- Hlen in Hlen2 at 2.
-  unfold optimize_add_zero_sbinding in Hoptm_sbinding.
+  unfold optimize_and_zero_sbinding in Hoptm_sbinding.
   pose proof (Hvalid_maxidx instk_height maxidx idx val sb evm_stack_opm
       Hvalid) as eq_maxidx_idx.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
@@ -190,7 +186,6 @@ split.
       as [varg1|] eqn: eval_arg1; try discriminate.
     destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb evm_stack_opm)
       as [varg2|] eqn: eval_arg2; try discriminate.
-    unfold safe_sstack_val_cmp in Hsafe_sstack_val_cmp.
 
     unfold valid_bindings in Hvalid.
     destruct Hvalid as [eq_maxid [Hvalid_smap_value Hvalid_bindings_sb]].
@@ -218,12 +213,11 @@ split.
     injection Heval_vzero as eq_vzero.
     rewrite <- eq_varg1 in Heval_orig.
     rewrite <- eq_vzero in Heval_orig.
-    rewrite -> evm_add_zero_l in Heval_orig.
+    rewrite -> evm_and_zero_l in Heval_orig.
     rewrite <- Heval_orig.
     rewrite <- eval_sstack_val'_freshvar.
-    apply eval_sstack_val'_preserved_when_depth_extended in eval_arg2.
-    apply eval'_maxidx_indep with (n:=idx).
-    assumption.
+    rewrite -> eval_sstack_val'_const.
+    reflexivity.
   + (* arg2 ~ WZero *)
     destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height evm_stack_opm)
       eqn: fcmp_arg2_zero.
@@ -265,16 +259,15 @@ split.
       injection Heval_vzero as eq_vzero.
       rewrite <- eq_varg2 in Heval_orig.
       rewrite <- eq_vzero in Heval_orig.
-      rewrite -> evm_add_zero_r in Heval_orig.
+      rewrite -> evm_and_zero_r in Heval_orig.
       rewrite <- Heval_orig.
       rewrite <- eval_sstack_val'_freshvar.
-      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg1.
-      apply eval'_maxidx_indep with (n:=idx).
-      assumption.
+      rewrite -> eval_sstack_val'_const.
+      reflexivity.
     * injection Hoptm_sbinding as eq_val' _. 
       rewrite <- eq_val'.
       assumption.
 Qed.
 
 
-End Opt_add_zero.
+End Opt_and_zero.

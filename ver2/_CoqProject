@@ -54,6 +54,8 @@ optimizations/div_shl.v
 optimizations/shr_zero_x.v
 optimizations/shr_x_zero.v
 optimizations/eq_zero.v
+optimizations/sub_x_x.v
+optimizations/and_zero.v
 
 
 block_equiv_checker.v
