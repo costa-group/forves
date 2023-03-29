@@ -123,7 +123,6 @@ destruct (fcmp arg1 (Val WZero) n sb n sb instk_height evm_stack_opm)
   intuition.  
 Qed.
 
-Search wand.
 
 Lemma evm_and_zero_l: forall ctx v,
 evm_and ctx [WZero; v] = WZero.

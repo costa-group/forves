@@ -165,6 +165,31 @@ Qed.
 (* Miscellaneous results                         *)
 (*************************************************)
 
+Lemma gt_iszero_nat: forall (x: nat),
+x < 1 <-> x = 0.
+Proof.
+intros. intuition. 
+Qed.
+
+Lemma one_as_N:
+N.to_nat (1)%N = 1.
+Proof. auto. Qed.
+
+Lemma gt_iszero_nat': forall (x: nat),
+x >= 1 <-> x <> 0.
+Proof.
+intros. intuition. 
+Qed.
+
+Lemma word_neq_zero: forall (x: EVMWord),
+N.to_nat (wordToN x) <> 0 -> x <> WZero.
+Proof.
+intros. destruct (weqb x WZero) eqn: eq_x_wzero.
+- apply weqb_sound in eq_x_wzero. rewrite eq_x_wzero in H.
+  simpl in H. auto.
+- apply weqb_false. assumption.
+Qed.
+
 Lemma is_fresh_var_smv_fvar: forall fvar,
 is_fresh_var_smv (SymBasicVal (FreshVar fvar)) = Some fvar.
 Proof.
