@@ -47,6 +47,8 @@ Require Import FORVES.optimizations.lt_one.
 Import Opt_lt_one.
 Require Import FORVES.optimizations.gt_one.
 Import Opt_gt_one.
+Require Import FORVES.optimizations.and_address.
+Import Opt_and_address.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -258,7 +260,8 @@ Inductive available_optimization_step :=
 | OPT_and_zero
 | OPT_div_one
 | OPT_lt_one
-| OPT_gt_one.
+| OPT_gt_one
+| OPT_and_address.
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
@@ -279,6 +282,7 @@ match tag with
 | OPT_div_one => OpEntry optimize_div_one_sbinding optimize_div_one_sbinding_snd
 | OPT_lt_one => OpEntry optimize_lt_one_sbinding optimize_lt_one_sbinding_snd
 | OPT_gt_one => OpEntry optimize_gt_one_sbinding optimize_gt_one_sbinding_snd
+| OPT_and_address => OpEntry optimize_and_address_sbinding optimize_and_address_sbinding_snd
 end.
 
 
