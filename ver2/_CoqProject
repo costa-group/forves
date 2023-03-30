@@ -60,6 +60,8 @@ optimizations/div_one.v
 optimizations/lt_one.v
 optimizations/gt_one.v
 optimizations/and_address.v
+optimizations/mul_one.v
+optimizations/iszero_gt.v
 
 block_equiv_checker.v
 
