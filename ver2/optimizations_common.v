@@ -1753,4 +1753,16 @@ destruct (d' <=? d) eqn: d'_lte_d.
 Qed.
 
 
+Lemma eval'_succ_then_nonzero: forall maxidx sv stk mem strg ctx idx sb ops v,
+eval_sstack_val' maxidx sv stk mem strg ctx idx sb ops = Some v ->
+exists n, maxidx = S n.
+Proof.
+intros maxidx sv stk mem strg ctx idx sb ops v.
+intros Heval.
+destruct maxidx as [|n].
+- simpl in Heval. discriminate.
+- exists n. reflexivity.
+Qed.
+
+
 End Optimizations_Common.

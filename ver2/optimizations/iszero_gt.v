@@ -211,18 +211,6 @@ destruct (is_gt_zero arg1 fcmp n instk_height sb evm_stack_opm) as [x|]
 Qed.
 
 
-Lemma eval'_succ_then_nonzero: forall maxidx sv stk mem strg ctx idx sb ops v,
-eval_sstack_val' maxidx sv stk mem strg ctx idx sb ops = Some v ->
-exists n, maxidx = S n.
-Proof.
-intros maxidx sv stk mem strg ctx idx sb ops v.
-intros Heval.
-destruct maxidx as [|n].
-- simpl in Heval. discriminate.
-- exists n. reflexivity.
-Qed.
-
-
 Lemma optimize_iszero_gt_sbinding_snd:
 opt_sbinding_snd optimize_iszero_gt_sbinding.
 Proof.

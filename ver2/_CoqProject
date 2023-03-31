@@ -62,6 +62,7 @@ optimizations/gt_one.v
 optimizations/and_address.v
 optimizations/mul_one.v
 optimizations/iszero_gt.v
+optimizations/eq_iszero.v
 
 block_equiv_checker.v
 
