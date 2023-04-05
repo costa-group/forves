@@ -10,7 +10,6 @@ all: executable static
 
 executable: checker $(MAIN)
 	ocamlopt -o $(EXE)  checker.cmx str.cmxa $(MAIN) 
-	cp $(EXE) ../bin
 
 checker: checker.ml checker.mli
 	ocamlopt -c checker.mli -o checker.cmi

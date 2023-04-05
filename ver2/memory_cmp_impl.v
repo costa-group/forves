@@ -44,7 +44,10 @@ Module MemoryCmpImpl.
 
 
   Definition trivial_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
-    false.
+    match smem1,smem2 with
+    | [], [] => true
+    | _, _ => false
+    end.
   
   Fixpoint basic_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
     match smem1,smem2 with

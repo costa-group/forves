@@ -54,7 +54,9 @@ Module MemoryCmpImplSoundness.
     unfold safe_smemory_cmp.
     unfold trivial_memory_cmp.
     intros.
-    discriminate.
+    destruct smem1; destruct smem2; try discriminate.
+    exists mem.
+    auto.
   Qed.
   
 

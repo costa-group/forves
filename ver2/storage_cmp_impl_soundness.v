@@ -54,7 +54,9 @@ Module StorageCmpImplSoundness.
     unfold safe_sstorage_cmp.
     unfold trivial_storage_cmp.
     intros.
-    discriminate.
+    destruct sstrg1; destruct sstrg2; try discriminate.
+    exists strg.
+    auto.
   Qed.
   
 
