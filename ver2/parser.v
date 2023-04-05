@@ -329,14 +329,11 @@ Fixpoint strs_to_opts (l : list string) : option list_opt_steps :=
              end
   end.
 
-Inductive opts :=
-| ALL_OPTS
-| SELCTED_OPTS (l : list string).
 
-Definition parse_opts_arg (opts_to_apply : opts) : option list_opt_steps :=
+Definition parse_opts_arg (opts_to_apply : list string) : option list_opt_steps :=
   match opts_to_apply with
-  | ALL_OPTS => Some all_optimization_steps
-  | SELCTED_OPTS l => strs_to_opts l
+  | ["all"%string] => Some all_optimization_steps
+  | _ => strs_to_opts opts_to_apply
   end.
 
 Definition parse_memory_updater (s: string) :=
@@ -394,7 +391,7 @@ Definition parse_sha3_cmp (s: string) :=
   | _ => None
   end.
 
-Definition block_eq_0 (memory_updater storage_updater mload_solver sload_solver sstack_value_cmp memory_cmp storage_cmp sha3_cmp opt_step_rep opt_pipeline_rep opts_to_apply: string) (opts_to_apply : opts) :
+Definition block_eq (memory_updater storage_updater mload_solver sload_solver sstack_value_cmp memory_cmp storage_cmp sha3_cmp opt_step_rep opt_pipeline_rep: string) (opts_to_apply : list string) :
   option (string -> string -> string -> option bool) :=
   match (parse_memory_updater memory_updater) with
   | None => None
