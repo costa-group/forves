@@ -349,6 +349,22 @@ Proof.
   apply H_valid_sv.
 Qed.
 
+(*
+Lemma valid_sbinings_S_maxidx:
+  forall instk_height maxidx ops u sb,
+    valid_bindings instk_height maxidx (u::sb) ops ->
+    valid_bindings instk_height (S maxidx) (u::sb) ops.
+Proof.
+  intros instk_height maxidx ops u sb.
+  revert sb.
+  induction sb as [|x sb' IHsb'].
+  - intros H_maxidx.
+    destruct u.
+    simpl in H_maxidx.
+    destruct maxidx; try discriminate.
+    simpl.
+ *)
+
 Lemma valid_smemory_update_S_maxidx:
   forall instk_height maxidx u,
     valid_smemory_update instk_height maxidx u ->
@@ -860,6 +876,35 @@ Proof.
   - split.
     + apply H_valid_ssize.
     + apply H_valid_smem.
+Qed.
+
+Lemma symsload_valid_smv:
+  forall instk_height maxidx skey sstrg ops,
+    valid_sstack_value instk_height maxidx skey ->
+    valid_sstorage instk_height maxidx sstrg ->
+    valid_smap_value instk_height maxidx ops (SymSLOAD skey sstrg).
+Proof.
+  intros instk_height maxidx skey sstrg ops H_valid_skey H_valid_sstrg.
+  simpl.
+  intuition.
+Qed.
+
+Lemma empty_sstrg_is_valid:
+  forall instk_height maxidx,
+    valid_sstorage instk_height maxidx empty_sstorage.
+Proof.
+  intros.
+  simpl.
+  apply I.
+Qed.
+
+Lemma valid_sstack_val_freshvar_Sn_n:
+  forall instk_height idx,
+    valid_sstack_value instk_height (S idx) (FreshVar idx).
+Proof.
+  intros instk_height idx.
+  simpl.
+  intuition.
 Qed.
 
 End ValidSymbolicState.

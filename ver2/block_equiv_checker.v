@@ -126,10 +126,10 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.memory_ops_solvers_impl_soundness.
 Import MemoryOpsSolversImplSoundness.
 
-
-
 Require Import FORVES.misc.
 Import Misc.
+
+From Coq Require Import Lists.List. Import ListNotations.
 
 Module BlockEquivChecker.
 
@@ -231,7 +231,7 @@ Module BlockEquivChecker.
 
   Definition get_sha3_cmp (tag: available_sha3_cmp) : sha3_cmp_v :=
     match tag with
-    | SHA3Cmp_Trivial => SHA3Cmp  trivial_sha3_cmp trivial_sha3_cmp_snd
+    | SHA3Cmp_Trivial => SHA3Cmp trivial_sha3_cmp trivial_sha3_cmp_snd
   end.
 
 
@@ -271,6 +271,9 @@ Inductive available_optimization_step :=
 | OPT_mul_one
 | OPT_iszero_gt
 | OPT_eq_iszero.
+
+
+
 Definition list_opt_steps := list available_optimization_step.
 
 Definition get_optimization_step (tag: available_optimization_step) : opt_entry :=
@@ -297,7 +300,9 @@ match tag with
 | OPT_eq_iszero => OpEntry optimize_eq_iszero_sbinding optimize_eq_iszero_sbinding_snd
 end.
 
+Definition all_optimization_steps := [ OPT_eval; OPT_add_zero; OPT_not_not; OPT_and_and1; OPT_and_and2; OPT_and_origin; OPT_mul_shl; OPT_div_shl; OPT_shr_zero_x; OPT_shr_x_zero; OPT_eq_zero; OPT_sub_x_x; OPT_and_zero; OPT_div_one; OPT_lt_one; OPT_gt_one; OPT_and_address; OPT_mul_one; OPT_iszero_gt; OPT_eq_iszero ].
 
+  
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=
 match l with 
 | nil => nil
@@ -394,4 +399,53 @@ Definition evm_eq_block_chkr
           end
       end
   end.
+
+
+
+
+Definition evm_eq_block_chkr_lazy
+  (memory_updater_tag: available_smemory_updaters) 
+  (storage_updater_tag: available_sstorage_updaters)
+  (mload_solver_tag: available_mload_solvers) 
+  (sload_solver_tag: available_sload_solvers)
+  (sstack_value_cmp_tag: available_sstack_val_cmp)
+  (memory_cmp_tag: available_memory_cmp)
+  (storage_cmp_tag: available_storage_cmp)
+  (sha3_cmp_tag: available_sha3_cmp)
+  
+  (*(opt: optim)*)
+  (optimization_steps: list_opt_steps)
+  (opt_step_rep: nat)
+  (opt_pipeline_rep: nat) :=
+  
+  match get_smemory_updater memory_updater_tag with
+  | SMemUpdater memory_updater _ =>
+      match get_sstorage_updater storage_updater_tag with
+      | SStrgUpdater storage_updater _ =>
+          match get_mload_solver mload_solver_tag with
+          | MLoadSolver mload_solver _ =>
+             match get_sload_solver sload_solver_tag with
+             | SLoadSolver sload_solver _ =>
+                 match get_sstack_val_cmp sstack_value_cmp_tag with
+                 | SStackValCmp sstack_val_cmp _ _ =>
+                     match get_memory_cmp memory_cmp_tag with
+                     | SMemCmp memory_cmp _ =>
+                         match get_storage_cmp storage_cmp_tag with 
+                         | SStrgCmp storage_cmp _ =>
+                             match get_sha3_cmp sha3_cmp_tag with
+                               | SHA3Cmp sha3_cmp _ => 
+                                   match get_pipeline optimization_steps with
+                                   | opt_pipeline =>
+                                       fun  (opt_p p: block) (k: nat) =>
+                                         evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_val_cmp memory_cmp storage_cmp sha3_cmp opt_pipeline opt_step_rep opt_pipeline_rep opt_p p k
+                                   end    
+                             end
+                         end
+                     end
+                 end
+             end
+          end
+      end
+  end.
+
 End BlockEquivChecker.

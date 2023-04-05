@@ -111,7 +111,7 @@ Module MemoryOpsSolversImplSoundness.
       repeat split; apply H_eval_smemory_u_smem.
   Qed.
   
-  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
+  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.    
   Admitted.
   
   Lemma basic_smemory_updater_snd: smemory_updater_ext_snd basic_smemory_updater.

@@ -66,4 +66,6 @@ optimizations/eq_iszero.v
 
 block_equiv_checker.v
 
+parser.v
+
 checker.v

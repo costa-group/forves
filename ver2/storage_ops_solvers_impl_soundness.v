@@ -1,4 +1,4 @@
-Require Import Arith.  
+Require Import Arith.   
 Require Import Nat. 
 Require Import Bool.
 Require Import bbv.Word.
@@ -114,7 +114,180 @@ Module StorageOpsSolversImplSoundness.
         
   Lemma basic_sload_solver_snd: sload_solver_ext_snd basic_sload_solver.
   Admitted.
+  (*
+  Proof.
     
+    unfold sload_solver_ext_snd.
+    intros sstack_val_cmp H_safe_sstack_val_cmp.
+    unfold sload_solver_snd.
+    split.
+
+    (* Valid smv *)
+    - unfold sload_solver_valid_res.
+      intros m sstrg skey instk_height smv ops.
+      revert sstrg.
+      induction sstrg as [|u sstrg' IHsstrg'].
+      + simpl.
+        intros _ H_valid_skey H_valid_solver.
+        pose proof (symsload_valid_smv instk_height (get_maxidx_smap m) skey [] ops H_valid_skey (empty_sstrg_is_valid instk_height (get_maxidx_smap m))) as H_valid_smv.
+        rewrite <- H_valid_solver.
+        apply H_valid_smv.
+      + intros H_valid_sstrg H_valid_skey H_solver.
+        simpl in H_valid_sstrg.
+        destruct H_valid_sstrg as [H_valid_u H_valid_sstrg'].
+        unfold basic_sload_solver in H_solver.
+        fold basic_sload_solver in H_solver.
+        destruct u as [skey' svalue].
+        destruct (sstack_val_cmp (S (get_maxidx_smap m)) skey skey' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_sstack_val_cmp_skey_skey'.
+        * rewrite <- H_solver.
+          simpl.
+          simpl in H_valid_u.
+          apply H_valid_u.
+        * destruct (not_eq_keys skey skey') eqn:E_neq_skey_skey'.
+          ** pose proof (IHsstrg' H_valid_sstrg' H_valid_skey H_solver) as H_valid_smv.
+             apply H_valid_smv.
+          ** pose proof (valid_sstorage_when_extended_with_valid_update instk_height (get_maxidx_smap m) (U_SSTORE sstack_val skey' svalue) sstrg' H_valid_u H_valid_sstrg') as H_valid_u_sstrg'.
+             pose proof (symsload_valid_smv instk_height (get_maxidx_smap m) skey (U_SSTORE sstack_val skey' svalue :: sstrg') ops H_valid_skey H_valid_u_sstrg') as H_valid_smv.
+             rewrite <- H_solver.
+             apply H_valid_smv.
+
+    (* Correctness *)
+
+    - unfold sload_solver_valid_res.
+      intros m sstrg skey instk_height smv ops.
+      revert sstrg.
+      induction sstrg as [|u sstrg' IHsstrg'].
+      + intros idx1 m1 H_valid_m H_valid_sstrg H_valid_skey H_solver H_add_to_smap.
+        simpl in H_solver.
+        rewrite <- H_solver in H_add_to_smap.
+        exists idx1.
+        exists m1.
+        split.
+        * apply H_add_to_smap.
+        * intros stk mem strg ctx H_len_stk.
+          destruct m as [maxidx sb] eqn:E_m.
+          simpl in H_add_to_smap.
+          injection H_add_to_smap as H_idx1 H_m1.
+          rewrite <- H_idx1.
+          rewrite <- H_m1.
+          simpl.
+          unfold eval_sstack_val.
+          remember (S maxidx) as s_maxidx. (* avoid unfolding too much *)
+          simpl.
+          rewrite Nat.eqb_refl.
+          simpl.
+          rewrite Heqs_maxidx.
+          symmetry in H_len_stk.
+          simpl in H_valid_m.
+          unfold valid_smap in H_valid_m.
+          pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey stk mem strg ctx maxidx sb ops H_len_stk H_valid_skey H_valid_m (gt_Sn_n maxidx)) as H_eval_skey_scc.
+          destruct H_eval_skey_scc as [ckey H_eval_skey_scc].
+          
+          rewrite H_eval_skey_scc.
+          exists (concrete_interpreter.ConcreteInterpreter.sload strg ckey).
+          split; reflexivity.
+
+      + intros idx1 m1 H_valid_m H_valid_sstrg H_valid_skey H_solver H_add_to_smap.
+        simpl in H_solver.
+        destruct u as [skey' svalue] eqn:E_u.
+        destruct (sstack_val_cmp (S (get_maxidx_smap m)) skey skey' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_cmp_skey_skey'.
+        * destruct m as [maxidx sb] eqn:E_m.
+          simpl in H_add_to_smap.
+          injection H_add_to_smap as H_maxidx_eq_idx1 H_m1.
+          exists maxidx.
+          exists (SymMap (S maxidx) ((maxidx,(SymSLOAD skey (U_SSTORE sstack_val skey' svalue :: sstrg')))::sb)).
+          split; try reflexivity.
+          intros stk mem strg ctx H_len.
+          rewrite <- H_m1.
+          rewrite <- H_maxidx_eq_idx1.
+          remember (S maxidx) as s_maxidx. (* avoid unfolding too much *)
+          unfold eval_sstack_val at 2.
+          unfold get_maxidx_smap.
+          unfold get_bindings_smap.
+          unfold eval_sstack_val'. fold eval_sstack_val'.
+          unfold follow_in_smap at 1.
+          rewrite Nat.eqb_refl.
+          unfold is_fresh_var_smv at 1.
+
+          symmetry in H_len.
+
+          unfold valid_smap in H_valid_m.
+          simpl in H_valid_m.
+          unfold get_maxidx_smap in H_valid_sstrg.
+          pose proof (valid_sstorage_S_maxidx instk_height maxidx (U_SSTORE sstack_val skey' svalue :: sstrg') H_valid_sstrg) as H_valid_sstrg_S_maxidx.
+          pose proof (valid_bindings_S_maxidx instk_height maxidx).
+
+          
+          
+          pose proof (eval_map_o_sstrg_succ).
+          pose proof (eval_map_o_sstrg_succ instk_height (S maxidx) sb stk mem strg ctx ops (U_SSTORE sstack_val skey' svalue :: sstrg') H_len H_valid_sstrg_S_maxidx).
+          
+          unfold eval_sstack_val.
+          simpl get_maxidx_smap.
+          simpl get_bindings_smap.
+          
+          remember (S maxidx) as s_maxidx. (* avoid unfolding too much *)
+
+          unfold eval_sstack_val' at 2.
+          fold eval_sstack_val'.
+
+          unfold valid_sstorage in H_valid_sstrg. fold valid_sstorage in H_valid_sstrg.
+          unfold get_maxidx_smap in H_valid_sstrg.
+          unfold get_bindings_smap in H_valid_sstrg.
+          destruct H_valid_sstrg as [H_valid_u H_valid_sstrg'].
+          assert(H_valid_u' := H_valid_u).
+          simpl in H_valid_u'.
+          destruct H_valid_u' as [H_valid_skey' H_valid_svalue].
+
+          simpl in H_valid_m.
+          assert(H_valid_sb := H_valid_m).
+          unfold valid_smap in H_valid_sb.
+
+          assert(H_valid_ext_sb: valid_bindings instk_height (S maxidx) ((maxidx, SymSLOAD skey (U_SSTORE sstack_val skey' svalue :: sstrg')) :: sb) ops).
+          {
+            simpl.
+            repeat split.
+            - apply H_valid_skey.
+            - apply H_valid_skey'.
+            - apply H_valid_svalue.
+            - apply H_valid_sstrg'.
+            - apply H_valid_sb.
+            }.
+
+          pose proof (follow_in_smap_suc ((maxidx, SymSLOAD skey (U_SSTORE sstack_val skey' svalue :: sstrg')) :: sb) (FreshVar maxidx) instk_height (S maxidx) ops (valid_sstack_val_freshvar_Sn_n instk_height maxidx) H_valid_ext_sb) as H_sollow_succ.
+          
+          destruct H_sollow_succ as [smv' [maxidx' [sb' [H_sollow_succ H_sollow_succ_not_FreshVar]]]].
+          rewrite Heqs_maxidx.
+          rewrite H_sollow_succ.
+
+          simpl in H_valid_m.
+          unfold valid_smap in H_valid_m.
+          simpl.
+          fold eval_sstack_val'.
+          rewrite Nat.eqb_refl.
+
+          simpl in H_add_to_smap.
+          injection H_add_to_smap as H_idx1 H_m1.
+          rewrite <- H_idx1.
+          rewrite <- H_m1.
+          rewrite <- H_solver.
+          simpl.
+          unfold eval_sstack_val.
+          remember (S maxidx) as s_maxidx. (* avoid unfolding too much *)
+          unfold eval_sstack_val' at 2.
+          fold eval_sstack_val'.
+          simpl.
+          fold eval_sstack_val'.
+          rewrite Nat.eqb_refl.
+
+*)
+
+          
+       
+          
+        
+        
+      
   Lemma basic_sstorage_updater_snd: sstorage_updater_ext_snd basic_sstorage_updater.
   Admitted.
 
