@@ -352,6 +352,7 @@ Definition evm_eq_block_chkr'
                       sstate_cmp sstack_value_cmp smemory_cmp sstorage_cmp sst_p' sst_opt' evm_stack_opm
       end
   end.
+  
 
 
 Definition evm_eq_block_chkr
@@ -447,5 +448,7 @@ Definition evm_eq_block_chkr_lazy
           end
       end
   end.
+  
+
 
 End BlockEquivChecker.

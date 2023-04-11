@@ -84,8 +84,8 @@ match val with
   if is_address_mask arg1 arg2 fcmp maxid instk_height sb ops ||
      is_address_mask arg2 arg1 fcmp maxid instk_height sb ops 
   then (SymOp ADDRESS [], true)
-  else (val, true)
-| _ => (val, true)
+  else (val, false)
+| _ => (val, false)
 end.
 
 

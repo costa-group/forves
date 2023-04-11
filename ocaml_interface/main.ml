@@ -47,7 +47,6 @@ let main () =
       let i = ref 0 in
       try
         while true do
-          i := !i+1;
           let p_opt = read_line() in (* read the optimized block *)
           let p = read_line() in     (* read the original block *)
           let k = read_line() in     (* read input statck size *)
@@ -57,6 +56,7 @@ let main () =
           match r with
           | None -> Printf.printf "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;
           | Some b -> Printf.printf "Example %d: %B\n" !i b;
+          i := !i+1;
         done
       with
       | End_of_file -> ();
