@@ -270,18 +270,21 @@ Definition evm_eq_block_chkr'_dbg
   let storage_updater' := storage_updater sstack_value_cmp_1 in
   let mload_solver' := mload_solver sstack_value_cmp_1 in
   let sload_solver' := sload_solver sstack_value_cmp_1 in
-  (* Builds optimization *)
-  let sstack_value_cmp := sstack_value_cmp_1 k in
-  let opt := apply_opt_n_times_pipeline_k opt_pipeline sstack_value_cmp
-               opt_step_rep opt_pipeline_rep in
-  (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
-  
+
   match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' opt_p k evm_stack_opm with
   | None => (false, None, None)
   | Some sst_opt => 
       match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' p k evm_stack_opm with 
       | None => (false, Some (sstate_to_dbg sst_opt), None)
-      | Some sst_p => let (sst_opt', _) := opt sst_opt in 
+      | Some sst_p => (* Builds optimization *)
+                      let maxid := S (max (get_maxidx_smap (get_smap_sst sst_opt)) (get_maxidx_smap (get_smap_sst sst_p))) in
+                      let sstack_value_cmp := sstack_value_cmp_1 maxid in
+                      let opt := apply_opt_n_times_pipeline_k opt_pipeline 
+                                 sstack_value_cmp opt_step_rep 
+                                 opt_pipeline_rep in
+                     (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
+  
+                      let (sst_opt', _) := opt sst_opt in 
                       let (sst_p',   _) := opt sst_p in
                       let d := S (max (get_maxidx_smap (get_smap_sst sst_opt')) (get_maxidx_smap (get_smap_sst sst_p'))) in
                       let sstack_value_cmp := sstack_value_cmp_1 d in
@@ -368,8 +371,29 @@ Compute
   let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
   let sstack_value_cmp := sstack_value_cmp_1 2 in
   sstack_value_cmp (FreshVar 0) (FreshVar 1) 3 [(2, SymOp SUB [FreshVar 1; FreshVar 0]); (1, SymMLOAD (Val (natToWord 256 64)) []); (0, SymMLOAD (Val (natToWord 256 64)) [])] 3 [(2, SymOp SUB [FreshVar 1; FreshVar 0]); (1, SymMLOAD (Val (natToWord 256 64)) []); (0, SymMLOAD (Val (natToWord 256 64)) [])] 3 evm_stack_opm.
+  
+  
+Compute 
+  let memory_updater := basic_smemory_updater in
+  let storage_updater := basic_sstorage_updater in
+  let mload_solver := basic_mload_solver in
+  let sload_solver := basic_sload_solver in
+  let sstack_value_cmp_ext := basic_compare_sstack_val in
+  let smemory_cmp_ext := basic_memory_cmp in
+  let sstorage_cmp_ext := basic_storage_cmp in
+  let sha3_cmp_ext := trivial_sha3_cmp in
+  let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
+  let sstack_value_cmp := sstack_value_cmp_1 2 in
+  let sb := [(2, SymOp SUB [FreshVar 1; FreshVar 0]); 
+             (1, SymMLOAD (Val (natToWord 256 64)) []); 
+             (0, SymMLOAD (Val (natToWord 256 64)) [])] in
 
-
+  optimize_sub_x_x_sbinding (SymOp SUB [FreshVar 1; FreshVar 0]) 
+                            sstack_value_cmp
+                            sb
+                            2
+                            0
+                            evm_stack_opm.
 
 
 Compute (wordToN two_exp_160_minus_1).
