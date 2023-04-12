@@ -231,6 +231,7 @@ Definition parse_non_push_instr (s : string) : option instr :=
                        | "CHAINID"%string => Some (OpInstr CHAINID)
                        | "SELFBALANCE"%string => Some (OpInstr SELFBALANCE)
                        | "BASEFEE"%string => Some (OpInstr BASEFEE)
+                       | "GAS"%string => Some (OpInstr GAS)
                        | "POP"%string => Some POP
                        | "MLOAD"%string => Some MLOAD
                        | "MSTORE"%string => Some MSTORE
