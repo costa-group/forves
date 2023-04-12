@@ -488,20 +488,20 @@ Compute
  
  
 (*
-# 115
-ISZERO SWAP1
-ISZERO ISZERO ISZERO SWAP1
-500 
+# 213
+PUSH1 0xe PUSH1 0xf CALLDATASIZE PUSH1 0x4 PUSH1 0x10
+PUSH1 0xe PUSH1 0x4 DUP1 CALLDATASIZE SUB DUP2 ADD SWAP1 PUSH1 0xf SWAP2 SWAP1 PUSH1 0x10
+500
 *)
 Compute 
 (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
  SStrgCmp_Basic SHA3Cmp_Trivial 
- (*all_optimization_steps 10 10*)
- [OPT_iszero3] 1 1
- [OpInstr ISZERO; SWAP 1]
- [OpInstr ISZERO; OpInstr ISZERO; OpInstr ISZERO; SWAP 1]
- 2).
+ all_optimization_steps 10 10
+ [PUSH 1 0xe; PUSH 1 0xf; OpInstr CALLDATASIZE; PUSH 1 0x4; PUSH 1 0x10]
+ [PUSH 1 0xe; PUSH 1 0x4; DUP 1; OpInstr CALLDATASIZE; OpInstr SUB; DUP 2; 
+  OpInstr ADD; SWAP 1; PUSH 1 0xf; SWAP 2; SWAP 1; PUSH 1 0x10]
+ 0).
 
 
 End Debug.
