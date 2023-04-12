@@ -334,6 +334,7 @@ Fixpoint strs_to_opts (l : list string) : option list_opt_steps :=
 Definition parse_opts_arg (opts_to_apply : list string) : option list_opt_steps :=
   match opts_to_apply with
   | ["all"%string] => Some all_optimization_steps
+  | ["all_size"%string] => Some all_optimization_steps'
   | _ => strs_to_opts opts_to_apply
   end.
 
