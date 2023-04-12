@@ -439,7 +439,52 @@ let ops := evm_stack_opm in
 
 optimize_and_address_sbinding (SymOp AND [FreshVar 0; FreshVar 1]) 
   fcmp sb maxid instk_height ops).
-
+  
+  
+(*
+GASOL size simp
+# serial number: 4847
+# csv: 0xfeff9661617cbba5a2ed3a69000f4bf1e266be71.sol.csv
+# block id: Kitsunami_run_code_of_0_block_346_0
+# rules applied: ['DIV(X,SHL(Y,1))']
+POP PUSH1 0x6 SLOAD PUSH1 0xa0 SHR PUSH1 0xff AND ISZERO
+POP PUSH1 0x6 SLOAD PUSH1 0x1 PUSH1 0xa0 SHL SWAP1 DIV PUSH1 0xff AND ISZERO
+1
+*)  
+(* Works with all_optimization_steps' but not with all_optimization_steps *)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps' 10 10
+ [POP; PUSH 1 0x6; SLOAD; PUSH 1 0xa0; OpInstr SHR; PUSH 1 0xff; OpInstr AND; 
+  OpInstr ISZERO]
+ [POP; PUSH 1 0x6; SLOAD; PUSH 1 0x1; PUSH 1 0xa0; OpInstr SHL; SWAP 1;
+  OpInstr DIV; PUSH 1 0xff; OpInstr AND; OpInstr ISZERO]
+ 1).
+ 
+ 
+(*
+GASOL gas simp
+# serial number: 932
+# csv: 0x54adf7604d25ac9476fc467e93dfdb29af1077ee.sol.csv
+# block id: AiDay_run_code_of_0_block_164_0
+# rules applied: ["EVAL ('160', '1', 'shl')"]
+PUSH21 0x10000000000000000000000000000000000000000 PUSH1 0x11 SLOAD DIV PUSH1 0xff AND ISZERO PUSH1 0xd6
+PUSH1 0x11 SLOAD PUSH1 0x1 PUSH1 0xa0 SHL SWAP1 DIV PUSH1 0xff AND ISZERO PUSH1 0xd6
+0
+*)
+(* Works with all_optimization_steps but not with all_optimization_steps' *)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ [PUSH 21 0x10000000000000000000000000000000000000000; PUSH 1 0x11; SLOAD;
+  OpInstr DIV; PUSH 1 0xff; OpInstr AND; OpInstr ISZERO; PUSH 1 0xd6]
+ [PUSH 1 0x11; SLOAD; PUSH 1 0x1; PUSH 1 0xa0; OpInstr SHL; SWAP 1; 
+  OpInstr DIV; PUSH 1 0xff; OpInstr AND; OpInstr ISZERO; PUSH 1 0xd6]
+ 1).
 
 
 End Debug.

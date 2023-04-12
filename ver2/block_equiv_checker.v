@@ -311,8 +311,34 @@ Definition all_optimization_steps :=
    OPT_and_and1; 
    OPT_and_and2; 
    OPT_and_origin; 
-   OPT_mul_shl; 
-   OPT_div_shl; 
+   OPT_div_shl;
+   OPT_mul_shl;
+   OPT_shr_zero_x; 
+   OPT_shr_x_zero; 
+   OPT_eq_zero; 
+   OPT_sub_x_x; 
+   OPT_and_zero; 
+   OPT_div_one; 
+   OPT_lt_one; 
+   OPT_gt_one; 
+   OPT_and_address; 
+   OPT_mul_one; 
+   OPT_iszero_gt; 
+   OPT_eq_iszero;
+   OPT_and_caller
+].
+
+Definition all_optimization_steps' := 
+  [OPT_div_shl;
+   OPT_mul_shl;
+
+   OPT_eval; 
+   OPT_add_zero; 
+   OPT_not_not; 
+   OPT_and_and1; 
+   OPT_and_and2; 
+   OPT_and_origin; 
+   
    OPT_shr_zero_x; 
    OPT_shr_x_zero; 
    OPT_eq_zero; 
@@ -466,7 +492,7 @@ Definition evm_eq_block_chkr_lazy
                                    | opt_pipeline =>
                                        fun  (opt_p p: block) (k: nat) =>
                                          evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_val_cmp memory_cmp storage_cmp sha3_cmp opt_pipeline opt_step_rep opt_pipeline_rep opt_p p k
-                                   end    
+                                   end
                              end
                          end
                      end
