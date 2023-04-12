@@ -55,6 +55,8 @@ Require Import FORVES.optimizations.iszero_gt.
 Import Opt_iszero_gt.
 Require Import FORVES.optimizations.eq_iszero.
 Import Opt_eq_iszero.
+Require Import FORVES.optimizations.and_caller.
+Import Opt_and_caller.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -270,7 +272,8 @@ Inductive available_optimization_step :=
 | OPT_and_address
 | OPT_mul_one
 | OPT_iszero_gt
-| OPT_eq_iszero.
+| OPT_eq_iszero
+| OPT_and_caller.
 
 
 
@@ -298,9 +301,32 @@ match tag with
 | OPT_mul_one => OpEntry optimize_mul_one_sbinding optimize_mul_one_sbinding_snd
 | OPT_iszero_gt => OpEntry optimize_iszero_gt_sbinding optimize_iszero_gt_sbinding_snd
 | OPT_eq_iszero => OpEntry optimize_eq_iszero_sbinding optimize_eq_iszero_sbinding_snd
+| OPT_and_caller => OpEntry optimize_and_caller_sbinding optimize_and_caller_sbinding_snd
 end.
 
-Definition all_optimization_steps := [ OPT_eval; OPT_add_zero; OPT_not_not; OPT_and_and1; OPT_and_and2; OPT_and_origin; OPT_mul_shl; OPT_div_shl; OPT_shr_zero_x; OPT_shr_x_zero; OPT_eq_zero; OPT_sub_x_x; OPT_and_zero; OPT_div_one; OPT_lt_one; OPT_gt_one; OPT_and_address; OPT_mul_one; OPT_iszero_gt; OPT_eq_iszero ].
+Definition all_optimization_steps := 
+  [OPT_eval; 
+   OPT_add_zero; 
+   OPT_not_not; 
+   OPT_and_and1; 
+   OPT_and_and2; 
+   OPT_and_origin; 
+   OPT_mul_shl; 
+   OPT_div_shl; 
+   OPT_shr_zero_x; 
+   OPT_shr_x_zero; 
+   OPT_eq_zero; 
+   OPT_sub_x_x; 
+   OPT_and_zero; 
+   OPT_div_one; 
+   OPT_lt_one; 
+   OPT_gt_one; 
+   OPT_and_address; 
+   OPT_mul_one; 
+   OPT_iszero_gt; 
+   OPT_eq_iszero;
+   OPT_and_caller
+].
 
   
 Fixpoint get_pipeline (l: list_opt_steps) : opt_pipeline :=

@@ -63,6 +63,7 @@ optimizations/and_address.v
 optimizations/mul_one.v
 optimizations/iszero_gt.v
 optimizations/eq_iszero.v
+optimizations/and_caller.v
 
 block_equiv_checker.v
 
