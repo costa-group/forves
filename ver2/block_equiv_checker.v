@@ -332,27 +332,31 @@ Definition evm_eq_block_chkr'
   let storage_updater' := storage_updater sstack_value_cmp_1 in
   let mload_solver' := mload_solver sstack_value_cmp_1 in
   let sload_solver' := sload_solver sstack_value_cmp_1 in
-  (* Builds optimization *)
-  let sstack_value_cmp := sstack_value_cmp_1 k in
-  let opt := apply_opt_n_times_pipeline_k opt_pipeline sstack_value_cmp
-               opt_step_rep opt_pipeline_rep in
-  (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
-  
+
+
   match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' opt_p k evm_stack_opm with
   | None => false
   | Some sst_opt => 
       match evm_sym_exec memory_updater' storage_updater' mload_solver' sload_solver' p k evm_stack_opm with 
       | None => false
-      | Some sst_p => let (sst_opt', _) := opt sst_opt in 
-                      let (sst_p',   _) := opt sst_p in
-                      let d := S (max (get_maxidx_smap (get_smap_sst sst_opt')) (get_maxidx_smap (get_smap_sst sst_p'))) in
-                      let sstack_value_cmp := sstack_value_cmp_1 d in
-                      let smemory_cmp := smemory_cmp_ext sstack_value_cmp in
-                      let sstorage_cmp := sstorage_cmp_ext sstack_value_cmp in
-                      sstate_cmp sstack_value_cmp smemory_cmp sstorage_cmp sst_p' sst_opt' evm_stack_opm
+      | Some sst_p =>
+          (* Builds optimization *)
+          let d1 := S (max (get_maxidx_smap (get_smap_sst sst_opt)) (get_maxidx_smap (get_smap_sst sst_p))) in
+          let sstack_value_cmp_for_opt := sstack_value_cmp_1 d1 in
+          let opt := apply_opt_n_times_pipeline_k opt_pipeline sstack_value_cmp_for_opt
+                       opt_step_rep opt_pipeline_rep in
+          (* opt is sound if sstack_value_cmp_for_opt is "safe_sstack_val_cmp" *)
+          let (sst_opt', _) := opt sst_opt in 
+          let (sst_p',   _) := opt sst_p in
+          let d := S (max (get_maxidx_smap (get_smap_sst sst_opt')) (get_maxidx_smap (get_smap_sst sst_p'))) in
+          let sstack_value_cmp := sstack_value_cmp_1 d in
+          let smemory_cmp := smemory_cmp_ext sstack_value_cmp in
+          let sstorage_cmp := sstorage_cmp_ext sstack_value_cmp in
+          sstate_cmp sstack_value_cmp smemory_cmp sstorage_cmp sst_p' sst_opt' evm_stack_opm
       end
-  end.
+  end. 
   
+
 
 
 Definition evm_eq_block_chkr

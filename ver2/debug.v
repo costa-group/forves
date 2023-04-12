@@ -1,4 +1,4 @@
-Require Import List.
+Require Import List. 
 Require Import bbv.Word.
 
 Require Import Coq.NArith.NArith.
@@ -47,7 +47,7 @@ Require Import FORVES.optimizations.shr_zero_x.
 Import Opt_shr_zero_x.
 Require Import FORVES.optimizations.shr_x_zero.
 Import Opt_shr_x_zero.
-Require Import FORVES.optimizations.eq_zero.
+ Require Import FORVES.optimizations.eq_zero.
 Import Opt_eq_zero.
 Require Import FORVES.optimizations.sub_x_x.
 Import Opt_sub_x_x.
@@ -354,7 +354,21 @@ Compute
   PUSH 32 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
   PUSH 1 0x40; MLOAD; PUSH 1 0x40; MLOAD; DUP 1; SWAP 2; OpInstr SUB; SWAP 1]*)
  1).
- 
+
+
+Compute
+  let memory_updater := basic_smemory_updater in
+  let storage_updater := basic_sstorage_updater in
+  let mload_solver := basic_mload_solver in
+  let sload_solver := basic_sload_solver in
+  let sstack_value_cmp_ext := basic_compare_sstack_val in
+  let smemory_cmp_ext := basic_memory_cmp in
+  let sstorage_cmp_ext := basic_storage_cmp in
+  let sha3_cmp_ext := trivial_sha3_cmp in
+  let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
+  let sstack_value_cmp := sstack_value_cmp_1 2 in
+  sstack_value_cmp (FreshVar 0) (FreshVar 1) 3 [(2, SymOp SUB [FreshVar 1; FreshVar 0]); (1, SymMLOAD (Val (natToWord 256 64)) []); (0, SymMLOAD (Val (natToWord 256 64)) [])] 3 [(2, SymOp SUB [FreshVar 1; FreshVar 0]); (1, SymMLOAD (Val (natToWord 256 64)) []); (0, SymMLOAD (Val (natToWord 256 64)) [])] 3 evm_stack_opm.
+
 
 
 
