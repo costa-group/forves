@@ -485,6 +485,23 @@ Compute
  [PUSH 1 0x11; SLOAD; PUSH 1 0x1; PUSH 1 0xa0; OpInstr SHL; SWAP 1; 
   OpInstr DIV; PUSH 1 0xff; OpInstr AND; OpInstr ISZERO; PUSH 1 0xd6]
  1).
+ 
+ 
+(*
+# 115
+ISZERO SWAP1
+ISZERO ISZERO ISZERO SWAP1
+500 
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ (*all_optimization_steps 10 10*)
+ [OPT_iszero3] 1 1
+ [OpInstr ISZERO; SWAP 1]
+ [OpInstr ISZERO; OpInstr ISZERO; OpInstr ISZERO; SWAP 1]
+ 2).
 
 
 End Debug.
