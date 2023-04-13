@@ -131,9 +131,9 @@ destruct instr eqn: eq_instr.
    try discriminate.
   simpl in Hsymb_exec_instr. injection Hsymb_exec_instr as eq_sst'.
   rewrite <- eq_sst'. simpl. reflexivity.
-- (* PUSHTAG v *) 
+- (* METAPUSH v *) 
   simpl in Hsymb_exec_instr.
-  unfold pushtag_s in Hsymb_exec_instr.
+  unfold metapush_s in Hsymb_exec_instr.
   destruct (add_to_smap (get_smap_sst (SymExState instk_height sstk smem sstg 
     sctx sm)) (SymMETAPUSH cat v)).
   destruct (misc.Misc.push (FreshVar n) (get_stack_sst (SymExState instk_height

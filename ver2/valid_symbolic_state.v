@@ -836,7 +836,7 @@ Qed.
 
 (* Lemmas about generation of valid smap values *)
 
-Lemma pushtag_valid_smv:
+Lemma metapush_valid_smv:
   forall instk_height maxidx ops cat v,
     valid_smap_value instk_height maxidx ops (SymMETAPUSH cat v).
 Proof.

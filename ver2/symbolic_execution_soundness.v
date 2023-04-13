@@ -118,18 +118,18 @@ Proof.
       * simpl. apply H_valid_sst_sstorage.
 Qed.
 
-(* pushtag_s generates valid states *)
-Lemma pushtag_valid_sst:
+(* metapush_s generates valid states *)
+Lemma metapush_valid_sst:
   forall sst sst' cat v ops,
     valid_sstate sst ops ->
-    pushtag_s cat v sst ops = Some sst' ->
+    metapush_s cat v sst ops = Some sst' ->
     valid_sstate sst' ops.
 Proof.
-  intros sst sst' cat v ops H_valid_sst H_pushtag_s.
-  unfold pushtag_s in H_pushtag_s.
+  intros sst sst' cat v ops H_valid_sst H_metapush_s.
+  unfold metapush_s in H_metapush_s.
   destruct (add_to_smap (get_smap_sst sst) (SymMETAPUSH  cat v)) as [key sm'] eqn:E_add_to_smap.
   destruct (push (FreshVar key) (get_stack_sst sst)) as [sstk'|] eqn:E_push; try discriminate.
-  injection H_pushtag_s as H_stt'.
+  injection H_metapush_s as H_stt'.
 
   unfold push in E_push.
   destruct (length (get_stack_sst sst) <? StackSize); try discriminate.
@@ -149,7 +149,7 @@ Proof.
   rewrite sstack_preserved_when_updating_smap_sst.
   rewrite set_and_then_get_stack_sst.
 
-  pose proof (pushtag_valid_smv (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) ops cat v) as H_valid_smv.
+  pose proof (metapush_valid_smv (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) ops cat v) as H_valid_smv.
   symmetry in E_add_to_smap.
   pose proof (add_to_map_valid_sstate sst key sm' (SymMETAPUSH cat v) ops H_valid_sst H_valid_smv E_add_to_smap) as H_valid_sst_add.
   
@@ -217,7 +217,7 @@ Proof.
       * simpl. apply H_valid_sst_sstorage.
 Qed.
 
-(* pushtag_s generates valid states *)
+(* metapush_s generates valid states *)
 Lemma dup_valid_sst:
     forall sst sst' ops k,
     valid_sstate sst ops ->
@@ -257,7 +257,7 @@ Proof.
       * apply H_valid_sst_sstorage.
 Qed.
 
-(* pushtag_s generates valid states *)
+(* metapush_s generates valid states *)
 Lemma swap_valid_sst:
     forall sst sst' ops k,
     valid_sstate sst ops ->
@@ -1484,31 +1484,31 @@ Qed.
 
 
 
-(* pushtag_s is a sound symbolic transformer *)
-Lemma pushtag_snd:
-  forall cat v, snd_state_transformer (pushtag_c cat v) (pushtag_s cat v).
+(* metapush_s is a sound symbolic transformer *)
+Lemma metapush_snd:
+  forall cat v, snd_state_transformer (metapush_c cat v) (metapush_s cat v).
 Proof.
 
   intros cat v.
   unfold snd_state_transformer.
-  intros sst sst' ops H_valid_sst H_pushtag_s.
+  intros sst sst' ops H_valid_sst H_metapush_s.
   split.
 
   (* Validity *)
-  - pose proof (pushtag_valid_sst sst sst' cat v ops H_valid_sst H_pushtag_s) as H_valid_sst'. apply H_valid_sst'.
+  - pose proof (metapush_valid_sst sst sst' cat v ops H_valid_sst H_metapush_s) as H_valid_sst'. apply H_valid_sst'.
 
   (* Soundness *)
   - intros init_st st H_st_inst_sst.
     pose proof (st_is_instance_of_sst_stk_len init_st st sst ops H_st_inst_sst) as H_inst_stk_len.
     destruct H_inst_stk_len as [H_inst_stk_len_l H_inst_stk_len_r].
-    unfold pushtag_s in H_pushtag_s.
+    unfold metapush_s in H_metapush_s.
     destruct (add_to_smap (get_smap_sst sst) (SymMETAPUSH cat v)) as [key' sm'] eqn:E_add_to_smap.
-    unfold push in H_pushtag_s.
+    unfold push in H_metapush_s.
     destruct (length (get_stack_sst sst) <? StackSize) eqn:E_stk_len; try discriminate.
 
-    unfold pushtag_c.
+    unfold metapush_c.
     unfold push.
-    injection H_pushtag_s as H_sst'.
+    injection H_metapush_s as H_sst'.
 
     rewrite <- H_inst_stk_len_l.
     rewrite E_stk_len.
@@ -3361,7 +3361,7 @@ Proof.
   intros H_smemory_updater_snd H_sstorage_updater_snd H_mload_solver_snd H_sload_solver_snd.
   destruct i.
   - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply push_snd.
-  - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply pushtag_snd.
+  - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply metapush_snd.
   - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply pop_snd.
   - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply dup_snd.
   - unfold evm_exec_instr_c. unfold evm_exec_instr_s. apply swap_snd.
