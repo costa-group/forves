@@ -163,7 +163,7 @@ Definition sstorage_dbg : Type := storage_updates sstack_val_dbg.
 
 Inductive smap_value_dbg : Type :=
 | SymBasicVal' (val: sstack_val_dbg)
-| SymPUSHTAG' (cat: N) (val: N)
+| SymMETAPUSH' (cat: N) (val: N)
 | SymOp' (label : stack_op_instr) (args : sstack_dbg)
 | SymMLOAD' (offset: sstack_val_dbg) (smem : smemory_dbg)
 | SymSLOAD' (key: sstack_val_dbg) (sstrg : sstorage_dbg)
@@ -214,7 +214,7 @@ map sstorage_update_to_dbg sto.
 Definition smap_value_to_dbg (smv: smap_value) : smap_value_dbg :=
 match smv with
 | SymBasicVal v => SymBasicVal' (sstack_val_to_dbg v)
-| SymPUSHTAG cat v => SymPUSHTAG' cat v
+| SymMETAPUSH cat v => SymMETAPUSH' cat v
 | SymOp label args => SymOp' label (sstack_to_dbg args)
 | SymMLOAD offset smem => SymMLOAD' (sstack_val_to_dbg offset) 
                                     (smemory_to_dbg smem)

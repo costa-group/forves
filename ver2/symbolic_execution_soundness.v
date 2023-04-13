@@ -127,7 +127,7 @@ Lemma pushtag_valid_sst:
 Proof.
   intros sst sst' cat v ops H_valid_sst H_pushtag_s.
   unfold pushtag_s in H_pushtag_s.
-  destruct (add_to_smap (get_smap_sst sst) (SymPUSHTAG  cat v)) as [key sm'] eqn:E_add_to_smap.
+  destruct (add_to_smap (get_smap_sst sst) (SymMETAPUSH  cat v)) as [key sm'] eqn:E_add_to_smap.
   destruct (push (FreshVar key) (get_stack_sst sst)) as [sstk'|] eqn:E_push; try discriminate.
   injection H_pushtag_s as H_stt'.
 
@@ -151,7 +151,7 @@ Proof.
 
   pose proof (pushtag_valid_smv (get_instk_height_sst sst) (get_maxidx_smap (get_smap_sst sst)) ops cat v) as H_valid_smv.
   symmetry in E_add_to_smap.
-  pose proof (add_to_map_valid_sstate sst key sm' (SymPUSHTAG cat v) ops H_valid_sst H_valid_smv E_add_to_smap) as H_valid_sst_add.
+  pose proof (add_to_map_valid_sstate sst key sm' (SymMETAPUSH cat v) ops H_valid_sst H_valid_smv E_add_to_smap) as H_valid_sst_add.
   
   unfold valid_sstate in H_valid_sst_add.
   rewrite instk_height_preserved_when_updating_smap_sst in H_valid_sst_add.
@@ -168,7 +168,7 @@ Proof.
   - split.
     + simpl. 
       split.
-      * pose proof (add_to_smap_key_lt_maxidx (get_smap_sst sst) sm' key (SymPUSHTAG cat v) E_add_to_smap) as H_key_lt_maxidx.
+      * pose proof (add_to_smap_key_lt_maxidx (get_smap_sst sst) sm' key (SymMETAPUSH cat v) E_add_to_smap) as H_key_lt_maxidx.
         apply H_key_lt_maxidx.
       * apply H_valid_sst_sstack_add.
     + split.
@@ -1502,7 +1502,7 @@ Proof.
     pose proof (st_is_instance_of_sst_stk_len init_st st sst ops H_st_inst_sst) as H_inst_stk_len.
     destruct H_inst_stk_len as [H_inst_stk_len_l H_inst_stk_len_r].
     unfold pushtag_s in H_pushtag_s.
-    destruct (add_to_smap (get_smap_sst sst) (SymPUSHTAG cat v)) as [key' sm'] eqn:E_add_to_smap.
+    destruct (add_to_smap (get_smap_sst sst) (SymMETAPUSH cat v)) as [key' sm'] eqn:E_add_to_smap.
     unfold push in H_pushtag_s.
     destruct (length (get_stack_sst sst) <? StackSize) eqn:E_stk_len; try discriminate.
 
@@ -1562,11 +1562,11 @@ Proof.
     destruct H_valid_sst as [H_valid_sst_smap [H_valid_sst_sstack [H_valid_sst_smemory H_valid_sst_sstorage]]].
     (* equivalence of eval_smemory *)
       
-    pose proof (eval_smemory_preserved_when_smap_extended (get_memory_sst sst) (get_instk_height_sst sst) (get_smap_sst sst) sm' (SymPUSHTAG cat v) mem (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_smemory E_add_to_smap E_eval_smemory) as H_eval_smem_preserved.
+    pose proof (eval_smemory_preserved_when_smap_extended (get_memory_sst sst) (get_instk_height_sst sst) (get_smap_sst sst) sm' (SymMETAPUSH cat v) mem (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_smemory E_add_to_smap E_eval_smemory) as H_eval_smem_preserved.
     rewrite H_eval_smem_preserved.
 
     (* equivalence of eval_sstorage *)
-    pose proof (eval_sstorage_preserved_when_smap_extended (get_storage_sst sst) (get_instk_height_sst sst) (get_smap_sst sst) sm' (SymPUSHTAG cat v) strg (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_sstorage E_add_to_smap E_eval_sstorage) as H_eval_sstrg_preserved.
+    pose proof (eval_sstorage_preserved_when_smap_extended (get_storage_sst sst) (get_instk_height_sst sst) (get_smap_sst sst) sm' (SymMETAPUSH cat v) strg (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_sstorage E_add_to_smap E_eval_sstorage) as H_eval_sstrg_preserved.
     rewrite H_eval_sstrg_preserved.
 
     (* the case of eval_sstack *)
@@ -1588,7 +1588,7 @@ Proof.
     rewrite H_maxid_eqb.
     simpl.
     
-    pose proof (eval_sstack_preserved_when_smap_extended (get_stack_sst sst) (get_instk_height_sst sst) (SymMap maxid sb) (SymMap maxid' sb') (SymPUSHTAG cat v) stk'' (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_sstack E_add_to_smap E_eval_sstack) as H_eval_sstack_preserved.
+    pose proof (eval_sstack_preserved_when_smap_extended (get_stack_sst sst) (get_instk_height_sst sst) (SymMap maxid sb) (SymMap maxid' sb') (SymMETAPUSH cat v) stk'' (get_stack_st init_st) (get_memory_st init_st) (get_storage_st init_st) (get_context_st init_st) ops key' H_valid_sst_sstack E_add_to_smap E_eval_sstack) as H_eval_sstack_preserved.
     rewrite <- H_sb' in H_eval_sstack_preserved.
     simpl in H_eval_sstack_preserved.
     rewrite H_eval_sstack_preserved.

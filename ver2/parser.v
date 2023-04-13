@@ -275,7 +275,7 @@ Fixpoint parse_block' (l : list string) : option block :=
                               | Some cat =>
                                   match (parse_block' ys) with
                                   | None => None
-                                  | Some bs => Some ((PUSHTAG (N.of_nat cat) (N.of_nat v))::bs)
+                                  | Some bs => Some ((METAPUSH (N.of_nat cat) (N.of_nat v))::bs)
                                   end
                               end
                          end

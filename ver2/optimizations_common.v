@@ -1012,7 +1012,7 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
 
           | SymBasicVal (FreshVar _) => None
 
-          | SymPUSHTAG cat v =>
+          | SymMETAPUSH cat v =>
               let tags := (get_tags_ctx ctx) in Some (tags cat v)
 
           | SymOp label args =>
@@ -1642,7 +1642,7 @@ destruct d as [|d'].
     eqn: eq_sv1.
   + (* SymBasicVal basicv *)
     destruct basicv as [val|var|fvar] eqn: eq_basicv; try assumption.
-  + (* SymPUSHTAG tag *)
+  + (* SymMETAPUSH tag *)
     assumption.
   + (* SymOp op args *)
     destruct (ops op) as [nargs f H_comm H_ctx_ind] eqn: eq_ops_op.

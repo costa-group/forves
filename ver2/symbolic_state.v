@@ -58,7 +58,7 @@ Definition empty_scontext : scontext := SymCtx.
 
 Inductive smap_value : Type :=
 | SymBasicVal (val: sstack_val)
-| SymPUSHTAG (cat val: N)
+| SymMETAPUSH (cat val: N)
 | SymOp (label : stack_op_instr) (args : list sstack_val)
 | SymMLOAD (offset: sstack_val) (smem : smemory)
 | SymSLOAD (key: sstack_val) (sstrg : sstorage)

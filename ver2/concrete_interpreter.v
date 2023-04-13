@@ -179,7 +179,7 @@ Definition exec_stack_op_intsr_c (label : stack_op_instr) (st : state) (ops : st
 Definition evm_exec_instr_c (inst : instr) (st: state) (ops : stack_op_instr_map) : option state :=
   match inst with
   | PUSH size v => push_c (NToWord EVMWordSize v) st ops
-  | PUSHTAG cat v => pushtag_c cat v st ops
+  | METAPUSH cat v => pushtag_c cat v st ops
   | POP => pop_c st ops
   | DUP k => dup_c k st ops
   | SWAP k => swap_c k st ops

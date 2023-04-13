@@ -56,7 +56,7 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
           | SymBasicVal (FreshVar _) => None
 
           (* PUSHTAG *)
-          | SymPUSHTAG cat v =>
+          | SymMETAPUSH cat v =>
               let tags := (get_tags_ctx ctx) in Some (tags cat v)
 
           (* stack operation instruction: we evaluate the argument

@@ -75,7 +75,7 @@ Definition valid_stack_op_instr (instk_height: nat) (maxidx: nat) (ops: stack_op
 Definition valid_smap_value (instk_height: nat) (maxidx: nat) (ops: stack_op_instr_map) (value: smap_value) : Prop :=
   match value with
   | SymBasicVal v => valid_sstack_value instk_height maxidx v
-  | SymPUSHTAG _ _ => True
+  | SymMETAPUSH _ _ => True
   | SymOp label args => valid_stack_op_instr instk_height maxidx ops label args 
   | SymMLOAD offset smem => valid_sstack_value instk_height maxidx offset /\ valid_smemory instk_height maxidx smem
   | SymSLOAD key sstrg => valid_sstack_value instk_height maxidx key /\ valid_sstorage instk_height maxidx sstrg
@@ -838,7 +838,7 @@ Qed.
 
 Lemma pushtag_valid_smv:
   forall instk_height maxidx ops cat v,
-    valid_smap_value instk_height maxidx ops (SymPUSHTAG cat v).
+    valid_smap_value instk_height maxidx ops (SymMETAPUSH cat v).
 Proof.
   intros.
   reflexivity.
