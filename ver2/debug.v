@@ -163,7 +163,7 @@ Definition sstorage_dbg : Type := storage_updates sstack_val_dbg.
 
 Inductive smap_value_dbg : Type :=
 | SymBasicVal' (val: sstack_val_dbg)
-| SymPUSHTAG' (val: N)
+| SymPUSHTAG' (cat: N) (val: N)
 | SymOp' (label : stack_op_instr) (args : sstack_dbg)
 | SymMLOAD' (offset: sstack_val_dbg) (smem : smemory_dbg)
 | SymSLOAD' (key: sstack_val_dbg) (sstrg : sstorage_dbg)
@@ -214,7 +214,7 @@ map sstorage_update_to_dbg sto.
 Definition smap_value_to_dbg (smv: smap_value) : smap_value_dbg :=
 match smv with
 | SymBasicVal v => SymBasicVal' (sstack_val_to_dbg v)
-| SymPUSHTAG v => SymPUSHTAG' v
+| SymPUSHTAG cat v => SymPUSHTAG' cat v
 | SymOp label args => SymOp' label (sstack_to_dbg args)
 | SymMLOAD offset smem => SymMLOAD' (sstack_val_to_dbg offset) 
                                     (smemory_to_dbg smem)
@@ -502,6 +502,26 @@ Compute
  [PUSH 1 0xe; PUSH 1 0x4; DUP 1; OpInstr CALLDATASIZE; OpInstr SUB; DUP 2; 
   OpInstr ADD; SWAP 1; PUSH 1 0xf; SWAP 2; SWAP 1; PUSH 1 0x10]
  0).
+
+
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ [PUSH 1 0xf; PUSH 1 0xe; MSTORE; PUSH 1 0xf; PUSH 1 0xff; MSTORE]
+ [PUSH 1 0xf; PUSH 1 0xff; MSTORE; PUSH 1 0xf; PUSH 1 0xe; MSTORE]
+ 0).
+
+
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ [PUSH 1 0x40; PUSH 1 0x7; PUSH 1 0x20; MSTORE; PUSH 1 0x0; DUP 7; DUP 2; MSTORE; POP; POP; PUSH 1 0x0; PUSH 1 0x4; OpInstr ADD; DUP 2; DUP 2; SLOAD; DUP 4; OpInstr LT; PUSH 1 0xb8]
+ [PUSH 1 0x0; DUP 6; DUP 2; MSTORE; PUSH 1 0x7; PUSH 1 0x20; MSTORE; PUSH 1 0x40; SWAP 1; POP; POP; PUSH 1 0x0; PUSH 1 0x4; OpInstr ADD; DUP 1; SLOAD; DUP 3; SWAP 1; DUP 2; OpInstr LT; PUSH 1 0xb8]
+5).
 
 
 End Debug.

@@ -49,8 +49,9 @@ let speclist =
   [
     ("-opt", Arg.String process_opts, "A list of comma-separated optimizations (without white spaces) to be applied iteratively. Available optimizations are: ...");
     ("-mu", Arg.String process_memory_updater, "memory updater");
+    ("-su", Arg.String process_storage_updater, "storage updater");
     ("-ms", Arg.String process_mload_solver, "mload solver");
-    ("-su", Arg.String process_sload_solver, "sload solver");
+    ("-ss", Arg.String process_sload_solver, "sload solver");
     ("-ssv_c", Arg.String process_sstack_value_cmp, "sstack_value comparator");
     ("-mem_c", Arg.String process_memory_cmp, "memory comparator");
     ("-strg_c", Arg.String process_storage_cmp, "storage comparator");

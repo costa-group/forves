@@ -71,7 +71,7 @@ Ctx
   (chainid : EVMWord)
   (basefee : EVMWord)
   (keccak256 : forall (n : nat), word (n*8) -> EVMWord)
-  (tags : N -> EVMWord)
+  (tags : N -> N -> EVMWord)
   (_extra_2 : nat)
   (_extra_3 : nat)
   (_extra_4 : nat)
@@ -96,12 +96,12 @@ Definition empty_context : context :=
   WZero (* (chainid : EVMWord) *)
   WZero (* (basefee : EVMWord) *)
   (fun _ _ => WZero) (* (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord) *)
-  (fun v => (NToWord EVMWordSize v)) (* tags: N -> EVMWord *)
+  (fun cat v => (NToWord EVMWordSize (cat + v))) (* tags: N -> EVMWord *)
   0 (* (_extra_2 : nat) *)
   0 (* (_extra_3 : nat) *)
   0 (* (_extra_4 : nat) *)
   0. (* (_extra_5 : nat) *)
-    
+
 (* Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ *)
 
 Definition get_address_ctx (c : context) :=

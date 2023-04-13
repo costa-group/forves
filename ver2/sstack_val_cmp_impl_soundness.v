@@ -133,7 +133,12 @@ Module SStackValCmpImplSoundness.
           rewrite H_nth_error.
           exists (nth var0 stk WZero).
           split; reflexivity.
-      + apply N.eqb_eq in H_cmp_sv1_sv2. rewrite H_cmp_sv1_sv2. exists (get_tags_ctx ctx val0). split; reflexivity.
+      + apply andb_prop in H_cmp_sv1_sv2 as [ H_cmp_sv1_sv2_0  H_cmp_sv1_sv2_1].
+        apply N.eqb_eq in H_cmp_sv1_sv2_0.
+        apply N.eqb_eq in H_cmp_sv1_sv2_1.
+        rewrite H_cmp_sv1_sv2_0.
+        rewrite H_cmp_sv1_sv2_1.
+        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
       + destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.
@@ -272,7 +277,12 @@ Module SStackValCmpImplSoundness.
           rewrite H_nth_error.
           exists (nth var0 stk WZero).
           split; reflexivity.
-      + apply N.eqb_eq in H_cmp_sv1_sv2. rewrite H_cmp_sv1_sv2. exists (get_tags_ctx ctx val0). split; reflexivity.
+      + apply andb_prop in H_cmp_sv1_sv2 as [H_cmp_sv1_sv2_0 H_cmp_sv1_sv2_1].
+        apply N.eqb_eq in H_cmp_sv1_sv2_0.
+        apply N.eqb_eq in H_cmp_sv1_sv2_1.
+        rewrite H_cmp_sv1_sv2_0.
+        rewrite H_cmp_sv1_sv2_1.
+        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
       + fold eval_sstack_val' in H_cmp_sv1_sv2. destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.

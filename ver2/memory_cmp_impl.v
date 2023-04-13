@@ -78,7 +78,7 @@ Module MemoryCmpImpl.
   
   Definition swap_memory_update (u1 u2 : memory_update sstack_val) : bool :=
     match u1, u2 with
-    | U_MSTORE _ (Val v1) _, U_MSTORE _ (Val v2) _ => ((wordToN v2)+32 <? (wordToN v1))%N
+    | U_MSTORE _ (Val v1) _, U_MSTORE _ (Val v2) _ => ((wordToN v2)+31 <? (wordToN v1))%N
     | U_MSTORE8 _ (Val v1) _, U_MSTORE8 _ (Val v2) _ => ((wordToN v2) <? (wordToN v1))%N
     | U_MSTORE _ (Val v1) _, U_MSTORE8 _ (Val v2) _ => ((wordToN v2) <? (wordToN v1))%N
     | U_MSTORE8 _ (Val v1) _, U_MSTORE _ (Val v2) _ => ((wordToN v2)+31 <? (wordToN v1))%N

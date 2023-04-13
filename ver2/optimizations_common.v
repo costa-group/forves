@@ -1012,8 +1012,8 @@ eval_sstack_val' (S d') sv stk mem strg ctx maxidx sb ops =
 
           | SymBasicVal (FreshVar _) => None
 
-          | SymPUSHTAG v =>
-              let tags := (get_tags_ctx ctx) in Some (tags v)
+          | SymPUSHTAG cat v =>
+              let tags := (get_tags_ctx ctx) in Some (tags cat v)
 
           | SymOp label args =>
               match ops label with

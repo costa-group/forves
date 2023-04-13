@@ -266,13 +266,17 @@ Fixpoint parse_block' (l : list string) : option block :=
                  match (is_push_tag x) with
                  | true =>
                      match xs with
-                     | y::ys =>
+                     | z::y::ys =>
                          match (parseDecNumber y) with
                          |  None => None
                          |  Some v =>
-                              match (parse_block' ys) with
+                              match (parseDecNumber z) with
                               | None => None
-                              | Some bs => Some ((PUSHTAG (N.of_nat v))::bs)
+                              | Some cat =>
+                                  match (parse_block' ys) with
+                                  | None => None
+                                  | Some bs => Some ((PUSHTAG (N.of_nat cat) (N.of_nat v))::bs)
+                                  end
                               end
                          end
                      | _ => None

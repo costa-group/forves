@@ -38,11 +38,11 @@ Definition push_s (value : EVMWord) :=
     | Some sstk' => Some (set_stack_sst sst sstk')
     end.
 
-Definition pushtag_s (value : N) :=
+Definition pushtag_s (cat value : N) :=
   fun (sst : sstate) (ops: stack_op_instr_map) =>
     let sstk := get_stack_sst sst in
     let sm : smap := get_smap_sst sst in
-    let v : smap_value := SymPUSHTAG value in
+    let v : smap_value := SymPUSHTAG cat value in
     match add_to_smap sm v with
     | pair key sm' =>
         match push (FreshVar key) sstk with
@@ -180,7 +180,7 @@ Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : 
 Definition evm_exec_instr_s (smem_updater: smemory_updater_type) (sstrg_updater: sstorage_updater_type) (mload_solver: mload_solver_type) (sload_solver: sload_solver_type) (inst: instr) (sst: sstate) (ops: stack_op_instr_map): option sstate :=
   match inst with
   | PUSH size w => (push_s (NToWord EVMWordSize w)) sst ops
-  | PUSHTAG v => (pushtag_s v) sst ops
+  | PUSHTAG cat v => (pushtag_s cat v) sst ops
   | POP => pop_s sst ops
   | DUP pos => dup_s pos sst ops
   | SWAP pos => swap_s pos sst ops

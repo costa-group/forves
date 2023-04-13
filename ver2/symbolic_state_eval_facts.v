@@ -99,7 +99,7 @@ Proof.
        *** discriminate H_follow_2.
 
     (* SymPUSHTAG  *)
-    ** exists (get_tags_ctx ctx v). reflexivity.
+    ** exists (get_tags_ctx ctx v val). reflexivity.
        
     (* OpImp nargs f *)
     ** destruct (ops label) eqn:E_f.

@@ -64,7 +64,7 @@ Fixpoint basic_compare_sstack_val (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp
                   | InStackVar n1, InStackVar n2 => (andb (n1 =? n2) (andb (n1 <? instk_height) (n2 <? instk_height)))
                   | _, _ => false
                   end
-              | SymPUSHTAG v1, SymPUSHTAG v2 => (v1 =? v2)%N
+              | SymPUSHTAG cat1 v1, SymPUSHTAG cat2 v2 => andb (cat1 =? cat2)%N (v1 =? v2)%N
               | SymOp label1 args1, SymOp label2 args2 =>
                   if label1 =?i label2 then
                     match ops label1 with
