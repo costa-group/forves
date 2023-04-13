@@ -203,12 +203,14 @@ Module BlockEquivChecker.
 
   Inductive available_memory_cmp :=
   | SMemCmp_Trivial
-  | SMemCmp_Basic.
+  | SMemCmp_Basic
+  | SMemCmp_PO.
 
   Definition get_memory_cmp (tag: available_memory_cmp) : smemory_cmp_v :=
     match tag with
     | SMemCmp_Trivial => SMemCmp trivial_memory_cmp trivial_memory_cmp_snd
     | SMemCmp_Basic => SMemCmp basic_memory_cmp basic_memory_cmp_snd
+    | SMemCmp_PO => SMemCmp po_memory_cmp po_memory_cmp_snd
   end.
 
   (* Storage comparators *)
@@ -217,12 +219,15 @@ Module BlockEquivChecker.
 
   Inductive available_storage_cmp :=
   | SStrgCmp_Trivial
-  | SStrgCmp_Basic.
+  | SStrgCmp_Basic
+  | SStrgCmp_PO.
+  
 
   Definition get_storage_cmp (tag: available_storage_cmp) : sstorage_cmp_v :=
     match tag with
     | SStrgCmp_Trivial => SStrgCmp trivial_storage_cmp trivial_storage_cmp_snd
     | SStrgCmp_Basic => SStrgCmp basic_storage_cmp basic_storage_cmp_snd
+    | SStrgCmp_PO => SStrgCmp po_storage_cmp po_storage_cmp_snd
   end.
 
 

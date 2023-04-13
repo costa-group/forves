@@ -377,6 +377,7 @@ Definition parse_memory_cmp (s: string) :=
   match s with
   | "trivial"%string => Some SMemCmp_Trivial
   | "basic"%string => Some SMemCmp_Basic
+  | "po"%string => Some SMemCmp_PO
   | _ => None
   end.
 
@@ -384,6 +385,7 @@ Definition parse_storage_cmp (s: string) :=
   match s with
   | "trivial"%string => Some SStrgCmp_Trivial
   | "basic"%string => Some SStrgCmp_Basic
+  | "po"%string => Some SStrgCmp_PO
   | _ => None
   end.
 

@@ -65,6 +65,10 @@ Module StorageCmpImplSoundness.
   Proof.
   Admitted.
   
+  Theorem po_storage_cmp_snd:
+    safe_sstorage_cmp_ext_wrt_sstack_value_cmp po_storage_cmp.
+  Proof.
+  Admitted.
 
 
 End StorageCmpImplSoundness.

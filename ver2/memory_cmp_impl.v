@@ -43,12 +43,14 @@ Import EvalCommon.
 Module MemoryCmpImpl.
 
 
+  (* just handles the case of empty memory updates *)
   Definition trivial_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
     match smem1,smem2 with
     | [], [] => true
     | _, _ => false
     end.
-  
+
+  (* identical memory updates *)
   Fixpoint basic_memory_cmp (sstack_val_cmp: sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
     match smem1,smem2 with
     | [], [] => true
@@ -71,6 +73,61 @@ Module MemoryCmpImpl.
           
     | _, _ => false
     end.
+
+
   
+  Definition swap_memory_update (u1 u2 : memory_update sstack_val) : bool :=
+    match u1, u2 with
+    | U_MSTORE _ (Val v1) _, U_MSTORE _ (Val v2) _ => ((wordToN v2)+32 <? (wordToN v1))%N
+    | U_MSTORE8 _ (Val v1) _, U_MSTORE8 _ (Val v2) _ => ((wordToN v2) <? (wordToN v1))%N
+    | U_MSTORE _ (Val v1) _, U_MSTORE8 _ (Val v2) _ => ((wordToN v2) <? (wordToN v1))%N
+    | U_MSTORE8 _ (Val v1) _, U_MSTORE _ (Val v2) _ => ((wordToN v2)+31 <? (wordToN v1))%N
+    | _,_ => false                                                             
+    end.
+  
+  Fixpoint reorder_updates' (d : nat) (smem :smemory) : bool * smemory :=
+    match d with
+    | O => (false,smem)
+    | S d' =>
+        match smem with
+        | u1::u2::smem' =>
+            if swap_memory_update u1 u2 then
+              match reorder_updates' d' (u1::smem') with
+                (_,smem'') => (true,u2::smem'')
+              end
+            else
+              match reorder_updates' d' (u2::smem') with
+                (r,smem'') => (r,u1::smem'')
+              end
+        | _ => (false,smem)
+        end
+    end.
+
+  (* n is basically the length of smem, we pass it as a parameter to
+  avoid computing *)
+  Fixpoint reorder_memory_updates (d n: nat) (smem :smemory) : smemory :=
+    match d with
+    | O => smem
+    | S d' =>
+        match reorder_updates' n smem with
+        |  (changed,smem') =>
+             if changed then
+               reorder_memory_updates d' n smem'
+             else
+               smem'
+        end
+    end.
+
+
+  Definition po_memory_cmp (sstack_val_cmp : sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
+    let n1 := length smem1 in
+    let n2 := length smem2 in
+    if (n1 =? n2) then 
+      let smem1' := reorder_memory_updates n1 n1 smem1 in
+      let smem2' := reorder_memory_updates n2 n2 smem2 in
+      basic_memory_cmp sstack_val_cmp smem1' smem2' maxidx1 sb1 maxidx2 sb2 instk_height ops
+    else
+      false.
+      
   
 End MemoryCmpImpl.

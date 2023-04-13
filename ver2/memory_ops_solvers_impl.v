@@ -49,6 +49,7 @@ Module MemoryOpsSolversImpl.
 
 
 
+  (* mload offset does not overlap with mstore offsets' *)
   Definition mstore_updates_do_not_overlap (soffset soffset': sstack_val) : bool :=
     match soffset, soffset' with
     | Val v1, Val v2 =>
@@ -57,16 +58,18 @@ Module MemoryOpsSolversImpl.
         orb (addr+31 <? addr')%N (addr'+31 <? addr)%N
     | _, _ => false
     end.
-  
+
+  (* mload offset does not overlap with mstore8 offset' *)
   Definition mstore8_updates_do_not_overlap (soffset soffset': sstack_val) : bool :=
     match soffset, soffset' with
     | Val v1, Val v2 =>
         let addr := (wordToN v1) in
         let addr' := (wordToN v2) in
-        orb (addr <? addr')%N (addr'+31 <? addr)%N
+        orb (addr' <? addr)%N (addr+31 <? addr')%N
     | _, _ => false
     end.
-  
+
+  (* mstore8 soffset_mstore8 is includes in soffset_mstore *)
   Definition mstore8_is_included_in_mstore (soffset_mstore8 soffset_mstore: sstack_val) : bool :=
     match soffset_mstore8, soffset_mstore with
     | Val v1, Val v2 =>
