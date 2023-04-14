@@ -73,5 +73,4 @@ block_equiv_checker.v
 
 parser.v
 extract_ocaml.v
-checker.v
 debug.v
