@@ -573,7 +573,6 @@ Proof.
     destruct rl1 as [|b rl1']; try discriminate.
     simpl in H_len_l1_rl1.
     injection H_len_l1_rl1 as H_len_l1_rl1.
-    Search app.
     rewrite <- app_comm_cons in H_app.
     injection H_app as H_a_b H_app'.
     pose proof (IHl1' l2 rl1' rl2 H_len_l1_rl1 H_l1_rl2 H_app') as [IH1 IH2].

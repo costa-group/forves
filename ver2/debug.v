@@ -486,7 +486,16 @@ Compute
   OpInstr DIV; PUSH 1 0xff; OpInstr AND; OpInstr ISZERO; PUSH 1 0xd6]
  1).
  
- 
+
+
+(* *********************************** *)
+(* Blocks from solc_semantic_tests.txt *)
+(* *********************************** *)
+
+
+(* RULE: ADD(X, SUB(Y,X)) = Y *) 
+(* Lemma: wminus_wplus_undo *)
+(* Probably blocks #213 -- #222 *)
 (*
 # 213
 PUSH1 0xe PUSH1 0xf CALLDATASIZE PUSH1 0x4 PUSH1 0x10
@@ -502,26 +511,96 @@ Compute
  [PUSH 1 0xe; PUSH 1 0x4; DUP 1; OpInstr CALLDATASIZE; OpInstr SUB; DUP 2; 
   OpInstr ADD; SWAP 1; PUSH 1 0xf; SWAP 2; SWAP 1; PUSH 1 0x10]
  0).
+ 
 
-
+(* RULE: ISZERO(ISZERO(X)) = GT(X,0) *)
+(* 
+# 243
+POP PUSH8 0xDE0B6B3A7640000 DUP1 DUP3 MOD DUP1 ISZERO ISZERO SWAP2 SUB MUL ADD SWAP1
+PUSH8 0xDE0B6B3A7640000 DUP3 MOD DUP1 PUSH8 0xDE0B6B3A7640000 SUB PUSH1 0x0 DUP3 GT DUP2 MUL DUP5 ADD SWAP3 POP POP POP SWAP2 SWAP1 POP
+500 
+*)
 Compute 
 (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
- MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
  SStrgCmp_Basic SHA3Cmp_Trivial 
  all_optimization_steps 10 10
- [PUSH 1 0xf; PUSH 1 0xe; MSTORE; PUSH 1 0xf; PUSH 1 0xff; MSTORE]
- [PUSH 1 0xf; PUSH 1 0xff; MSTORE; PUSH 1 0xf; PUSH 1 0xe; MSTORE]
- 0).
-
-
+ [POP; PUSH 8 0xDE0B6B3A7640000; DUP 1; DUP 3; OpInstr MOD; DUP 1; OpInstr ISZERO;
+  OpInstr ISZERO; SWAP 2; OpInstr SUB; OpInstr MUL; OpInstr ADD; SWAP 1]
+ [PUSH 8 0xDE0B6B3A7640000; DUP 3; OpInstr MOD; DUP 1; PUSH 8 0xDE0B6B3A7640000;
+  OpInstr SUB; PUSH 1 0x0; DUP 3; OpInstr GT; DUP 2; OpInstr MUL; DUP 5; 
+  OpInstr ADD; SWAP 3; POP; POP; POP; SWAP 2; SWAP 1; POP]
+ 3).
+ 
+ 
+(* RULES: ADD(X,ADD(Y,Z)) = ADD(ADD(X,Y),Z) 
+          SHR(D, SHL(D, SHR(D, V))) = SHR(D, V)
+          AND(2^N-1, SHR(256-N, X) = SHR(256-N, X)
+*)
+(* 
+# 1049
+ADD PUSH1 0x20 ADD MLOAD PUSH1 0xF8 SHR
+PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND
+500 
+*) 
 Compute 
 (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
- MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
  SStrgCmp_Basic SHA3Cmp_Trivial 
  all_optimization_steps 10 10
- [PUSH 1 0x40; PUSH 1 0x7; PUSH 1 0x20; MSTORE; PUSH 1 0x0; DUP 7; DUP 2; MSTORE; POP; POP; PUSH 1 0x0; PUSH 1 0x4; OpInstr ADD; DUP 2; DUP 2; SLOAD; DUP 4; OpInstr LT; PUSH 1 0xb8]
- [PUSH 1 0x0; DUP 6; DUP 2; MSTORE; PUSH 1 0x7; PUSH 1 0x20; MSTORE; PUSH 1 0x40; SWAP 1; POP; POP; PUSH 1 0x0; PUSH 1 0x4; OpInstr ADD; DUP 1; SLOAD; DUP 3; SWAP 1; DUP 2; OpInstr LT; PUSH 1 0xb8]
-5).
+ [OpInstr ADD; PUSH 1 0x20; OpInstr ADD; MLOAD; PUSH 1 0xF8; OpInstr SHR]
+ [PUSH 1 0x20; OpInstr ADD; OpInstr ADD; MLOAD; PUSH 1 0xF8; OpInstr SHR; 
+  PUSH 1 0xF8; OpInstr SHL; PUSH 1 0xF8; OpInstr SHR; PUSH 1 0xFF; OpInstr AND]
+ 2).
+
+
+(* RULES: ADD(X,ADD(Y,Z)) = ADD(ADD(X,Y),Z) 
+          SHR(D, SHL(D, SHR(D, V))) = SHR(D, V)
+          AND(2^N-1, SHR(256-N, X) = SHR(256-N, X)
+          AND(2^A-1, AND(2^B-1, X)) = AND(2^N-1, X)
+              where A,B constant values <= 256 and N = min(A, B)
+*) 
+(*
+# 1052
+ADD PUSH1 0x20 ADD MLOAD PUSH1 0xF8 SHR SWAP1 SHL
+PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ [OpInstr ADD; PUSH 1 0x20; OpInstr ADD; MLOAD; PUSH 1 0xF8; OpInstr SHR;
+  SWAP 1; OpInstr SHL]
+ [PUSH 1 0x20; OpInstr ADD; OpInstr ADD; MLOAD; PUSH 1 0xF8; OpInstr SHR; 
+  PUSH 1 0xF8; OpInstr SHL; PUSH 1 0xF8; OpInstr SHR; PUSH 1 0xFF; OpInstr AND;
+  PUSH 3 0xFFFFFF; OpInstr AND; SWAP 1; OpInstr SHL]
+ 3).
+
+
+
+(* RULES: ADD(X,ADD(Y,Z)) = ADD(ADD(X,Y),Z) 
+          AND((2^256-1)-(2^N-1), X) = SHL(N, SHR(N, X))
+*)
+(*
+# 1060
+ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 PUSH1 0x64 DUP2 PUSH1 0x1c
+PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 PUSH1 0x64 SWAP1 PUSH1 0x1c
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ [OpInstr ADD; PUSH 1 0x20; OpInstr ADD; MLOAD; 
+  PUSH 32 0xFF00000000000000000000000000000000000000000000000000000000000000;
+  OpInstr AND; DUP 5; DUP 5; PUSH 1 0x64; DUP 2; PUSH 1 0x1c]
+ [PUSH 1 0x20; OpInstr ADD; OpInstr ADD; MLOAD; PUSH 1 0xF8; OpInstr SHR;
+  PUSH 1 0xF8; OpInstr SHL; DUP 5; DUP 5; DUP 1; PUSH 1 0x64; SWAP 1;
+  PUSH 1 0x1c]
+ 6).
 
 
 End Debug.

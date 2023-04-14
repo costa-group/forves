@@ -3325,7 +3325,6 @@ Proof.
          rewrite E_skipn_e_s in H_len_l0_l2.
          rewrite E_l2 in H_len_l0_l2.
          rewrite H_len_l0_l2 in H_len2.
-         Search skipn.
          
           (* H_eq_stk : l1 ++ l2 = rl1 ++ rl2 *)
                   
