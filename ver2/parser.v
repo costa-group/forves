@@ -155,9 +155,9 @@ Definition is_push (s : string) : option nat :=
   | _ => None
   end.
 
-Definition is_push_tag (s : string) : bool :=
+Definition is_metapush (s : string) : bool :=
   match s with
-  | "PUSHTAG"%string => true
+  | "METAPUSH"%string => true
   | _ => false
   end.
 
@@ -263,11 +263,11 @@ Fixpoint parse_block' (l : list string) : option block :=
                   | _ => None
                   end
              | None =>
-                 match (is_push_tag x) with
+                 match (is_metapush x) with
                  | true =>
                      match xs with
                      | z::y::ys =>
-                         match (parseDecNumber y) with
+                         match (parseHexNumber y) with
                          |  None => None
                          |  Some v =>
                               match (parseDecNumber z) with
@@ -275,7 +275,7 @@ Fixpoint parse_block' (l : list string) : option block :=
                               | Some cat =>
                                   match (parse_block' ys) with
                                   | None => None
-                                  | Some bs => Some ((METAPUSH (N.of_nat cat) (N.of_nat v))::bs)
+                                  | Some bs => Some ((METAPUSH (N.of_nat cat) v)::bs)
                                   end
                               end
                          end

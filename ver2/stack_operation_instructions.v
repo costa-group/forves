@@ -475,6 +475,16 @@ Proof.
   ctx_independent_tac evm_gas.
 Qed.
 
+Definition evm_jumpi (ctx : context) (args: list EVMWord) : EVMWord :=
+match args with
+ | [a; b] => if weqb b WZero then WZero else a
+ | _ => WZero
+ end.
+Lemma jumpi_ctx_ind: ctx_independent_op evm_jumpi.
+Proof.
+  ctx_independent_tac evm_jumpi.
+Qed.
+
 
 Definition evm_stack_opm : stack_op_instr_map :=
   ADD |->i OpImp 2 evm_add (Some add_comm) (Some add_ctx_ind);
@@ -523,7 +533,8 @@ Definition evm_stack_opm : stack_op_instr_map :=
   CHAINID |->i OpImp 0 evm_chainid None None;
   SELFBALANCE |->i OpImp 0  evm_selfbalance None None;
   BASEFEE |->i OpImp 0 evm_basefee None None;
-  GAS |->i OpImp 0 evm_gas None (Some gas_ctx_ind).
+  GAS |->i OpImp 0 evm_gas None (Some gas_ctx_ind);
+  JUMPI |->i OpImp 0 evm_jumpi None (Some jumpi_ctx_ind).
  
 
 

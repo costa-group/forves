@@ -46,4 +46,5 @@ Module SHA3CmpImpl.
 Definition trivial_sha3_cmp (sstack_val_cmp: sstack_val_cmp_t) (soffset1 ssize1: sstack_val) (smem1 :smemory) (soffset2 ssize2: sstack_val) (smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
   false.
 
+
 End SHA3CmpImpl.

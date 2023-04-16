@@ -57,7 +57,8 @@ Inductive stack_op_instr :=
 | CHAINID
 | SELFBALANCE
 | BASEFEE
-| GAS.
+| GAS
+| JUMPI.
 
 
 Definition eqb_stack_op_instr (a b: stack_op_instr) : bool :=
@@ -109,6 +110,7 @@ Definition eqb_stack_op_instr (a b: stack_op_instr) : bool :=
   | BASEFEE,BASEFEE => true
   | CODESIZE,CODESIZE => true
   | GAS, GAS => true
+  | JUMPI, JUMPI => true
   | _,_ => false
   end.
 
