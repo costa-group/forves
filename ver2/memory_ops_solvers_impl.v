@@ -48,25 +48,35 @@ Module MemoryOpsSolversImpl.
       (update::smem).
 
 
-
-  (* mload offset does not overlap with mstore offsets' *)
-  Definition mstore_updates_do_not_overlap (soffset soffset': sstack_val) : bool :=
+  
+  (* [soffset,soffset+size] does not overlap with [soffset',soffset'+size'] --- closed intervals *)
+  (* We will mainly use it with size=31 or size=0 *)
+  Definition memory_slots_do_not_overlap (soffset soffset': sstack_val) (size size':N): bool :=
     match soffset, soffset' with
     | Val v1, Val v2 =>
         let addr := (wordToN v1) in
         let addr' := (wordToN v2) in
-        orb (addr+31 <? addr')%N (addr'+31 <? addr)%N
+        orb (addr+size <? addr')%N (addr'+size' <? addr)%N
     | _, _ => false
     end.
-
-  (* mload offset does not overlap with mstore8 offset' *)
-  Definition mstore8_updates_do_not_overlap (soffset soffset': sstack_val) : bool :=
-    match soffset, soffset' with
-    | Val v1, Val v2 =>
-        let addr := (wordToN v1) in
-        let addr' := (wordToN v2) in
-        orb (addr' <? addr)%N (addr+31 <? addr')%N
-    | _, _ => false
+  
+ 
+  Fixpoint basic_mload_solver (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset: sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
+    match smem with
+    | [] => SymMLOAD soffset []
+    | (U_MSTORE _ soffset' svalue)::smem' =>
+        if sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
+          SymBasicVal svalue
+        else
+          if memory_slots_do_not_overlap soffset soffset' 31 31 then
+            basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
+          else
+            SymMLOAD soffset' smem
+    | (U_MSTORE8 _ soffset' svalue)::smem' =>
+        if memory_slots_do_not_overlap soffset soffset' 31 0 then
+          basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
+        else
+          SymMLOAD soffset' smem             
     end.
 
   (* mstore8 soffset_mstore8 is includes in soffset_mstore *)
@@ -78,26 +88,7 @@ Module MemoryOpsSolversImpl.
         andb (addr_mstore <=? addr_mstore8 )%N (addr_mstore8 <=? addr_mstore+31)%N
     | _, _ => false
     end.
-  
-  Fixpoint basic_mload_solver (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset: sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
-    match smem with
-    | [] => SymMLOAD soffset []
-    | (U_MSTORE _ soffset' svalue)::smem' =>
-        if sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
-          SymBasicVal svalue
-        else
-          if mstore_updates_do_not_overlap soffset soffset' then
-            basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
-          else
-            SymMLOAD soffset' smem
-    | (U_MSTORE8 _ soffset' svalue)::smem' =>
-        if mstore8_updates_do_not_overlap soffset soffset' then
-          basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
-        else
-          SymMLOAD soffset' smem             
-    end.
-  
-  
+
   Fixpoint basic_smemory_updater_remove_mstore_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t) (soffset_mstore: sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
     match smem with
     | [] => []
@@ -122,9 +113,9 @@ Module MemoryOpsSolversImpl.
         else
           (U_MSTORE8 sstack_val soffset' svalue)::(basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset_mstore8 smem' instk_height m ops)
     | (U_MSTORE _ soffset' svalue)::smem' =>
-        (U_MSTORE sstack_val soffset' svalue)::(basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset_mstore8 smem' instk_height m ops)
+        (U_MSTORE sstack_val soffset' svalue)::(basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset_mstore8 smem' instk_height m ops)          
     end.
-  
+
   Definition basic_smemory_updater (sstack_val_cmp: sstack_val_cmp_ext_1_t) (update: memory_update sstack_val) (smem: smemory) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
     match update with
     | U_MSTORE _ soffset _ =>

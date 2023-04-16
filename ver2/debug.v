@@ -144,11 +144,23 @@ Import Misc.
 Require Import FORVES.optimizations_common.
 Import Optimizations_Common.
 
+Require Import FORVES.parser.
+Import Parser.
+
+From Coq Require Import Strings.String.
+
 From Coq Require Import Lists.List. Import ListNotations.
 
 Module Debug.
 
 
+  (* string to block that always succeed *)
+  Definition str2block (s : string) : block :=
+    match parse_block s with
+    | None => []
+    | Some b => b
+    end.
+  
 
 Inductive sstack_val_dbg : Type :=
 | Val' (val: N)
@@ -602,5 +614,15 @@ Compute
   PUSH 1 0x1c]
  6).
 
+
+  
+
+Compute
+  let b1 := str2block "PUSH1 0x20 PUSH1 0x20 MSTORE PUSH1 0x200 PUSH1 0x200 MSTORE MSTORE PUSH1 0x10 PUSH1 0x10 MSTORE PUSH1 0x100 PUSH1 0x100 MSTORE" in
+  let b2 := str2block "MSTORE PUSH1 0x100 PUSH1 0x100 MSTORE PUSH1 0x10 PUSH1 0x10 MSTORE PUSH1 0x200 PUSH1 0x200 MSTORE PUSH1 0x20 PUSH1 0x20 MSTORE" in
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+     MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+     SStrgCmp_Basic SHA3Cmp_Trivial 
+     all_optimization_steps 10 10 b1 b2 6).
 
 End Debug.
