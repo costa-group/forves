@@ -9,7 +9,11 @@ include_identical = False
 
 #
 #
-bytecode_vocab = [ 'ADD', 'MUL', 'NOT', 'SUB', 'DIV', 'SDIV', 'MOD', 'SMOD', 'ADDMOD', 'MULMOD', 'EXP', 'SIGNEXTEND', 'LT', 'GT', 'SLT', 'SGT', 'EQ', 'ISZERO', 'AND', 'OR', 'XOR', 'BYTE', 'SHL', 'SHR', 'SAR', 'SHA3', 'KECCAK256', 'ADDRESS', 'BALANCE', 'ORIGIN', 'CALLER', 'CALLVALUE', 'CALLDATALOAD', 'CALLDATASIZE ', 'CODESIZE', 'GASPRICE', 'EXTCODESIZE', 'RETURNDATASIZE', 'EXTCODEHASH', 'BLOCKHASH', 'COINBASE', 'TIMESTAMP', 'NUMBER', 'DIFFICULTY', 'GASLIMIT', 'CHAINID', 'SELFBALANCE', 'BASEFEE', 'SLOAD', 'MLOAD', 'PC', 'MSIZE', 'GAS', 'CREATE', 'CREATE2', 'CALLDATASIZE', 'CALLDATALOAD', 'JUMPI', 'JUMPDEST' ]
+bytecode_vocab = [ 'ADD', 'MUL', 'NOT', 'SUB', 'DIV', 'SDIV', 'MOD', 'SMOD', 'ADDMOD', 'MULMOD', 'EXP', 'SIGNEXTEND', 'LT', 'GT', 'SLT', 'SGT', 'EQ', 'ISZERO', 'AND', 'OR', 'XOR', 'BYTE', 'SHL', 'SHR', 'SAR', 'SHA3', 'KECCAK256', 'ADDRESS', 'BALANCE', 'ORIGIN', 'CALLER', 'CALLVALUE', 'CALLDATALOAD', 'CALLDATASIZE ', 'CODESIZE', 'GASPRICE', 'EXTCODESIZE', 'RETURNDATASIZE', 'EXTCODEHASH', 'BLOCKHASH', 'COINBASE', 'TIMESTAMP', 'NUMBER', 'DIFFICULTY', 'GASLIMIT', 'CHAINID', 'SELFBALANCE', 'BASEFEE', 'SLOAD', 'MLOAD', 'MSTORE', 'MSTORE8', 'SSTORE', 'PC', 'MSIZE', 'GAS', 'CREATE', 'CREATE2', 'CALLDATASIZE', 'CALLDATALOAD', 'JUMPI', 'JUMPDEST', 'METAPUSH',
+    'POP',
+    'DUP1', 'DUP2', 'DUP3', 'DUP4', 'DUP5', 'DUP6', 'DUP7', 'DUP8', 'DUP9', 'DUP10', 'DUP11', 'DUP12', 'DUP13', 'DUP14', 'DUP15', 'DUP16',
+    'SWAP1', 'SWAP2', 'SWAP3', 'SWAP4', 'SWAP5', 'SWAP6', 'SWAP7', 'SWAP8', 'SWAP9', 'SWAP10', 'SWAP11', 'SWAP12', 'SWAP13', 'SWAP14', 'SWAP15', 'SWAP16',
+                  ]
 
 #
 #
@@ -20,74 +24,96 @@ def is_pseudo_keyword(opcode: str) -> bool:
     else:
         return True
 
+def keyword_to_id(keyword):
+    if keyword == "PUSHDEPLOYADDRESS":
+        return 0
+    elif keyword == "PUSHSIZE":
+        return 1
+    elif keyword == "PUSHLIB":
+        return 2
+    elif keyword == "PUSHIMMUTABLE":
+        return 3
+    elif keyword == "data":
+        return 4
+    elif keyword == "[tag]":
+        return 5
+    elif keyword == "[$]":
+        return 6
+    elif keyword == "#[$]":
+        return 7
+    else:
+        raise Exception(f'uknown meta push keyword: {keyword}')
+       
 
 
 def split_bytecode(raw_instruction_str: str) -> List[str]:
-    raw_instruction_str = raw_instruction_str.replace("PUSH [tag]", "PUSHt" )
     ops = raw_instruction_str.split(' ')
     opcodes = []
     i = 0
     operand = None
-    size = None
+    meta_operand = None
     while i < len(ops):
         op = ops[i]
+
+        # JUMPDEST is removed from the block - later maybe we should support
+        if op.startswith("JUMPDEST"):  
+           i += 1
+
         # In theory, they should not appear inside a block, as they are removed beforehand.
         # Nevertheless, we include them just in case
-        if op.startswith("JUMPDEST"):
-           i += 1
-        elif op.startswith("tag"):
-           i += 2
-        elif op.startswith("ASSIGNIMMUTABLE") or op.startswith("tag"): # or op.startswith("PUSHIMMUTABLE"):
+        elif op.startswith("ASSIGNIMMUTABLE") or op.startswith("tag"):
             opcodes.append(op)
             i += 1
-        elif not op.startswith("PUSH"):
-            opcodes.append(op)
-        else:
-            # PUSHDEPLOYADDRESS and PUSHSIZE has no value associated
-            if op.find("DEPLOYADDRESS") != -1 or op.find("SIZE") != -1:
-                final_op = op
 
-            # Just in case PUSHx instructions are included, we assign to them PUSH name instead
-            elif re.fullmatch("PUSH([0-9]+)", op) is not None:
-                match = re.fullmatch("PUSH([0-9]+)", op)
-                final_op = 'PUSH'
-                size = match.groups()[0]
+        # if it does not start with PUSH, then its an opcode with no operands
+        elif not op.startswith("PUSH"): 
+            final_op = op
+
+        # op starts with PUSH
+        else:
+            # Just in case PUSHx instructions are included, we translate them to "PUSH x" name instead
+            if re.fullmatch("PUSH([0-9]+)", op) is not None:
+                final_op = op
                 operand = f'0x{ops[i+1]}'
                 i = i + 1
-            # If position t+1 is a Yul Keyword, then it means we either have a simple PUSH instruction or one of the
-            # pseudo PUSH that include a value as a second parameter
-            elif not is_pseudo_keyword(ops[i + 1]):
-                if op == "PUSH":
-                    n =  (len(ops[i+1])+1) // 2
-                    assert n >= 1 and n <= 32
-                    final_op = 'PUSH'
-                    size = f'{n}'
-                    operand = f'0x{ops[i+1]}'
-                    i = i + 1
-                elif op == "PUSHt":
-                    hexn = hex(int(ops[i+1]))
-                    n =  (len(hexn)+1-2) // 2
-                    assert n >= 1 and n <= 32
-                    final_op = 'PUSH'
-                    size = f'{n}'
-                    operand = hexn
-                    i = i + 1
-                else:
-                    final_op = op
-                    i = i + 1
-            # Otherwise, the opcode name is composed
+            elif op == "PUSHDEPLOYADDRESS" or op == "PUSHSIZE":
+                final_op = "METAPUSH"
+                meta_operand = f'{keyword_to_id(op)}'
+                operand = f'0x0'
+            elif op == "PUSHLIB" or op == "PUSHIMMUTABLE":
+                final_op = "METAPUSH"
+                meta_operand = f'{keyword_to_id(op)}'
+                operand = f'0x{ops[i+1]}'
+                i = i + 1
+            elif op == "PUSH" and ops[i+1] == "[tag]":
+                final_op = "METAPUSH"
+                meta_operand = f'{keyword_to_id(ops[i+1])}'
+                operand = f'0x0'
+                i = i + 2
+            elif op == "PUSH" and is_pseudo_keyword(ops[i+1]):
+                final_op = "METAPUSH"
+                meta_operand = f'{keyword_to_id(ops[i+1])}'
+                operand = f'0x{ops[i+2]}'
+                i = i + 2
+            # A  PUSH 
+            elif op == "PUSH":
+                n =  (len(ops[i+1])+1) // 2
+                assert n >= 1 and n <= 32
+                final_op = f'PUSH{n}'
+                operand = f'0x{ops[i+1]}'
+                i = i + 1
+
+            # Something that we don't handle, will just leave it and an exception will be thrown    
             else:
-                name_keyword = ops[i + 1]
-                final_op = f'{op} {name_keyword}'
-                i += 2
+                raise Exception("...")
             
-            opcodes.append(final_op)
-            if size is not None:
-                opcodes.append(size)
-                size=None
-            if operand is not None:
-                opcodes.append(operand)
-                operand=None
+        opcodes.append(final_op)
+        if meta_operand is not None:
+            opcodes.append(meta_operand)
+            meta_operand=None
+        if operand is not None:
+            opcodes.append(operand)
+            operand=None
 
         i += 1
 
@@ -118,26 +144,20 @@ def str_to_list(bytecode_str):
     i = 0;
     while i<n:
         instr = bytecode_seq[i]
-        if instr == "POP":
-            out_seq.append(f'POP')
-        elif instr == "PUSH":
-            size = bytecode_seq[i+1]
-            value = bytecode_seq[i+2]
-            out_seq.append(f'PUSH{size} {value}')
+        if re.fullmatch("PUSH([0-9]+)", instr) is not None:
+            out_seq.append( bytecode_seq[i])
+            out_seq.append( bytecode_seq[i+1])
             i = i + 2
-        elif re.fullmatch("DUP([0-9]+)",instr):
-            match = re.fullmatch("DUP([0-9]+)",instr)
-            size = match.groups()[0]
-            out_seq.append(f'DUP{size}')
-        elif instr.startswith("SWAP"):
-            match = re.fullmatch("SWAP([0-9]+)",instr)
-            size = match.groups()[0]
-            out_seq.append(f'SWAP{size}')
+        elif instr == "METAPUSH":
+            out_seq.append( bytecode_seq[i])
+            out_seq.append( bytecode_seq[i+1])
+            out_seq.append( bytecode_seq[i+2])
+            i = i + 3
         else:
             idx = bytecode_vocab.index(instr) # just check the instruction is supported
             out_seq.append(instr)
+            i = i + 1
 
-        i = i + 1
     return out_seq
 
 #
@@ -242,5 +262,7 @@ def gen_tests_from_daniel_format(paths):
 #
 if __name__ == "__main__":
     paths=sys.argv[1:]
-    #gen_tests(paths)
-    gen_tests_from_daniel_format(paths)
+    gen_tests(paths)
+    #gen_tests_from_daniel_format(paths)
+    #x = str_to_list("PUSH [tag] 1 ADD SUB PUSH 10")
+    #print(x)
