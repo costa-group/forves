@@ -72,24 +72,27 @@ Module StorageCmpImpl.
   end.
 
   
-  Definition swap_storage_update (u1 u2 : storage_update sstack_val) : bool :=
+  Definition swap_storage_update (u1 u2 : storage_update sstack_val) (maxid: nat) (sb: sbindings) : bool :=
     match u1, u2 with
-    | U_SSTORE _ (Val v1) _, U_SSTORE _ (Val v2) _ => ((wordToN v2) <? (wordToN v1))%N
-    | _,_ => false                                                             
+    | U_SSTORE _ key1 _, U_SSTORE _ key2 _ => 
+        match follow_in_smap key1 maxid sb, follow_in_smap key2 maxid sb with
+        | Some (FollowSmapVal (SymBasicVal (Val v1)) _ _), Some (FollowSmapVal (SymBasicVal (Val v2)) _ _) => ((wordToN v2) <? (wordToN v1))%N
+        | _, _ => false
+        end
     end.
   
-  Fixpoint reorder_updates' (d : nat) (sstrg :sstorage) : bool * sstorage :=
+  Fixpoint reorder_updates' (d : nat) (sstrg :sstorage) (maxid: nat) (sb: sbindings) : bool * sstorage :=
     match d with
     | O => (false,sstrg)
     | S d' =>
         match sstrg with
         | u1::u2::sstrg' =>
-            if swap_storage_update u1 u2 then
-              match reorder_updates' d' (u1::sstrg') with
+            if swap_storage_update u1 u2 maxid sb then
+              match reorder_updates' d' (u1::sstrg') maxid sb with
                 (_,sstrg'') => (true,u2::sstrg'')
               end
             else
-              match reorder_updates' d' (u2::sstrg') with
+              match reorder_updates' d' (u2::sstrg') maxid sb with
                 (r,sstrg'') => (r,u1::sstrg'')
               end
         | _ => (false,sstrg)
@@ -98,14 +101,14 @@ Module StorageCmpImpl.
 
   (* n is basically the length of sstrg, we pass it as a parameter to
   avoid computing *)
-  Fixpoint reorder_storage_updates (d n: nat) (sstrg :sstorage) : sstorage :=
+  Fixpoint reorder_storage_updates (d n: nat) (sstrg :sstorage) (maxid: nat) (sb: sbindings) : sstorage :=
     match d with
     | O => sstrg
     | S d' =>
-        match reorder_updates' n sstrg with
+        match reorder_updates' n sstrg maxid sb with
         |  (changed,sstrg') =>
              if changed then
-               reorder_storage_updates d' n sstrg'
+               reorder_storage_updates d' n sstrg' maxid sb
              else
                sstrg'
         end
@@ -116,8 +119,8 @@ Module StorageCmpImpl.
     let n1 := length sstrg1 in
     let n2 := length sstrg2 in
     if (n1 =? n2) then 
-      let sstrg1' := reorder_storage_updates n1 n1 sstrg1 in
-      let sstrg2' := reorder_storage_updates n2 n2 sstrg2 in
+      let sstrg1' := reorder_storage_updates n1 n1 sstrg1 maxidx1 sb1 in
+      let sstrg2' := reorder_storage_updates n2 n2 sstrg2 maxidx2 sb2 in
       basic_storage_cmp sstack_val_cmp sstrg1' sstrg2' maxidx1 sb1 maxidx2 sb2 instk_height ops
     else
       false.

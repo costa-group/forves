@@ -71,12 +71,12 @@ Module MemoryOpsSolversImpl.
           if memory_slots_do_not_overlap soffset soffset' 31 31 then
             basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
           else
-            SymMLOAD soffset' smem
+            SymMLOAD soffset smem
     | (U_MSTORE8 _ soffset' svalue)::smem' =>
         if memory_slots_do_not_overlap soffset soffset' 31 0 then
           basic_mload_solver sstack_val_cmp soffset smem' instk_height m ops
         else
-          SymMLOAD soffset' smem             
+          SymMLOAD soffset smem             
     end.
 
   (* mstore8 soffset_mstore8 is includes in soffset_mstore *)
