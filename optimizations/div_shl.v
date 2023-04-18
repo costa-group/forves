@@ -59,6 +59,56 @@ Import ListNotations.
 
 Module Opt_div_shl.
 
+(*
+For priving the usual definition of evm_shr
+Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
+  match args with
+  | [a;b] => wrshift' b (wordToNat a)
+  | _ => WZero
+  end.*)
+(*
+Lemma wlshift_gte: forall (sz n : nat) (w : word sz), 
+n >= sz -> wlshift w n = wzero sz.
+Proof.
+Admitted.
+
+
+Lemma wlshift'_one_y_gte: forall (y: EVMWord),
+wordToNat y >= 256 ->
+wlshift' WOne (wordToNat y) = WZero.
+Proof.
+intros y H. 
+rewrite -> wlshift_alt.
+apply wlshift_gte.
+unfold EVMWordSize. unfold BytesInEVMWord. unfold EVMByteSize.
+simpl. assumption.
+Qed.
+
+
+Lemma wlshift'_one_y_lt: forall (y: EVMWord),
+wordToNat y < 256 ->
+wlshift' WOne (wordToNat y) = natToWord EVMWordSize (pow2 (wordToNat y)).
+Proof.
+Admitted.
+
+
+Lemma evm_div_shl: forall (x y: EVMWord) ctx,
+evm_div ctx [x; evm_shl ctx [y; WOne]] = evm_shr ctx [y; x].
+Proof.
+intros x y ctx. simpl.
+destruct ((wordToNat y) >=? 256).
+unfold wdiv. unfold wordBin.
+intuition.
+
+(*
+Compute (
+let ctx := empty_context in
+let shift := natToWord EVMWordSize 2 in
+let value := natToWord EVMWordSize 255 in
+evm_shr ctx [shift;value]
+).*)
+*)
+
 
 Definition is_shl_1 (sv: sstack_val) (fcmp: sstack_val_cmp_t) 
   (maxid instk_height: nat) (sb: sbindings) (ops: stack_op_instr_map) :=

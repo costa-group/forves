@@ -333,18 +333,9 @@ Proof.
   ctx_independent_tac evm_shr.
 Qed.
 
-(*
-Compute (
-let ctx := empty_context in
-let shift := natToWord EVMWordSize 2 in
-let value := natToWord EVMWordSize 255 in
-evm_shr ctx [shift;value]
-).*)
-
 
 Definition evm_sar (ctx : context) (args : list EVMWord) : EVMWord :=
   WZero.
-
 
 
 Definition evm_address (ctx : context) (args : list EVMWord) : EVMWord :=
