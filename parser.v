@@ -1,19 +1,19 @@
-Require Import Coq_EVM.definitions.
-Import Concrete.
-Require Import Coq_EVM.optimizations.
-Import Optimizations.
-Require Import Coq_EVM.checker.
-Import Checker.
 From Coq Require Import Numbers.DecimalString.
 From Coq Require Import Numbers.HexadecimalNat.
-Require Import Hexadecimal HexadecimalFacts Arith.
 From Coq Require Import Strings.String.
 From Coq Require Import Strings.Ascii.
-From Coq Require Import Lists.List. Import ListNotations.
+Require Import Hexadecimal HexadecimalFacts Arith.
 Require Import Coq.NArith.NArith.
+From Coq Require Import Lists.List. Import ListNotations.
+
+
 Require Import bbv.Word.
-Require Import Coq_EVM.definitions.
-Import Optimizations.
+
+Require Import FORVES.program.
+Import Program.
+
+Require Import FORVES.block_equiv_checker.
+Import BlockEquivChecker.
 
 
 Module Parser.
@@ -146,7 +146,6 @@ Fixpoint parseDecNumber' (x : list ascii) (acc : nat) :=
 Definition parseDecNumber (x : string) : option nat :=
   parseDecNumber' (list_of_string x) 0.
 
-
 Definition is_push (s : string) : option nat :=
   match (list_of_string s) with
   | "P"%char::"U"%char::"S"%char::"H"%char::xs => match (parseDecNumber' xs 0) with
@@ -154,6 +153,12 @@ Definition is_push (s : string) : option nat :=
                                                   | Some n => if (andb (Nat.leb 1 n) (Nat.leb n 32)) then Some n else None
                                                   end                                                 
   | _ => None
+  end.
+
+Definition is_metapush (s : string) : bool :=
+  match s with
+  | "METAPUSH"%string => true
+  | _ => false
   end.
 
 Definition is_dup (s : string) : option nat :=
@@ -180,62 +185,61 @@ Definition parse_non_push_instr (s : string) : option instr :=
   | None =>  match (is_swap s) with
              | Some n => Some (SWAP n)
              | None => match s with
+                       | "ADD"%string => Some (OpInstr ADD)
+                       | "MUL"%string => Some (OpInstr MUL)
+                       | "SUB"%string => Some (OpInstr SUB)
+                       | "DIV"%string => Some (OpInstr DIV)
+                       | "SDIV"%string => Some (OpInstr SDIV)
+                       | "MOD"%string => Some (OpInstr MOD)
+                       | "SMOD"%string => Some (OpInstr SMOD)
+                       | "ADDMOD"%string => Some (OpInstr ADDMOD)
+                       | "MULMOD"%string => Some (OpInstr MULMOD)
+                       | "EXP"%string => Some (OpInstr EXP)
+                       | "SIGNEXTEND"%string => Some (OpInstr SIGNEXTEND)
+                       | "LT"%string => Some (OpInstr LT)
+                       | "GT"%string => Some (OpInstr GT)
+                       | "SLT"%string => Some (OpInstr SLT)
+                       | "SGT"%string => Some (OpInstr SGT)
+                       | "EQ"%string => Some (OpInstr EQ)
+                       | "ISZERO"%string => Some (OpInstr ISZERO)
+                       | "AND"%string => Some (OpInstr AND)
+                       | "OR"%string => Some (OpInstr OR)
+                       | "XOR"%string => Some (OpInstr XOR)
+                       | "NOT"%string => Some (OpInstr NOT)
+                       | "BYTE"%string => Some (OpInstr BYTE)
+                       | "SHL"%string => Some (OpInstr SHL)
+                       | "SHR"%string => Some (OpInstr SHR)
+                       | "SAR"%string => Some (OpInstr SAR)
+                       | "ADDRESS"%string => Some (OpInstr ADDRESS)
+                       | "BALANCE"%string => Some (OpInstr BALANCE)
+                       | "ORIGIN"%string => Some (OpInstr ORIGIN)
+                       | "CALLER"%string => Some (OpInstr CALLER)
+                       | "CALLVALUE"%string => Some (OpInstr CALLVALUE)
+                       | "CALLDATALOAD"%string => Some (OpInstr CALLDATALOAD)
+                       | "CALLDATASIZE"%string => Some (OpInstr CALLDATASIZE)
+                       | "CODESIZE"%string => Some (OpInstr CODESIZE)
+                       | "GASPRICE"%string => Some (OpInstr GASPRICE)
+                       | "EXTCODESIZE"%string => Some (OpInstr EXTCODESIZE)
+                       | "RETURNDATASIZE"%string => Some (OpInstr RETURNDATASIZE)
+                       | "EXTCODEHASH"%string => Some (OpInstr EXTCODEHASH)
+                       | "BLOCKHASH"%string => Some (OpInstr BLOCKHASH)
+                       | "COINBASE"%string => Some (OpInstr COINBASE)
+                       | "TIMESTAMP"%string => Some (OpInstr TIMESTAMP)
+                       | "NUMBER"%string => Some (OpInstr NUMBER)
+                       | "DIFFICULTY"%string => Some (OpInstr DIFFICULTY)
+                       | "GASLIMIT"%string => Some (OpInstr GASLIMIT)
+                       | "CHAINID"%string => Some (OpInstr CHAINID)
+                       | "SELFBALANCE"%string => Some (OpInstr SELFBALANCE)
+                       | "BASEFEE"%string => Some (OpInstr BASEFEE)
+                       | "GAS"%string => Some (OpInstr GAS)
                        | "POP"%string => Some POP
-                       | "ADD"%string => Some (Opcode ADD)
-                       | "MUL"%string => Some (Opcode MUL)
-                       | "NOT"%string => Some (Opcode NOT)
-                       | "SUB"%string => Some (Opcode SUB)
-                       | "DIV"%string => Some (Opcode DIV)
-                       | "SDIV"%string => Some (Opcode SDIV)
-                       | "MOD"%string => Some (Opcode MOD)
-                       | "SMOD"%string => Some (Opcode SMOD)
-                       | "ADDMOD"%string => Some (Opcode ADDMOD)
-                       | "MULMOD"%string => Some (Opcode MULMOD)
-                       | "EXP"%string => Some (Opcode EXP)
-                       | "SIGNEXTEND"%string => Some (Opcode SIGNEXTEND)
-                       | "LT"%string => Some (Opcode LT)
-                       | "GT"%string => Some (Opcode GT)
-                       | "SLT"%string => Some (Opcode SLT)
-                       | "SGT"%string => Some (Opcode SGT)
-                       | "EQ"%string => Some (Opcode EQ)
-                       | "ISZERO"%string => Some (Opcode ISZERO)
-                       | "AND"%string => Some (Opcode AND)
-                       | "OR"%string => Some (Opcode OR)
-                       | "XOR"%string => Some (Opcode XOR)
-                       | "BYTE"%string => Some (Opcode BYTE)
-                       | "SHL"%string => Some (Opcode SHL)
-                       | "SHR"%string => Some (Opcode SHR)
-                       | "SAR"%string => Some (Opcode SAR)
-                       | "SHA3"%string => Some (Opcode SHA3)
-                       | "KECCAK256"%string => Some (Opcode KECCAK256)
-                       | "ADDRESS"%string => Some (Opcode ADDRESS)
-                       | "BALANCE"%string => Some (Opcode BALANCE)
-                       | "ORIGIN"%string => Some (Opcode ORIGIN)
-                       | "CALLER"%string => Some (Opcode CALLER)
-                       | "CALLVALUE"%string => Some (Opcode CALLVALUE)
-                       | "CALLDATALOAD"%string => Some (Opcode CALLDATALOAD)
-                       | "CALLDATASIZE"%string => Some (Opcode CALLDATASIZE )
-                       | "CODESIZE"%string => Some (Opcode CODESIZE)
-                       | "GASPRICE"%string => Some (Opcode GASPRICE)
-                       | "EXTCODESIZE"%string => Some (Opcode EXTCODESIZE)
-                       | "RETURNDATASIZE"%string => Some (Opcode RETURNDATASIZE)
-                       | "EXTCODEHASH"%string => Some (Opcode EXTCODEHASH)
-                       | "BLOCKHASH"%string => Some (Opcode BLOCKHASH)
-                       | "COINBASE"%string => Some (Opcode COINBASE)
-                       | "TIMESTAMP"%string => Some (Opcode TIMESTAMP)
-                       | "NUMBER"%string => Some (Opcode NUMBER)
-                       | "DIFFICULTY"%string => Some (Opcode DIFFICULTY)
-                       | "GASLIMIT"%string => Some (Opcode GASLIMIT)
-                       | "CHAINID"%string => Some (Opcode CHAINID)
-                       | "SELFBALANCE"%string => Some (Opcode SELFBALANCE)
-                       | "BASEFEE"%string => Some (Opcode BASEFEE)
-                       | "SLOAD"%string => Some (Opcode SLOAD)
-                       | "MLOAD"%string => Some (Opcode MLOAD)
-                       | "PC"%string => Some (Opcode PC)
-                       | "MSIZE"%string => Some (Opcode MSIZE)
-                       | "GAS"%string => Some (Opcode GAS)
-                      (* | "CREATE"%string => Some (Opcode CREATE)
-                       | "CREATE2"%string => Some (Opcode CREATE2)*)
+                       | "MLOAD"%string => Some MLOAD
+                       | "MSTORE"%string => Some MSTORE
+                       | "MSTORE8"%string => Some MSTORE8
+                       | "SLOAD"%string => Some SLOAD
+                       | "SSTORE"%string => Some SSTORE
+                       | "SHA3"%string => Some SHA3
+                       | "KECCAK256"%string => Some KECCAK256
                        | _ => None
                        end
              end
@@ -245,22 +249,46 @@ Fixpoint parse_block' (l : list string) : option block :=
   match l with
   | [] => Some []
   | x::xs => match (is_push x) with
-             |  Some n => match xs with
-                          | y::ys => match (parseHexNumber y) with
-                                     |  None => None
-                                     |  Some v => match (parse_block' ys) with
-                                                  | None => None
-                                                  | Some bs => Some ((PUSH n (NToWord 256 v))::bs)
-                                                  end
-                                     end
-                          | _ => None
-                          end
-             | None => match (parse_non_push_instr x) with
-                       | None => None
-                       | Some i => match (parse_block' xs) with
-                                   | None => None
-                                   | Some bs => Some (i::bs)
-                                   end
+             |  Some n =>
+                  match xs with
+                  | y::ys =>
+                      match (parseHexNumber y) with
+                      |  None => None
+                      |  Some v =>
+                           match (parse_block' ys) with
+                           | None => None
+                           | Some bs => Some ((PUSH n v)::bs)
+                           end
+                      end
+                  | _ => None
+                  end
+             | None =>
+                 match (is_metapush x) with
+                 | true =>
+                     match xs with
+                     | z::y::ys =>
+                         match (parseHexNumber y) with
+                         |  None => None
+                         |  Some v =>
+                              match (parseDecNumber z) with
+                              | None => None
+                              | Some cat =>
+                                  match (parse_block' ys) with
+                                  | None => None
+                                  | Some bs => Some ((METAPUSH (N.of_nat cat) v)::bs)
+                                  end
+                              end
+                         end
+                     | _ => None
+                     end
+                 | false =>
+                           match (parse_non_push_instr x) with
+                           | None => None
+                           | Some i => match (parse_block' xs) with
+                                       | None => None
+                                       | Some bs => Some (i::bs)
+                                       end
+                           end
                        end
              end               
   end.
@@ -269,28 +297,32 @@ Definition parse_block (block_str : string) : option block :=
   parse_block' (tokenize block_str).
 
 
-Definition opt := (apply_pipeline_n_times our_optimization_pipeline 50).
-
-Definition str_to_opt (s : string) : option optim :=
+Definition str_to_opt (s : string) : option available_optimization_step :=
   match s with
-  | "add_zero"%string  => Some optimize_add_zero 
-  | "mul_one"%string  => Some optimize_mul_one      
-  | "mul_zero"%string  => Some optimize_mul_zero     
-  | "not_not"%string   => Some optimize_not_not      
-  | "div_one"%string   => Some optimize_div_one
-  | "eq_zero"%string   => Some optimize_eq_zero
-  | "gt_one"%string    => Some optimize_gt_one
-  | "lt_one"%string    => Some optimize_lt_one
-  | "or_zero"%string   => Some optimize_or_zero
-  | "sub_x_x"%string   => Some optimize_sub_x_x      
-  | "iszero3"%string   => Some optimize_iszero3
-  | "and_and_l"%string => Some optimize_and_and_l
-  | "and_and_r"%string => Some optimize_and_and_r
+  | "OPT_eval"%string => Some OPT_eval
+  | "OPT_add_zero"%string => Some OPT_add_zero
+  | "OPT_not_not"%string => Some OPT_not_not
+  | "OPT_and_and1"%string => Some OPT_and_and1
+  | "OPT_and_and2"%string => Some OPT_and_and2
+  | "OPT_and_origin"%string => Some OPT_and_origin
+  | "OPT_mul_shl"%string => Some OPT_mul_shl
+  | "OPT_div_shl"%string => Some OPT_div_shl
+  | "OPT_shr_zero_x"%string => Some OPT_shr_zero_x
+  | "OPT_shr_x_zero"%string => Some OPT_shr_x_zero
+  | "OPT_eq_zero"%string => Some OPT_eq_zero
+  | "OPT_sub_x_x"%string => Some OPT_sub_x_x
+  | "OPT_and_zero"%string => Some OPT_and_zero
+  | "OPT_div_one"%string => Some OPT_div_one
+  | "OPT_lt_one"%string => Some OPT_lt_one
+  | "OPT_gt_one"%string => Some OPT_gt_one
+  | "OPT_and_address"%string => Some OPT_and_address
+  | "OPT_mul_one"%string => Some OPT_mul_one
+  | "OPT_iszero_gt"%string => Some OPT_iszero_gt
+  | "OPT_eq_iszero"%string => Some OPT_eq_iszero
   | _ => None
   end.
 
-             
-Fixpoint strs_to_opts (l : list string) : option (list optim) :=
+Fixpoint strs_to_opts (l : list string) : option list_opt_steps :=
   match l with
   | [] => Some []
   | x::xs => match (str_to_opt x) with
@@ -302,60 +334,135 @@ Fixpoint strs_to_opts (l : list string) : option (list optim) :=
              end
   end.
 
-Definition parse_opts (l : list string) : option optim :=
-  match l with
-  | [] => Some (apply_pipeline_n_times our_optimization_pipeline 50)
-  | _ => match (strs_to_opts l) with
-         | None => None
-         | Some opts => Some (apply_pipeline_n_times opts 50)
-         end
+
+Definition parse_opts_arg (opts_to_apply : list string) : option list_opt_steps :=
+  match opts_to_apply with
+  | ["none"%string] => Some []
+  | ["all"%string] => Some all_optimization_steps
+  | ["all_size"%string] => Some all_optimization_steps'
+  | _ => strs_to_opts opts_to_apply
   end.
 
-            
-Definition block_eq_0 (p_opt p k : string) (opt : optim) :=
-  match (parse_block p_opt) with
+Definition parse_memory_updater (s: string) :=
+  match s with
+  | "trivial"%string => Some SMemUpdater_Trivial
+  | "basic"%string => Some SMemUpdater_Basic
+  | _ => None
+  end.
+
+Definition parse_storage_updater (s: string) :=
+  match s with
+  | "trivial"%string => Some SStrgUpdater_Trivial
+  | "basic"%string => Some SStrgUpdater_Basic
+  | _ => None
+  end.
+
+Definition parse_mload_solver (s: string) :=
+  match s with
+  | "trivial"%string => Some MLoadSolver_Trivial
+  | "basic"%string => Some MLoadSolver_Basic
+  | _ => None
+  end.
+
+Definition parse_sload_solver (s: string) :=
+  match s with
+  | "trivial"%string => Some SLoadSolver_Trivial
+  | "basic"%string => Some SLoadSolver_Basic
+  | _ => None
+  end.
+
+Definition parse_sstack_value_cmp (s: string) :=
+  match s with
+  | "trivial"%string => Some SStackValCmp_Trivial
+  | "basic"%string => Some SStackValCmp_Basic
+  | _ => None
+  end.
+
+Definition parse_memory_cmp (s: string) :=
+  match s with
+  | "trivial"%string => Some SMemCmp_Trivial
+  | "basic"%string => Some SMemCmp_Basic
+  | "po"%string => Some SMemCmp_PO
+  | _ => None
+  end.
+
+Definition parse_storage_cmp (s: string) :=
+  match s with
+  | "trivial"%string => Some SStrgCmp_Trivial
+  | "basic"%string => Some SStrgCmp_Basic
+  | "po"%string => Some SStrgCmp_PO
+  | _ => None
+  end.
+
+Definition parse_sha3_cmp (s: string) :=
+  match s with
+  | "trivial"%string => Some SHA3Cmp_Trivial
+  | _ => None
+  end.
+
+Definition block_eq (memory_updater storage_updater mload_solver sload_solver sstack_value_cmp memory_cmp storage_cmp sha3_cmp opt_step_rep opt_pipeline_rep: string) (opts_to_apply : list string) :
+  option (string -> string -> string -> option bool) :=
+  match (parse_memory_updater memory_updater) with
   | None => None
-  | Some b1 => match (parse_block p) with
-               | None => None
-               | Some b2 => match (parse_block p) with
-                            | None => None
-                            | Some b2 => match (parseDecNumber k) with
-                                         | Some v => Some (evm_eq_block_chkr b1 b2 v)
-                                         | None => None
-                                         end
-                            end
-               end
+  | Some memory_updater_tag =>
+      match (parse_storage_updater storage_updater) with
+      | None => None
+      | Some storage_updater_tag =>
+          match (parse_mload_solver mload_solver) with
+          | None => None
+          | Some mload_solver_tag =>
+              match (parse_sload_solver sload_solver) with
+              | None => None
+              | Some sload_solver_tag =>
+                  match (parse_sstack_value_cmp sstack_value_cmp) with
+                  | None => None
+                  | Some sstack_value_cmp_tag =>
+                      match (parse_memory_cmp memory_cmp) with
+                      | None => None
+                      | Some memory_cmp_tag =>
+                          match (parse_storage_cmp storage_cmp) with
+                          | None => None
+                          | Some storage_cmp_tag =>
+                              match (parse_sha3_cmp sha3_cmp) with
+                              | None => None
+                              | Some sha3_cmp_tag =>
+                                  match (parseDecNumber opt_step_rep) with
+                                  | None => None
+                                  | Some opt_step_rep_nat =>
+                                      match (parseDecNumber opt_pipeline_rep) with
+                                      | None => None
+                                      | Some opt_pipeline_rep_nat =>
+                                          match (parse_opts_arg opts_to_apply) with
+                                          | None => None
+                                          | Some optimization_steps =>
+                                              let chkr_lazy :=
+                                                evm_eq_block_chkr_lazy memory_updater_tag storage_updater_tag mload_solver_tag sload_solver_tag sstack_value_cmp_tag memory_cmp_tag storage_cmp_tag sha3_cmp_tag optimization_steps opt_step_rep_nat opt_pipeline_rep_nat in
+                                              Some (fun (p_opt p k : string) => 
+                                                      match (parse_block p_opt) with
+                                                      | None => None
+                                                      | Some b1 => 
+                                                          match (parse_block p) with
+                                                          | None => None
+                                                          | Some b2 =>
+                                                              match (parseDecNumber k) with
+                                                              | None => None
+                                                              | Some k_nat =>
+                                                                  Some (chkr_lazy b1 b2 k_nat)
+                                                              end
+                                                          end
+                                                      end)
+                                          end
+                                      end
+                                  end
+                              end
+                          end
+                      end
+                  end
+              end
+          end
+      end
   end.
 
-
-Definition block_eq_1 (p_opt p k : string) (opt : optim) :=
-  match (parse_block p_opt) with
-  | None => None
-  | Some b1 => match (parse_block p) with
-               | None => None
-               | Some b2 => match (parse_block p) with
-                            | None => None
-                            | Some b2 => match (parseDecNumber k) with
-                                         | Some v => Some (evm_eq_block_chkr' opt b1 b2 v)
-                                         | None => None
-                                         end
-                            end
-               end
-  end.
-
-Definition block_eq_2 (p_opt p k : string)  (opt : optim) :=
-  match (parse_block p_opt) with
-  | None => None
-  | Some b1 => match (parse_block p) with
-               | None => None
-               | Some b2 => match (parse_block p) with
-                            | None => None
-                            | Some b2 => match (parseDecNumber k) with
-                                         | Some v => Some (evm_eq_block_chkr'' opt b1 b2 v)
-                                         | None => None
-                                         end
-                            end
-               end
-  end.
 
 End Parser.
+ 

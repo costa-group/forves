@@ -1,4 +1,6 @@
 
+type __ = Obj.t
+
 val xorb : bool -> bool -> bool
 
 val negb : bool -> bool
@@ -8,6 +10,8 @@ type nat =
 | S of nat
 
 val fst : ('a1 * 'a2) -> 'a1
+
+val snd : ('a1 * 'a2) -> 'a2
 
 val length : 'a1 list -> nat
 
@@ -52,6 +56,8 @@ val eqb : nat -> nat -> bool
 val leb : nat -> nat -> bool
 
 val ltb : nat -> nat -> bool
+
+val max : nat -> nat -> nat
 
 val eqb0 : bool -> bool -> bool
 
@@ -121,6 +127,8 @@ module Coq_Pos :
   val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1
 
   val to_nat : positive -> nat
+
+  val of_succ_nat : nat -> positive
  end
 
 module N :
@@ -153,7 +161,11 @@ module N :
 
   val div : n -> n -> n
 
+  val modulo : n -> n -> n
+
   val to_nat : n -> nat
+
+  val of_nat : nat -> n
  end
 
 val nth_error : 'a1 list -> nat -> 'a1 option
@@ -200,6 +212,8 @@ val posToWord : nat -> positive -> word
 
 val nToWord : nat -> n -> word
 
+val wones : nat -> word
+
 val whd : nat -> word -> bool
 
 val wtl : nat -> word -> word
@@ -210,7 +224,7 @@ val combine : nat -> word -> nat -> word -> word
 
 val split1 : nat -> nat -> word -> word
 
-val split2 : nat -> nat -> word -> word
+val zext : nat -> word -> nat -> word
 
 val wneg : nat -> word -> word
 
@@ -221,6 +235,8 @@ val wplus : nat -> word -> word -> word
 val wmult : nat -> word -> word -> word
 
 val wdiv : nat -> word -> word -> word
+
+val wmod : nat -> word -> word -> word
 
 val wminus : nat -> word -> word -> word
 
@@ -236,27 +252,11 @@ val wxor : nat -> word -> word -> word
 
 val wlshift' : nat -> word -> nat -> word
 
-val wrshift' : nat -> word -> nat -> word
-
-module EVM_Def :
- sig
-  val coq_WLen : nat
-
-  type coq_EVMWord = word
-
-  val coq_StackLen : nat
-
-  val coq_WZero : coq_EVMWord
-
-  val coq_WOne : coq_EVMWord
- end
-
-module Concrete :
+module Program :
  sig
   type stack_op_instr =
   | ADD
   | MUL
-  | NOT
   | SUB
   | DIV
   | SDIV
@@ -275,12 +275,11 @@ module Concrete :
   | AND
   | OR
   | XOR
+  | NOT
   | BYTE
   | SHL
   | SHR
   | SAR
-  | SHA3
-  | KECCAK256
   | ADDRESS
   | BALANCE
   | ORIGIN
@@ -302,117 +301,122 @@ module Concrete :
   | CHAINID
   | SELFBALANCE
   | BASEFEE
-  | SLOAD
-  | MLOAD
-  | PC
-  | MSIZE
   | GAS
+  | JUMPI
+
+  val eqb_stack_op_instr : stack_op_instr -> stack_op_instr -> bool
 
   type instr =
-  | PUSH of nat * EVM_Def.coq_EVMWord
+  | PUSH of nat * n
+  | METAPUSH of n * n
   | POP
   | DUP of nat
   | SWAP of nat
-  | Opcode of stack_op_instr
+  | MLOAD
+  | MSTORE
+  | MSTORE8
+  | SLOAD
+  | SSTORE
+  | SHA3
+  | KECCAK256
+  | OpInstr of stack_op_instr
 
   type block = instr list
-
-  type stack_operation =
-  | StackOp of bool * nat
-     * (EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option)
-
-  val eq_stack_op_instr : stack_op_instr -> stack_op_instr -> bool
-
-  val evm_add : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_mul : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_not : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_eq : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_iszero : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_and : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_or : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_xor : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_shl : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_shr : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_sub : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_exp : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_div : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_lt : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val evm_gt : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val uninterp0 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val uninterp1 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val uninterp2 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  val uninterp3 : EVM_Def.coq_EVMWord list -> EVM_Def.coq_EVMWord option
-
-  type ('k, 'v) map = 'k -> 'v option
-
-  val empty_imap : (stack_op_instr, 'a1) map
-
-  val updatei :
-    (stack_op_instr, 'a1) map -> stack_op_instr -> 'a1 -> stack_op_instr ->
-    'a1 option
-
-  type stack_op_map = (stack_op_instr, stack_operation) map
-
-  val fully_defined : stack_op_instr list
-
-  val is_fully_defined : stack_op_instr -> bool
-
-  val evm_stack_opm : stack_op_map
  end
 
-module Abstract :
+module Constants :
  sig
-  type sstack_val =
-  | Val of EVM_Def.coq_EVMWord
-  | InStackVar of nat
-  | FreshVar of nat
+  val coq_EVMByteSize : nat
 
-  type smap_val =
-  | SymBasicVal of sstack_val
-  | SymOp of Concrete.stack_op_instr * sstack_val list
+  val coq_BytesInEVMWord : nat
 
-  type stack_expr =
-  | UVal of EVM_Def.coq_EVMWord
-  | UInStackVar of nat
-  | UOp of Concrete.stack_op_instr * stack_expr list
+  val coq_EVMWordSize : nat
 
-  type sstack = sstack_val list
+  type coq_EVMWord = word
 
-  type smap = (nat * smap_val) list
+  val coq_ByteInEVMAddr : nat
 
-  type sstate =
-  | SymState of nat * nat * sstack * smap
+  val coq_EVMAddrSize : nat
+
+  type coq_EVMAddr = word
+
+  val coq_WZero : coq_EVMWord
+
+  val coq_WOne : coq_EVMWord
+
+  val coq_AZero : coq_EVMAddr
+
+  val coq_StackSize : nat
  end
 
-module Optimizations :
+module ExecutionState :
  sig
-  type optim = Abstract.sstate -> Abstract.sstate * bool
+  type code_info =
+  | CodeInfo of nat * word * Constants.coq_EVMWord
+
+  type block_info =
+  | BlockInfo of nat * word * Constants.coq_EVMWord * Constants.coq_EVMWord
+
+  type chunk =
+  | Chunk of nat * word
+
+  type context =
+  | Ctx of Constants.coq_EVMAddr
+     * (Constants.coq_EVMAddr -> Constants.coq_EVMWord)
+     * Constants.coq_EVMAddr * Constants.coq_EVMAddr * Constants.coq_EVMWord
+     * chunk * (Constants.coq_EVMAddr -> code_info) * Constants.coq_EVMWord
+     * chunk * (Constants.coq_EVMWord -> block_info) * Constants.coq_EVMAddr
+     * Constants.coq_EVMWord * Constants.coq_EVMWord * Constants.coq_EVMWord
+     * Constants.coq_EVMWord * (nat -> word -> Constants.coq_EVMWord)
+     * (n -> n -> Constants.coq_EVMWord) * nat * nat * nat * nat
+
+  val empty_context : context
+
+  val get_address_ctx : context -> Constants.coq_EVMAddr
+
+  val get_balance_ctx :
+    context -> Constants.coq_EVMAddr -> Constants.coq_EVMWord
+
+  val get_origin_ctx : context -> Constants.coq_EVMAddr
+
+  val get_caller_ctx : context -> Constants.coq_EVMAddr
+
+  val get_callvalue_ctx : context -> Constants.coq_EVMWord
+
+  val get_data_ctx : context -> chunk
+
+  val get_code_ctx : context -> Constants.coq_EVMAddr -> code_info
+
+  val get_gasprice_ctx : context -> Constants.coq_EVMWord
+
+  val get_outdata_ctx : context -> chunk
+
+  val get_blocks_ctx : context -> Constants.coq_EVMWord -> block_info
+
+  val get_miner_ctx : context -> Constants.coq_EVMAddr
+
+  val get_currblock_ctx : context -> Constants.coq_EVMWord
+
+  val get_gaslimit_ctx : context -> Constants.coq_EVMWord
+
+  val get_chainid_ctx : context -> Constants.coq_EVMWord
+
+  val get_basefee_ctx : context -> Constants.coq_EVMWord
  end
 
-val firstn_e : nat -> 'a1 list -> 'a1 list option
-
-val skipn_e : nat -> 'a1 list -> 'a1 list option
-
-module SFS :
+module Misc :
  sig
+  type ('k, 'v) map = 'k -> 'v
+
+  val map_option : ('a1 -> 'a2 option) -> 'a1 list -> 'a2 list option
+
+  val fold_right_two_lists :
+    ('a1 -> 'a2 -> bool) -> 'a1 list -> 'a2 list -> bool
+
+  val firstn_e : nat -> 'a1 list -> 'a1 list option
+
+  val skipn_e : nat -> 'a1 list -> 'a1 list option
+
   val push : 'a1 -> 'a1 list -> 'a1 list option
 
   val pop : 'a1 list -> 'a1 list option
@@ -420,209 +424,994 @@ module SFS :
   val dup : nat -> 'a1 list -> 'a1 list option
 
   val swap : nat -> 'a1 list -> 'a1 list option
-
-  val get_maxid_asfs : Abstract.sstate -> nat
-
-  val get_stack_asfs : Abstract.sstate -> Abstract.sstack
-
-  val get_map_asfs : Abstract.sstate -> Abstract.smap
-
-  val set_maxid_asfs : Abstract.sstate -> nat -> Abstract.sstate
-
-  val set_stack_asfs : Abstract.sstate -> Abstract.sstack -> Abstract.sstate
-
-  val set_map_asfs : Abstract.sstate -> Abstract.smap -> Abstract.sstate
-
-  val gen_initial_stack : nat -> Abstract.sstack
-
-  val empty_asfs : nat -> Abstract.sstate
-
-  val smap_add : Abstract.smap -> nat -> Abstract.smap_val -> Abstract.smap
-
-  val add_val_asfs :
-    Concrete.stack_op_map -> Abstract.sstate -> Abstract.smap_val ->
-    Abstract.sstate option
-
-  val symbolic_exec'' :
-    Concrete.instr -> Abstract.sstate -> Concrete.stack_op_map ->
-    Abstract.sstate option
-
-  val symbolic_exec' :
-    Concrete.block -> Abstract.sstate -> Concrete.stack_op_map ->
-    Abstract.sstate option
-
-  val symbolic_exec :
-    Concrete.block -> nat -> Concrete.stack_op_map -> Abstract.sstate option
-
-  val is_comm_op : Concrete.stack_op_instr -> Concrete.stack_op_map -> bool
-
-  val apply_f_opt_list : ('a1 -> 'a2 option) -> 'a1 list -> 'a2 list option
-
-  val flat_stack_elem :
-    Abstract.sstack_val -> Abstract.smap -> Abstract.stack_expr option
-
-  val compare_lists_pred :
-    ('a1 -> 'a2 -> bool) -> 'a1 list -> 'a2 list -> bool
-
-  val compare_flat_smap_val :
-    Abstract.stack_expr -> Abstract.stack_expr -> Concrete.stack_op_map ->
-    bool
-
-  val asfs_eq_stack_elem :
-    Abstract.sstack_val -> Abstract.sstack_val -> Abstract.smap ->
-    Abstract.smap -> Concrete.stack_op_map -> bool
-
-  val asfs_eq_stack :
-    Abstract.sstack -> Abstract.sstack -> Abstract.smap -> Abstract.smap ->
-    Concrete.stack_op_map -> bool
-
-  val eq_sstate_chkr :
-    Abstract.sstate -> Abstract.sstate -> Concrete.stack_op_map -> bool
  end
 
-module Coq_Optimizations :
+module StackOpInstrs :
  sig
-  val stack_val_is_oper_suffix :
-    Concrete.stack_op_instr -> Abstract.sstack_val -> Abstract.smap ->
-    ((Abstract.sstack * Abstract.smap) * nat) option
+  type stack_op_impl =
+  | OpImp of nat
+     * (ExecutionState.context -> Constants.coq_EVMWord list ->
+       Constants.coq_EVMWord) * __ option * __ option
 
-  val stack_val_is_oper :
-    Concrete.stack_op_instr -> Abstract.sstack_val -> Abstract.smap ->
-    Abstract.sstack option
+  type stack_op_instr_map = (Program.stack_op_instr, stack_op_impl) Misc.map
 
-  val optimize_fresh_var2 :
-    Abstract.sstate -> Abstract.smap -> (nat -> Abstract.sstate ->
-    Abstract.sstate option) -> Abstract.sstate * bool
+  val empty_imap : 'a1 -> (Program.stack_op_instr, 'a1) Misc.map
 
-  val optimize_fresh_var :
-    (nat -> Abstract.sstate -> Abstract.sstate option) -> Abstract.sstate ->
-    Abstract.sstate * bool
+  val updatei :
+    (Program.stack_op_instr, 'a1) Misc.map -> Program.stack_op_instr -> 'a1
+    -> Program.stack_op_instr -> 'a1
 
-  val stack_val_has_value' :
-    Abstract.sstack_val -> Abstract.smap -> EVM_Def.coq_EVMWord -> bool
+  val evm_add :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_func_map :
-    (nat -> Abstract.smap -> Abstract.smap option) -> nat -> Abstract.sstate
-    -> Abstract.sstate option
+  val evm_mul :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_add_zero : nat -> Abstract.smap -> Abstract.smap option
+  val evm_sub :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_add_zero_fvar :
-    nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_div :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_add_zero : Abstract.sstate -> Abstract.sstate * bool
+  val evm_sdiv :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_mul_one : nat -> Abstract.smap -> Abstract.smap option
+  val evm_mod :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_mul_one_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_smod :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_mul_one : Abstract.sstate -> Abstract.sstate * bool
+  val evm_addmod :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_mul_zero : nat -> Abstract.smap -> Abstract.smap option
+  val evm_mulmod :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_mul_zero_fvar :
-    nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_exp :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_mul_zero : Abstract.sstate -> Abstract.sstate * bool
+  val evm_signextend :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_not_not : nat -> Abstract.smap -> Abstract.smap option
+  val evm_lt :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_not_not_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_gt :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_not_not : Abstract.sstate -> Abstract.sstate * bool
+  val evm_slt :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val flat_extract_const :
-    Abstract.sstack_val -> Abstract.smap -> EVM_Def.coq_EVMWord option
+  val evm_sgt :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val const_list :
-    Abstract.sstack -> Abstract.smap -> EVM_Def.coq_EVMWord list option
+  val evm_eq :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_eval :
-    Concrete.stack_op_map -> nat -> Abstract.smap -> Abstract.smap option
+  val evm_iszero :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_eval_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_and :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_eval : Abstract.sstate -> Abstract.sstate * bool
+  val evm_or :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_div_one : nat -> Abstract.smap -> Abstract.smap option
+  val evm_xor :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_div_one_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_not :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_div_one : Abstract.sstate -> Abstract.sstate * bool
+  val evm_byte :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_eq_zero : nat -> Abstract.smap -> Abstract.smap option
+  val evm_shl :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_eq_zero_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_shr :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_eq_zero : Abstract.sstate -> Abstract.sstate * bool
+  val evm_sar :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_gt_one : nat -> Abstract.smap -> Abstract.smap option
+  val evm_address :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_gt_one_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_balance :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_gt_one : Abstract.sstate -> Abstract.sstate * bool
+  val evm_origin :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_lt_one : nat -> Abstract.smap -> Abstract.smap option
+  val evm_caller :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_lt_one_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_callvalue :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_lt_one : Abstract.sstate -> Abstract.sstate * bool
+  val evm_calldataload :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_or_zero : nat -> Abstract.smap -> Abstract.smap option
+  val evm_calldatasize :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_or_zero_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_codesize :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_or_zero : Abstract.sstate -> Abstract.sstate * bool
+  val evm_gasprice :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_sub_x_x : nat -> Abstract.smap -> Abstract.smap option
+  val evm_extcodesize :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_sub_x_x_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_returndatasize :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_sub_x_x : Abstract.sstate -> Abstract.sstate * bool
+  val evm_extcodehash :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_iszero3 : nat -> Abstract.smap -> Abstract.smap option
+  val evm_blockhash :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_iszero3_fvar : nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_coinbase :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_iszero3 : Abstract.sstate -> Abstract.sstate * bool
+  val evm_timestamp :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_and_and_l : nat -> Abstract.smap -> Abstract.smap option
+  val evm_number :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_and_and_l_fvar :
-    nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_difficulty :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_and_and_l : Abstract.sstate -> Abstract.sstate * bool
+  val evm_gaslimit :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_map_and_and_r : nat -> Abstract.smap -> Abstract.smap option
+  val evm_chainid :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_and_and_r_fvar :
-    nat -> Abstract.sstate -> Abstract.sstate option
+  val evm_selfbalance :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val optimize_and_and_r : Abstract.sstate -> Abstract.sstate * bool
+  val evm_basefee :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val apply_n_times :
-    Optimizations.optim -> nat -> Abstract.sstate -> Abstract.sstate * bool
+  val evm_gas :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val apply_all_possible_opt :
-    Optimizations.optim list -> Abstract.sstate -> Abstract.sstate * bool
+  val evm_jumpi :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
 
-  val apply_pipeline_n_times :
-    Optimizations.optim list -> nat -> Abstract.sstate ->
-    Abstract.sstate * bool
-
-  val our_optimization_pipeline :
-    (Abstract.sstate -> Abstract.sstate * bool) list
+  val evm_stack_opm : stack_op_instr_map
  end
 
-module Checker :
+module SymbolicState :
  sig
-  val evm_eq_block_chkr : Concrete.block -> Concrete.block -> nat -> bool
+  type sstack_val =
+  | Val of Constants.coq_EVMWord
+  | InStackVar of nat
+  | FreshVar of nat
+
+  type sstack = sstack_val list
+
+  type 'a memory_update =
+  | U_MSTORE of 'a * 'a
+  | U_MSTORE8 of 'a * 'a
+
+  type 'a memory_updates = 'a memory_update list
+
+  type smemory = sstack_val memory_updates
+
+  val empty_smemory : smemory
+
+  type 'a storage_update =
+  | U_SSTORE of 'a * 'a
+
+  type 'a storage_updates = 'a storage_update list
+
+  type sstorage = sstack_val storage_updates
+
+  val empty_sstorage : sstorage
+
+  type smap_value =
+  | SymBasicVal of sstack_val
+  | SymMETAPUSH of n * n
+  | SymOp of Program.stack_op_instr * sstack_val list
+  | SymMLOAD of sstack_val * smemory
+  | SymSLOAD of sstack_val * sstorage
+  | SymSHA3 of sstack_val * sstack_val * smemory
+
+  type sbinding = nat * smap_value
+
+  type sbindings = sbinding list
+
+  type smap =
+  | SymMap of nat * sbindings
+
+  val get_maxidx_smap : smap -> nat
+
+  val get_bindings_smap : smap -> sbindings
+
+  val empty_smap : smap
+
+  val add_to_smap : smap -> smap_value -> nat * smap
+
+  type follow_in_smap_ret_t =
+  | FollowSmapVal of smap_value * nat * sbindings
+
+  val is_fresh_var_smv : smap_value -> nat option
+
+  val follow_in_smap :
+    sstack_val -> nat -> sbindings -> follow_in_smap_ret_t option
+
+  type sstate =
+  | SymExState of nat * sstack * smemory * sstorage * smap
+
+  val make_sst : nat -> sstack -> smemory -> sstorage -> smap -> sstate
+
+  val gen_empty_sstate : nat -> sstate
+
+  val get_instk_height_sst : sstate -> nat
+
+  val get_stack_sst : sstate -> sstack
+
+  val set_stack_sst : sstate -> sstack -> sstate
+
+  val get_memory_sst : sstate -> smemory
+
+  val set_memory_sst : sstate -> smemory -> sstate
+
+  val get_storage_sst : sstate -> sstorage
+
+  val set_storage_sst : sstate -> sstorage -> sstate
+
+  val get_smap_sst : sstate -> smap
+
+  val set_smap_sst : sstate -> smap -> sstate
+ end
+
+module SymbolicStateCmp :
+ sig
+  type sstack_val_cmp_t =
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> bool
+
+  type smemory_cmp_t =
+    SymbolicState.smemory -> SymbolicState.smemory -> nat ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> bool
+
+  type smemory_cmp_ext_t = sstack_val_cmp_t -> smemory_cmp_t
+
+  type sstorage_cmp_t =
+    SymbolicState.sstorage -> SymbolicState.sstorage -> nat ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> bool
+
+  type sstorage_cmp_ext_t = sstack_val_cmp_t -> sstorage_cmp_t
+
+  type sha3_cmp_t =
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> SymbolicState.smemory -> nat ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> bool
+
+  type sha3_cmp_ext_t = sstack_val_cmp_t -> sha3_cmp_t
+
+  type sstack_val_cmp_ext_1_t = nat -> sstack_val_cmp_t
+
+  type sstack_val_cmp_ext_2_t =
+    smemory_cmp_ext_t -> sstorage_cmp_ext_t -> sha3_cmp_ext_t ->
+    sstack_val_cmp_ext_1_t
+ end
+
+module SymbolicStateCmpImpl :
+ sig
+  val compare_sstack :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack ->
+    SymbolicState.sstack -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val compare_smemory :
+    SymbolicStateCmp.smemory_cmp_t -> SymbolicState.smemory ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val compare_sstorage :
+    SymbolicStateCmp.sstorage_cmp_t -> SymbolicState.sstorage ->
+    SymbolicState.sstorage -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val sstate_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicStateCmp.smemory_cmp_t ->
+    SymbolicStateCmp.sstorage_cmp_t -> SymbolicState.sstate ->
+    SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module Optimizations_Common :
+ sig
+  val follow_to_val :
+    SymbolicState.sstack_val -> nat -> SymbolicState.sbindings ->
+    Constants.coq_EVMWord option
+
+  val follow_to_val_args :
+    SymbolicState.sstack -> nat -> SymbolicState.sbindings ->
+    Constants.coq_EVMWord list option
+
+  val two_exp_160_minus_1 : Constants.coq_EVMWord
+ end
+
+module Optimizations_Def :
+ sig
+  type opt_smap_value_type =
+    SymbolicState.smap_value -> SymbolicStateCmp.sstack_val_cmp_t ->
+    SymbolicState.sbindings -> nat -> nat -> StackOpInstrs.stack_op_instr_map
+    -> SymbolicState.smap_value * bool
+
+  val optimize_first_sbindings :
+    opt_smap_value_type -> SymbolicStateCmp.sstack_val_cmp_t ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings * bool
+
+  val optimize_first_sstate :
+    opt_smap_value_type -> SymbolicStateCmp.sstack_val_cmp_t ->
+    SymbolicState.sstate -> SymbolicState.sstate * bool
+
+  type opt_entry =
+    opt_smap_value_type
+    (* singleton inductive, whose constructor was OpEntry *)
+
+  type opt_pipeline = opt_entry list
+
+  val optimize_first_opt_entry_sstate :
+    opt_entry -> SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstate ->
+    SymbolicState.sstate * bool
+
+  val apply_opt_n_times :
+    opt_entry -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    SymbolicState.sstate -> SymbolicState.sstate * bool
+
+  val apply_opt_n_times_pipeline_once :
+    opt_pipeline -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    SymbolicState.sstate -> SymbolicState.sstate * bool
+
+  val apply_opt_n_times_pipeline_k :
+    opt_pipeline -> SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sstate -> SymbolicState.sstate * bool
+ end
+
+module Opt_add_zero :
+ sig
+  val optimize_add_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_eval :
+ sig
+  val optimize_eval_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_not_not :
+ sig
+  val optimize_not_not_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_and1 :
+ sig
+  val optimize_and_and1_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_and2 :
+ sig
+  val optimize_and_and2_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_origin :
+ sig
+  val is_origin_mask :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_and_origin_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_mul_shl :
+ sig
+  val is_shl_1 :
+    SymbolicState.sstack_val -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    nat -> SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_mul_shl_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_div_shl :
+ sig
+  val is_shl_1 :
+    SymbolicState.sstack_val -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    nat -> SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_div_shl_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_shr_zero_x :
+ sig
+  val optimize_shr_zero_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_shr_x_zero :
+ sig
+  val optimize_shr_x_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_eq_zero :
+ sig
+  val optimize_eq_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_sub_x_x :
+ sig
+  val optimize_sub_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_zero :
+ sig
+  val optimize_and_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_div_one :
+ sig
+  val optimize_div_one_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_lt_one :
+ sig
+  val optimize_lt_one_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_gt_one :
+ sig
+  val optimize_gt_one_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_address :
+ sig
+  val is_address_mask :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_and_address_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_mul_one :
+ sig
+  val optimize_mul_one_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_iszero_gt :
+ sig
+  val is_gt_zero :
+    SymbolicState.sstack_val -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    nat -> SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_iszero_gt_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_eq_iszero :
+ sig
+  val is_iszero :
+    SymbolicState.sstack_val -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    nat -> SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_eq_iszero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_caller :
+ sig
+  val is_caller_mask :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_and_caller_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_iszero3 :
+ sig
+  val optimize_iszero3_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_add_sub :
+ sig
+  val is_sub_x :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_add_sub_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module MemoryOpsSolvers :
+ sig
+  type mload_solver_type =
+    SymbolicState.sstack_val -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.smap_value
+
+  type mload_solver_ext_type =
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  type smemory_updater_type =
+    SymbolicState.sstack_val SymbolicState.memory_update ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smemory
+
+  type smemory_updater_ext_type =
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.smemory
+ end
+
+module StorageOpsSolvers :
+ sig
+  type sload_solver_type =
+    SymbolicState.sstack_val -> SymbolicState.sstorage -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.smap_value
+
+  type sload_solver_ext_type =
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstorage -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  type sstorage_updater_type =
+    SymbolicState.sstack_val SymbolicState.storage_update ->
+    SymbolicState.sstorage -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstorage
+
+  type sstorage_updater_ext_type =
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.storage_update -> SymbolicState.sstorage -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstorage
+ end
+
+module SymbolicExecution :
+ sig
+  val push_s :
+    Constants.coq_EVMWord -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val metapush_s :
+    n -> n -> SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+
+  val pop_s :
+    SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+
+  val dup_s :
+    nat -> SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+
+  val swap_s :
+    nat -> SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+
+  val mload_s :
+    MemoryOpsSolvers.mload_solver_type -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val sload_s :
+    StorageOpsSolvers.sload_solver_type -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val sha3_s :
+    SymbolicState.sstate -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+
+  val mstore8_s :
+    MemoryOpsSolvers.smemory_updater_type -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val mstore_s :
+    MemoryOpsSolvers.smemory_updater_type -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val sstore_s :
+    StorageOpsSolvers.sstorage_updater_type -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val exec_stack_op_intsr_s :
+    Program.stack_op_instr -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val evm_exec_instr_s :
+    MemoryOpsSolvers.smemory_updater_type ->
+    StorageOpsSolvers.sstorage_updater_type ->
+    MemoryOpsSolvers.mload_solver_type -> StorageOpsSolvers.sload_solver_type
+    -> Program.instr -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val evm_exec_block_s :
+    MemoryOpsSolvers.smemory_updater_type ->
+    StorageOpsSolvers.sstorage_updater_type ->
+    MemoryOpsSolvers.mload_solver_type -> StorageOpsSolvers.sload_solver_type
+    -> Program.block -> SymbolicState.sstate ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstate option
+
+  val evm_sym_exec :
+    MemoryOpsSolvers.smemory_updater_type ->
+    StorageOpsSolvers.sstorage_updater_type ->
+    MemoryOpsSolvers.mload_solver_type -> StorageOpsSolvers.sload_solver_type
+    -> Program.block -> nat -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstate option
+ end
+
+module StorageOpsSolversImpl :
+ sig
+  val trivial_sload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstorage -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val trivial_sstorage_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.storage_update -> SymbolicState.sstorage -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.storage_update list
+
+  val not_eq_keys :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
+
+  val basic_sload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstorage -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val basic_sload_updater_remove_dups :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstorage -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+    SymbolicState.storage_update list
+
+  val basic_sstorage_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.storage_update -> SymbolicState.sstorage -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.storage_update list
+ end
+
+module MemoryOpsSolversImpl :
+ sig
+  val trivial_mload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val trivial_smemory_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.memory_update list
+
+  val memory_slots_do_not_overlap :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> bool
+
+  val basic_mload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val mstore8_is_included_in_mstore :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
+
+  val basic_smemory_updater_remove_mstore_dups :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+    SymbolicState.memory_update list
+
+  val basic_smemory_updater_remove_mstore8_dups :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+    SymbolicState.memory_update list
+
+  val basic_smemory_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.memory_update list
+ end
+
+module SStackValCmpImpl :
+ sig
+  val trivial_compare_sstack_val :
+    SymbolicStateCmp.smemory_cmp_ext_t -> SymbolicStateCmp.sstorage_cmp_ext_t
+    -> SymbolicStateCmp.sha3_cmp_ext_t -> nat -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_compare_sstack_val :
+    SymbolicStateCmp.smemory_cmp_ext_t -> SymbolicStateCmp.sstorage_cmp_ext_t
+    -> SymbolicStateCmp.sha3_cmp_ext_t -> nat -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module MemoryCmpImpl :
+ sig
+  val trivial_memory_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.smemory ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_memory_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.smemory ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val swap_memory_update :
+    SymbolicState.sstack_val SymbolicState.memory_update ->
+    SymbolicState.sstack_val SymbolicState.memory_update -> nat ->
+    SymbolicState.sbindings -> bool
+
+  val reorder_updates' :
+    nat -> SymbolicState.smemory -> nat -> SymbolicState.sbindings ->
+    bool * SymbolicState.smemory
+
+  val reorder_memory_updates :
+    nat -> nat -> SymbolicState.smemory -> nat -> SymbolicState.sbindings ->
+    SymbolicState.smemory
+
+  val po_memory_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.smemory ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module SHA3CmpImplSoundness :
+ sig
+  val trivial_sha3_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> SymbolicState.smemory ->
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module StorageCmpImpl :
+ sig
+  type sstorage_cmp_t =
+    SymbolicState.sstorage -> SymbolicState.sstorage -> nat ->
+    SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> bool
+
+  type sstorage_cmp_ext_t =
+    SymbolicStateCmp.sstack_val_cmp_t -> sstorage_cmp_t
+
+  val trivial_storage_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstorage ->
+    SymbolicState.sstorage -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_storage_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstorage ->
+    SymbolicState.sstorage -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val swap_storage_update :
+    SymbolicState.sstack_val SymbolicState.storage_update ->
+    SymbolicState.sstack_val SymbolicState.storage_update -> nat ->
+    SymbolicState.sbindings -> bool
+
+  val reorder_updates' :
+    nat -> SymbolicState.sstorage -> nat -> SymbolicState.sbindings ->
+    bool * SymbolicState.sstorage
+
+  val reorder_storage_updates :
+    nat -> nat -> SymbolicState.sstorage -> nat -> SymbolicState.sbindings ->
+    SymbolicState.sstorage
+
+  val po_storage_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstorage ->
+    SymbolicState.sstorage -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module BlockEquivChecker :
+ sig
+  type mload_solver_v =
+    MemoryOpsSolvers.mload_solver_ext_type
+    (* singleton inductive, whose constructor was MLoadSolver *)
+
+  type available_mload_solvers =
+  | MLoadSolver_Trivial
+  | MLoadSolver_Basic
+
+  val get_mload_solver : available_mload_solvers -> mload_solver_v
+
+  type sload_solver_v =
+    StorageOpsSolvers.sload_solver_ext_type
+    (* singleton inductive, whose constructor was SLoadSolver *)
+
+  type available_sload_solvers =
+  | SLoadSolver_Trivial
+  | SLoadSolver_Basic
+
+  val get_sload_solver : available_sload_solvers -> sload_solver_v
+
+  type smemory_updater_v =
+    MemoryOpsSolvers.smemory_updater_ext_type
+    (* singleton inductive, whose constructor was SMemUpdater *)
+
+  type available_smemory_updaters =
+  | SMemUpdater_Trivial
+  | SMemUpdater_Basic
+
+  val get_smemory_updater : available_smemory_updaters -> smemory_updater_v
+
+  type sstorage_updater_v =
+    StorageOpsSolvers.sstorage_updater_ext_type
+    (* singleton inductive, whose constructor was SStrgUpdater *)
+
+  type available_sstorage_updaters =
+  | SStrgUpdater_Trivial
+  | SStrgUpdater_Basic
+
+  val get_sstorage_updater : available_sstorage_updaters -> sstorage_updater_v
+
+  type smemory_cmp_v =
+    SymbolicStateCmp.smemory_cmp_ext_t
+    (* singleton inductive, whose constructor was SMemCmp *)
+
+  type available_memory_cmp =
+  | SMemCmp_Trivial
+  | SMemCmp_Basic
+  | SMemCmp_PO
+
+  val get_memory_cmp : available_memory_cmp -> smemory_cmp_v
+
+  type sstorage_cmp_v =
+    StorageCmpImpl.sstorage_cmp_ext_t
+    (* singleton inductive, whose constructor was SStrgCmp *)
+
+  type available_storage_cmp =
+  | SStrgCmp_Trivial
+  | SStrgCmp_Basic
+  | SStrgCmp_PO
+
+  val get_storage_cmp : available_storage_cmp -> sstorage_cmp_v
+
+  type sha3_cmp_v =
+    SymbolicStateCmp.sha3_cmp_ext_t
+    (* singleton inductive, whose constructor was SHA3Cmp *)
+
+  val get_sha3_cmp : __ -> sha3_cmp_v
+
+  type sstack_val_cmp_v =
+    SymbolicStateCmp.sstack_val_cmp_ext_2_t
+    (* singleton inductive, whose constructor was SStackValCmp *)
+
+  type available_sstack_val_cmp =
+  | SStackValCmp_Trivial
+  | SStackValCmp_Basic
+
+  val get_sstack_val_cmp : available_sstack_val_cmp -> sstack_val_cmp_v
+
+  type available_optimization_step =
+  | OPT_eval
+  | OPT_add_zero
+  | OPT_not_not
+  | OPT_and_and1
+  | OPT_and_and2
+  | OPT_and_origin
+  | OPT_mul_shl
+  | OPT_div_shl
+  | OPT_shr_zero_x
+  | OPT_shr_x_zero
+  | OPT_eq_zero
+  | OPT_sub_x_x
+  | OPT_and_zero
+  | OPT_div_one
+  | OPT_lt_one
+  | OPT_gt_one
+  | OPT_and_address
+  | OPT_mul_one
+  | OPT_iszero_gt
+  | OPT_eq_iszero
+  | OPT_and_caller
+  | OPT_iszero3
+  | OPT_add_sub
+
+  type list_opt_steps = available_optimization_step list
+
+  val get_optimization_step :
+    available_optimization_step -> Optimizations_Def.opt_entry
+
+  val all_optimization_steps : available_optimization_step list
+
+  val all_optimization_steps' : available_optimization_step list
+
+  val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline
 
   val evm_eq_block_chkr' :
-    Optimizations.optim -> Concrete.block -> Concrete.block -> nat -> bool
+    MemoryOpsSolvers.smemory_updater_ext_type ->
+    StorageOpsSolvers.sstorage_updater_ext_type ->
+    MemoryOpsSolvers.mload_solver_ext_type ->
+    StorageOpsSolvers.sload_solver_ext_type ->
+    SymbolicStateCmp.sstack_val_cmp_ext_2_t ->
+    SymbolicStateCmp.smemory_cmp_ext_t -> StorageCmpImpl.sstorage_cmp_ext_t
+    -> SymbolicStateCmp.sha3_cmp_ext_t -> Optimizations_Def.opt_pipeline ->
+    nat -> nat -> Program.block -> Program.block -> nat -> bool
 
-  val evm_eq_block_chkr'' :
-    Optimizations.optim -> Concrete.block -> Concrete.block -> nat -> bool
+  val evm_eq_block_chkr_lazy :
+    available_smemory_updaters -> available_sstorage_updaters ->
+    available_mload_solvers -> available_sload_solvers ->
+    available_sstack_val_cmp -> available_memory_cmp -> available_storage_cmp
+    -> list_opt_steps -> nat -> nat -> Program.block -> Program.block -> nat
+    -> bool
  end
 
 module Parser :
@@ -661,30 +1450,52 @@ module Parser :
 
   val is_push : char list -> nat option
 
+  val is_metapush : char list -> bool
+
   val is_dup : char list -> nat option
 
   val is_swap : char list -> nat option
 
-  val parse_non_push_instr : char list -> Concrete.instr option
+  val parse_non_push_instr : char list -> Program.instr option
 
-  val parse_block' : char list list -> Concrete.block option
+  val parse_block' : char list list -> Program.block option
 
-  val parse_block : char list -> Concrete.block option
+  val parse_block : char list -> Program.block option
 
-  val opt : Abstract.sstate -> Abstract.sstate * bool
+  val str_to_opt :
+    char list -> BlockEquivChecker.available_optimization_step option
 
-  val str_to_opt : char list -> Optimizations.optim option
+  val strs_to_opts : char list list -> BlockEquivChecker.list_opt_steps option
 
-  val strs_to_opts : char list list -> Optimizations.optim list option
+  val parse_opts_arg :
+    char list list -> BlockEquivChecker.list_opt_steps option
 
-  val parse_opts : char list list -> Optimizations.optim option
+  val parse_memory_updater :
+    char list -> BlockEquivChecker.available_smemory_updaters option
 
-  val block_eq_0 :
-    char list -> char list -> char list -> Optimizations.optim -> bool option
+  val parse_storage_updater :
+    char list -> BlockEquivChecker.available_sstorage_updaters option
 
-  val block_eq_1 :
-    char list -> char list -> char list -> Optimizations.optim -> bool option
+  val parse_mload_solver :
+    char list -> BlockEquivChecker.available_mload_solvers option
 
-  val block_eq_2 :
-    char list -> char list -> char list -> Optimizations.optim -> bool option
+  val parse_sload_solver :
+    char list -> BlockEquivChecker.available_sload_solvers option
+
+  val parse_sstack_value_cmp :
+    char list -> BlockEquivChecker.available_sstack_val_cmp option
+
+  val parse_memory_cmp :
+    char list -> BlockEquivChecker.available_memory_cmp option
+
+  val parse_storage_cmp :
+    char list -> BlockEquivChecker.available_storage_cmp option
+
+  val parse_sha3_cmp : char list -> __ option
+
+  val block_eq :
+    char list -> char list -> char list -> char list -> char list ->
+    char list -> char list -> char list -> char list -> char list ->
+    char list list -> (char list -> char list -> char list -> bool option)
+    option
  end
