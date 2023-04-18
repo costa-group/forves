@@ -3444,6 +3444,33 @@ module Opt_add_sub =
     | _ -> val0 , false
  end
 
+module Opt_shl_zero =
+ struct
+  (** val optimize_shl_zero_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_shl_zero_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.SHL ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 (SymbolicState.Val Constants.coq_WZero) maxid
+                       sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal arg2) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -4628,6 +4655,7 @@ module BlockEquivChecker =
   | OPT_and_caller
   | OPT_iszero3
   | OPT_add_sub
+  | OPT_shl_zero
 
   type list_opt_steps = available_optimization_step list
 
@@ -4658,16 +4686,17 @@ module BlockEquivChecker =
   | OPT_and_caller -> Opt_and_caller.optimize_and_caller_sbinding
   | OPT_iszero3 -> Opt_iszero3.optimize_iszero3_sbinding
   | OPT_add_sub -> Opt_add_sub.optimize_add_sub_sbinding
+  | OPT_shl_zero -> Opt_shl_zero.optimize_shl_zero_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::[]))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero::[])))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::[]))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero::[])))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 

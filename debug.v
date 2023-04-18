@@ -589,7 +589,28 @@ Compute
   PUSH 1 0xF8; OpInstr SHL; PUSH 1 0xF8; OpInstr SHR; PUSH 1 0xFF; OpInstr AND;
   PUSH 3 0xFFFFFF; OpInstr AND; SWAP 1; OpInstr SHL]
  3).
+ 
 
+(* RULES: ADD(X,ADD(Y,Z)) = ADD(ADD(X,Y),Z) 
+          SHR(D, SHL(D, SHR(D, V))) = SHR(D, V)
+          AND(2^N-1, SHR(256-N, X) = SHR(256-N, X)
+          AND(2^A-1, AND(2^B-1, X)) = AND(2^N-1, X)
+              where A,B constant values <= 256 and N = min(A, B)
+*)
+(*
+# 1054
+ADD PUSH1 0x20 ADD MLOAD PUSH1 0x55 SWAP3 SWAP2 PUSH1 0xF8 SWAP2 SWAP1 SWAP2 SHR SWAP1 SHL PUSH1 0x56
+PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL PUSH1 0x55 SWAP2 SWAP1 PUSH1 0x56
+500
+*) 
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "ADD PUSH1 0x20 ADD MLOAD PUSH1 0x55 SWAP3 SWAP2 PUSH1 0xF8 SWAP2 SWAP1 SWAP2 SHR SWAP1 SHL PUSH1 0x56")
+ (str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL PUSH1 0x55 SWAP2 SWAP1 PUSH1 0x56")
+ 4).
 
 
 (* RULES: ADD(X,ADD(Y,Z)) = ADD(ADD(X,Y),Z) 
@@ -613,6 +634,25 @@ Compute
   PUSH 1 0xF8; OpInstr SHL; DUP 5; DUP 5; DUP 1; PUSH 1 0x64; SWAP 1;
   PUSH 1 0x1c]
  6).
+ 
+ 
+
+(* RULE: SHL(0,X) = X *)
+(*
+# 1196
+SWAP3 POP
+PUSH1 0x0 SHL SWAP3 POP
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP3 POP")
+ (str2block "PUSH1 0x0 SHL SWAP3 POP")
+ 4).
+
 
 
   

@@ -66,6 +66,7 @@ optimizations/eq_iszero.v
 optimizations/and_caller.v
 optimizations/iszero3.v
 optimizations/add_sub.v
+optimizations/shl_zero.v
 
 
 

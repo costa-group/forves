@@ -61,6 +61,8 @@ Require Import FORVES.optimizations.iszero3.
 Import Opt_iszero3.
 Require Import FORVES.optimizations.add_sub.
 Import Opt_add_sub.
+Require Import FORVES.optimizations.shl_zero.
+Import Opt_shl_zero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -284,7 +286,8 @@ Inductive available_optimization_step :=
 | OPT_eq_iszero
 | OPT_and_caller
 | OPT_iszero3
-| OPT_add_sub.
+| OPT_add_sub
+| OPT_shl_zero.
 
 
 
@@ -315,6 +318,7 @@ match tag with
 | OPT_and_caller => OpEntry optimize_and_caller_sbinding optimize_and_caller_sbinding_snd
 | OPT_iszero3 => OpEntry optimize_iszero3_sbinding optimize_iszero3_sbinding_snd
 | OPT_add_sub => OpEntry optimize_add_sub_sbinding optimize_add_sub_sbinding_snd
+| OPT_shl_zero => OpEntry optimize_shl_zero_sbinding optimize_shl_zero_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -340,7 +344,8 @@ Definition all_optimization_steps :=
    OPT_eq_iszero;
    OPT_and_caller;
    OPT_iszero3;
-   OPT_add_sub
+   OPT_add_sub;
+   OPT_shl_zero
 ].
 
 Definition all_optimization_steps' := 
@@ -366,7 +371,8 @@ Definition all_optimization_steps' :=
    OPT_eq_iszero;
    OPT_and_caller;
    OPT_iszero3;
-   OPT_add_sub
+   OPT_add_sub;
+   OPT_shl_zero
 ].
 
   
