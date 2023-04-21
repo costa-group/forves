@@ -160,6 +160,9 @@ Module Debug.
     | None => []
     | Some b => b
     end.
+    
+Compute 
+(str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 PUSH1 0x64 DUP2 PUSH1 0x1c").
   
 
 Inductive sstack_val_dbg : Type :=
@@ -652,10 +655,322 @@ Compute
  (str2block "SWAP3 POP")
  (str2block "PUSH1 0x0 SHL SWAP3 POP")
  4).
+ 
+
+(* RULE: SUB(X,0) = X *)
+(*
+# 9
+SWAP1 POP DUP1 DUP1 PUSH1 0x8a JUMPI
+SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH1 0x8a JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP1 POP DUP1 DUP1 PUSH1 0x8a JUMPI")
+ (str2block "SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH1 0x8a JUMPI")
+ 2).
+
+
+(* RULE: SUB(X,0) = X *)
+(*
+# 11
+SWAP1 POP DUP1 DUP1 PUSH1 0x8a JUMPI
+SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH1 0x8a JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP1 POP DUP1 DUP1 PUSH1 0x8a JUMPI")
+ (str2block "SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH1 0x8a JUMPI")
+ 2).
+ 
+
+(* RULE: (X+Y)+Z = (Z+X)+Y *)
+(* 
+# 21
+PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x0 PUSH1 0xed
+PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x0 PUSH1 0x2 DUP2 LT PUSH1 0xed JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x0 PUSH1 0xed")
+ (str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x0 PUSH1 0x2 DUP2 LT PUSH1 0xed JUMPI")
+ 2).
+
+
+(* RULE: (X+Y)+Z = (Z+X)+Y *)
+(*
+# 24
+PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x1 PUSH1 0xf5
+PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x1 PUSH1 0x2 DUP2 LT PUSH1 0xf5 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x1 PUSH1 0xf5")
+ (str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x1 PUSH1 0x2 DUP2 LT PUSH1 0xf5 JUMPI")
+ 2).
+ 
+
+
+(* RULE: SUB(X,0) = X *)
+(*
+# 31
+SWAP1 POP DUP1 DUP1 PUSH2 0x10d JUMPI
+SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH2 0x10d JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP1 POP DUP1 DUP1 PUSH2 0x10d JUMPI")
+ (str2block "SWAP1 POP DUP1 PUSH1 0x0 DUP2 SUB PUSH2 0x10d JUMPI")
+ 2).
 
 
 
-  
+(* RULE: ADD(X,1) = SUB(X, 2^256-1) *)
+(*
+# 44
+PUSH1 0x0 PUSH1 0x1 DUP3 ADD PUSH2 0x17b JUMPI
+PUSH1 0x0 DUP1 NOT DUP3 SUB PUSH2 0x17b JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x0 PUSH1 0x1 DUP3 ADD PUSH2 0x17b JUMPI")
+ (str2block "PUSH1 0x0 DUP1 NOT DUP3 SUB PUSH2 0x17b JUMPI")
+ 1).
+ 
+ 
+(* RULE: (X+Y)+Z = (Z+X)+Y *)
+(*
+# 76
+PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x0 PUSH1 0xed
+PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x0 PUSH1 0x2 DUP2 LT PUSH1 0xed JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x0 PUSH1 0xed")
+ (str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x0 PUSH1 0x2 DUP2 LT PUSH1 0xed JUMPI")
+ 2).
+
+
+(* RULE: (X+Y)+Z = (Z+X)+Y *)
+(*
+# 79
+PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x1 PUSH1 0xf5
+PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x1 PUSH1 0x2 DUP2 LT PUSH1 0xf5 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x1 PUSH1 0xf5")
+ (str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x1 PUSH1 0x2 DUP2 LT PUSH1 0xf5 JUMPI")
+ 2).
+
+
+(* RULE: ADD(X,N) = SUB(X, 2^256-N) *)
+(* special case ADD(X, 2^255) = SUB(X, 2^255) *)
+(* special case ADD(X, 1) = SUB(X, 2^256-1) *)
+(* # 99 *)
+(* # 174 *)
+(* # 490 *)
+(* # 624 *)
+(* # 633 *)
+(* # 928 *)
+(* # 930 *)
+(* # 1068 *)
+(* # 1232 *)
+
+(* RULE: ADD(X,N) = SUB(X, 2^256-N) *)
+(* special case ADD(X, 2^255) = SUB(X, 2^255) *)
+(* special case ADD(X, 1) = SUB(X, 2^256-1) *)
+(*
+# 177
+PUSH1 0x0 PUSH32 0x8000000000000000000000000000000000000000000000000000000000000000 DUP3 ADD PUSH1 0x6c JUMPI
+PUSH1 0x0 PUSH1 0x1 PUSH1 0xFF SHL DUP3 SUB PUSH1 0x6c JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH1 0x0 PUSH32 0x8000000000000000000000000000000000000000000000000000000000000000 DUP3 ADD PUSH1 0x6c JUMPI")
+ (str2block "PUSH1 0x0 PUSH1 0x1 PUSH1 0xFF SHL DUP3 SUB PUSH1 0x6c JUMPI")
+ 1).
+
+(* RULE: ISZERO(ISZERO(X)) = GT(X,0) *)
+(*
+# 243
+POP PUSH8 0xDE0B6B3A7640000 DUP1 DUP3 MOD DUP1 ISZERO ISZERO SWAP2 SUB MUL ADD SWAP1
+PUSH8 0xDE0B6B3A7640000 DUP3 MOD DUP1 PUSH8 0xDE0B6B3A7640000 SUB PUSH1 0x0 DUP3 GT DUP2 MUL DUP5 ADD SWAP3 POP POP POP SWAP2 SWAP1 POP
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "POP PUSH8 0xDE0B6B3A7640000 DUP1 DUP3 MOD DUP1 ISZERO ISZERO SWAP2 SUB MUL ADD SWAP1")
+ (str2block "PUSH8 0xDE0B6B3A7640000 DUP3 MOD DUP1 PUSH8 0xDE0B6B3A7640000 SUB PUSH1 0x0 DUP3 GT DUP2 MUL DUP5 ADD SWAP3 POP POP POP SWAP2 SWAP1 POP")
+ 3).
+
+(* RULE: ADD(X, N) = SUB(X, 2^256-N) *)
+(*
+# 247
+PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP3 POP SWAP1 POP DUP3 DUP2 SHR PUSH32 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF21F494C589C0000 DUP2 ADD PUSH1 0x83 JUMPI
+SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP2 POP PUSH1 0x0 DUP2 DUP5 SWAP1 SHR SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 SUB PUSH1 0x83 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP3 POP SWAP1 POP DUP3 DUP2 SHR PUSH32 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF21F494C589C0000 DUP2 ADD PUSH1 0x83 JUMPI")
+ (str2block "SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP2 POP PUSH1 0x0 DUP2 DUP5 SWAP1 SHR SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 SUB PUSH1 0x83 JUMPI")
+ 4).
+
+(* RULE: ISZERO(ISZERO(LT(X,Y))) = LT(X,Y) *)
+(*
+# 557
+SWAP1 DUP2 DUP2 LT PUSH2 0x1ba JUMPI
+SWAP1 DUP2 DUP2 LT ISZERO PUSH1 0x0 EQ PUSH2 0x1ba JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP1 DUP2 DUP2 LT PUSH2 0x1ba JUMPI")
+ (str2block "SWAP1 DUP2 DUP2 LT ISZERO PUSH1 0x0 EQ PUSH2 0x1ba JUMPI")
+ 2).
+
+(* Odd case: JUMPI implementation? *)
+(*
+# 584
+POP
+POP PUSH1 0x0 PUSH1 0x87 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "POP")
+ (str2block "POP PUSH1 0x0 PUSH1 0x87 JUMPI")
+ 1).
+
+(* RULE: ADD(X,N) = SUB(X, 2^256-N) *)
+(* 
+# 761
+PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP4 POP SWAP1 POP DUP4 DUP2 SAR PUSH32 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF21F494C589C0000 DUP2 ADD PUSH2 0x10e JUMPI
+SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP3 POP PUSH1 0x0 DUP2 DUP6 SWAP1 SAR SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 SUB PUSH2 0x10e JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP4 POP SWAP1 POP DUP4 DUP2 SAR PUSH32 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF21F494C589C0000 DUP2 ADD PUSH2 0x10e JUMPI")
+ (str2block "SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 MUL SWAP3 POP PUSH1 0x0 DUP2 DUP6 SWAP1 SAR SWAP1 POP PUSH8 0xDE0B6B3A7640000 DUP2 SUB PUSH2 0x10e JUMPI")
+ 5).
+
+(* RULE: ISZERO(ISZERO(LT(X,Y))) = LT(X,Y) *)
+(* 
+# 1024
+SWAP1 DUP2 DUP2 LT PUSH2 0x210 JUMPI
+SWAP1 DUP2 DUP2 LT ISZERO PUSH1 0x0 EQ PUSH2 0x210 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP1 DUP2 DUP2 LT PUSH2 0x210 JUMPI")
+ (str2block "SWAP1 DUP2 DUP2 LT ISZERO PUSH1 0x0 EQ PUSH2 0x210 JUMPI")
+ 2).
+
+(* RULE: ISZERO(ISZERO(SLT(X,Y))) = SLT(X,Y) *)
+(*
+# 1026
+PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT PUSH2 0x215 JUMPI
+PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT ISZERO PUSH1 0x0 EQ PUSH2 0x215 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT PUSH2 0x215 JUMPI")
+ (str2block "PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT ISZERO PUSH1 0x0 EQ PUSH2 0x215 JUMPI")
+ 2).
+
+(* EQ(X,Y) = ISZERO(SUB(X,Y))) *) 
+(*
+# 1221
+DUP2 DUP2 AND DUP4 DUP3 AND DUP2 DUP2 SUB SWAP2 EQ PUSH1 0xc8 JUMPI
+PUSH1 0x0 DUP2 DUP4 AND DUP3 DUP6 AND SUB SWAP1 POP DUP1 PUSH1 0x0 EQ PUSH1 0xc8 JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "DUP2 DUP2 AND DUP4 DUP3 AND DUP2 DUP2 SUB SWAP2 EQ PUSH1 0xc8 JUMPI")
+ (str2block "PUSH1 0x0 DUP2 DUP4 AND DUP3 DUP6 AND SUB SWAP1 POP DUP1 PUSH1 0x0 EQ PUSH1 0xc8 JUMPI")
+ 3).
+
+(* EQ(X,Y) = ISZERO(SUB(X,Y))) *) 
+(*
+# 1277
+SWAP2 DUP3 AND SWAP2 AND DUP2 DUP2 EQ PUSH2 0x11a JUMPI
+DUP1 SWAP2 AND SWAP2 AND SWAP1 DUP2 DUP2 SUB ISZERO PUSH2 0x11a JUMPI
+500
+*)
+Compute 
+(evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+ MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Basic
+ SStrgCmp_Basic SHA3Cmp_Trivial 
+ all_optimization_steps 10 10
+ (str2block "SWAP2 DUP3 AND SWAP2 AND DUP2 DUP2 EQ PUSH2 0x11a JUMPI")
+ (str2block "DUP1 SWAP2 AND SWAP2 AND SWAP1 DUP2 DUP2 SUB ISZERO PUSH2 0x11a JUMPI")
+ 3).
+
+
 Compute
   let b1 := str2block "PUSH1 0x0 DUP1 PUSH1 0xa4 MSTORE ADDRESS PUSH1 0xa0 PUSH1 0x84 MSTORE PUSH1 0x4 MSTORE PUSH1 0x0 PUSH1 0xc4 DUP2 PUSH4 0x79212195 PUSH1 0xe1 SHL DUP5 MSTORE DUP5 PUSH1 0x64 MSTORE DUP4 DUP7 GAS" in
   let b2 := str2block "PUSH4 0x79212195 PUSH1 0xe1 SHL PUSH1 0x0 MSTORE ADDRESS PUSH1 0x4 MSTORE DUP1 PUSH1 0x64 MSTORE PUSH1 0xa0 PUSH1 0x84 MSTORE PUSH1 0x0 PUSH1 0xa4 MSTORE PUSH1 0x0 DUP1 PUSH1 0xc4 PUSH1 0x0 DUP1 DUP7 GAS" in

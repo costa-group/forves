@@ -323,7 +323,8 @@ Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   | [shift;value] => wdiv value (wlshift' WOne (wordToNat shift))
   | _ => WZero
   end.
-(*Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
+(*
+Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wrshift' b (wordToNat a)
   | _ => WZero
@@ -525,7 +526,7 @@ Definition evm_stack_opm : stack_op_instr_map :=
   SELFBALANCE |->i OpImp 0  evm_selfbalance None None;
   BASEFEE |->i OpImp 0 evm_basefee None None;
   GAS |->i OpImp 0 evm_gas None (Some gas_ctx_ind);
-  JUMPI |->i OpImp 0 evm_jumpi None (Some jumpi_ctx_ind).
+  JUMPI |->i OpImp 2 evm_jumpi None (Some jumpi_ctx_ind).
  
 
 
