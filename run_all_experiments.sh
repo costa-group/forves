@@ -25,7 +25,7 @@ for f in ./blocks/*.txt;  do
 	echo '| Checker |  #Yes   | Time (s) |'
 	echo '|---------|---------|----------|'	
 	printf "| CHKR    | %7s | %8s |\n" $n0 $ex_time0_s
-    printf "| CHKR^o  | %7s | %8s |\n" $n2 $ex_time2_s
+    printf "| CHKR^s  | %7s | %8s |\n" $n2 $ex_time2_s
     echo '--------------------------------'
 	echo
 done;
