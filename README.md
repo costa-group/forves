@@ -23,8 +23,7 @@ checker takes two blocks of jump-free EVM instructions, the original block and
 the optimized one, as well as the initial stack size, and determines if they are
 equivalent, i.e., if they have the same semantic behavior. 
 
-The artifact contains an Ubuntu Server 22.04 virtual machine with all the 
-software alredy installed and configured. 
+The source code of the checker, all the Coq proofs and the experiments can be found at https://github.com/costa-group/forves/tree/stack-only, as well as precompiled binaries for Linux. For convenience, the artifact contains an Ubuntu Server 22.04 virtual machine with all the software requirements alredy installed and configured to compile and run the checker and all the experiments. 
 
 Virtual machine details:
 * Username: ubuntu
@@ -39,7 +38,7 @@ Virtual machine details:
 2 Requirements and setup
 ========================
 This artifact already contains two precompiled binary versions of the checker
-for Ubuntu 22.04 LTS: 
+for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
 
    * `bin/checker`: binary checker dynamically linked to the following standard Linux libraries
        
@@ -59,6 +58,7 @@ depends on the following components:
    * The Coq Proof Assistant, version 8.15.0
    * OCaml 4.13.1
    * The Coq library coq-bbv, version 1.3
+   * `bc` (an arbitrary precision calculator language) version 1.07.1
 
 
 
