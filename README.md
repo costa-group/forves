@@ -4,6 +4,7 @@ Artifact of the Paper "Formally Verified EVM Block-Optimizations"
 
 Table of Contents
 =================
+
 1. Contents of the artifact
 2. Requirements and setup
 3. Compiling the checker and validating Coq proofs
@@ -16,16 +17,13 @@ Table of Contents
 
 1 Contents of the artifact
 ==========================
-This artifact includes a verification tool to automatically prove the 
-correctness of EVM (Ethereum Virtual Machine) block-optimizations on
-Ethereum smart contracts using the Coq proof assistant. The EVM equivalence 
-checker takes two blocks of jump-free EVM instructions, the original block and 
-the optimized one, as well as the initial stack size, and determines if they are
-equivalent, i.e., if they have the same semantic behavior. 
 
-The source code of the checker, all the Coq proofs and the experiments can be found at https://github.com/costa-group/forves/tree/stack-only, as well as precompiled binaries for Linux. For convenience, the artifact contains an Ubuntu Server 22.04 virtual machine with all the software requirements alredy installed and configured to compile and run the checker and all the experiments. 
+This artifact includes a verification tool to automatically prove the correctness of EVM (Ethereum Virtual Machine) block-optimizations on Ethereum smart contracts using the Coq proof assistant. The EVM equivalence checker takes two blocks of jump-free EVM instructions, the original block and the optimized one, as well as the initial stack size, and determines if they are equivalent, i.e., if they have the same semantic behavior. 
+
+The source code of the checker, all the Coq proofs and the experiments can be found at https://github.com/costa-group/forves/tree/stack-only, as well as precompiled binaries for Linux. For convenience, the artifact contains an Ubuntu Server 22.04 virtual machine with all the software requirements already installed and configured to compile and run the checker and all the experiments. 
 
 Virtual machine details:
+
 * Username: ubuntu
 * Password: ubuntu
 * Tool directory: `/home/ubuntu/forves`
@@ -37,8 +35,8 @@ Virtual machine details:
 
 2 Requirements and setup
 ========================
-This artifact already contains two precompiled binary versions of the checker
-for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
+
+This artifact already contains two precompiled binary versions of the checker for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
 
    * `bin/checker`: binary checker dynamically linked to the following standard Linux libraries
        
@@ -49,11 +47,9 @@ for Ubuntu 22.04 LTS, but they should work in any other Linux distribution:
 	     /lib64/ld-linux-x86-64.so.2 (0x00007f5fbe8a8000)
 
 
-   * `bin/static_checker`: binary checker statically compiled
+   * `bin/static_checker`: binary checker statically linked
 
-The virtual machine also contains the Coq source code, Debian packages, and the
-required Coq libraries to compile the EVM equivalence checker from scratch. It
-depends on the following components:
+The virtual machine also contains the Coq source code, Debian packages, and the required Coq libraries to compile the EVM equivalence checker from scratch. It depends on the following components:
 
    * The Coq Proof Assistant, version 8.15.0
    * OCaml 4.13.1
@@ -64,10 +60,8 @@ depends on the following components:
 
 3 Compiling the checker and validating Coq proofs
 =================================================
-The directory `/home/ubuntu/forves/` contains all the Coq files that define 
-the EVM equivalence checker as well as all the lemmas and theorems that guarantee 
-its soundness. To compile the binary checkers and validate all the proofs, execute 
-the following commands in the `forves` directory:
+
+The directory `/home/ubuntu/forves/` contains all the Coq files that define the EVM equivalence checker as well as all the lemmas and theorems that guarantee its soundness. To compile the binary checkers and validate all the proofs, execute the following commands in the `forves` directory:
 
     $ cd /home/ubuntu/forves
 
@@ -109,25 +103,18 @@ the following commands in the `forves` directory:
 
 4 Executing the checker
 =======================
-After compiling the checker, the directory `bin/` will contain the executables 
-`checker` (dynamically linked) and `static_checker` (statically linked). Both
-behave the same and only differ in the linking process, so in the following 
-examples we will only use the dynamically linked `checker`.
 
-The checker accepts two parameters: the algorithm used to check the equivalence
-(`-alg`) and the list of optimizations to use (`-opt`) when checking the
-equivalence. 
+After compiling the checker, the directory `bin/` will contain the executables  `checker` (dynamically linked) and `static_checker` (statically linked). Both behave the same and only differ in the linking process, so in the following examples we will only use the dynamically linked `checker`.
+
+The checker accepts two parameters: the algorithm used to check the equivalence (`-alg`) and the list of optimizations to use (`-opt`) when checking the equivalence. 
 
 The `-alg` parameter can take the following values:
 
 * `0`: does not apply any simplification rule
 * `1`: applies simplification rules in the original block
-* `2` (**default**): applies simplification rules in both the original and the
-  optimized blocks
+* `2` (**default**): applies simplification rules in both the original and the optimized blocks
 
-The `-opt` parameter is only used when applying an algorithm that
-uses optimizations (`-opt 1` or `-opt 2`) and its default value is 
-applying all the available simplification rules:
+The `-opt` parameter is only used when applying an algorithm that uses optimizations (`-opt 1` or `-opt 2`) and its default value is  applying all the available simplification rules:
 
     $ bin/checker --help
     checker [options] < filename
@@ -146,21 +133,13 @@ applying all the available simplification rules:
 
       --help  Display this list of options
 
-The checker reads a sequence of blocks  from the 
-standard input to check its equivalence. Each case if formed by 3 lines: 
+The checker reads a sequence of blocks  from the standard input to check its equivalence. Each case if formed by 3 lines: 
 
     optimized block
     original block
     initial stack size
 
-The first line is the 
-optimized block of EVM instructions, the second line contains the original
-block of EVM instructions, and the third line has the initial stack size. The
-checker will read triplets until the end of the file (EOF, introduced by **Ctrl-d**
-in the terminal) and show all the results. For each case, it will show a line 
-`Example N: X` where `N` is the case number and `X` is a Boolean: `true` if
-the blocks are equivalent and `false` if the checker cannot determine the 
-equivalence.
+The first line is the optimized block of EVM instructions, the second line contains the original block of EVM instructions, and the third line has the initial stack size. The checker will read triplets until the end of the file (EOF, introduced by **Ctrl-d** in the terminal) and show all the results. For each case, it will show a line `Example N: X` where `N` is the case number and `X` is a Boolean: `true` if the blocks are equivalent and `false` if the checker cannot determine the equivalence.
 
 Example:
 
@@ -182,8 +161,8 @@ Example:
     Example 2: false
 
 
-It is usually easier to include all the cases to check in a single text file
-with the previously defined format and redirect the standard input to that file.
+It is usually easier to include all the cases to check in a single text file with the previously defined format and redirect the standard input to that file.
+
 Example:
 
     $ $ bin/checker < blocks/solc_semantic_tests.txt
@@ -199,43 +178,30 @@ Example:
 
 5 Running experiments
 =====================
-ADDITIONAL REQUIREMENTS: None, all software dependencies are included in the 
-virtual machine. There are no hardware requirements.
 
-EXPERIMENT RUNTIME: 1 minute and 30 seconds in the virtual machine 
-executed with VirtualBox 6.1 on `Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz` with 32 GB.
+ADDITIONAL REQUIREMENTS: None, all software dependencies are included in the virtual machine. There are no hardware requirements.
+
+EXPERIMENT RUNTIME: 1 minute and 30 seconds in the virtual machine  executed with VirtualBox 6.1 on `Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz` with 32 GB.
 
 The experiments in Section 5 include two sets of benchmarks:
 
-1. Blocks from 96 real smart contracts (see Section 7 of this file for details) optimized by `GASOL` with respecto to both 
-  size and gas. These blocks are extracted by first compiling the Solidity source 
-  code of the contract with `solc` and then executing the `GASOL` optimizer. Depending 
-  on the resource to optimize (gas or size) and whether simplification rules have been 
-  applied by GASOL or not, we obtain 4 sets of of blocks, which are stored in the files 
-  with names `GASOL_<resource>_<simplification>.txt` in the `blocks` directory:
+1. Blocks from 96 real smart contracts (see Section 7 of this file for details) optimized by `GASOL` with respect to both size and gas. These blocks are extracted by first compiling the Solidity source code of the contract with `solc` and then executing the `GASOL` optimizer. Depending on the resource to optimize (gas or size) and whether simplification rules have been applied by GASOL or not, we obtain 4 sets of of blocks, which are stored in the files with names `GASOL_<resource>_<simplification>.txt` in the `blocks` directory:
 
   * `GASOL_gas_no_simp.txt`: optimized wrt. gas, no simplification rules applied
   * `GASOL_gas_simp.txt`: optimized wrt. gas, simplification rules applied
   * `GASOL_size_no_simp.txt`: optimized wrt. size, no simplification rules applied
   * `GASOL_size_simp.txt`: optimized wrt. gas, simplification rules applied
 
-2. Blocks extracted from the smart contracts in the semantic test suite of the solc compiler 
-  (https://github.com/ethereum/solidity/tree/develop/test/libsolidity/semanticTests/externalContracts) 
-  optimized by the official `solc` compiler. These blocks are in the file `solc_semantic_tests.txt` 
-  insided the `blocks` directory:
+2. Blocks extracted from the smart contracts in the semantic test suite of the solc compiler (https://github.com/ethereum/solidity/tree/develop/test/libsolidity/semanticTests/externalContracts) optimized by the official `solc` compiler. These blocks are in the file `solc_semantic_tests.txt` inside the `blocks` directory:
 
 
-To reproduce the experiments included in Section 5 of the paper, simply execute the 
-following script:
+To reproduce the experiments included in Section 5 of the paper, simply execute the following script:
 
     $ ./run_all_experiments.sh
 
-The script will show 5 blocks of results, the first four blocks correspond to the
-lines in Table 5.1 of the paper and the last block correpond to the semantic test
-suite of the solc compiler. In each block of results, the script will show the file
-processed by the checker and the total number of blocks, as well as the results
-(number of blocks proven equivalent and time) for the algorithms `CHECKER` 
-(parameter `-opt 0`) and `CHECKER^s` (parameter `-opt 2`). Output:
+The script will show 5 blocks of results, the first four blocks correspond to the lines in Table 5.1 of the paper and the last block correspond to the semantic test suite of the solc compiler. In each block of results, the script will show the file processed by the checker and the total number of blocks, as well as the results (number of blocks proven equivalent and time) for the algorithms `CHECKER` (parameter `-opt 0`) and `CHECKER^s` (parameter `-opt 2`). 
+
+Output:
 
     $ time ./run_all_experiments.sh 
     ./blocks/GASOL_gas_no_simp.txt
@@ -289,13 +255,14 @@ processed by the checker and the total number of blocks, as well as the results
 
 6 License
 =========
-All the Coq source files that form the EVM equivalence checker have license
-GNU GENERAL PUBLIC LICENSE Version 3, included in the file `License.txt`.
+
+All the Coq source files that form the EVM equivalence checker have license GNU GENERAL PUBLIC LICENSE Version 3, included in the file `License.txt`.
 
 
 
 7 Smart contracts used in the benchmarks
 ========================================
+
 For the experimental evaluation using GASOL, we have extracted all the blocks in the following 96 smart contracts from the Ethereum blockchain. We identify the smart contracts by their addresses.
 
 1. https://etherscan.io/address/0x0621213b273bff05d679d9b1c68ec18cf989168f
