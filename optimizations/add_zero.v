@@ -91,23 +91,13 @@ intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
 unfold optimize_add_zero_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
-  offset size smem] eqn: eq_val; try (
-    injection Hoptm_sbinding as eq_val' eq_flag;
-    rewrite <- eq_val';
-    assumption).
-destruct label eqn: eq_label; try 
-      (injection Hoptm_sbinding as eq_val' eq_flag;
-      rewrite <- eq_val'; assumption).
+  offset size smem] eqn: eq_val; 
+   try inject_rw Hoptm_sbinding eq_val'.
+destruct label eqn: eq_label; try inject_rw Hoptm_sbinding eq_val'. try 
 (* ADD *)
-destruct args as [|arg1 r1] eqn: eq_args; try 
-  (injection Hoptm_sbinding as eq_val' eq_flag;
-  rewrite <- eq_val'; assumption).
-destruct r1 as [|arg2 r2] eqn: eq_r1; try 
-  (injection Hoptm_sbinding as eq_val' eq_flag;
-  rewrite <- eq_val'; assumption).
-destruct r2 as [|arg3 r3] eqn: eq_r2; try 
-  (injection Hoptm_sbinding as eq_val' eq_flag;
-  rewrite <- eq_val'; assumption).
+destruct args as [|arg1 r1] eqn: eq_args; try inject_rw Hoptm_sbinding eq_val'.
+destruct r1 as [|arg2 r2] eqn: eq_r1; try inject_rw Hoptm_sbinding eq_val'.
+destruct r2 as [|arg3 r3] eqn: eq_r2; try inject_rw Hoptm_sbinding eq_val'.
 destruct (fcmp arg1 (Val WZero) n sb n sb instk_height evm_stack_opm)
   eqn: eq_fcmp_arg1.
 * injection Hoptm_sbinding as eq_val' eq_flag.
@@ -118,8 +108,7 @@ destruct (fcmp arg1 (Val WZero) n sb n sb instk_height evm_stack_opm)
   simpl.
   assumption.
 * destruct (fcmp arg2 (Val WZero) n sb n sb instk_height evm_stack_opm) 
-    eqn: eq_fcmp_arg2; try (injection Hoptm_sbinding as eq_val' eq_flag;
-    rewrite <- eq_val'; assumption).
+    eqn: eq_fcmp_arg2; try inject_rw Hoptm_sbinding eq_val'. 
   injection Hoptm_sbinding as eq_val' eq_flag.
   rewrite <- eq_val'.
   simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
