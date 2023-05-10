@@ -988,14 +988,19 @@ module Opt_add_sub :
   val optimize_add_sub_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
-module Opt_shl_zero :
+module Opt_shl_zero_x :
  sig
-  val optimize_shl_zero_sbinding : Optimizations_Def.opt_smap_value_type
+  val optimize_shl_zero_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module Opt_sub_zero :
  sig
   val optimize_sub_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_shl_x_zero :
+ sig
+  val optimize_shl_x_zero_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module MemoryOpsSolvers :
@@ -1394,8 +1399,9 @@ module BlockEquivChecker :
   | OPT_and_caller
   | OPT_iszero3
   | OPT_add_sub
-  | OPT_shl_zero
+  | OPT_shl_zero_x
   | OPT_sub_zero
+  | OPT_shl_x_zero
 
   type list_opt_steps = available_optimization_step list
 

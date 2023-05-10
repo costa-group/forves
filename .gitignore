@@ -5,6 +5,7 @@
 *.vok
 *.aux
 *.lia.cache
+*.crashcoqide
 Makefile
 Makefile.conf
 .Makefile.d
