@@ -3527,6 +3527,85 @@ module Opt_shl_x_zero =
     | _ -> val0 , false
  end
 
+module Opt_mul_zero =
+ struct
+  (** val optimize_mul_zero_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_mul_zero_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.MUL ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 (SymbolicState.Val Constants.coq_WZero) maxid
+                       sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
+                  else if fcmp arg2 (SymbolicState.Val Constants.coq_WZero)
+                            maxid sb maxid sb instk_height ops
+                       then (SymbolicState.SymBasicVal (SymbolicState.Val
+                              Constants.coq_WZero)) , true
+                       else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_div_x_x =
+ struct
+  (** val eq_and_diff_zero :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+      SymbolicStateCmp.sstack_val_cmp_t -> nat -> SymbolicState.sbindings ->
+      nat -> StackOpInstrs.stack_op_instr_map -> bool **)
+
+  let eq_and_diff_zero arg1 arg2 fcmp maxid sb instk_height ops =
+    if fcmp arg1 arg2 maxid sb maxid sb instk_height ops
+    then (match SymbolicState.follow_in_smap arg2 maxid sb with
+          | Some f ->
+            let SymbolicState.FollowSmapVal (smv, _, _) = f in
+            (match smv with
+             | SymbolicState.SymBasicVal val0 ->
+               (match val0 with
+                | SymbolicState.Val v ->
+                  negb (weqb Constants.coq_EVMWordSize v Constants.coq_WZero)
+                | _ -> false)
+             | _ -> false)
+          | None -> false)
+    else false
+
+  (** val optimize_div_x_x_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_div_x_x_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.DIV ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if eq_and_diff_zero arg1 arg2 fcmp maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WOne)) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -4714,6 +4793,8 @@ module BlockEquivChecker =
   | OPT_shl_zero_x
   | OPT_sub_zero
   | OPT_shl_x_zero
+  | OPT_mul_zero
+  | OPT_div_x_x
 
   type list_opt_steps = available_optimization_step list
 
@@ -4747,16 +4828,18 @@ module BlockEquivChecker =
   | OPT_shl_zero_x -> Opt_shl_zero_x.optimize_shl_zero_x_sbinding
   | OPT_sub_zero -> Opt_sub_zero.optimize_sub_zero_sbinding
   | OPT_shl_x_zero -> Opt_shl_x_zero.optimize_shl_x_zero_sbinding
+  | OPT_mul_zero -> Opt_mul_zero.optimize_mul_zero_sbinding
+  | OPT_div_x_x -> Opt_div_x_x.optimize_div_x_x_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::[])))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::[])))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::[])))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::[])))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
