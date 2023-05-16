@@ -71,6 +71,7 @@ optimizations/sub_zero.v
 optimizations/shl_x_zero.v
 optimizations/mul_zero.v
 optimizations/div_x_x.v
+optimizations/div_zero.v
 
 
 

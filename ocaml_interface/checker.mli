@@ -1018,6 +1018,11 @@ module Opt_div_x_x :
   val optimize_div_x_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_div_zero :
+ sig
+  val optimize_div_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1419,6 +1424,7 @@ module BlockEquivChecker :
   | OPT_shl_x_zero
   | OPT_mul_zero
   | OPT_div_x_x
+  | OPT_div_zero
 
   type list_opt_steps = available_optimization_step list
 
