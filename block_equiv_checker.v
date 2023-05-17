@@ -73,6 +73,12 @@ Require Import FORVES.optimizations.div_x_x.
 Import Opt_div_x_x.
 Require Import FORVES.optimizations.div_zero.
 Import Opt_div_zero.
+Require Import FORVES.optimizations.mod_one.
+Import Opt_mod_one.
+Require Import FORVES.optimizations.mod_zero.
+Import Opt_mod_zero.
+Require Import FORVES.optimizations.mod_x_x.
+Import Opt_mod_x_x.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -302,7 +308,10 @@ Inductive available_optimization_step :=
 | OPT_shl_x_zero
 | OPT_mul_zero
 | OPT_div_x_x
-| OPT_div_zero.
+| OPT_div_zero
+| OPT_mod_one
+| OPT_mod_zero
+| OPT_mod_x_x.
 
 
 
@@ -339,6 +348,9 @@ match tag with
 | OPT_mul_zero => OpEntry optimize_mul_zero_sbinding optimize_mul_zero_sbinding_snd
 | OPT_div_x_x => OpEntry optimize_div_x_x_sbinding optimize_div_x_x_sbinding_snd
 | OPT_div_zero => OpEntry optimize_div_zero_sbinding optimize_div_zero_sbinding_snd
+| OPT_mod_one => OpEntry optimize_mod_one_sbinding optimize_mod_one_sbinding_snd
+| OPT_mod_zero => OpEntry optimize_mod_zero_sbinding optimize_mod_zero_sbinding_snd
+| OPT_mod_x_x => OpEntry optimize_mod_x_x_sbinding optimize_mod_x_x_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -370,7 +382,10 @@ Definition all_optimization_steps :=
    OPT_shl_x_zero;
    OPT_mul_zero;
    OPT_div_x_x;
-   OPT_div_zero
+   OPT_div_zero;
+   OPT_mod_one;
+   OPT_mod_zero;
+   OPT_mod_x_x
 ].
 
 Definition all_optimization_steps' := 
@@ -402,7 +417,10 @@ Definition all_optimization_steps' :=
    OPT_shl_x_zero;
    OPT_mul_zero;
    OPT_div_x_x;
-   OPT_div_zero
+   OPT_div_zero;
+   OPT_mod_one;
+   OPT_mod_zero;
+   OPT_mod_x_x
 ].
 
   

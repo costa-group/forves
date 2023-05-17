@@ -127,7 +127,7 @@ Definition evm_sdiv (ctx : context) (args : list EVMWord) : EVMWord :=
 
 Definition evm_mod (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wmod a b
+  | [a;b] => if weqb b WZero then WZero else wmod a b
   | _ => WZero
   end.
   
