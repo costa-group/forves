@@ -320,6 +320,7 @@ Definition str_to_opt (s : string) : option available_optimization_step :=
   | "OPT_mul_one"%string => Some OPT_mul_one
   | "OPT_iszero_gt"%string => Some OPT_iszero_gt
   | "OPT_eq_iszero"%string => Some OPT_eq_iszero
+  (* TODO: update with new optimizations *)
   | _ => None
   end.
 
