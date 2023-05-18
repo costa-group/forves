@@ -78,6 +78,8 @@ optimizations/mod_x_x.v
 optimizations/exp_x_zero.v
 optimizations/exp_x_one.v
 optimizations/exp_one_x.v
+optimizations/exp_zero_x.v
+optimizations/exp_two_x.v
 
 block_equiv_checker.v
 

@@ -1053,6 +1053,18 @@ module Opt_exp_one_x :
   val optimize_exp_one_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_exp_zero_x :
+ sig
+  val optimize_exp_zero_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_exp_two_x :
+ sig
+  val coq_WTwo : Constants.coq_EVMWord
+
+  val optimize_exp_two_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1461,6 +1473,8 @@ module BlockEquivChecker :
   | OPT_exp_x_zero
   | OPT_exp_x_one
   | OPT_exp_one_x
+  | OPT_exp_zero_x
+  | OPT_exp_two_x
 
   type list_opt_steps = available_optimization_step list
 
