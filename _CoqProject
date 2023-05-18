@@ -57,8 +57,8 @@ optimizations/eq_zero.v
 optimizations/sub_x_x.v
 optimizations/and_zero.v
 optimizations/div_one.v
-optimizations/lt_one.v
-optimizations/gt_one.v
+optimizations/lt_x_one.v
+optimizations/gt_one_x.v
 optimizations/and_address.v
 optimizations/mul_one.v
 optimizations/iszero_gt.v
@@ -80,6 +80,9 @@ optimizations/exp_x_one.v
 optimizations/exp_one_x.v
 optimizations/exp_zero_x.v
 optimizations/exp_two_x.v
+optimizations/gt_zero_x.v
+optimizations/gt_x_x.v
+optimizations/lt_x_zero.v
 
 block_equiv_checker.v
 

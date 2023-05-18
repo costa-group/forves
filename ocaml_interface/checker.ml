@@ -3023,11 +3023,12 @@ module Opt_div_one =
     | _ -> val0 , false
  end
 
-module Opt_lt_one =
+module Opt_lt_x_one =
  struct
-  (** val optimize_lt_one_sbinding : Optimizations_Def.opt_smap_value_type **)
+  (** val optimize_lt_x_one_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
 
-  let optimize_lt_one_sbinding val0 fcmp sb maxid instk_height ops =
+  let optimize_lt_x_one_sbinding val0 fcmp sb maxid instk_height ops =
     match val0 with
     | SymbolicState.SymOp (label, args) ->
       (match label with
@@ -3050,11 +3051,12 @@ module Opt_lt_one =
     | _ -> val0 , false
  end
 
-module Opt_gt_one =
+module Opt_gt_one_x =
  struct
-  (** val optimize_gt_one_sbinding : Optimizations_Def.opt_smap_value_type **)
+  (** val optimize_gt_one_x_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
 
-  let optimize_gt_one_sbinding val0 fcmp sb maxid instk_height ops =
+  let optimize_gt_one_x_sbinding val0 fcmp sb maxid instk_height ops =
     match val0 with
     | SymbolicState.SymOp (label, args) ->
       (match label with
@@ -3856,6 +3858,88 @@ module Opt_exp_two_x =
                   then (SymbolicState.SymOp (Program.SHL,
                          (arg2::((SymbolicState.Val
                          Constants.coq_WOne)::[])))) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_gt_zero_x =
+ struct
+  (** val optimize_gt_zero_x_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_gt_zero_x_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.GT ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | _::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 (SymbolicState.Val Constants.coq_WZero) maxid
+                       sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_gt_x_x =
+ struct
+  (** val optimize_gt_x_x_sbinding : Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_gt_x_x_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.GT ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 arg2 maxid sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_lt_x_zero =
+ struct
+  (** val optimize_lt_x_zero_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_lt_x_zero_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.LT ->
+         (match args with
+          | [] -> val0 , false
+          | _::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg2 (SymbolicState.Val Constants.coq_WZero) maxid
+                       sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
                   else val0 , false
                 | _::_ -> val0 , false)))
        | _ -> val0 , false)
@@ -5037,8 +5121,8 @@ module BlockEquivChecker =
   | OPT_sub_x_x
   | OPT_and_zero
   | OPT_div_one
-  | OPT_lt_one
-  | OPT_gt_one
+  | OPT_lt_x_one
+  | OPT_gt_one_x
   | OPT_and_address
   | OPT_mul_one
   | OPT_iszero_gt
@@ -5060,6 +5144,9 @@ module BlockEquivChecker =
   | OPT_exp_one_x
   | OPT_exp_zero_x
   | OPT_exp_two_x
+  | OPT_gt_zero_x
+  | OPT_gt_x_x
+  | OPT_lt_x_zero
 
   type list_opt_steps = available_optimization_step list
 
@@ -5081,8 +5168,8 @@ module BlockEquivChecker =
   | OPT_sub_x_x -> Opt_sub_x_x.optimize_sub_x_x_sbinding
   | OPT_and_zero -> Opt_and_zero.optimize_and_zero_sbinding
   | OPT_div_one -> Opt_div_one.optimize_div_one_sbinding
-  | OPT_lt_one -> Opt_lt_one.optimize_lt_one_sbinding
-  | OPT_gt_one -> Opt_gt_one.optimize_gt_one_sbinding
+  | OPT_lt_x_one -> Opt_lt_x_one.optimize_lt_x_one_sbinding
+  | OPT_gt_one_x -> Opt_gt_one_x.optimize_gt_one_x_sbinding
   | OPT_and_address -> Opt_and_address.optimize_and_address_sbinding
   | OPT_mul_one -> Opt_mul_one.optimize_mul_one_sbinding
   | OPT_iszero_gt -> Opt_iszero_gt.optimize_iszero_gt_sbinding
@@ -5104,16 +5191,19 @@ module BlockEquivChecker =
   | OPT_exp_one_x -> Opt_exp_one_x.optimize_exp_one_x_sbinding
   | OPT_exp_zero_x -> Opt_exp_zero_x.optimize_exp_zero_x_sbinding
   | OPT_exp_two_x -> Opt_exp_two_x.optimize_exp_two_x_sbinding
+  | OPT_gt_zero_x -> Opt_gt_zero_x.optimize_gt_zero_x_sbinding
+  | OPT_gt_x_x -> Opt_gt_x_x.optimize_gt_x_x_sbinding
+  | OPT_lt_x_zero -> Opt_lt_x_zero.optimize_lt_x_zero_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::[]))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::[])))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_one::(OPT_gt_one::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::[]))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::[])))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
@@ -14579,10 +14669,80 @@ module Parser =
                                                                     else 
                                                                     (match s9 with
                                                                     | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then None
+                                                                    else 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then None
+                                                                    else 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
                                                                     Some
-                                                                    BlockEquivChecker.OPT_gt_one
+                                                                    BlockEquivChecker.OPT_gt_one_x
                                                                     | _::_ ->
                                                                     None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
                                                                     else None
                                                                     else None
                                                                     else None
@@ -17882,16 +18042,18 @@ module Parser =
   f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
                                                                     (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
                                                                     if b55
-                                                                    then 
+                                                                    then None
+                                                                    else 
                                                                     if b56
-                                                                    then 
+                                                                    then None
+                                                                    else 
                                                                     if b57
-                                                                    then 
+                                                                    then None
+                                                                    else 
                                                                     if b58
                                                                     then 
                                                                     if b59
-                                                                    then None
-                                                                    else 
+                                                                    then 
                                                                     if b60
                                                                     then 
                                                                     if b61
@@ -17910,8 +18072,7 @@ module Parser =
   f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
                                                                     (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
                                                                     if b63
-                                                                    then None
-                                                                    else 
+                                                                    then 
                                                                     if b64
                                                                     then 
                                                                     if b65
@@ -17919,10 +18080,10 @@ module Parser =
                                                                     if b66
                                                                     then 
                                                                     if b67
+                                                                    then 
+                                                                    if b68
                                                                     then None
                                                                     else 
-                                                                    if b68
-                                                                    then 
                                                                     if b69
                                                                     then 
                                                                     if b70
@@ -17941,13 +18102,11 @@ module Parser =
                                                                     if b71
                                                                     then 
                                                                     if b72
-                                                                    then None
-                                                                    else 
+                                                                    then 
                                                                     if b73
                                                                     then 
                                                                     if b74
-                                                                    then None
-                                                                    else 
+                                                                    then 
                                                                     if b75
                                                                     then None
                                                                     else 
@@ -17960,10 +18119,82 @@ module Parser =
                                                                     else 
                                                                     (match s9 with
                                                                     | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
                                                                     Some
-                                                                    BlockEquivChecker.OPT_lt_one
+                                                                    BlockEquivChecker.OPT_lt_x_one
                                                                     | _::_ ->
                                                                     None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
                                                                     else None
                                                                     else None
                                                                     else None
@@ -17973,10 +18204,9 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else None
                                                                     else None)
                                                                     a7)
-                                                                    else None
-                                                                    else None
                                                                     else None
                                                                     else None
                                                                     else None

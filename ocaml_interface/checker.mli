@@ -917,14 +917,14 @@ module Opt_div_one :
   val optimize_div_one_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
-module Opt_lt_one :
+module Opt_lt_x_one :
  sig
-  val optimize_lt_one_sbinding : Optimizations_Def.opt_smap_value_type
+  val optimize_lt_x_one_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
-module Opt_gt_one :
+module Opt_gt_one_x :
  sig
-  val optimize_gt_one_sbinding : Optimizations_Def.opt_smap_value_type
+  val optimize_gt_one_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module Opt_and_address :
@@ -1063,6 +1063,21 @@ module Opt_exp_two_x :
   val coq_WTwo : Constants.coq_EVMWord
 
   val optimize_exp_two_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_gt_zero_x :
+ sig
+  val optimize_gt_zero_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_gt_x_x :
+ sig
+  val optimize_gt_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_lt_x_zero :
+ sig
+  val optimize_lt_x_zero_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module MemoryOpsSolvers :
@@ -1452,8 +1467,8 @@ module BlockEquivChecker :
   | OPT_sub_x_x
   | OPT_and_zero
   | OPT_div_one
-  | OPT_lt_one
-  | OPT_gt_one
+  | OPT_lt_x_one
+  | OPT_gt_one_x
   | OPT_and_address
   | OPT_mul_one
   | OPT_iszero_gt
@@ -1475,6 +1490,9 @@ module BlockEquivChecker :
   | OPT_exp_one_x
   | OPT_exp_zero_x
   | OPT_exp_two_x
+  | OPT_gt_zero_x
+  | OPT_gt_x_x
+  | OPT_lt_x_zero
 
   type list_opt_steps = available_optimization_step list
 

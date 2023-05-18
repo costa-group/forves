@@ -55,10 +55,10 @@ Require Import FORVES.optimizations.and_zero.
 Import Opt_and_zero.
 Require Import FORVES.optimizations.div_one.
 Import Opt_div_one.
-Require Import FORVES.optimizations.lt_one.
-Import Opt_lt_one.
-Require Import FORVES.optimizations.gt_one.
-Import Opt_gt_one.
+Require Import FORVES.optimizations.lt_x_one.
+Import Opt_lt_x_one.
+Require Import FORVES.optimizations.gt_one_x.
+Import Opt_gt_one_x.
 Require Import FORVES.optimizations.and_address.
 Import Opt_and_address.
 Require Import FORVES.optimizations.mul_one.

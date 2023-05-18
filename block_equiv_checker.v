@@ -43,10 +43,10 @@ Require Import FORVES.optimizations.and_zero.
 Import Opt_and_zero.
 Require Import FORVES.optimizations.div_one.
 Import Opt_div_one.
-Require Import FORVES.optimizations.lt_one.
-Import Opt_lt_one.
-Require Import FORVES.optimizations.gt_one.
-Import Opt_gt_one.
+Require Import FORVES.optimizations.lt_x_one.
+Import Opt_lt_x_one.
+Require Import FORVES.optimizations.gt_one_x.
+Import Opt_gt_one_x.
 Require Import FORVES.optimizations.and_address.
 Import Opt_and_address.
 Require Import FORVES.optimizations.mul_one.
@@ -89,6 +89,12 @@ Require Import FORVES.optimizations.exp_zero_x.
 Import Opt_exp_zero_x.
 Require Import FORVES.optimizations.exp_two_x.
 Import Opt_exp_two_x.
+Require Import FORVES.optimizations.gt_zero_x.
+Import Opt_gt_zero_x.
+Require Import FORVES.optimizations.gt_x_x.
+Import Opt_gt_x_x.
+Require Import FORVES.optimizations.lt_x_zero.
+Import Opt_lt_x_zero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -304,8 +310,8 @@ Inductive available_optimization_step :=
 | OPT_sub_x_x
 | OPT_and_zero
 | OPT_div_one
-| OPT_lt_one
-| OPT_gt_one
+| OPT_lt_x_one
+| OPT_gt_one_x
 | OPT_and_address
 | OPT_mul_one
 | OPT_iszero_gt
@@ -327,6 +333,9 @@ Inductive available_optimization_step :=
 | OPT_exp_one_x
 | OPT_exp_zero_x
 | OPT_exp_two_x
+| OPT_gt_zero_x
+| OPT_gt_x_x
+| OPT_lt_x_zero
 .
 
 
@@ -349,8 +358,8 @@ match tag with
 | OPT_sub_x_x => OpEntry optimize_sub_x_x_sbinding optimize_sub_x_x_sbinding_snd
 | OPT_and_zero => OpEntry optimize_and_zero_sbinding optimize_and_zero_sbinding_snd
 | OPT_div_one => OpEntry optimize_div_one_sbinding optimize_div_one_sbinding_snd
-| OPT_lt_one => OpEntry optimize_lt_one_sbinding optimize_lt_one_sbinding_snd
-| OPT_gt_one => OpEntry optimize_gt_one_sbinding optimize_gt_one_sbinding_snd
+| OPT_lt_x_one => OpEntry optimize_lt_x_one_sbinding optimize_lt_x_one_sbinding_snd
+| OPT_gt_one_x => OpEntry optimize_gt_one_x_sbinding optimize_gt_one_x_sbinding_snd
 | OPT_and_address => OpEntry optimize_and_address_sbinding optimize_and_address_sbinding_snd
 | OPT_mul_one => OpEntry optimize_mul_one_sbinding optimize_mul_one_sbinding_snd
 | OPT_iszero_gt => OpEntry optimize_iszero_gt_sbinding optimize_iszero_gt_sbinding_snd
@@ -372,6 +381,9 @@ match tag with
 | OPT_exp_one_x => OpEntry optimize_exp_one_x_sbinding optimize_exp_one_x_sbinding_snd
 | OPT_exp_zero_x => OpEntry optimize_exp_zero_x_sbinding optimize_exp_zero_x_sbinding_snd
 | OPT_exp_two_x => OpEntry optimize_exp_two_x_sbinding optimize_exp_two_x_sbinding_snd
+| OPT_gt_zero_x => OpEntry optimize_gt_zero_x_sbinding optimize_gt_zero_x_sbinding_snd
+| OPT_gt_x_x => OpEntry optimize_gt_x_x_sbinding optimize_gt_x_x_sbinding_snd
+| OPT_lt_x_zero => OpEntry optimize_lt_x_zero_sbinding optimize_lt_x_zero_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -389,8 +401,8 @@ Definition all_optimization_steps :=
    OPT_sub_x_x; 
    OPT_and_zero; 
    OPT_div_one; 
-   OPT_lt_one; 
-   OPT_gt_one; 
+   OPT_lt_x_one; 
+   OPT_gt_one_x; 
    OPT_and_address; 
    OPT_mul_one; 
    OPT_iszero_gt; 
@@ -411,7 +423,10 @@ Definition all_optimization_steps :=
    OPT_exp_x_one;
    OPT_exp_one_x;
    OPT_exp_zero_x;
-   OPT_exp_two_x
+   OPT_exp_two_x;
+   OPT_gt_zero_x;
+   OPT_gt_x_x;
+   OPT_lt_x_zero
 ].
 
 Definition all_optimization_steps' := 
@@ -429,8 +444,8 @@ Definition all_optimization_steps' :=
    OPT_sub_x_x; 
    OPT_and_zero; 
    OPT_div_one; 
-   OPT_lt_one; 
-   OPT_gt_one; 
+   OPT_lt_x_one; 
+   OPT_gt_one_x; 
    OPT_and_address; 
    OPT_mul_one; 
    OPT_iszero_gt; 
@@ -451,7 +466,10 @@ Definition all_optimization_steps' :=
    OPT_exp_x_one;
    OPT_exp_one_x;
    OPT_exp_zero_x;
-   OPT_exp_two_x
+   OPT_exp_two_x;
+   OPT_gt_zero_x;
+   OPT_gt_x_x;
+   OPT_lt_x_zero
 ].
 
   
