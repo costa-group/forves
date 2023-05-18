@@ -152,6 +152,7 @@ Proof.
   ctx_independent_tac evm_addmod.
 Qed.
 
+
 Definition evm_mulmod (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b;c] => wmod (wmult a b) c
@@ -165,7 +166,7 @@ Qed.
 
 Definition evm_exp (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => NToWord EVMWordSize (N.pow (wordToN a) (wordToN b))
+  | [a;b] => wordBin N.pow a b
   | _ => WZero
   end.
 Lemma exp_ctx_ind: ctx_independent_op evm_exp.

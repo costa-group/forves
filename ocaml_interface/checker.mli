@@ -1038,6 +1038,21 @@ module Opt_mod_x_x :
   val optimize_mod_x_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_exp_x_zero :
+ sig
+  val optimize_exp_x_zero_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_exp_x_one :
+ sig
+  val optimize_exp_x_one_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_exp_one_x :
+ sig
+  val optimize_exp_one_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1443,6 +1458,9 @@ module BlockEquivChecker :
   | OPT_mod_one
   | OPT_mod_zero
   | OPT_mod_x_x
+  | OPT_exp_x_zero
+  | OPT_exp_x_one
+  | OPT_exp_one_x
 
   type list_opt_steps = available_optimization_step list
 
