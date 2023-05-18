@@ -151,6 +151,142 @@ From Coq Require Import Strings.String.
 
 From Coq Require Import Lists.List. Import ListNotations.
 
+
+Module Tests.
+
+(* string to block that always succeed *)
+Definition str2block (s : string) : block :=
+  match parse_block s with
+  | None => []
+  | Some b => b
+  end.
+  
+Check OPT_eq_x_x.  
+  
+Definition check_rule (s1 s2: string) (step: available_optimization_step) :=
+let b1 := str2block s1 in
+let b2 := str2block s2 in 
+let r1 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
+   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+   SStrgCmp_Basic SHA3Cmp_Trivial 
+   [step] 10 10 b1 b2 3) in
+let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
+   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+   SStrgCmp_Basic SHA3Cmp_Trivial 
+   [] 10 10 b1 b2 3) in
+r1 = true /\ r2 = false.
+
+
+
+
+Example ex_eq_x_x:
+check_rule "PUSH1 0x20 PUSH1 0x20 EQ"
+           "PUSH1 0x1"
+           OPT_eq_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_lt_x_x:
+check_rule "PUSH1 0x20 PUSH1 0x20 LT"
+           "PUSH1 0x0"
+           OPT_lt_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_lt_x_zero:
+check_rule "PUSH1 0x0 PUSH1 0x20 LT"
+           "PUSH1 0x0"
+           OPT_lt_x_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_gt_x_x:
+check_rule "DUP1 GT"
+           "POP PUSH1 0x0"
+           OPT_gt_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_gt_zero_x:
+check_rule "PUSH1 0x0 GT"
+           "POP PUSH1 0x0"
+           OPT_gt_zero_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_exp_two_x:
+check_rule "PUSH1 0x10 PUSH1 0x2 EXP"
+           "PUSH1 0x1 PUSH1 0x10 SHL"
+           OPT_exp_two_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_exp_zero_x:
+check_rule "PUSH1 0x10 PUSH1 0x0 EXP"
+           "PUSH1 0x10 ISZERO"
+           OPT_exp_zero_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_exp_one_x:
+check_rule "PUSH1 0x1 EXP"
+           "POP PUSH1 0x1"
+           OPT_exp_one_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_exp_x_one:
+check_rule "PUSH1 0x1 SWAP1 EXP"
+           ""
+           OPT_exp_x_one.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_exp_x_zero:
+check_rule "PUSH1 0x0 SWAP1 EXP"
+           "POP PUSH1 0x1"
+           OPT_exp_x_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mod_x_x:
+check_rule "DUP1 MOD"
+           "POP PUSH1 0x0"
+           OPT_mod_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mod_zero:
+check_rule "PUSH1 0x0 SWAP1 MOD"
+           "POP PUSH1 0x0"
+           OPT_mod_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mod_one:
+check_rule "PUSH1 0x1 SWAP1 MOD"
+           "POP PUSH1 0x0"
+           OPT_mod_one.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_div_zero:
+check_rule "PUSH1 0x0 SWAP1 DIV"
+           "POP PUSH1 0x0"
+           OPT_div_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_div_x_x:
+check_rule "PUSH1 0x6 PUSH1 0x6 DIV"
+           "PUSH1 0x1"
+           OPT_eval.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mul_zero1:
+check_rule "PUSH1 0x0 MUL"
+           "POP PUSH1 0x0"
+           OPT_mul_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_mul_zero2:
+check_rule "PUSH1 0x0 SWAP1 MUL"
+           "POP PUSH1 0x0"
+           OPT_mul_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+(* TODO: continue with shl_x_zero *)
+
+End Tests.
+
+
+
+
 Module Debug.
 
 

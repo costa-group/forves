@@ -327,7 +327,9 @@ Inductive available_optimization_step :=
 | OPT_sub_zero
 | OPT_shl_x_zero
 | OPT_mul_zero
-| OPT_div_x_x
+| OPT_div_x_x  (* TODO:  useless: checking X <> 0 requires X to be a value
+                           so DIV(X,X) contains constants and can be avaluated
+                           by the "eval" optimization *)
 | OPT_div_zero
 | OPT_mod_one
 | OPT_mod_zero
