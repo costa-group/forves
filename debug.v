@@ -280,7 +280,255 @@ check_rule "PUSH1 0x0 SWAP1 MUL"
            OPT_mul_zero.
 Proof. unfold check_rule. intuition. Qed.
 
-(* TODO: continue with shl_x_zero *)
+Example ex_shl_x_zero:
+check_rule "PUSH1 0x0 SWAP1 SHL"
+           "POP PUSH1 0x0"
+           OPT_shl_x_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_sub_zero:
+check_rule "PUSH1 0x0 SWAP1 SUB"
+           ""
+           OPT_sub_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_shl_zero_x:
+check_rule "PUSH1 0x0 SHL"
+           ""
+           OPT_shl_zero_x.
+Proof. unfold check_rule. intuition. Qed.
+
+
+Example ex_add_sub1:
+check_rule "DUP1 SWAP2 SUB ADD"
+           "POP"
+           OPT_add_sub.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_add_sub2:
+check_rule "DUP1 SWAP2 SUB SWAP1 ADD"
+           "POP"
+           OPT_add_sub.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_iszero3:
+check_rule "ISZERO ISZERO ISZERO"
+           "ISZERO"
+           OPT_iszero3.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_caller1:
+(* AND(CALLER, 2^160 - 1) = CALLER *)
+check_rule "PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF CALLER AND"
+           "CALLER"
+           OPT_and_caller.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_caller2:
+check_rule "CALLER PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
+           "CALLER"
+           OPT_and_caller.
+Proof. unfold check_rule. intuition. Qed.
+
+
+Example ex_eq_zero1:
+(* EQ(X, 0) = ISZERO(X) *)
+check_rule "PUSH1 0x0 EQ"
+           "ISZERO"
+           OPT_eq_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_eq_zero2:
+check_rule "PUSH1 0x0 SWAP1 EQ"
+           "ISZERO"
+           OPT_eq_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_iszero_gt:
+(* ISZERO(GT(X, 0)) = ISZERO(X) *)
+check_rule "PUSH1 0x0 SWAP1 GT ISZERO"
+           "ISZERO"
+           OPT_iszero_gt.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mul_one1:
+(* MUL(X,1) = X *)
+check_rule "PUSH1 0x1 MUL"
+           ""
+           OPT_mul_one.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_mul_one2:
+check_rule "PUSH1 0x1 SWAP1 MUL"
+           ""
+           OPT_mul_one.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_address1:
+(* AND(ADDRESS, 2^160 - 1) = ADDRESS *)
+check_rule "PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF ADDRESS AND"
+           "ADDRESS"
+           OPT_and_address.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_address2:
+check_rule "ADDRESS PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
+           "ADDRESS"
+           OPT_and_address.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_gt_one_x:
+(* GT(1, X) = ISZERO(X) *)
+check_rule "PUSH1 0x1 GT"
+           "ISZERO"
+           OPT_gt_one_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_lt_x_one:
+(* LT(X, 1) = ISZERO(X) *)
+check_rule "PUSH1 0x1 SWAP1 LT"
+           "ISZERO"
+           OPT_lt_x_one.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_div_one:
+(* DIV(X, 1) = X *)
+check_rule "PUSH1 0x1 SWAP1 DIV"
+           ""
+           OPT_div_one.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_zero1:
+(* AND(X, 0) = 0 *)
+check_rule "PUSH1 0x0 AND"
+           "POP PUSH1 0x0"
+           OPT_and_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_zero2:
+check_rule "PUSH1 0x0 SWAP1 AND"
+           "POP PUSH1 0x0"
+           OPT_and_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_sub_x_x:
+(* SUB(X, X) = 0 *)
+check_rule "DUP1 SUB"
+           "POP PUSH1 0x0"
+           OPT_sub_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_eq_iszero1:
+(* EQ(1, ISZERO(X)) = ISZERO(X) *)
+check_rule "ISZERO PUSH1 0x1 EQ"
+           "ISZERO"
+           OPT_eq_iszero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_eq_iszero2:
+check_rule "ISZERO PUSH1 0x1 SWAP1 EQ"
+           "ISZERO"
+           OPT_eq_iszero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_shr_x_zero:
+(* SHR(X, 0) = 0 *)
+check_rule "PUSH1 0x0 SWAP1 SHR"
+           "POP PUSH1 0x0"
+           OPT_shr_x_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_shr_zero_x:
+(* SHR(0, X) = X *)
+check_rule "PUSH1 0x0 SHR"
+           ""
+           OPT_shr_zero_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_div_shl:
+(* DIV(X, SHL(Y, 1)) = SHR(Y, X) *)
+check_rule "PUSH1 0x1 SWAP1 SHL SWAP1 DIV"
+           "SHR"
+           OPT_div_shl.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_mul_shl1:
+(* MUL(SHL(X, 1), Y ) = SHL(X, Y)
+   MUL(X, SHL(Y, 1)) = SHL(Y, X) *)
+check_rule "PUSH1 0x1 SWAP1 SHL MUL"
+           "SHL"
+           OPT_mul_shl.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_mul_shl2:
+(* MUL(SHL(X, 1), Y ) = SHL(X, Y)
+   MUL(X, SHL(Y, 1)) = SHL(Y, X) *)
+check_rule "PUSH1 0x1 SWAP1 SHL SWAP1 MUL"
+           "SHL"
+           OPT_mul_shl.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_origin1:
+(* AND(ORIGIN, 2^160 - 1) = ORIGIN *)
+check_rule "PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF ORIGIN AND"
+           "ORIGIN"
+           OPT_and_origin.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_origin2:
+check_rule "ORIGIN PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
+           "ORIGIN"
+           OPT_and_origin.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_and2_1:
+(* AND(AND(X,Y), X) = AND(X,Y)
+   AND(AND(X,Y), Y) = AND(X,Y) *)
+check_rule "SWAP1 DUP2 AND AND"
+           "AND"
+           OPT_and_and2.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and2_2:
+check_rule "DUP2 SWAP1 AND AND"
+           "AND"
+           OPT_and_and2.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_and1_1:
+(* AND(X,AND(X,Y)) = AND(X,Y)
+   AND(Y,AND(Y,X)) = AND(X,Y) *)
+check_rule "SWAP1 DUP2 AND SWAP1 AND"
+           "AND"
+           OPT_and_and1.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and1_2:
+check_rule "DUP2 AND SWAP1 AND"
+           "AND"
+           OPT_and_and1.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_not_not:
+(* NOT(NOT(X)) = X *)
+check_rule "NOT NOT"
+           ""
+           OPT_not_not.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_eval1:
+(* eval(op,X) = op(X) *)
+check_rule "PUSH1 0x0 NOT"
+           "PUSH32 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+           OPT_eval.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_eval2:
+(* eval(op,X,Y) = op(X,Y) *)
+check_rule "PUSH1 0x3 PUSH1 0x2 ADD"
+           "PUSH1 0x5"
+           OPT_eval.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_add_zero1:
+(* ADD(X,0) = X *)
+check_rule "PUSH1 0x0 SWAP1 ADD"
+           ""
+           OPT_add_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_add_zero2:
+check_rule "PUSH1 0x0 ADD"
+           ""
+           OPT_add_zero.
+Proof. unfold check_rule. intuition. Qed.
 
 End Tests.
 
@@ -1139,6 +1387,17 @@ Compute
      MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
      SStrgCmp_Basic SHA3Cmp_Trivial 
      all_optimization_steps' 10 10 b1 b2 3).
+     
+
+Compute
+  let b1 := str2block "PUSH1 0x1 GT" in
+  let b2 := str2block "ISZERO" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+     MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+     SStrgCmp_Basic SHA3Cmp_Trivial 
+     all_optimization_steps 10 10 b1 b2 1).
+
+                
 
 End Debug.
 

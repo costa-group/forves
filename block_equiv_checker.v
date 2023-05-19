@@ -99,6 +99,8 @@ Require Import FORVES.optimizations.lt_x_x.
 Import Opt_lt_x_x.
 Require Import FORVES.optimizations.eq_x_x.
 Import Opt_eq_x_x.
+Require Import FORVES.optimizations.iszero_sub.
+Import Opt_iszero_sub.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -327,9 +329,7 @@ Inductive available_optimization_step :=
 | OPT_sub_zero
 | OPT_shl_x_zero
 | OPT_mul_zero
-| OPT_div_x_x  (* TODO:  useless: checking X <> 0 requires X to be a value
-                           so DIV(X,X) contains constants and can be avaluated
-                           by the "eval" optimization *)
+| OPT_div_x_x
 | OPT_div_zero
 | OPT_mod_one
 | OPT_mod_zero
@@ -344,6 +344,7 @@ Inductive available_optimization_step :=
 | OPT_lt_x_zero
 | OPT_lt_x_x
 | OPT_eq_x_x
+| OPT_iszero_sub
 .
 
 
@@ -394,6 +395,7 @@ match tag with
 | OPT_lt_x_zero => OpEntry optimize_lt_x_zero_sbinding optimize_lt_x_zero_sbinding_snd
 | OPT_lt_x_x => OpEntry optimize_lt_x_x_sbinding optimize_lt_x_x_sbinding_snd
 | OPT_eq_x_x => OpEntry optimize_eq_x_x_sbinding optimize_eq_x_x_sbinding_snd
+| OPT_iszero_sub => OpEntry optimize_iszero_sub_sbinding optimize_iszero_sub_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -424,7 +426,9 @@ Definition all_optimization_steps :=
    OPT_sub_zero;
    OPT_shl_x_zero;
    OPT_mul_zero;
-   OPT_div_x_x;
+   OPT_div_x_x;  (* TODO:  useless: checking X <> 0 requires X to be a value
+                           so DIV(X,X) contains constants and can be avaluated
+                           by the "eval" optimization *)
    OPT_div_zero;
    OPT_mod_one;
    OPT_mod_zero;
@@ -438,7 +442,8 @@ Definition all_optimization_steps :=
    OPT_gt_x_x;
    OPT_lt_x_zero;
    OPT_lt_x_x;
-   OPT_eq_x_x
+   OPT_eq_x_x;
+   OPT_iszero_sub
 ].
 
 Definition all_optimization_steps' := 
@@ -469,7 +474,9 @@ Definition all_optimization_steps' :=
    OPT_sub_zero;
    OPT_shl_x_zero;
    OPT_mul_zero;
-   OPT_div_x_x;
+   OPT_div_x_x;  (* TODO:  useless: checking X <> 0 requires X to be a value
+                           so DIV(X,X) contains constants and can be avaluated
+                           by the "eval" optimization *)
    OPT_div_zero;
    OPT_mod_one;
    OPT_mod_zero;
@@ -483,7 +490,8 @@ Definition all_optimization_steps' :=
    OPT_gt_x_x;
    OPT_lt_x_zero;
    OPT_lt_x_x;
-   OPT_eq_x_x
+   OPT_eq_x_x;
+   OPT_iszero_sub
 ].
 
   

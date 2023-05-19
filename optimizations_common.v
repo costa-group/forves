@@ -90,6 +90,14 @@ Proof.
 reflexivity.
 Qed.
 
+Lemma two_exp_160_minus_1_ok': 
+two_exp_160_minus_1 = wminus (wordBin N.pow (natToWord EVMWordSize 2)
+                                     (natToWord EVMWordSize 160))
+                             WOne.
+Proof.
+reflexivity.
+Qed.
+
 
 (* Distribution of wand over combine *)
 Lemma wand_combine: forall (n1 n2: nat) (w1 w1': word n1) 

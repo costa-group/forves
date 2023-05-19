@@ -1090,6 +1090,16 @@ module Opt_eq_x_x :
   val optimize_eq_x_x_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_iszero_sub :
+ sig
+  val is_sub :
+    SymbolicState.sstack_val -> SymbolicStateCmp.sstack_val_cmp_t -> nat ->
+    nat -> SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val list option
+
+  val optimize_iszero_sub_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1505,6 +1515,7 @@ module BlockEquivChecker :
   | OPT_lt_x_zero
   | OPT_lt_x_x
   | OPT_eq_x_x
+  | OPT_iszero_sub
 
   type list_opt_steps = available_optimization_step list
 
