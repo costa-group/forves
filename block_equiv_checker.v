@@ -101,6 +101,8 @@ Require Import FORVES.optimizations.eq_x_x.
 Import Opt_eq_x_x.
 Require Import FORVES.optimizations.iszero_sub.
 Import Opt_iszero_sub.
+Require Import FORVES.optimizations.iszero_lt.
+Import Opt_iszero_lt.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -345,6 +347,7 @@ Inductive available_optimization_step :=
 | OPT_lt_x_x
 | OPT_eq_x_x
 | OPT_iszero_sub
+| OPT_iszero_lt
 .
 
 
@@ -396,6 +399,7 @@ match tag with
 | OPT_lt_x_x => OpEntry optimize_lt_x_x_sbinding optimize_lt_x_x_sbinding_snd
 | OPT_eq_x_x => OpEntry optimize_eq_x_x_sbinding optimize_eq_x_x_sbinding_snd
 | OPT_iszero_sub => OpEntry optimize_iszero_sub_sbinding optimize_iszero_sub_sbinding_snd
+| OPT_iszero_lt => OpEntry optimize_iszero_lt_sbinding optimize_iszero_lt_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -443,7 +447,8 @@ Definition all_optimization_steps :=
    OPT_lt_x_zero;
    OPT_lt_x_x;
    OPT_eq_x_x;
-   OPT_iszero_sub
+   OPT_iszero_sub;
+   OPT_iszero_lt
 ].
 
 Definition all_optimization_steps' := 
@@ -491,7 +496,8 @@ Definition all_optimization_steps' :=
    OPT_lt_x_zero;
    OPT_lt_x_x;
    OPT_eq_x_x;
-   OPT_iszero_sub
+   OPT_iszero_sub;
+   OPT_iszero_lt
 ].
 
   

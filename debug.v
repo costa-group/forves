@@ -1397,7 +1397,77 @@ Compute
      SStrgCmp_Basic SHA3Cmp_Trivial 
      all_optimization_steps 10 10 b1 b2 1).
 
-                
+
+
+(* Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
+Lemma div_mult_2 (x y:N):
+y <> (0%N) -> 
+N.div x (y*2) = N.div (N.div x y) 2.
+Proof.
+intros. rewrite -> N.div_div; try intuition.
+Qed.
+
+Lemma shr_one_div_2 (x: EVMWord):
+wrshift x 1 = wdiv x (NToWord EVMWordSize 2).
+Proof.
+Search (wrshift' _ 1).
+Search (wdiv _ _).
+Check (eq_rec_r).
+unfold wrshift. intuition.
+Admitted.
+
+Lemma y_not_wzero_succ: forall y,
+y <> WZero ->
+exists n, wordToNat y = S n.
+Proof.
+Admitted.
+
+Lemma natToWord_distr_times: forall size a b,
+natToWord size (a * b) = wmult (natToWord size a) (natToWord size b).
+Proof.
+Admitted.
+
+Lemma NToWord_distr_times: forall size a b,
+NToWord size (a * b) = wmult (NToWord size a) (NToWord size b).
+Proof.
+Admitted.
+
+Lemma div_shl_is_shr (x y: EVMWord):
+wdiv x (wlshift WOne (wordToNat y)) = wrshift x (wordToNat y).
+Proof.
+destruct (weqb y WZero) eqn: eq_y_zero.
+- apply weqb_sound in eq_y_zero.
+  rewrite -> eq_y_zero. simpl.
+  rewrite -> wrshift_0.
+  rewrite -> wlshift_0.
+  unfold wdiv. unfold wordBin. simpl. 
+  rewrite -> N.div_1_r.
+  rewrite -> NToWord_wordToN.
+  reflexivity.
+- apply weqb_false in eq_y_zero.
+  rewrite -> wlshift_mul_pow2.
+  apply y_not_wzero_succ in eq_y_zero.
+  destruct eq_y_zero as [n eq_y].
+  rewrite -> eq_y. rewrite -> pow2_S.
+  unfold wdiv. unfold wordBin.
+  rewrite -> natToWord_distr_times.
+  Search wmult.
+  pose proof (wmult_unit_r 
+    (wmult (natToWord EVMWordSize 2) (natToWord EVMWordSize (pow2 n))))
+    as Hmult_unit.
+  rewrite wmult_comm in Hmult_unit.
+  fold WOne in Hmult_unit.
+  rewrite -> Hmult_unit.
+  unfold wmult. unfold wordBin.
+  rewrite -> NToWord_distr_times.
+  rewrite -> NToWord_wordToN.
+  rewrite -> NToWord_wordToN.
+  admit.
+Admitted.
+(* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
+
+Search wxor.
+
 
 End Debug.
 
