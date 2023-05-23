@@ -175,6 +175,26 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
 r1 = true /\ r2 = false.
 
 
+Example ex_xor_zero1:
+(* XOR(X, 0) = X *) 
+check_rule "PUSH1 0x0 XOR"
+           ""
+           OPT_xor_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_xor_zero2:
+(* XOR(X, 0) = X *) 
+check_rule "PUSH1 0x0 SWAP1 XOR"
+           ""
+           OPT_xor_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_xor_x_x:
+(* XOR(X, X) = 0 *) 
+check_rule "DUP1 XOR"
+           "POP PUSH1 0x0"
+           OPT_xor_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
 Example ex_iszero2_eq:
 (* ISZERO(ISZERO(EQ(X, Y))) = EQ(X,Y) *) 
 check_rule "EQ ISZERO ISZERO"
@@ -1520,5 +1540,6 @@ destruct (weqb y WZero) eqn: eq_y_zero.
 Admitted.
 (* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
 
+Search wxor.
 
 End Debug.

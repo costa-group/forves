@@ -91,6 +91,8 @@ optimizations/iszero_xor.v
 optimizations/iszero2_gt.v
 optimizations/iszero2_lt.v
 optimizations/iszero2_eq.v
+optimizations/xor_x_x.v
+optimizations/xor_zero.v
 
 block_equiv_checker.v
 

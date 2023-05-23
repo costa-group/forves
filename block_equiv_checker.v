@@ -111,6 +111,10 @@ Require Import FORVES.optimizations.iszero2_lt.
 Import Opt_iszero2_lt.
 Require Import FORVES.optimizations.iszero2_eq.
 Import Opt_iszero2_eq.
+Require Import FORVES.optimizations.xor_x_x.
+Import Opt_xor_x_x.
+Require Import FORVES.optimizations.xor_zero.
+Import Opt_xor_zero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -360,6 +364,8 @@ Inductive available_optimization_step :=
 | OPT_iszero2_gt
 | OPT_iszero2_lt
 | OPT_iszero2_eq
+| OPT_xor_x_x
+| OPT_xor_zero
 .
 
 
@@ -416,6 +422,8 @@ match tag with
 | OPT_iszero2_gt => OpEntry optimize_iszero2_gt_sbinding optimize_iszero2_gt_sbinding_snd
 | OPT_iszero2_lt => OpEntry optimize_iszero2_lt_sbinding optimize_iszero2_lt_sbinding_snd
 | OPT_iszero2_eq => OpEntry optimize_iszero2_eq_sbinding optimize_iszero2_eq_sbinding_snd
+| OPT_xor_x_x => OpEntry optimize_xor_x_x_sbinding optimize_xor_x_x_sbinding_snd
+| OPT_xor_zero => OpEntry optimize_xor_zero_sbinding optimize_xor_zero_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -468,7 +476,9 @@ Definition all_optimization_steps :=
    OPT_iszero_xor;
    OPT_iszero2_gt;
    OPT_iszero2_lt;
-   OPT_iszero2_eq
+   OPT_iszero2_eq;
+   OPT_xor_x_x;
+   OPT_xor_zero
 ].
 
 Definition all_optimization_steps' := 
@@ -521,7 +531,9 @@ Definition all_optimization_steps' :=
    OPT_iszero_xor;
    OPT_iszero2_gt;
    OPT_iszero2_lt;
-   OPT_iszero2_eq   
+   OPT_iszero2_eq;
+   OPT_xor_x_x;
+   OPT_xor_zero
 ].
 
   
