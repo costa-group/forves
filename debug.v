@@ -161,8 +161,6 @@ Definition str2block (s : string) : block :=
   | Some b => b
   end.
   
-Check OPT_eq_x_x.  
-  
 Definition check_rule (s1 s2: string) (step: available_optimization_step) :=
 let b1 := str2block s1 in
 let b2 := str2block s2 in 
@@ -176,6 +174,42 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
 
+
+Example ex_iszero2_eq:
+(* ISZERO(ISZERO(EQ(X, Y))) = EQ(X,Y) *) 
+check_rule "EQ ISZERO ISZERO"
+           "EQ"
+           OPT_iszero2_eq.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_iszero2_eq2:
+check_rule "EQ ISZERO ISZERO"
+           "SWAP1 EQ"
+           OPT_iszero2_eq.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_iszero2_eq3:
+check_rule "SWAP1 EQ ISZERO ISZERO"
+           "EQ"
+           OPT_iszero2_eq.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_iszero2_eq4:
+check_rule "EQ ISZERO ISZERO"
+           "SWAP1 EQ"
+           OPT_iszero2_eq.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_iszero2_lt:
+(* ISZERO(ISZERO(LT(X, Y))) = LT(X, Y) *) 
+check_rule "LT ISZERO ISZERO"
+           "LT"
+           OPT_iszero2_lt.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_iszero2_gt:
+(* ISZERO(ISZERO(GT(X, Y))) = GT(X, Y) *) 
+check_rule "GT ISZERO ISZERO"
+           "GT"
+           OPT_iszero2_gt.
+Proof. unfold check_rule. intuition. Qed.
 
 Example ex_iszero_xor:
 (* ISZERO(XOR(X, Y)) = EQ(X, Y) *) 
@@ -1485,7 +1519,6 @@ destruct (weqb y WZero) eqn: eq_y_zero.
   admit.
 Admitted.
 (* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
-
 
 
 End Debug.

@@ -1120,6 +1120,21 @@ module Opt_iszero_xor :
   val optimize_iszero_xor_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_iszero2_gt :
+ sig
+  val optimize_iszero2_gt_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_iszero2_lt :
+ sig
+  val optimize_iszero2_lt_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_iszero2_eq :
+ sig
+  val optimize_iszero2_eq_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1538,6 +1553,9 @@ module BlockEquivChecker :
   | OPT_iszero_sub
   | OPT_iszero_lt
   | OPT_iszero_xor
+  | OPT_iszero2_gt
+  | OPT_iszero2_lt
+  | OPT_iszero2_eq
 
   type list_opt_steps = available_optimization_step list
 

@@ -4152,6 +4152,189 @@ module Opt_iszero_xor =
     | _ -> val0 , false
  end
 
+module Opt_iszero2_gt =
+ struct
+  (** val optimize_iszero2_gt_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_iszero2_gt_sbinding val0 _ sb maxid _ _ =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.ISZERO ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] ->
+               (match SymbolicState.follow_in_smap arg1 maxid sb with
+                | Some f ->
+                  let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
+                  (match smv with
+                   | SymbolicState.SymOp (label0, args0) ->
+                     (match label0 with
+                      | Program.ISZERO ->
+                        (match args0 with
+                         | [] -> val0 , false
+                         | arg2::l0 ->
+                           (match l0 with
+                            | [] ->
+                              (match SymbolicState.follow_in_smap arg2 idx'
+                                       sb' with
+                               | Some f0 ->
+                                 let SymbolicState.FollowSmapVal (smv0, _, _) =
+                                   f0
+                                 in
+                                 (match smv0 with
+                                  | SymbolicState.SymOp (label1, args1) ->
+                                    (match label1 with
+                                     | Program.GT ->
+                                       (match args1 with
+                                        | [] -> val0 , false
+                                        | x::l1 ->
+                                          (match l1 with
+                                           | [] -> val0 , false
+                                           | y::l2 ->
+                                             (match l2 with
+                                              | [] ->
+                                                (SymbolicState.SymOp
+                                                  (Program.GT,
+                                                  (x::(y::[])))) , true
+                                              | _::_ -> val0 , false)))
+                                     | _ -> val0 , false)
+                                  | _ -> val0 , false)
+                               | None -> val0 , false)
+                            | _::_ -> val0 , false))
+                      | _ -> val0 , false)
+                   | _ -> val0 , false)
+                | None -> val0 , false)
+             | _::_ -> val0 , false))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_iszero2_lt =
+ struct
+  (** val optimize_iszero2_lt_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_iszero2_lt_sbinding val0 _ sb maxid _ _ =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.ISZERO ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] ->
+               (match SymbolicState.follow_in_smap arg1 maxid sb with
+                | Some f ->
+                  let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
+                  (match smv with
+                   | SymbolicState.SymOp (label0, args0) ->
+                     (match label0 with
+                      | Program.ISZERO ->
+                        (match args0 with
+                         | [] -> val0 , false
+                         | arg2::l0 ->
+                           (match l0 with
+                            | [] ->
+                              (match SymbolicState.follow_in_smap arg2 idx'
+                                       sb' with
+                               | Some f0 ->
+                                 let SymbolicState.FollowSmapVal (smv0, _, _) =
+                                   f0
+                                 in
+                                 (match smv0 with
+                                  | SymbolicState.SymOp (label1, args1) ->
+                                    (match label1 with
+                                     | Program.LT ->
+                                       (match args1 with
+                                        | [] -> val0 , false
+                                        | x::l1 ->
+                                          (match l1 with
+                                           | [] -> val0 , false
+                                           | y::l2 ->
+                                             (match l2 with
+                                              | [] ->
+                                                (SymbolicState.SymOp
+                                                  (Program.LT,
+                                                  (x::(y::[])))) , true
+                                              | _::_ -> val0 , false)))
+                                     | _ -> val0 , false)
+                                  | _ -> val0 , false)
+                               | None -> val0 , false)
+                            | _::_ -> val0 , false))
+                      | _ -> val0 , false)
+                   | _ -> val0 , false)
+                | None -> val0 , false)
+             | _::_ -> val0 , false))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_iszero2_eq =
+ struct
+  (** val optimize_iszero2_eq_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_iszero2_eq_sbinding val0 _ sb maxid _ _ =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.ISZERO ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] ->
+               (match SymbolicState.follow_in_smap arg1 maxid sb with
+                | Some f ->
+                  let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
+                  (match smv with
+                   | SymbolicState.SymOp (label0, args0) ->
+                     (match label0 with
+                      | Program.ISZERO ->
+                        (match args0 with
+                         | [] -> val0 , false
+                         | arg2::l0 ->
+                           (match l0 with
+                            | [] ->
+                              (match SymbolicState.follow_in_smap arg2 idx'
+                                       sb' with
+                               | Some f0 ->
+                                 let SymbolicState.FollowSmapVal (smv0, _, _) =
+                                   f0
+                                 in
+                                 (match smv0 with
+                                  | SymbolicState.SymOp (label1, args1) ->
+                                    (match label1 with
+                                     | Program.EQ ->
+                                       (match args1 with
+                                        | [] -> val0 , false
+                                        | x::l1 ->
+                                          (match l1 with
+                                           | [] -> val0 , false
+                                           | y::l2 ->
+                                             (match l2 with
+                                              | [] ->
+                                                (SymbolicState.SymOp
+                                                  (Program.EQ,
+                                                  (x::(y::[])))) , true
+                                              | _::_ -> val0 , false)))
+                                     | _ -> val0 , false)
+                                  | _ -> val0 , false)
+                               | None -> val0 , false)
+                            | _::_ -> val0 , false))
+                      | _ -> val0 , false)
+                   | _ -> val0 , false)
+                | None -> val0 , false)
+             | _::_ -> val0 , false))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -5358,6 +5541,9 @@ module BlockEquivChecker =
   | OPT_iszero_sub
   | OPT_iszero_lt
   | OPT_iszero_xor
+  | OPT_iszero2_gt
+  | OPT_iszero2_lt
+  | OPT_iszero2_eq
 
   type list_opt_steps = available_optimization_step list
 
@@ -5410,16 +5596,19 @@ module BlockEquivChecker =
   | OPT_iszero_sub -> Opt_iszero_sub.optimize_iszero_sub_sbinding
   | OPT_iszero_lt -> Opt_iszero_lt.optimize_iszero_lt_sbinding
   | OPT_iszero_xor -> Opt_iszero_xor.optimize_iszero_xor_sbinding
+  | OPT_iszero2_gt -> Opt_iszero2_gt.optimize_iszero2_gt_sbinding
+  | OPT_iszero2_lt -> Opt_iszero2_lt.optimize_iszero2_lt_sbinding
+  | OPT_iszero2_eq -> Opt_iszero2_eq.optimize_iszero2_eq_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::[]))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::[])))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::[]))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::[])))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 

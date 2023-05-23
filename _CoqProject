@@ -88,6 +88,9 @@ optimizations/eq_x_x.v
 optimizations/iszero_sub.v
 optimizations/iszero_lt.v
 optimizations/iszero_xor.v
+optimizations/iszero2_gt.v
+optimizations/iszero2_lt.v
+optimizations/iszero2_eq.v
 
 block_equiv_checker.v
 
