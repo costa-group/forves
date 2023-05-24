@@ -174,6 +174,30 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
 
+Example ex_xor_xor1:
+(* XOR(X, XOR(X,Y)) = Y *) 
+check_rule "DUP1 SWAP2 SWAP1 XOR SWAP1 XOR"
+           "POP"
+           OPT_xor_xor.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_xor_xor2:
+(* XOR(X, XOR(Y,X)) = Y *) 
+check_rule "DUP1 SWAP2 XOR SWAP1 XOR"
+           "POP"
+           OPT_xor_xor.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_xor_xor3:
+(* XOR(XOR(X,Y), X) = Y *) 
+check_rule "DUP1 SWAP2 SWAP1 XOR XOR"
+           "POP"
+           OPT_xor_xor.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_xor_xor4:
+(* XOR(XOR(Y,X), X) = Y *) 
+check_rule "DUP1 SWAP2 XOR XOR"
+           "POP"
+           OPT_xor_xor.
+Proof. unfold check_rule. intuition. Qed.
 
 Example ex_xor_zero1:
 (* XOR(X, 0) = X *) 

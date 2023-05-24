@@ -4392,6 +4392,67 @@ module Opt_xor_zero =
     | _ -> val0 , false
  end
 
+module Opt_xor_xor =
+ struct
+  (** val is_xor :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+      SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+      SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+      SymbolicState.sstack_val option **)
+
+  let is_xor x sv fcmp maxid instk_height sb ops =
+    match SymbolicState.follow_in_smap sv maxid sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
+      (match smv with
+       | SymbolicState.SymOp (label, args) ->
+         (match label with
+          | Program.XOR ->
+            (match args with
+             | [] -> None
+             | arg1::l ->
+               (match l with
+                | [] -> None
+                | arg2::l0 ->
+                  (match l0 with
+                   | [] ->
+                     if fcmp x arg1 maxid sb idx' sb' instk_height ops
+                     then Some arg2
+                     else if fcmp x arg2 maxid sb idx' sb' instk_height ops
+                          then Some arg1
+                          else None
+                   | _::_ -> None)))
+          | _ -> None)
+       | _ -> None)
+    | None -> None
+
+  (** val optimize_xor_xor_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_xor_xor_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.XOR ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  (match is_xor arg1 arg2 fcmp maxid instk_height sb ops with
+                   | Some y -> (SymbolicState.SymBasicVal y) , true
+                   | None ->
+                     (match is_xor arg2 arg1 fcmp maxid instk_height sb ops with
+                      | Some y -> (SymbolicState.SymBasicVal y) , true
+                      | None -> val0 , false))
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -5603,6 +5664,7 @@ module BlockEquivChecker =
   | OPT_iszero2_eq
   | OPT_xor_x_x
   | OPT_xor_zero
+  | OPT_xor_xor
 
   type list_opt_steps = available_optimization_step list
 
@@ -5660,16 +5722,17 @@ module BlockEquivChecker =
   | OPT_iszero2_eq -> Opt_iszero2_eq.optimize_iszero2_eq_sbinding
   | OPT_xor_x_x -> Opt_xor_x_x.optimize_xor_x_x_sbinding
   | OPT_xor_zero -> Opt_xor_zero.optimize_xor_zero_sbinding
+  | OPT_xor_xor -> Opt_xor_xor.optimize_xor_xor_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::[])))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[]))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::[])))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[]))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
