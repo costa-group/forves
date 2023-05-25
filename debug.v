@@ -27,46 +27,10 @@ Import ConcreteInterpreter.
 Require Import FORVES.optimizations_def.
 Import Optimizations_Def.
 
-Require Import FORVES.optimizations.add_zero.
-Import Opt_add_zero.
-Require Import FORVES.optimizations.eval.
-Import Opt_eval.
-Require Import FORVES.optimizations.not_not.
-Import Opt_not_not.
-Require Import FORVES.optimizations.and_and1.
-Import Opt_and_and1.
-Require Import FORVES.optimizations.and_and2.
-Import Opt_and_and2.
-Require Import FORVES.optimizations.and_origin.
-Import Opt_and_origin.
-Require Import FORVES.optimizations.mul_shl.
-Import Opt_mul_shl.
-Require Import FORVES.optimizations.div_shl.
-Import Opt_div_shl.
-Require Import FORVES.optimizations.shr_zero_x.
-Import Opt_shr_zero_x.
-Require Import FORVES.optimizations.shr_x_zero.
-Import Opt_shr_x_zero.
- Require Import FORVES.optimizations.eq_zero.
-Import Opt_eq_zero.
 Require Import FORVES.optimizations.sub_x_x.
 Import Opt_sub_x_x.
-Require Import FORVES.optimizations.and_zero.
-Import Opt_and_zero.
-Require Import FORVES.optimizations.div_one.
-Import Opt_div_one.
-Require Import FORVES.optimizations.lt_x_one.
-Import Opt_lt_x_one.
-Require Import FORVES.optimizations.gt_one_x.
-Import Opt_gt_one_x.
 Require Import FORVES.optimizations.and_address.
 Import Opt_and_address.
-Require Import FORVES.optimizations.mul_one.
-Import Opt_mul_one.
-Require Import FORVES.optimizations.iszero_gt.
-Import Opt_iszero_gt.
-Require Import FORVES.optimizations.eq_iszero.
-Import Opt_eq_iszero.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -173,6 +137,105 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    SStrgCmp_Basic SHA3Cmp_Trivial 
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
+
+Example ex_and_or1:
+(* AND(OR(X, Y), X) = X *) 
+check_rule "DUP1 SWAP2 SWAP1 OR AND"
+           "SWAP1 POP"
+           OPT_and_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_or2:
+(* AND(OR(Y, X), X) = X *)
+check_rule "DUP1 SWAP2 OR AND"
+           "SWAP1 POP"
+           OPT_and_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_or3:
+(* AND(X, OR(X, Y)) = X *)
+check_rule "DUP1 SWAP2 SWAP1 OR SWAP1 AND"
+           "SWAP1 POP"
+           OPT_and_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_or4:
+(* AND(X, OR(Y, X)) = X *)
+check_rule "DUP1 SWAP2 OR SWAP1 AND"
+           "SWAP1 POP"
+           OPT_and_or.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_or_and1:
+(* OR(AND(X, Y), X) = X *) 
+check_rule "DUP1 SWAP2 SWAP1 AND OR"
+           "SWAP1 POP"
+           OPT_or_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_and2:
+(* OR(AND(Y, X), X) = X *)
+check_rule "DUP1 SWAP2 AND OR"
+           "SWAP1 POP"
+           OPT_or_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_and3:
+(* OR(X, AND(X, Y)) = X *)
+check_rule "DUP1 SWAP2 SWAP1 AND SWAP1 OR"
+           "SWAP1 POP"
+           OPT_or_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_and4:
+(* OR(X, AND(Y, X)) = X *)
+check_rule "DUP1 SWAP2 AND SWAP1 OR"
+           "SWAP1 POP"
+           OPT_or_and.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_or_or1:
+(* OR(OR(X, Y), X) = OR(X,Y) *) 
+check_rule "DUP1 SWAP2 SWAP1 OR OR"
+           "OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or1':
+(* OR(OR(X, Y), X) = OR(Y,X) *) 
+check_rule "DUP1 SWAP2 SWAP1 OR OR"
+           "SWAP1 OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or2:
+(* OR(OR(Y, X), X) = OR(X,Y) *)
+check_rule "DUP1 SWAP2 OR OR"
+           "OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or2':
+(* OR(OR(Y, X), X) = OR(Y,X) *)
+check_rule "DUP1 SWAP2 OR OR"
+           "SWAP1 OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or3:
+(* OR(X, OR(X, Y)) = OR(X,Y) *)
+check_rule "DUP1 SWAP2 SWAP1 OR SWAP1 OR"
+           "OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or3':
+(* OR(X, OR(X, Y)) = OR(Y,X) *)
+check_rule "DUP1 SWAP2 SWAP1 OR SWAP1 OR"
+           "SWAP1 OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or4:
+(* OR(OR(Y, X), X) = OR(X,Y) *)
+check_rule "DUP1 SWAP2 OR SWAP1 OR"
+           "OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_or4':
+(* OR(OR(Y, X), X) = OR(Y,X) *)
+check_rule "DUP1 SWAP2 OR SWAP1 OR"
+           "SWAP1 OR"
+           OPT_or_or.
+Proof. unfold check_rule. intuition. Qed.
 
 Example ex_xor_xor1:
 (* XOR(X, XOR(X,Y)) = Y *) 
@@ -571,23 +634,51 @@ check_rule "ORIGIN PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
 Proof. unfold check_rule. intuition. Qed.
 
 Example ex_and_and1:
-check_rule "SWAP1 DUP2 AND AND"
+(* AND(AND(X, Y), X) = AND(X,Y) *) 
+check_rule "DUP1 SWAP2 SWAP1 AND AND"
            "AND"
+           OPT_and_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and1':
+(* AND(AND(X, Y), X) = AND(Y,X) *) 
+check_rule "DUP1 SWAP2 SWAP1 AND AND"
+           "SWAP1 AND"
            OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
 Example ex_and_and2:
-check_rule "DUP2 SWAP1 AND AND"
+(* AND(AND(Y, X), X) = AND(X,Y) *)
+check_rule "DUP1 SWAP2 AND AND"
            "AND"
+           OPT_and_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and2':
+(* AND(AND(Y, X), X) = AND(Y,X) *)
+check_rule "DUP1 SWAP2 AND AND"
+           "SWAP1 AND"
            OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
 Example ex_and_and3:
-check_rule "SWAP1 DUP2 AND SWAP1 AND"
+(* AND(X, AND(X, Y)) = AND(X,Y) *)
+check_rule "DUP1 SWAP2 SWAP1 AND SWAP1 AND"
            "AND"
            OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and3':
+(* AND(X, AND(X, Y)) = AND(Y,X) *)
+check_rule "DUP1 SWAP2 SWAP1 AND SWAP1 AND"
+           "SWAP1 AND"
+           OPT_and_and.
+Proof. unfold check_rule. intuition. Qed.
 Example ex_and_and4:
-check_rule "DUP2 AND SWAP1 AND"
+(* AND(AND(Y, X), X) = AND(X,Y) *)
+check_rule "DUP1 SWAP2 AND SWAP1 AND"
            "AND"
+           OPT_and_and.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_and4':
+(* AND(AND(Y, X), X) = AND(Y,X) *)
+check_rule "DUP1 SWAP2 AND SWAP1 AND"
+           "SWAP1 AND"
            OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
 
@@ -1559,6 +1650,5 @@ destruct (weqb y WZero) eqn: eq_y_zero.
 Admitted.
 (* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
 
-Search wxor.
 
 End Debug.

@@ -1157,6 +1157,39 @@ module Opt_xor_xor :
   val optimize_xor_xor_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_or_or :
+ sig
+  val is_or :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_or_or_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_or_and :
+ sig
+  val is_and :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_or_and_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_and_or :
+ sig
+  val is_or :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
+
+  val optimize_and_or_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1580,6 +1613,9 @@ module BlockEquivChecker :
   | OPT_xor_x_x
   | OPT_xor_zero
   | OPT_xor_xor
+  | OPT_or_or
+  | OPT_or_and
+  | OPT_and_or
 
   type list_opt_steps = available_optimization_step list
 
