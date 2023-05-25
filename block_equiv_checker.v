@@ -21,10 +21,8 @@ Require Import FORVES.optimizations.eval.
 Import Opt_eval.
 Require Import FORVES.optimizations.not_not.
 Import Opt_not_not.
-Require Import FORVES.optimizations.and_and1.
-Import Opt_and_and1.
-Require Import FORVES.optimizations.and_and2.
-Import Opt_and_and2.
+Require Import FORVES.optimizations.and_and.
+Import Opt_and_and.
 Require Import FORVES.optimizations.and_origin.
 Import Opt_and_origin.
 Require Import FORVES.optimizations.mul_shl.
@@ -321,8 +319,7 @@ Inductive available_optimization_step :=
 | OPT_eval
 | OPT_add_zero
 | OPT_not_not
-| OPT_and_and1
-| OPT_and_and2
+| OPT_and_and
 | OPT_and_origin
 | OPT_mul_shl
 | OPT_div_shl
@@ -380,8 +377,7 @@ match tag with
 | OPT_eval => OpEntry optimize_eval_sbinding optimize_eval_sbinding_snd
 | OPT_add_zero => OpEntry optimize_add_zero_sbinding optimize_add_zero_sbinding_snd
 | OPT_not_not => OpEntry optimize_not_not_sbinding optimize_not_not_sbinding_snd
-| OPT_and_and1 => OpEntry optimize_and_and1_sbinding optimize_and_and1_sbinding_snd
-| OPT_and_and2 => OpEntry optimize_and_and2_sbinding optimize_and_and2_sbinding_snd
+| OPT_and_and => OpEntry optimize_and_and_sbinding optimize_and_and_sbinding_snd
 | OPT_and_origin => OpEntry optimize_and_origin_sbinding optimize_and_origin_sbinding_snd
 | OPT_mul_shl => OpEntry optimize_mul_shl_sbinding optimize_mul_shl_sbinding_snd
 | OPT_div_shl => OpEntry optimize_div_shl_sbinding optimize_div_shl_sbinding_snd
@@ -434,8 +430,7 @@ Definition all_optimization_steps :=
   [OPT_eval; 
    OPT_add_zero; 
    OPT_not_not; 
-   OPT_and_and1; 
-   OPT_and_and2; 
+   OPT_and_and;    
    OPT_and_origin; 
    OPT_div_shl;
    OPT_mul_shl;
@@ -492,8 +487,7 @@ Definition all_optimization_steps' :=
    OPT_eval; 
    OPT_add_zero; 
    OPT_not_not; 
-   OPT_and_and1; 
-   OPT_and_and2; 
+   OPT_and_and;    
    OPT_and_origin; 
    OPT_shr_zero_x; 
    OPT_shr_x_zero; 

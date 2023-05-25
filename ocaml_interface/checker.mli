@@ -847,14 +847,15 @@ module Opt_not_not :
   val optimize_not_not_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
-module Opt_and_and1 :
+module Opt_and_and :
  sig
-  val optimize_and_and1_sbinding : Optimizations_Def.opt_smap_value_type
- end
+  val is_and :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val option
 
-module Opt_and_and2 :
- sig
-  val optimize_and_and2_sbinding : Optimizations_Def.opt_smap_value_type
+  val optimize_and_and_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module Opt_and_origin :
@@ -1532,8 +1533,7 @@ module BlockEquivChecker :
   | OPT_eval
   | OPT_add_zero
   | OPT_not_not
-  | OPT_and_and1
-  | OPT_and_and2
+  | OPT_and_and
   | OPT_and_origin
   | OPT_mul_shl
   | OPT_div_shl

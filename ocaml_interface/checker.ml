@@ -2573,12 +2573,44 @@ module Opt_not_not =
     | _ -> val0 , false
  end
 
-module Opt_and_and1 =
+module Opt_and_and =
  struct
-  (** val optimize_and_and1_sbinding :
+  (** val is_and :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+      SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+      SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map ->
+      SymbolicState.sstack_val option **)
+
+  let is_and x sv fcmp maxid instk_height sb ops =
+    match SymbolicState.follow_in_smap sv maxid sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
+      (match smv with
+       | SymbolicState.SymOp (label, args) ->
+         (match label with
+          | Program.AND ->
+            (match args with
+             | [] -> None
+             | arg1::l ->
+               (match l with
+                | [] -> None
+                | arg2::l0 ->
+                  (match l0 with
+                   | [] ->
+                     if fcmp x arg1 maxid sb idx' sb' instk_height ops
+                     then Some arg2
+                     else if fcmp x arg2 maxid sb idx' sb' instk_height ops
+                          then Some arg1
+                          else None
+                   | _::_ -> None)))
+          | _ -> None)
+       | _ -> None)
+    | None -> None
+
+  (** val optimize_and_and_sbinding :
       Optimizations_Def.opt_smap_value_type **)
 
-  let optimize_and_and1_sbinding val0 fcmp sb maxid instk_height ops =
+  let optimize_and_and_sbinding val0 fcmp sb maxid instk_height ops =
     match val0 with
     | SymbolicState.SymOp (label, args) ->
       (match label with
@@ -2591,87 +2623,16 @@ module Opt_and_and1 =
              | arg2::l0 ->
                (match l0 with
                 | [] ->
-                  (match SymbolicState.follow_in_smap arg2 maxid sb with
-                   | Some f ->
-                     let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
-                     (match smv with
-                      | SymbolicState.SymOp (label0, args0) ->
-                        (match label0 with
-                         | Program.AND ->
-                           (match args0 with
-                            | [] -> val0 , false
-                            | arg21::l1 ->
-                              (match l1 with
-                               | [] -> val0 , false
-                               | arg22::l2 ->
-                                 (match l2 with
-                                  | [] ->
-                                    if fcmp arg1 arg21 maxid sb idx' sb'
-                                         instk_height ops
-                                    then (SymbolicState.SymOp (Program.AND,
-                                           (arg1::(arg22::[])))) , true
-                                    else if fcmp arg1 arg22 maxid sb idx' sb'
-                                              instk_height ops
-                                         then (SymbolicState.SymOp
-                                                (Program.AND,
-                                                (arg1::(arg21::[])))) , true
-                                         else val0 , false
-                                  | _::_ -> val0 , false)))
-                         | _ -> val0 , false)
-                      | _ -> val0 , false)
-                   | None -> val0 , false)
-                | _::_ -> val0 , false)))
-       | _ -> val0 , false)
-    | _ -> val0 , false
- end
-
-module Opt_and_and2 =
- struct
-  (** val optimize_and_and2_sbinding :
-      Optimizations_Def.opt_smap_value_type **)
-
-  let optimize_and_and2_sbinding val0 fcmp sb maxid instk_height ops =
-    match val0 with
-    | SymbolicState.SymOp (label, args) ->
-      (match label with
-       | Program.AND ->
-         (match args with
-          | [] -> val0 , false
-          | arg1::l ->
-            (match l with
-             | [] -> val0 , false
-             | arg2::l0 ->
-               (match l0 with
-                | [] ->
-                  (match SymbolicState.follow_in_smap arg1 maxid sb with
-                   | Some f ->
-                     let SymbolicState.FollowSmapVal (smv, idx', sb') = f in
-                     (match smv with
-                      | SymbolicState.SymOp (label0, args0) ->
-                        (match label0 with
-                         | Program.AND ->
-                           (match args0 with
-                            | [] -> val0 , false
-                            | arg11::l1 ->
-                              (match l1 with
-                               | [] -> val0 , false
-                               | arg12::l2 ->
-                                 (match l2 with
-                                  | [] ->
-                                    if fcmp arg11 arg2 idx' sb' maxid sb
-                                         instk_height ops
-                                    then (SymbolicState.SymOp (Program.AND,
-                                           (arg11::(arg12::[])))) , true
-                                    else if fcmp arg12 arg2 idx' sb' maxid sb
-                                              instk_height ops
-                                         then (SymbolicState.SymOp
-                                                (Program.AND,
-                                                (arg11::(arg12::[])))) , true
-                                         else val0 , false
-                                  | _::_ -> val0 , false)))
-                         | _ -> val0 , false)
-                      | _ -> val0 , false)
-                   | None -> val0 , false)
+                  (match is_and arg1 arg2 fcmp maxid instk_height sb ops with
+                   | Some y ->
+                     (SymbolicState.SymOp (Program.AND,
+                       (arg1::(y::[])))) , true
+                   | None ->
+                     (match is_and arg2 arg1 fcmp maxid instk_height sb ops with
+                      | Some y ->
+                        (SymbolicState.SymOp (Program.AND,
+                          (arg2::(y::[])))) , true
+                      | None -> val0 , false))
                 | _::_ -> val0 , false)))
        | _ -> val0 , false)
     | _ -> val0 , false
@@ -5617,8 +5578,7 @@ module BlockEquivChecker =
   | OPT_eval
   | OPT_add_zero
   | OPT_not_not
-  | OPT_and_and1
-  | OPT_and_and2
+  | OPT_and_and
   | OPT_and_origin
   | OPT_mul_shl
   | OPT_div_shl
@@ -5675,8 +5635,7 @@ module BlockEquivChecker =
   | OPT_eval -> Opt_eval.optimize_eval_sbinding
   | OPT_add_zero -> Opt_add_zero.optimize_add_zero_sbinding
   | OPT_not_not -> Opt_not_not.optimize_not_not_sbinding
-  | OPT_and_and1 -> Opt_and_and1.optimize_and_and1_sbinding
-  | OPT_and_and2 -> Opt_and_and2.optimize_and_and2_sbinding
+  | OPT_and_and -> Opt_and_and.optimize_and_and_sbinding
   | OPT_and_origin -> Opt_and_origin.optimize_and_origin_sbinding
   | OPT_mul_shl -> Opt_mul_shl.optimize_mul_shl_sbinding
   | OPT_div_shl -> Opt_div_shl.optimize_div_shl_sbinding
@@ -5727,12 +5686,12 @@ module BlockEquivChecker =
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[]))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[])))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and1::(OPT_and_and2::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[]))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::[])))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
@@ -17586,72 +17545,10 @@ module Parser =
                                                                     else 
                                                                     (match s10 with
                                                                     | [] ->
-                                                                    None
-                                                                    | a10::s11 ->
-                                                                    (* If this appears, you're using Ascii internals. Please don't *)
- (fun f c ->
-  let n = Char.code c in
-  let h i = (n land (1 lsl i)) <> 0 in
-  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
-                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
-                                                                    if b87
-                                                                    then 
-                                                                    if b88
-                                                                    then None
-                                                                    else 
-                                                                    if b89
-                                                                    then None
-                                                                    else 
-                                                                    if b90
-                                                                    then None
-                                                                    else 
-                                                                    if b91
-                                                                    then 
-                                                                    if b92
-                                                                    then 
-                                                                    if b93
-                                                                    then None
-                                                                    else 
-                                                                    if b94
-                                                                    then None
-                                                                    else 
-                                                                    (match s11 with
-                                                                    | [] ->
                                                                     Some
-                                                                    BlockEquivChecker.OPT_and_and1
+                                                                    BlockEquivChecker.OPT_and_and
                                                                     | _::_ ->
                                                                     None)
-                                                                    else None
-                                                                    else None
-                                                                    else 
-                                                                    if b88
-                                                                    then 
-                                                                    if b89
-                                                                    then None
-                                                                    else 
-                                                                    if b90
-                                                                    then None
-                                                                    else 
-                                                                    if b91
-                                                                    then 
-                                                                    if b92
-                                                                    then 
-                                                                    if b93
-                                                                    then None
-                                                                    else 
-                                                                    if b94
-                                                                    then None
-                                                                    else 
-                                                                    (match s11 with
-                                                                    | [] ->
-                                                                    Some
-                                                                    BlockEquivChecker.OPT_and_and2
-                                                                    | _::_ ->
-                                                                    None)
-                                                                    else None
-                                                                    else None
-                                                                    else None)
-                                                                    a10)
                                                                     else None
                                                                     else None
                                                                     else None)

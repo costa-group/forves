@@ -570,30 +570,25 @@ check_rule "ORIGIN PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
            OPT_and_origin.
 Proof. unfold check_rule. intuition. Qed.
 
-Example ex_and_and2_1:
-(* AND(AND(X,Y), X) = AND(X,Y)
-   AND(AND(X,Y), Y) = AND(X,Y) *)
+Example ex_and_and1:
 check_rule "SWAP1 DUP2 AND AND"
            "AND"
-           OPT_and_and2.
+           OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
-Example ex_and_and2_2:
+Example ex_and_and2:
 check_rule "DUP2 SWAP1 AND AND"
            "AND"
-           OPT_and_and2.
+           OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
-
-Example ex_and_and1_1:
-(* AND(X,AND(X,Y)) = AND(X,Y)
-   AND(Y,AND(Y,X)) = AND(X,Y) *)
+Example ex_and_and3:
 check_rule "SWAP1 DUP2 AND SWAP1 AND"
            "AND"
-           OPT_and_and1.
+           OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
-Example ex_and_and1_2:
+Example ex_and_and4:
 check_rule "DUP2 AND SWAP1 AND"
            "AND"
-           OPT_and_and1.
+           OPT_and_and.
 Proof. unfold check_rule. intuition. Qed.
 
 Example ex_not_not:
