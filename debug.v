@@ -138,6 +138,32 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
 
+Example ex_or_not1:
+(* OR(NOT(X), X) = 2^256-1 *) 
+check_rule "DUP1 NOT OR"
+           "POP PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+           OPT_or_not.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_not2:
+(* OR(X, NOT(X)) = 0 *) 
+check_rule "DUP1 NOT SWAP1 OR"
+           "POP PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+           OPT_or_not.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_not1:
+(* AND(NOT(X), X) = 0 *) 
+check_rule "DUP1 NOT AND"
+           "POP PUSH1 0x0"
+           OPT_and_not.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_not2:
+(* AND(X, NOT(X)) = 0 *) 
+check_rule "DUP1 NOT SWAP1 AND"
+           "POP PUSH1 0x0"
+           OPT_and_not.
+Proof. unfold check_rule. intuition. Qed.
+
 Example ex_and_or1:
 (* AND(OR(X, Y), X) = X *) 
 check_rule "DUP1 SWAP2 SWAP1 OR AND"
@@ -1649,6 +1675,8 @@ destruct (weqb y WZero) eqn: eq_y_zero.
   admit.
 Admitted.
 (* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
+
+Compute (wones EVMWordSize).
 
 
 End Debug.

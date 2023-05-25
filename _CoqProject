@@ -96,6 +96,8 @@ optimizations/xor_xor.v
 optimizations/or_or.v
 optimizations/or_and.v
 optimizations/and_or.v
+optimizations/and_not.v
+optimizations/or_not.v
 
 block_equiv_checker.v
 

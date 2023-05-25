@@ -1190,6 +1190,26 @@ module Opt_and_or :
   val optimize_and_or_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_and_not :
+ sig
+  val is_not :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_and_not_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_or_not :
+ sig
+  val is_not :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_or_not_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1616,6 +1636,8 @@ module BlockEquivChecker :
   | OPT_or_or
   | OPT_or_and
   | OPT_and_or
+  | OPT_and_not
+  | OPT_or_not
 
   type list_opt_steps = available_optimization_step list
 
