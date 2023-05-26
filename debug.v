@@ -138,6 +138,60 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
 
+
+Example ex_and_ffff1:
+(* AND(2^256-1,X) = X *) 
+check_rule "PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff AND"
+           ""
+           OPT_and_ffff.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_ffff2:
+(* AND(X,2^256-1) = X *) 
+check_rule "PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SWAP1 AND"
+           ""
+           OPT_and_ffff.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_or_ffff1:
+(* OR(2^256-1,X) = 2^256-1 *) 
+check_rule "PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff OR"
+           "POP PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+           OPT_or_ffff.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_ffff2:
+(* OR(X,2^256-1) = 2^256-1 *) 
+check_rule "PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff SWAP1 OR"
+           "POP PUSH32 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+           OPT_or_ffff.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_or_zero1:
+(* OR(X, 0) = X *) 
+check_rule "PUSH1 0x0 OR"
+           ""
+           OPT_or_zero.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_or_zero2:
+(* OR(X, 0) = X *) 
+check_rule "PUSH1 0x0 SWAP1 OR"
+           ""
+           OPT_or_zero.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_x_x:
+(* AND(X, X) = X *) 
+check_rule "DUP1 AND"
+           ""
+           OPT_and_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_or_x_x:
+(* OR(X, X) = X *) 
+check_rule "DUP1 OR"
+           ""
+           OPT_or_x_x.
+Proof. unfold check_rule. intuition. Qed.
+
 Example ex_or_not1:
 (* OR(NOT(X), X) = 2^256-1 *) 
 check_rule "DUP1 NOT OR"

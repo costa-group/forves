@@ -98,6 +98,11 @@ optimizations/or_and.v
 optimizations/and_or.v
 optimizations/and_not.v
 optimizations/or_not.v
+optimizations/or_x_x.v
+optimizations/and_x_x.v
+optimizations/or_zero.v
+optimizations/or_ffff.v
+optimizations/and_ffff.v
 
 block_equiv_checker.v
 

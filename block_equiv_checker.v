@@ -125,6 +125,16 @@ Require Import FORVES.optimizations.and_not.
 Import Opt_and_not.
 Require Import FORVES.optimizations.or_not.
 Import Opt_or_not.
+Require Import FORVES.optimizations.or_x_x.
+Import Opt_or_x_x.
+Require Import FORVES.optimizations.and_x_x.
+Import Opt_and_x_x.
+Require Import FORVES.optimizations.or_zero.
+Import Opt_or_zero.
+Require Import FORVES.optimizations.or_ffff.
+Import Opt_or_ffff.
+Require Import FORVES.optimizations.and_ffff.
+Import Opt_and_ffff.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -381,8 +391,12 @@ Inductive available_optimization_step :=
 | OPT_and_or
 | OPT_and_not
 | OPT_or_not
+| OPT_or_x_x
+| OPT_and_x_x
+| OPT_or_zero
+| OPT_or_ffff
+| OPT_and_ffff
 .
-
 
 
 Definition list_opt_steps := list available_optimization_step.
@@ -444,6 +458,11 @@ match tag with
 | OPT_and_or => OpEntry optimize_and_or_sbinding optimize_and_or_sbinding_snd
 | OPT_and_not => OpEntry optimize_and_not_sbinding optimize_and_not_sbinding_snd
 | OPT_or_not => OpEntry optimize_or_not_sbinding optimize_or_not_sbinding_snd
+| OPT_or_x_x => OpEntry optimize_or_x_x_sbinding optimize_or_x_x_sbinding_snd
+| OPT_and_x_x => OpEntry optimize_and_x_x_sbinding optimize_and_x_x_sbinding_snd
+| OPT_or_zero => OpEntry optimize_or_zero_sbinding optimize_or_zero_sbinding_snd
+| OPT_or_ffff => OpEntry optimize_or_ffff_sbinding optimize_or_ffff_sbinding_snd
+| OPT_and_ffff => OpEntry optimize_and_ffff_sbinding optimize_and_ffff_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -503,7 +522,12 @@ Definition all_optimization_steps :=
    OPT_or_and;
    OPT_and_or;
    OPT_and_not;
-   OPT_or_not
+   OPT_or_not;
+   OPT_or_x_x;
+   OPT_and_x_x;
+   OPT_or_zero;
+   OPT_or_ffff;
+   OPT_and_ffff
 ].
 
 Definition all_optimization_steps' := 
@@ -563,7 +587,12 @@ Definition all_optimization_steps' :=
    OPT_or_and;
    OPT_and_or;
    OPT_and_not;
-   OPT_or_not
+   OPT_or_not;
+   OPT_or_x_x;
+   OPT_and_x_x;
+   OPT_or_zero;
+   OPT_or_ffff;
+   OPT_and_ffff
 ].
 
   
