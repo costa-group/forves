@@ -144,7 +144,7 @@ destruct (is_not arg1 arg2 fcmp n instk_height sb evm_stack_opm)
     try discriminate.
   destruct fsmv_arg2 as [smv_arg2 idx' sb'] eqn: eq_fsmv_arg2.
   destruct smv_arg2 as [x1|x2|label2 args2|x4|x5|x6] eqn: eq_smv;
-    try inject_rw Hoptm_sbinding eq_val'; try discriminate.
+    try discriminate.
   destruct label2 eqn: eq_label2; try inject_rw Hoptm_sbinding eq_val';
     try discriminate.
   destruct args2 as [|arg21 r21]; try discriminate.

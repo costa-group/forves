@@ -1235,6 +1235,22 @@ module Opt_and_ffff :
   val optimize_and_ffff_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_and_coinbase :
+ sig
+  val is_coinbase_mask :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+    SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val optimize_and_coinbase_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_balance_address :
+ sig
+  val optimize_balance_address_sbinding :
+    Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1668,6 +1684,8 @@ module BlockEquivChecker :
   | OPT_or_zero
   | OPT_or_ffff
   | OPT_and_ffff
+  | OPT_and_coinbase
+  | OPT_balance_address
 
   type list_opt_steps = available_optimization_step list
 

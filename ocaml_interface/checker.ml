@@ -4850,6 +4850,94 @@ module Opt_and_ffff =
     | _ -> val0 , false
  end
 
+module Opt_and_coinbase =
+ struct
+  (** val is_coinbase_mask :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+      SymbolicStateCmp.sstack_val_cmp_t -> nat -> nat ->
+      SymbolicState.sbindings -> StackOpInstrs.stack_op_instr_map -> bool **)
+
+  let is_coinbase_mask sv1 sv2 fcmp maxid instk_height sb ops =
+    match SymbolicState.follow_in_smap sv1 maxid sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymOp (label, args) ->
+         (match label with
+          | Program.COINBASE ->
+            (match args with
+             | [] ->
+               fcmp sv2 (SymbolicState.Val
+                 Optimizations_Common.two_exp_160_minus_1) maxid sb maxid sb
+                 instk_height ops
+             | _::_ -> false)
+          | _ -> false)
+       | _ -> false)
+    | None -> false
+
+  (** val optimize_and_coinbase_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_and_coinbase_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.AND ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if (||)
+                       (is_coinbase_mask arg1 arg2 fcmp maxid instk_height sb
+                         ops)
+                       (is_coinbase_mask arg2 arg1 fcmp maxid instk_height sb
+                         ops)
+                  then (SymbolicState.SymOp (Program.COINBASE, [])) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_balance_address =
+ struct
+  (** val optimize_balance_address_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_balance_address_sbinding val0 _ sb maxid _ _ =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.BALANCE ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] ->
+               (match SymbolicState.follow_in_smap arg1 maxid sb with
+                | Some f ->
+                  let SymbolicState.FollowSmapVal (smv, _, _) = f in
+                  (match smv with
+                   | SymbolicState.SymOp (label0, args0) ->
+                     (match label0 with
+                      | Program.ADDRESS ->
+                        (match args0 with
+                         | [] ->
+                           (SymbolicState.SymOp (Program.SELFBALANCE,
+                             [])) , true
+                         | _::_ -> val0 , false)
+                      | _ -> val0 , false)
+                   | _ -> val0 , false)
+                | None -> val0 , false)
+             | _::_ -> val0 , false))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -6071,6 +6159,8 @@ module BlockEquivChecker =
   | OPT_or_zero
   | OPT_or_ffff
   | OPT_and_ffff
+  | OPT_and_coinbase
+  | OPT_balance_address
 
   type list_opt_steps = available_optimization_step list
 
@@ -6138,16 +6228,19 @@ module BlockEquivChecker =
   | OPT_or_zero -> Opt_or_zero.optimize_or_zero_sbinding
   | OPT_or_ffff -> Opt_or_ffff.optimize_or_ffff_sbinding
   | OPT_and_ffff -> Opt_and_ffff.optimize_and_ffff_sbinding
+  | OPT_and_coinbase -> Opt_and_coinbase.optimize_and_coinbase_sbinding
+  | OPT_balance_address ->
+    Opt_balance_address.optimize_balance_address_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 

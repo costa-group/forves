@@ -82,6 +82,14 @@ map_option f_follow_list args.
 (* Results about bitvectors                      *)
 (*************************************************)
 
+Lemma zext_split1: forall [sz : nat] (w : word sz) (n : nat), 
+split1 sz n (zext w n) = w.
+Proof.
+intros. unfold zext. 
+rewrite -> split1_combine.
+reflexivity.
+Qed.
+
 Lemma wxor_x_x: forall (size: nat) (x: word size), wxor x x = wzero size.
 Proof. 
 dependent induction x.
@@ -248,6 +256,12 @@ Qed.
 (* Miscellaneous results                         *)
 (*************************************************)
 
+Lemma evm_stack_opm_SELFBALANCE: 
+evm_stack_opm SELFBALANCE = OpImp 0 evm_selfbalance None None.
+Proof.
+reflexivity.
+Qed.
+
 Lemma evm_stack_opm_EQ: 
 evm_stack_opm EQ = OpImp 2 evm_eq (Some eq_comm) (Some eq_ctx_ind).
 Proof.
@@ -268,6 +282,11 @@ Qed.
 
 Lemma evm_stack_opm_LT: 
 evm_stack_opm LT = OpImp 2 evm_lt None (Some lt_ctx_ind).
+Proof.
+intuition.
+Qed.
+
+Lemma length_zero: forall {X: Type}, length ([]: list X) =? 0 = true.
 Proof.
 intuition.
 Qed.
@@ -310,6 +329,12 @@ Qed.
 
 Lemma is_fresh_var_smv_fvar: forall fvar,
 is_fresh_var_smv (SymBasicVal (FreshVar fvar)) = Some fvar.
+Proof.
+intuition.
+Qed.
+
+Lemma map_option_empty: forall {A B : Type} (f : A -> option B),
+map_option f [] = Some [].
 Proof.
 intuition.
 Qed.

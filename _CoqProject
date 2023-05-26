@@ -103,6 +103,9 @@ optimizations/and_x_x.v
 optimizations/or_zero.v
 optimizations/or_ffff.v
 optimizations/and_ffff.v
+optimizations/and_coinbase.v
+optimizations/balance_address.v
+
 
 block_equiv_checker.v
 

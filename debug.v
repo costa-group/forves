@@ -138,6 +138,24 @@ let r2 := (evm_eq_block_chkr SMemUpdater_Basic SStrgUpdater_Basic
    [] 10 10 b1 b2 3) in
 r1 = true /\ r2 = false.
 
+Example ex_balance_address:
+(* BALANCE(ADDRESS) = SELFBALANCE *)
+check_rule "ADDRESS BALANCE"
+           "SELFBALANCE"
+           OPT_balance_address.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_and_coinbase1:
+(* AND(COINBASE, 2^160 - 1) = COINBASE *)
+check_rule "PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF COINBASE AND"
+           "COINBASE"
+           OPT_and_coinbase.
+Proof. unfold check_rule. intuition. Qed.
+Example ex_and_coinbase2:
+check_rule "COINBASE PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND"
+           "COINBASE"
+           OPT_and_coinbase.
+Proof. unfold check_rule. intuition. Qed.
 
 Example ex_and_ffff1:
 (* AND(2^256-1,X) = X *) 
