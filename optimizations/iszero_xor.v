@@ -231,17 +231,6 @@ intuition.
 Qed.
 
 
-Lemma evm_stack_opm_EQ:
-evm_stack_opm EQ = OpImp 2 evm_eq (Some eq_comm) (Some eq_ctx_ind).
-Proof. reflexivity. Qed.
-
-Lemma length_2: forall (T: Type) (x y: T),
-length [x; y] =? 2 = true.
-Proof. reflexivity. Qed.
-
-
-
-
 Lemma optimize_iszero_xor_sbinding_snd:
 opt_sbinding_snd optimize_iszero_xor_sbinding.
 Proof.
@@ -312,7 +301,7 @@ split.
   rewrite -> eval_sstack_val'_one_step.
   rewrite -> follow_in_smap_head_op.
   rewrite -> evm_stack_opm_EQ.
-  rewrite -> length_2.
+  rewrite -> length_two.
   unfold map_option.
   simpl.
   

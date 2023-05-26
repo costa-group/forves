@@ -286,19 +286,6 @@ destruct (is_and arg1 arg2 fcmp n instk_height sb evm_stack_opm)
 Qed.
 
 
-Lemma evm_stack_opm_AND:
-evm_stack_opm AND = OpImp 2 evm_and (Some and_comm) (Some and_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
-Proof.
-intros T x y.
-reflexivity.
-Qed.
-
-
 Lemma optimize_or_and_sbinding_snd:
 opt_sbinding_snd optimize_or_and_sbinding.
 Proof.

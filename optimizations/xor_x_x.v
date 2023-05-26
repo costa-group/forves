@@ -105,19 +105,6 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
 Qed.
 
 
-Lemma xor_x_x: forall (size: nat) (x: word size), wxor x x = (wzero size).
-Proof. 
-dependent induction x.
-- reflexivity.
-- unfold wxor. unfold bitwp. simpl.
-  rewrite -> Bool.xorb_nilpotent.
-  fold bitwp. fold wxor.
-  rewrite -> IHx.
-  unfold wzero. unfold natToWord. simpl. fold natToWord.
-  reflexivity.
-Qed.
-
-
 Lemma optimize_xor_x_x_sbinding_snd:
 opt_sbinding_snd optimize_xor_x_x_sbinding.
 Proof.
@@ -182,7 +169,7 @@ split.
   rewrite <- eq_varg1 in Heval_orig.
   rewrite <- eq_varg2 in Heval_orig.
   simpl in Heval_orig.
-  rewrite -> xor_x_x in Heval_orig.
+  rewrite -> wxor_x_x in Heval_orig.
   assumption.
 Qed.
 

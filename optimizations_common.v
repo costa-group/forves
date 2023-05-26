@@ -1,6 +1,7 @@
 Require Import bbv.Word.
 Require Import Nat. 
 Require Import Coq.NArith.NArith.
+Require Import Coq.Bool.Bool.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -80,6 +81,80 @@ map_option f_follow_list args.
 (*************************************************)
 (* Results about bitvectors                      *)
 (*************************************************)
+
+Lemma wxor_x_x: forall (size: nat) (x: word size), wxor x x = wzero size.
+Proof. 
+dependent induction x.
+- reflexivity.
+- unfold wxor. unfold bitwp. simpl.
+  rewrite -> Bool.xorb_nilpotent.
+  fold bitwp. fold wxor.
+  rewrite -> IHx.
+  unfold wzero. unfold natToWord. simpl. fold natToWord.
+  reflexivity.
+Qed.
+
+Lemma wand_x_x: forall (x: EVMWord),
+wand x x = x.
+Proof.
+induction x as [|b n x' IH].
+- reflexivity.
+- unfold wand. simpl. fold wand.
+  rewrite -> andb_diag.
+  rewrite -> IH.
+  reflexivity.
+Qed.
+
+Lemma wor_x_x: forall (x: EVMWord),
+wor x x = x.
+Proof.
+induction x as [|b n x' IH].
+- reflexivity.
+- unfold wor. simpl. fold wor.
+  rewrite -> orb_diag.
+  rewrite -> IH.
+  reflexivity.
+Qed.
+
+Lemma wones_evm:
+wones EVMWordSize = 
+  (WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
+(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true WO
+)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+))))))))))))))))))))))))))))))))))))))))))).
+Proof. reflexivity. Qed.
 
 Definition two_exp_160_minus_1 : EVMWord := 
 let diff := EVMWordSize - EVMAddrSize in
@@ -172,6 +247,41 @@ Qed.
 (*************************************************)
 (* Miscellaneous results                         *)
 (*************************************************)
+
+Lemma evm_stack_opm_EQ: 
+evm_stack_opm EQ = OpImp 2 evm_eq (Some eq_comm) (Some eq_ctx_ind).
+Proof.
+intuition.
+Qed.
+
+Lemma evm_stack_opm_GT: 
+evm_stack_opm GT = OpImp 2 evm_gt None (Some gt_ctx_ind).
+Proof.
+intuition.
+Qed.
+
+Lemma evm_stack_opm_ISZERO: 
+evm_stack_opm ISZERO = OpImp  1 evm_iszero None (Some iszero_ctx_ind).
+Proof.
+intuition.
+Qed.
+
+Lemma evm_stack_opm_LT: 
+evm_stack_opm LT = OpImp 2 evm_lt None (Some lt_ctx_ind).
+Proof.
+intuition.
+Qed.
+
+Lemma length_one: forall {X: Type} (v: X), length [v] =? 1 = true.
+Proof.
+intuition.
+Qed.
+
+Lemma length_two: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
+Proof.
+intros T x y.
+reflexivity.
+Qed.
 
 Lemma gt_iszero_nat: forall (x: nat),
 x < 1 <-> x = 0.

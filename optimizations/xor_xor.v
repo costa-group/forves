@@ -103,19 +103,6 @@ match val with
 | _ => (val, false)
 end.
 
-
-Lemma wxor_x_x: forall (size: nat) (x: word size), wxor x x = (wzero size).
-Proof. 
-dependent induction x.
-- reflexivity.
-- unfold wxor. unfold bitwp. simpl.
-  rewrite -> Bool.xorb_nilpotent.
-  fold bitwp. fold wxor.
-  rewrite -> IHx.
-  unfold wzero. unfold natToWord. simpl. fold natToWord.
-  reflexivity.
-Qed.
-
 (*
   XOR(X, XOR(X, Y)) = Y
   XOR(X, XOR(Y, X)) = Y
@@ -295,19 +282,6 @@ destruct (is_xor arg1 arg2 fcmp n instk_height sb evm_stack_opm)
     injection eq_is_xor' as eq_y.
     rewrite <- eq_y.
     apply valid_sstack_value_gt with (n:=idx'); try assumption.
-Qed.
-
-
-Lemma evm_stack_opm_XOR:
-evm_stack_opm XOR = OpImp 2 evm_xor (Some xor_comm) (Some xor_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
-Proof.
-intros T x y.
-reflexivity.
 Qed.
 
 

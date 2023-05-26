@@ -103,17 +103,6 @@ match val with
 end.
 
 
-Lemma wor_x_x: forall (x: EVMWord),
-wor x x = x.
-Proof.
-induction x as [|b n x' IH].
-- reflexivity.
-- unfold wor. simpl. fold wor.
-  rewrite -> orb_diag.
-  rewrite -> IH.
-  reflexivity.
-Qed.
-
 Lemma wor_wor_1: forall (x y: EVMWord),
 wor x (wor x y) = wor x y.
 Proof.
@@ -289,19 +278,6 @@ destruct (is_or arg1 arg2 fcmp n instk_height sb evm_stack_opm)
     rewrite <- eq_y.
     apply valid_sstack_value_gt with (m:=n) in Hvalid_arg11; try assumption.
     simpl. unfold valid_stack_op_instr. simpl. intuition.
-Qed.
-
-
-Lemma evm_stack_opm_OR:
-evm_stack_opm OR = OpImp 2 evm_or (Some or_comm) (Some or_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
-Proof.
-intros T x y.
-reflexivity.
 Qed.
 
 

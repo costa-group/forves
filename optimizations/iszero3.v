@@ -152,18 +152,6 @@ assumption.
 Qed.
 
 
-Lemma evm_stack_opm_ISZERO: 
-evm_stack_opm ISZERO = OpImp  1 evm_iszero None (Some iszero_ctx_ind).
-Proof.
-intuition.
-Qed.
-
-Lemma length_one: forall {X: Type} (v: X), length [v] =? 1 = true.
-Proof.
-intuition.
-Qed.
-
-
 Lemma optimize_iszero3_sbinding_snd:
 opt_sbinding_snd optimize_iszero3_sbinding.
 Proof.

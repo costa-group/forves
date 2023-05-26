@@ -109,17 +109,6 @@ end.
   AND(AND(X, Y), X) = AND(X,Y)
   AND(AND(Y, X), X) = AND(X,Y)
  *)
-Lemma wand_x_x: forall (x: EVMWord),
-wand x x = x.
-Proof.
-induction x as [|b n x' IH].
-- reflexivity.
-- unfold wand. simpl. fold wand.
-  rewrite -> andb_diag.
-  rewrite -> IH.
-  reflexivity.
-Qed.
-
 Lemma wand_wand_1: forall (x y: EVMWord),
 wand x (wand x y) = wand x y.
 Proof.
@@ -295,19 +284,6 @@ destruct (is_and arg1 arg2 fcmp n instk_height sb evm_stack_opm)
     rewrite <- eq_y.
     apply valid_sstack_value_gt with (m:=n) in Hvalid_arg11; try assumption.
     simpl. unfold valid_stack_op_instr. simpl. intuition.
-Qed.
-
-
-Lemma evm_stack_opm_AND:
-evm_stack_opm AND = OpImp 2 evm_and (Some and_comm) (Some and_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
-Proof.
-intros T x y.
-reflexivity.
 Qed.
 
 

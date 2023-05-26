@@ -179,66 +179,6 @@ destruct (is_not arg1 arg2 fcmp n instk_height sb evm_stack_opm)
 Qed.
 
 
-Lemma evm_stack_opm_NOT:
-evm_stack_opm NOT = OpImp 1 evm_not None (Some not_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma evm_stack_opm_OR:
-evm_stack_opm OR = OpImp 2 evm_or (Some or_comm) (Some or_ctx_ind).
-Proof.
-reflexivity.
-Qed.
-
-Lemma lenght2: forall {T: Type} (x y: T), (length [x; y] =? 2) = true.
-Proof.
-intros T x y.
-reflexivity.
-Qed.
-
-Lemma wones_evm: 
-wones EVMWordSize = 
-  (WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true 
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true
-(WS true (WS true (WS true (WS true (WS true (WS true (WS true (WS true WO
-)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-))))))))))))))))))))))))))))))))))))))))))).
-Proof. reflexivity. Qed.
-
-
-
 Lemma optimize_or_not_sbinding_snd:
 opt_sbinding_snd optimize_or_not_sbinding.
 Proof.

@@ -153,18 +153,6 @@ assumption.
 Qed.
 
 
-Lemma evm_stack_opm_EQ: 
-evm_stack_opm EQ = OpImp 2 evm_eq (Some eq_comm) (Some eq_ctx_ind).
-Proof.
-intuition.
-Qed.
-
-Lemma length_two: forall {X: Type} (a b: X), length [a; b] =? 2 = true.
-Proof.
-intuition.
-Qed.
-
-
 Lemma optimize_iszero2_eq_sbinding_snd:
 opt_sbinding_snd optimize_iszero2_eq_sbinding.
 Proof.
