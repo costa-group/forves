@@ -185,12 +185,12 @@ EXPERIMENT RUNTIME: 1 minute and 30 seconds in the virtual machine  executed wit
 
 The experiments in Section 5 include two sets of benchmarks:
 
-1. Blocks from 96 real smart contracts (see Section 7 of this file for details) optimized by `GASOL` with respect to both size and gas. These blocks are extracted by first compiling the Solidity source code of the contract with `solc` and then executing the `GASOL` optimizer. Depending on the resource to optimize (gas or size) and whether simplification rules have been applied by GASOL or not, we obtain 4 sets of of blocks, which are stored in the files with names `GASOL_<resource>_<simplification>.txt` in the `blocks` directory:
+1. Blocks from 96 real smart contracts (see Section 7 of this file for details) optimized by `GASOL` with respect to both size and gas. These blocks are extracted by first compiling the Solidity source code of the contract with `solc` and then executing the `GASOL` optimizer. Depending on the resource to optimize (gas or size) and whether simplification rules have been applied by GASOL or not, we obtain 4 sets of blocks, which are stored in the files with names `GASOL_<resource>_<simplification>.txt` in the `blocks` directory:
 
   * `GASOL_gas_no_simp.txt`: optimized wrt. gas, no simplification rules applied
   * `GASOL_gas_simp.txt`: optimized wrt. gas, simplification rules applied
   * `GASOL_size_no_simp.txt`: optimized wrt. size, no simplification rules applied
-  * `GASOL_size_simp.txt`: optimized wrt. gas, simplification rules applied
+  * `GASOL_size_simp.txt`: optimized wrt. size, simplification rules applied
 
 2. Blocks extracted from the smart contracts in the semantic test suite of the solc compiler (https://github.com/ethereum/solidity/tree/develop/test/libsolidity/semanticTests/externalContracts) optimized by the official `solc` compiler. These blocks are in the file `solc_semantic_tests.txt` inside the `blocks` directory:
 
