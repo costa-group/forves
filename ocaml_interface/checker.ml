@@ -15547,7 +15547,699 @@ module Parser =
                                                                     if b33
                                                                     then 
                                                                     if b34
+                                                                    then 
+                                                                    if b35
                                                                     then None
+                                                                    else 
+                                                                    if b36
+                                                                    then 
+                                                                    if b37
+                                                                    then 
+                                                                    if b38
+                                                                    then None
+                                                                    else 
+                                                                    (match s4 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a4::s5 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b39 b40 b41 b42 b43 b44 b45 b46 ->
+                                                                    if b39
+                                                                    then None
+                                                                    else 
+                                                                    if b40
+                                                                    then 
+                                                                    if b41
+                                                                    then None
+                                                                    else 
+                                                                    if b42
+                                                                    then None
+                                                                    else 
+                                                                    if b43
+                                                                    then 
+                                                                    if b44
+                                                                    then 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then 
+                                                                    if b48
+                                                                    then 
+                                                                    if b49
+                                                                    then 
+                                                                    if b50
+                                                                    then 
+                                                                    if b51
+                                                                    then 
+                                                                    if b52
+                                                                    then None
+                                                                    else 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then None
+                                                                    else 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_or
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then None
+                                                                    else 
+                                                                    if b59
+                                                                    then None
+                                                                    else 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_and
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then None
+                                                                    else 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_not
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b59
+                                                                    then None
+                                                                    else 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_ffff
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then None
+                                                                    else 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then None
+                                                                    else 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_or_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a4)
+                                                                    else None
+                                                                    else None
                                                                     else 
                                                                     if b35
                                                                     then None
@@ -15796,6 +16488,302 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then None
+                                                                    else 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then None
+                                                                    else 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_gt_zero_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then None
+                                                                    else 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_gt_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else None)
                                                                     a6)
                                                                     else None
@@ -15927,7 +16915,136 @@ module Parser =
                                                                     then None
                                                                     else 
                                                                     if b64
+                                                                    then 
+                                                                    if b65
                                                                     then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_sub_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else 
                                                                     if b65
                                                                     then None
@@ -16541,6 +17658,474 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b49
+                                                                    then 
+                                                                    if b50
+                                                                    then 
+                                                                    if b51
+                                                                    then None
+                                                                    else 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then None
+                                                                    else 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then None
+                                                                    else 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_shl_zero_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then 
+                                                                    if b106
+                                                                    then 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_shl_x_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else None)
                                                                     a5)
                                                                     else None
@@ -16578,7 +18163,432 @@ module Parser =
                                                                     if b39
                                                                     then 
                                                                     if b40
+                                                                    then 
+                                                                    if b41
+                                                                    then 
+                                                                    if b42
+                                                                    then 
+                                                                    if b43
                                                                     then None
+                                                                    else 
+                                                                    if b44
+                                                                    then 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then None
+                                                                    else 
+                                                                    if b48
+                                                                    then None
+                                                                    else 
+                                                                    if b49
+                                                                    then 
+                                                                    if b50
+                                                                    then None
+                                                                    else 
+                                                                    if b51
+                                                                    then None
+                                                                    else 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then None
+                                                                    else 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_mod_one
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_mod_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_mod_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else 
                                                                     if b41
                                                                     then 
@@ -16844,6 +18854,138 @@ module Parser =
                                                                     else None
                                                                     else None)
                                                                     a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_mul_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
                                                                     else None
                                                                     else None
                                                                     else None)
@@ -17289,6 +19431,100 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then None
+                                                                    else 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_eq_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else None)
                                                                     a6)
                                                                     else None
@@ -17395,6 +19631,934 @@ module Parser =
                                                                     else None)
                                                                     a5)
                                                                     else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b41
+                                                                    then None
+                                                                    else 
+                                                                    if b42
+                                                                    then 
+                                                                    if b43
+                                                                    then 
+                                                                    if b44
+                                                                    then 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then None
+                                                                    else 
+                                                                    if b48
+                                                                    then None
+                                                                    else 
+                                                                    if b49
+                                                                    then None
+                                                                    else 
+                                                                    if b50
+                                                                    then None
+                                                                    else 
+                                                                    if b51
+                                                                    then 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then None
+                                                                    else 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then None
+                                                                    else 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_exp_one_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then None
+                                                                    else 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_exp_zero_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then None
+                                                                    else 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_exp_two_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_exp_x_one
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then 
+                                                                    if b106
+                                                                    then 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_exp_x_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
                                                                     else None
                                                                     else None
                                                                     else None
@@ -17661,6 +20825,250 @@ module Parser =
                                                                     a11)
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero_sub
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero_lt
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero_xor
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
                                                                     else None
                                                                     else None
                                                                     else None)
@@ -17668,6 +21076,280 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then None
+                                                                    else 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero3
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then None
+                                                                    else 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then None
+                                                                    else 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero2_gt
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero2_eq
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_iszero2_lt
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
                                                                     else None
                                                                     else None
                                                                     else None)
@@ -17862,7 +21544,8 @@ module Parser =
                                                                     else 
                                                                     (match s9 with
                                                                     | [] ->
-                                                                    None
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_or
                                                                     | a9::s10 ->
                                                                     (* If this appears, you're using Ascii internals. Please don't *)
  (fun f c ->
@@ -18013,6 +21696,436 @@ module Parser =
                                                                     a8)
                                                                     else None
                                                                     else None
+                                                                    else None
+                                                                    else 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a13::s14 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b111 b112 b113 b114 b115 b116 b117 b118 ->
+                                                                    if b111
+                                                                    then 
+                                                                    if b112
+                                                                    then 
+                                                                    if b113
+                                                                    then None
+                                                                    else 
+                                                                    if b114
+                                                                    then None
+                                                                    else 
+                                                                    if b115
+                                                                    then 
+                                                                    if b116
+                                                                    then 
+                                                                    if b117
+                                                                    then 
+                                                                    if b118
+                                                                    then None
+                                                                    else 
+                                                                    (match s14 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a14::s15 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b119 b120 b121 b122 b123 b124 b125 b126 ->
+                                                                    if b119
+                                                                    then 
+                                                                    if b120
+                                                                    then None
+                                                                    else 
+                                                                    if b121
+                                                                    then 
+                                                                    if b122
+                                                                    then None
+                                                                    else 
+                                                                    if b123
+                                                                    then None
+                                                                    else 
+                                                                    if b124
+                                                                    then 
+                                                                    if b125
+                                                                    then 
+                                                                    if b126
+                                                                    then None
+                                                                    else 
+                                                                    (match s15 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_coinbase
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a14)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a13)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then None
+                                                                    else 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_caller
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
                                                                     else None
                                                                     else None
                                                                     else 
@@ -18313,7 +22426,221 @@ module Parser =
                                                                     if b64
                                                                     then 
                                                                     if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
                                                                     then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_not
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_ffff
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
                                                                     else 
                                                                     if b66
                                                                     then 
@@ -18441,6 +22768,100 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_and_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else None)
                                                                     a7)
                                                                     else None
@@ -18544,7 +22965,104 @@ module Parser =
   f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
                                                                     (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
                                                                     if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
                                                                     then None
+                                                                    else 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_add_sub
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else 
                                                                     if b64
                                                                     then 
@@ -18932,6 +23450,517 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b34
+                                                                    then None
+                                                                    else 
+                                                                    if b35
+                                                                    then None
+                                                                    else 
+                                                                    if b36
+                                                                    then 
+                                                                    if b37
+                                                                    then 
+                                                                    if b38
+                                                                    then None
+                                                                    else 
+                                                                    (match s4 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a4::s5 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b39 b40 b41 b42 b43 b44 b45 b46 ->
+                                                                    if b39
+                                                                    then 
+                                                                    if b40
+                                                                    then None
+                                                                    else 
+                                                                    if b41
+                                                                    then None
+                                                                    else 
+                                                                    if b42
+                                                                    then None
+                                                                    else 
+                                                                    if b43
+                                                                    then None
+                                                                    else 
+                                                                    if b44
+                                                                    then 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then None
+                                                                    else 
+                                                                    if b48
+                                                                    then None
+                                                                    else 
+                                                                    if b49
+                                                                    then 
+                                                                    if b50
+                                                                    then 
+                                                                    if b51
+                                                                    then None
+                                                                    else 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then None
+                                                                    else 
+                                                                    if b57
+                                                                    then None
+                                                                    else 
+                                                                    if b58
+                                                                    then None
+                                                                    else 
+                                                                    if b59
+                                                                    then None
+                                                                    else 
+                                                                    if b60
+                                                                    then 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then None
+                                                                    else 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then None
+                                                                    else 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then None
+                                                                    else 
+                                                                    if b104
+                                                                    then None
+                                                                    else 
+                                                                    if b105
+                                                                    then 
+                                                                    if b106
+                                                                    then None
+                                                                    else 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a13::s14 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b111 b112 b113 b114 b115 b116 b117 b118 ->
+                                                                    if b111
+                                                                    then None
+                                                                    else 
+                                                                    if b112
+                                                                    then None
+                                                                    else 
+                                                                    if b113
+                                                                    then 
+                                                                    if b114
+                                                                    then None
+                                                                    else 
+                                                                    if b115
+                                                                    then None
+                                                                    else 
+                                                                    if b116
+                                                                    then 
+                                                                    if b117
+                                                                    then 
+                                                                    if b118
+                                                                    then None
+                                                                    else 
+                                                                    (match s14 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a14::s15 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b119 b120 b121 b122 b123 b124 b125 b126 ->
+                                                                    if b119
+                                                                    then None
+                                                                    else 
+                                                                    if b120
+                                                                    then 
+                                                                    if b121
+                                                                    then None
+                                                                    else 
+                                                                    if b122
+                                                                    then None
+                                                                    else 
+                                                                    if b123
+                                                                    then 
+                                                                    if b124
+                                                                    then 
+                                                                    if b125
+                                                                    then 
+                                                                    if b126
+                                                                    then None
+                                                                    else 
+                                                                    (match s15 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a15::s16 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b127 b128 b129 b130 b131 b132 b133 b134 ->
+                                                                    if b127
+                                                                    then 
+                                                                    if b128
+                                                                    then None
+                                                                    else 
+                                                                    if b129
+                                                                    then 
+                                                                    if b130
+                                                                    then None
+                                                                    else 
+                                                                    if b131
+                                                                    then None
+                                                                    else 
+                                                                    if b132
+                                                                    then 
+                                                                    if b133
+                                                                    then 
+                                                                    if b134
+                                                                    then None
+                                                                    else 
+                                                                    (match s16 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a16::s17 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b135 b136 b137 b138 b139 b140 b141 b142 ->
+                                                                    if b135
+                                                                    then 
+                                                                    if b136
+                                                                    then 
+                                                                    if b137
+                                                                    then None
+                                                                    else 
+                                                                    if b138
+                                                                    then None
+                                                                    else 
+                                                                    if b139
+                                                                    then 
+                                                                    if b140
+                                                                    then 
+                                                                    if b141
+                                                                    then 
+                                                                    if b142
+                                                                    then None
+                                                                    else 
+                                                                    (match s17 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a17::s18 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b143 b144 b145 b146 b147 b148 b149 b150 ->
+                                                                    if b143
+                                                                    then 
+                                                                    if b144
+                                                                    then 
+                                                                    if b145
+                                                                    then None
+                                                                    else 
+                                                                    if b146
+                                                                    then None
+                                                                    else 
+                                                                    if b147
+                                                                    then 
+                                                                    if b148
+                                                                    then 
+                                                                    if b149
+                                                                    then 
+                                                                    if b150
+                                                                    then None
+                                                                    else 
+                                                                    (match s18 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_balance_address
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a17)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a16)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a15)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a14)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a13)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a4)
+                                                                    else None
                                                                     else None
                                                                     else 
                                                                     if b33
@@ -19170,6 +24199,162 @@ module Parser =
                                                                     a9)
                                                                     else None
                                                                     else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then None
+                                                                    else 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then None
+                                                                    else 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then None
+                                                                    else 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then 
+                                                                    if b96
+                                                                    then 
+                                                                    if b97
+                                                                    then 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_lt_x_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_lt_x_x
+                                                                    | _::_ ->
+                                                                    None)
                                                                     else None
                                                                     else None
                                                                     else None
@@ -19499,6 +24684,232 @@ module Parser =
                                                                     else None
                                                                     else None
                                                                     else None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_div_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_div_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
                                                                     else None)
                                                                     a7)
                                                                     else None
@@ -19519,6 +24930,416 @@ module Parser =
                                                                     else None
                                                                     else None)
                                                                     a4)
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b34
+                                                                    then 
+                                                                    if b35
+                                                                    then 
+                                                                    if b36
+                                                                    then 
+                                                                    if b37
+                                                                    then 
+                                                                    if b38
+                                                                    then None
+                                                                    else 
+                                                                    (match s4 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a4::s5 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b39 b40 b41 b42 b43 b44 b45 b46 ->
+                                                                    if b39
+                                                                    then 
+                                                                    if b40
+                                                                    then 
+                                                                    if b41
+                                                                    then 
+                                                                    if b42
+                                                                    then 
+                                                                    if b43
+                                                                    then None
+                                                                    else 
+                                                                    if b44
+                                                                    then 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then None
+                                                                    else 
+                                                                    if b48
+                                                                    then 
+                                                                    if b49
+                                                                    then None
+                                                                    else 
+                                                                    if b50
+                                                                    then None
+                                                                    else 
+                                                                    if b51
+                                                                    then 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then None
+                                                                    else 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then None
+                                                                    else 
+                                                                    if b64
+                                                                    then 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then 
+                                                                    if b90
+                                                                    then 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_xor_zero
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else 
+                                                                    if b65
+                                                                    then None
+                                                                    else 
+                                                                    if b66
+                                                                    then 
+                                                                    if b67
+                                                                    then 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then 
+                                                                    if b73
+                                                                    then 
+                                                                    if b74
+                                                                    then 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then None
+                                                                    else 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then None
+                                                                    else 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_xor_x_x
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then None
+                                                                    else 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then None
+                                                                    else 
+                                                                    if b82
+                                                                    then None
+                                                                    else 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.OPT_xor_xor
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a4)
+                                                                    else None
                                                                     else None
                                                                     else None
                                                                     else None)
