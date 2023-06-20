@@ -85,11 +85,11 @@ def split_bytecode(raw_instruction_str: str) -> List[str]:
                 meta_operand = f'{keyword_to_id(op)}'
                 operand = f'0x{ops[i+1]}'
                 i = i + 1
-            elif op == "PUSH" and ops[i+1] == "[tag]":
-                final_op = "METAPUSH"
-                meta_operand = f'{keyword_to_id(ops[i+1])}'
-                operand = f'0x0'
-                i = i + 2
+#            elif op == "PUSH" and ops[i+1] == "[tag]":  # splitted fom the next case due to a bug in PUSH [tag]
+#                final_op = "METAPUSH"
+#                meta_operand = f'{keyword_to_id(ops[i+1])}'
+#                operand = f'0x0'
+#                i = i + 2
             elif op == "PUSH" and is_pseudo_keyword(ops[i+1]):
                 final_op = "METAPUSH"
                 meta_operand = f'{keyword_to_id(ops[i+1])}'
