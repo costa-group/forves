@@ -146,7 +146,29 @@ Module StorageOpsSolversImplSoundness.
                auto.
 
     (* correcrt *)
-    - 
+    - unfold sload_solver_correct_res.
+      intros m sstrg skey instk_height smv ops idx1 m1.
+      intros H_valid_smap H_valid_sstrg H_valid_skey H_basic_sload_solver H_add_to_smap.
+      induction sstrg as [| u sstrg' IH_sstrg'].
+      + simpl in H_basic_sload_solver.
+        rewrite <- H_basic_sload_solver in H_add_to_smap.
+        exists idx1. exists m1.        
+        split; try auto.
+        intros stk mem strg ctx H_len_stk.
+        symmetry in H_len_stk.
+        pose proof (symsload_valid_smv instk_height (get_maxidx_smap m) skey [] ops H_valid_skey H_valid_sstrg) as H_valid_smv.
+        pose proof (add_to_smap_valid_smap instk_height idx1 m m1 (SymSLOAD skey []) ops H_valid_smap H_valid_smv H_add_to_smap) as H_valid_m1.
+        assert (H_add_to_smap' := H_add_to_smap).
+        symmetry in H_add_to_smap'.
+        pose proof (add_to_smap_key_lt_maxidx m m1 idx1 (SymSLOAD skey []) H_add_to_smap') as H_idx1_lt_maxidx_m1.
+        pose proof (valid_sstack_val_freshvar instk_height (get_maxidx_smap m1) idx1 H_idx1_lt_maxidx_m1) as H_valid_fresh_idx1.
+        unfold valid_smap in H_valid_m1.
+        pose proof (eval_sstack_val_succ (get_bindings_smap m1) instk_height (FreshVar idx1) stk mem strg ctx (get_maxidx_smap m1) ops H_len_stk H_valid_fresh_idx1 H_valid_m1) as H_eval_sstack_val.        
+        destruct H_eval_sstack_val as [v H_eval_sstack_val].
+        exists v.
+        rewrite H_eval_sstack_val.
+        split; reflexivity.
+        
       
             
     
