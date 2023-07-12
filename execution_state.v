@@ -54,7 +54,7 @@ Inductive chunk :=
 | Chunk (size : nat) (content : word size).
 
 Inductive context :=
-Ctx
+| Ctx
   (address : EVMAddr)
   (balance : EVMAddr -> EVMWord)
   (origin : EVMAddr)

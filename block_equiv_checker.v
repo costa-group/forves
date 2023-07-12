@@ -624,7 +624,6 @@ Definition evm_eq_block_chkr'
   (smemory_cmp_ext: smemory_cmp_ext_t)
   (sstorage_cmp_ext: sstorage_cmp_ext_t)
   (sha3_cmp_ext: sha3_cmp_ext_t)
-  (*(opt: optim)*)
   (opt_pipeline: opt_pipeline)
   (opt_step_rep: nat)
   (opt_pipeline_rep: nat)
@@ -671,7 +670,6 @@ Definition evm_eq_block_chkr
   (storage_cmp_tag: available_storage_cmp)
   (sha3_cmp_tag: available_sha3_cmp)
   
-  (*(opt: optim)*)
   (optimization_steps: list_opt_steps)
   (opt_step_rep: nat)
   (opt_pipeline_rep: nat)
@@ -754,7 +752,52 @@ Definition evm_eq_block_chkr_lazy
           end
       end
   end.
-  
 
+
+Definition checker_type := block -> block -> nat -> bool.
+
+Definition sem_eq_blocks (p1 p2: block) (k: nat) : Prop :=
+forall (in_st: state),
+length (get_stack_st in_st) = k ->
+exists (out_st1 out_st2 : state),
+evm_exec_block_c p1 in_st evm_stack_opm = Some out_st1 /\
+evm_exec_block_c p2 in_st evm_stack_opm = Some out_st2 /\
+eq_execution_states out_st1 out_st2.
+
+Definition eq_block_chkr_snd (chkr : checker_type) : Prop :=
+forall (p1 p2: block) (k: nat),
+chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k.
+
+Search apply_opt_n_times_pipeline_k.
+
+(* TODO
+Lemma evm_eq_block_chkr'_snd: forall
+  (memory_updater: smemory_updater_ext_type) 
+  (storage_updater: sstorage_updater_ext_type)
+  (mload_solver: mload_solver_ext_type) 
+  (sload_solver: sload_solver_ext_type)
+  (sstack_value_cmp_ext: sstack_val_cmp_ext_2_t)
+  (smemory_cmp_ext: smemory_cmp_ext_t)
+  (sstorage_cmp_ext: sstorage_cmp_ext_t)
+  (sha3_cmp_ext: sha3_cmp_ext_t)
+  (opt_pipeline: opt_pipeline)
+  (opt_step_rep: nat)
+  (opt_pipeline_rep: nat)
+  (opt_p p: block)
+  (k: nat),
+smemory_updater_ext_snd memory_updater ->
+sstorage_updater_ext_snd storage_updater ->
+mload_solver_ext_snd mload_solver ->
+sload_solver_ext_snd sload_solver ->
+safe_sstack_value_cmp_wrt_others sstack_value_cmp_ext -> (* Not sure *)
+safe_smemory_cmp_ext_wrt_sstack_value_cmp smemory_cmp_ext_t -> (* Not sure *)
+(* Something about the sstorage_cmp_ext!! *)
+safe_sha3_cmp_ext_wrt_sstack_value_cmp sha3_cmp_ext ->
+evm_eq_block_chkr' memory_updater storage_updater mload_solver
+  sload_solver sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext
+  sha3_cmp_ext opt_pipeline opt_step_rep opt_pipeline_rep
+  opt_p p k = true ->
+sem_eq_blocks opt_p p k.
+*)
 
 End BlockEquivChecker.
