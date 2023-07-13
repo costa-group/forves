@@ -768,9 +768,8 @@ Definition eq_block_chkr_snd (chkr : checker_type) : Prop :=
 forall (p1 p2: block) (k: nat),
 chkr p1 p2 k = true -> sem_eq_blocks p1 p2 k.
 
-Search apply_opt_n_times_pipeline_k.
+Print safe_sstack_val_cmp.
 
-(* TODO
 Lemma evm_eq_block_chkr'_snd: forall
   (memory_updater: smemory_updater_ext_type) 
   (storage_updater: sstorage_updater_ext_type)
@@ -789,15 +788,53 @@ smemory_updater_ext_snd memory_updater ->
 sstorage_updater_ext_snd storage_updater ->
 mload_solver_ext_snd mload_solver ->
 sload_solver_ext_snd sload_solver ->
-safe_sstack_value_cmp_wrt_others sstack_value_cmp_ext -> (* Not sure *)
-safe_smemory_cmp_ext_wrt_sstack_value_cmp smemory_cmp_ext_t -> (* Not sure *)
+(*safe_smemory_cmp_ext_wrt_sstack_value_cmp smemory_cmp_ext_t -> (* Not sure *)
 (* Something about the sstorage_cmp_ext!! *)
-safe_sha3_cmp_ext_wrt_sstack_value_cmp sha3_cmp_ext ->
+safe_sha3_cmp_ext_wrt_sstack_value_cmp sha3_cmp_ext ->*)
 evm_eq_block_chkr' memory_updater storage_updater mload_solver
   sload_solver sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext
   sha3_cmp_ext opt_pipeline opt_step_rep opt_pipeline_rep
   opt_p p k = true ->
 sem_eq_blocks opt_p p k.
-*)
+Proof.
+intros memory_updater storage_updater mload_solver sload_solver 
+  sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext
+  sha3_cmp_ext opt_pipeline opt_step_rep opt_pipeline_rep opt_p p k.
+intros Hsmemory_updater_snd Hsstorage_updater_snd Hmload_solver_snd
+  Hsstorage_solver_snd Hblock_chckr'.
+unfold evm_eq_block_chkr' in Hblock_chckr'.
+destruct 
+(evm_sym_exec
+  (memory_updater (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (storage_updater (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (mload_solver (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (sload_solver (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext)) opt_p k
+  evm_stack_opm) as [sst_opt|] eqn: eq_evm_sym_exec_opt_p; try discriminate.
+destruct 
+(evm_sym_exec
+  (memory_updater (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (storage_updater (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (mload_solver (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext))
+  (sload_solver (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext)) p k
+  evm_stack_opm) as [sst_p|] eqn: eq_evm_sym_exec_p; try discriminate.
+destruct 
+(apply_opt_n_times_pipeline_k opt_pipeline
+   (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext
+   (S
+     (Nat.max (get_maxidx_smap (get_smap_sst sst_opt))
+       (get_maxidx_smap (get_smap_sst sst_p))))) opt_step_rep opt_pipeline_rep sst_opt)
+       as [sst_opt' b1] eqn: apply_opt_sst_opt.
+destruct
+(apply_opt_n_times_pipeline_k opt_pipeline
+  (sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext
+    (S
+      (Nat.max (get_maxidx_smap (get_smap_sst sst_opt))
+        (get_maxidx_smap (get_smap_sst sst_p))))) opt_step_rep opt_pipeline_rep sst_p)
+        as [sst_p' b2] eqn: apply_opt_sst_p.
+        
+unfold sem_eq_blocks.
+intros in_st.
+intros Hlen.
+Admitted.
 
 End BlockEquivChecker.
