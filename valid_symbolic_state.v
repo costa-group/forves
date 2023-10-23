@@ -26,7 +26,6 @@ Require Import FORVES.symbolic_state.
 Import SymbolicState.
 
 
-
 Module ValidSymbolicState.
 
 

@@ -64,7 +64,7 @@ Definition dummy_symbolic_state_cmp : symbolic_state_cmp :=
   fun (sst2: sstate) =>
   fun (ops: stack_op_instr_map) => 
   false.
-  
+
 Lemma dummy_symbolic_state_cmp_snd: symbolic_state_cmp_snd dummy_symbolic_state_cmp.
 Proof.
 unfold symbolic_state_cmp_snd.
@@ -246,7 +246,6 @@ Proof.
   apply H_ext_2.
 Qed.
 
-
 Lemma safe_ext_smemory_sstorage_sha3_cmp:
   forall (smemory_cmp: smemory_cmp_ext_t) (sstorage_cmp: sstorage_cmp_ext_t) (sha3_cmp: sha3_cmp_ext_t) (sstack_val_cmp: sstack_val_cmp_ext_2_t),
     sstack_val_cmp_fail_for_d_eq_0 sstack_val_cmp ->
@@ -403,6 +402,7 @@ Lemma safe_all_cmp:
 Proof.
   intros smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval.
   intro d.
+
 
   pose proof (safe_ext_all_cmp smemory_cmp sstorage_cmp sha3_cmp sstack_val_cmp H_d0 H_s_mem H_s_strg H_s_sha3 H_s_ssval) as [H_safe_sstack_val_cmp_ext [H_safe_smemory_cmp_ext [H_safe_sstorage_cmp_ext H_safe_sha3_cmp_ext]]].
 
