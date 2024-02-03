@@ -78,7 +78,7 @@ forall (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage)
   instk_height = length stk ->
   eval_sstack_val sv stk mem strg ctx maxidx sb1 ops = Some v ->
   eval_sstack_val sv stk mem strg ctx maxidx sb2 ops = Some v.
-  
+
 (* Type of a function that optimizes a single smap_value *)
 Definition opt_smap_value_type := 
   smap_value ->            (* val *)

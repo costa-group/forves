@@ -52,7 +52,7 @@ Definition trivial_sstorage_updater (sstack_val_cmp: sstack_val_cmp_ext_1_t) (up
   (update::sstrg).
 
 
-Definition not_eq_keys (skey skey': sstack_val) (maxidx: nat) (sb: sbindings) : bool :=
+Definition not_eq_keys (skey skey': sstack_val) (maxidx: nat) (sb: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
   match follow_in_smap skey maxidx sb, follow_in_smap skey' maxidx sb with
   | Some (FollowSmapVal (SymBasicVal (Val v1)) _ _), Some (FollowSmapVal (SymBasicVal (Val v2)) _ _) => negb (weqb v1 v2)
   | _, _ => false
@@ -65,21 +65,21 @@ Fixpoint basic_sload_solver (sstack_val_cmp: sstack_val_cmp_ext_1_t) (skey: ssta
       if sstack_val_cmp (S (get_maxidx_smap m)) skey skey' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
         SymBasicVal svalue
       else
-        if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) then
+        if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
           basic_sload_solver sstack_val_cmp skey sstrg' instk_height m ops
         else
           SymSLOAD skey sstrg
   end.
 
 
-Fixpoint basic_sload_updater_remove_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t) (skey: sstack_val) (sstrg: sstorage) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
+Fixpoint basic_sstorage_updater_remove_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t) (skey: sstack_val) (sstrg: sstorage) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
   match sstrg with
   | [] => []
   | (U_SSTORE _ skey' svalue)::sstrg' =>
       if sstack_val_cmp (S (get_maxidx_smap m)) skey skey' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
-        basic_sload_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
-      else if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) then
-             (U_SSTORE sstack_val skey' svalue)::(basic_sload_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops)
+        basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
+      else if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
+             (U_SSTORE sstack_val skey' svalue)::(basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops)
            else
              sstrg
   end.
@@ -87,7 +87,7 @@ Fixpoint basic_sload_updater_remove_dups (sstack_val_cmp: sstack_val_cmp_ext_1_t
 Definition basic_sstorage_updater (sstack_val_cmp: sstack_val_cmp_ext_1_t) (update: storage_update sstack_val) (sstrg: sstorage) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=
   match update with
   | U_SSTORE _ skey _ =>
-      update::(basic_sload_updater_remove_dups sstack_val_cmp skey sstrg instk_height m ops)
+      update::(basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg instk_height m ops)
   end.
 
 End StorageOpsSolversImpl.

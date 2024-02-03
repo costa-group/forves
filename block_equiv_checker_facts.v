@@ -120,7 +120,7 @@ Lemma evm_eq_block_chkr'_snd: forall
     safe_sstorage_cmp_ext_wrt_sstack_value_cmp sstorage_cmp_ext ->
     safe_sha3_cmp_ext_wrt_sstack_value_cmp sha3_cmp_ext ->
     safe_sstack_value_cmp_wrt_others sstack_value_cmp_ext ->
-    
+
     eq_block_chkr_snd (evm_eq_block_chkr' memory_updater storage_updater mload_solver sload_solver sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext opt_pipeline opt_step_rep opt_pipeline_rep).
 Proof.
   intros memory_updater storage_updater mload_solver sload_solver sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext opt_pipeline opt_step_rep opt_pipeline_rep H_smemory_updater_ext_snd H_sstorage_updater_ext_snd H_mload_solver_ext_snd H_sload_solver_ext_snd H_sstack_val_cmp_fail_for_d_eq_0 H_safe_smemory_cmp_ext_wrt_sstack_value_cmp H_safe_sstorage_cmp_ext_wrt_sstack_value_cmp H_safe_sha3_cmp_ext_wrt_sstack_value_cmp H_safe_sstack_value_cmp_wrt_others.

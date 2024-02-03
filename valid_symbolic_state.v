@@ -354,15 +354,16 @@ Lemma valid_sbinings_S_maxidx:
     valid_bindings instk_height maxidx (u::sb) ops ->
     valid_bindings instk_height (S maxidx) (u::sb) ops.
 Proof.
-  intros instk_height maxidx ops u sb.
-  revert sb.
+  intros instk_height maxidx ops u.
   induction sb as [|x sb' IHsb'].
-  - intros H_maxidx.
+  - intros H_valid_bs.
+    simpl.
+    intros H_maxidx.
     destruct u.
     simpl in H_maxidx.
     destruct maxidx; try discriminate.
     simpl.
- *)
+*)
 
 Lemma valid_smemory_update_S_maxidx:
   forall instk_height maxidx u,
@@ -904,6 +905,16 @@ Proof.
   intros instk_height idx.
   simpl.
   intuition.
+Qed.
+
+Lemma valid_sstack_val_lt_stklen:
+  forall i instk_height maxidx,
+    i < instk_height ->
+    valid_sstack_value instk_height maxidx (InStackVar i).
+Proof.
+  intros i instk_height maxidz  H_i_lt_stkh.
+  unfold valid_sstack_value.
+  apply H_i_lt_stkh.
 Qed.
 
 End ValidSymbolicState.

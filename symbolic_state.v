@@ -1,6 +1,7 @@
 Require Import bbv.Word.
 Require Import Nat. 
 Require Import Coq.NArith.NArith.
+Require Import Arith.   
 
 Require Import FORVES.constants.
 Import Constants.
@@ -365,7 +366,38 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma follow_smap_first_match:
+forall idx smv sb,
+  is_fresh_var_smv smv = None ->
+  follow_in_smap (FreshVar idx) (S idx) ((idx, smv) :: sb ) = Some (FollowSmapVal smv idx sb).
+Proof.
+  intros idx smv sb H_is_fresh_var.
+  simpl.
+  rewrite Nat.eqb_refl with (x:=idx).
+  rewrite H_is_fresh_var.
+  reflexivity.
+Qed.
 
 
+(* Some (FollowSmapVal (SymBasicVal (Val v)) maxidx sb)
+  | InStackVar n => Some (FollowSmapVal (SymBasicVal (InStackVar n)) maxidx sb) *)
 
+Lemma follow_smap_V:
+  forall v idx sb,
+  follow_in_smap (Val v) idx  sb = Some (FollowSmapVal (SymBasicVal (Val v)) idx sb).
+Proof.
+  intros v idx sb.
+  destruct sb; try reflexivity.
+Qed.
+
+Lemma follow_smap_InStackVar:
+  forall n idx sb,
+  follow_in_smap (InStackVar n) idx  sb = Some (FollowSmapVal (SymBasicVal (InStackVar n)) idx sb).
+Proof.
+  intros n idx sb.
+  destruct sb; try reflexivity.
+Qed.
+  
 End SymbolicState.
+
+
