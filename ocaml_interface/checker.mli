@@ -22,7 +22,7 @@ type comparison =
 | Lt
 | Gt
 
-val id : 'a1 -> 'a1
+val id : __ -> __
 
 type uint =
 | Nil
@@ -64,6 +64,8 @@ val eqb0 : bool -> bool -> bool
 module Nat :
  sig
   val add : nat -> nat -> nat
+
+  val eqb : nat -> nat -> bool
 
   val leb : nat -> nat -> bool
 
@@ -1385,14 +1387,15 @@ module StorageOpsSolversImpl :
     SymbolicState.sstack_val SymbolicState.storage_update list
 
   val not_eq_keys :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
 
   val basic_sload_solver :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
     SymbolicState.sstorage -> nat -> SymbolicState.smap ->
     StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
 
-  val basic_sload_updater_remove_dups :
+  val basic_sstorage_updater_remove_dups :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
     SymbolicState.sstorage -> nat -> SymbolicState.smap ->
     StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val

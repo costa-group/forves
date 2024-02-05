@@ -14,6 +14,15 @@ let read_line () =
     if not (String.length !line == 0 || String.get !line 0 == '#') then quit_loop := true;
   done;
   !line;;
+  
+let read_line_from_in_channel ic () =
+  let quit_loop = ref false in
+  let line = ref " " in
+  while not !quit_loop do
+    line := input_line ic;
+    if not (String.length !line == 0 || String.get !line 0 == '#') then quit_loop := true;
+  done;
+  !line;;  
 
 
 (* Command line arguments *)
@@ -28,6 +37,7 @@ let storage_cmp = ref "trivial"
 let sha3_cmp = ref "trivial"
 let opt_step_rep = ref "1"
 let opt_pipeline_rep = ref "1"
+let filename_rep= ref ""
 
 let usage_msg = "checker [options] < filename"
 
@@ -44,6 +54,7 @@ let process_storage_cmp s = storage_cmp := s
 let process_sha3_cmp s = sha3_cmp := s
 let process_opt_step_rep s = opt_step_rep := s
 let process_opt_pipeline_rep s = opt_pipeline_rep := s
+let process_filename s = filename_rep := s
 
 let speclist =
   [
@@ -68,7 +79,8 @@ let speclist =
     ("-strg_c", Arg.String process_storage_cmp, "storage comparator");
     ("-sha3_c",  Arg.String process_sha3_cmp, "sha3 comparator");
     ("-opt_rep",  Arg.String process_opt_step_rep, "repetitions of each optimization");
-    ("-pipeline_rep",  Arg.String process_opt_pipeline_rep, "optimization pipeline repetitions")
+    ("-pipeline_rep",  Arg.String process_opt_pipeline_rep, "optimization pipeline repetitions");
+    ("-i", Arg.String process_filename, "Input file (standard input if not provided)")
   ]
 
 
@@ -80,11 +92,22 @@ let main () =
   | None -> Printf.printf "Invalid configuration\n";
   | Some chkr ->
       let i = ref 0 in
+      let ic = if (String.length !filename_rep == 0) then stdin else open_in !filename_rep in
       try
         while true do
+          (*
           let p_opt = read_line() in (* read the optimized block *)
           let p = read_line() in     (* read the original block *)
           let k = read_line() in     (* read input statck size *)
+          *) 
+          let p_opt = read_line_from_in_channel ic () in
+          let p = read_line_from_in_channel ic () in
+          let k = read_line_from_in_channel ic () in
+          (*
+          print_endline p_opt;
+          print_endline p;
+          print_endline k;
+          *)
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
           let r = chkr (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
           (* print the result *)
