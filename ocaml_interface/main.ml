@@ -37,10 +37,10 @@ let storage_cmp = ref "trivial"
 let sha3_cmp = ref "trivial"
 let opt_step_rep = ref "1"
 let opt_pipeline_rep = ref "1"
-let filename_rep= ref ""
+let in_filename_rep= ref ""
+let out_filename_rep= ref ""
 
-let usage_msg = "checker [options] < filename"
-
+let usage_msg = Printf.sprintf "\nUsage:\n%s [options] < filename\n or\n%s -i filename [options]\n" Sys.argv.(0) Sys.argv.(0)
 
 let anon_fun filename = raise (Arg.Bad "invalid anonymous argument")
 let process_opts s = opts_to_apply := List.map charlist_of_string (Str.split (Str.regexp "[,]+") s)
@@ -54,7 +54,8 @@ let process_storage_cmp s = storage_cmp := s
 let process_sha3_cmp s = sha3_cmp := s
 let process_opt_step_rep s = opt_step_rep := s
 let process_opt_pipeline_rep s = opt_pipeline_rep := s
-let process_filename s = filename_rep := s
+let process_in_filename s = in_filename_rep := s
+let process_out_filename s = out_filename_rep := s
 
 let speclist =
   [
@@ -80,7 +81,8 @@ let speclist =
     ("-sha3_c",  Arg.String process_sha3_cmp, "sha3 comparator");
     ("-opt_rep",  Arg.String process_opt_step_rep, "repetitions of each optimization");
     ("-pipeline_rep",  Arg.String process_opt_pipeline_rep, "optimization pipeline repetitions");
-    ("-i", Arg.String process_filename, "Input file (standard input if not provided)")
+    ("-i", Arg.String process_in_filename, "Input file (standard input if not provided)");
+    ("-o", Arg.String process_out_filename, "Output file (standard output if not provided)")
   ]
 
 
@@ -92,31 +94,26 @@ let main () =
   | None -> Printf.printf "Invalid configuration\n";
   | Some chkr ->
       let i = ref 0 in
-      let ic = if (String.length !filename_rep == 0) then stdin else open_in !filename_rep in
+      let ic = if (String.length !in_filename_rep == 0)  then stdin  else open_in  !in_filename_rep  in
+      let oc = if (String.length !out_filename_rep == 0) then stdout else open_out !out_filename_rep in
       try
         while true do
-          (*
-          let p_opt = read_line() in (* read the optimized block *)
-          let p = read_line() in     (* read the original block *)
-          let k = read_line() in     (* read input statck size *)
-          *) 
-          let p_opt = read_line_from_in_channel ic () in
-          let p = read_line_from_in_channel ic () in
-          let k = read_line_from_in_channel ic () in
-          (*
-          print_endline p_opt;
+          let p_opt = read_line_from_in_channel ic () in (* read the optimized block *)
+          let p = read_line_from_in_channel ic () in     (* read the original block *)
+          let k = read_line_from_in_channel ic () in     (* read input statck size *)
+          (* print_endline p_opt;
           print_endline p;
-          print_endline k;
-          *)
+          print_endline k; *)
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
           let r = chkr (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
           (* print the result *)
           match r with
-          | None -> Printf.printf "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;
+          | None -> Printf.fprintf oc "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;
                     i := !i+1;
-          | Some b -> Printf.printf "Example %d: %B\n" !i b;
+          | Some b -> Printf.fprintf oc "Example %d: %B\n" !i b;
                     i := !i+1;
-        done
+        done;
+        close_out oc; (* Flushes write operations and closes out file *)
       with
       | End_of_file -> ();
       | e -> raise e;;
