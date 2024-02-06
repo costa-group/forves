@@ -139,6 +139,10 @@ Require Import FORVES.optimizations.and_coinbase.
 Import Opt_and_coinbase.
 Require Import FORVES.optimizations.balance_address.
 Import Opt_balance_address.
+Require Import FORVES.optimizations.slt_x_x.
+Import Opt_slt_x_x.
+Require Import FORVES.optimizations.sgt_x_x.
+Import Opt_sgt_x_x.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -405,6 +409,8 @@ Inductive available_optimization_step :=
 | OPT_and_ffff
 | OPT_and_coinbase
 | OPT_balance_address
+| OPT_slt_x_x
+| OPT_sgt_x_x
 .
 
 
@@ -474,6 +480,8 @@ match tag with
 | OPT_and_ffff => OpEntry optimize_and_ffff_sbinding optimize_and_ffff_sbinding_snd
 | OPT_and_coinbase => OpEntry optimize_and_coinbase_sbinding optimize_and_coinbase_sbinding_snd
 | OPT_balance_address => OpEntry optimize_balance_address_sbinding optimize_balance_address_sbinding_snd
+| OPT_slt_x_x => OpEntry optimize_slt_x_x_sbinding optimize_slt_x_x_sbinding_snd
+| OPT_sgt_x_x => OpEntry optimize_sgt_x_x_sbinding optimize_sgt_x_x_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -540,7 +548,9 @@ Definition all_optimization_steps :=
    OPT_or_ffff;
    OPT_and_ffff;
    OPT_and_coinbase;
-   OPT_balance_address
+   OPT_balance_address;
+   OPT_slt_x_x;
+   OPT_sgt_x_x
 ].
 
 Definition all_optimization_steps' := 
@@ -607,7 +617,9 @@ Definition all_optimization_steps' :=
    OPT_or_ffff;
    OPT_and_ffff;
    OPT_and_coinbase;
-   OPT_balance_address
+   OPT_balance_address;
+   OPT_slt_x_x;
+   OPT_sgt_x_x   
 ].
 
   

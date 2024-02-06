@@ -45,6 +45,13 @@ type comparison =
 | Lt
 | Gt
 
+(** val compOpp : comparison -> comparison **)
+
+let compOpp = function
+| Eq -> Eq
+| Lt -> Gt
+| Gt -> Lt
+
 (** val id : __ -> __ **)
 
 let id x =
@@ -185,6 +192,11 @@ type positive =
 type n =
 | N0
 | Npos of positive
+
+type z =
+| Z0
+| Zpos of positive
+| Zneg of positive
 
 module Pos =
  struct
@@ -583,6 +595,32 @@ let rec seq start = function
 | O -> []
 | S len0 -> start::(seq (S start) len0)
 
+module Z =
+ struct
+  (** val compare : z -> z -> comparison **)
+
+  let compare x y =
+    match x with
+    | Z0 -> (match y with
+             | Z0 -> Eq
+             | Zpos _ -> Lt
+             | Zneg _ -> Gt)
+    | Zpos x' -> (match y with
+                  | Zpos y' -> Coq_Pos.compare x' y'
+                  | _ -> Gt)
+    | Zneg x' ->
+      (match y with
+       | Zneg y' -> compOpp (Coq_Pos.compare x' y')
+       | _ -> Lt)
+
+  (** val ltb : z -> z -> bool **)
+
+  let ltb x y =
+    match compare x y with
+    | Lt -> true
+    | _ -> false
+ end
+
 (** val n_of_digits : bool list -> n **)
 
 let rec n_of_digits = function
@@ -696,6 +734,13 @@ let nToWord sz = function
 let rec wones = function
 | O -> WO
 | S sz' -> WS (true, sz', (wones sz'))
+
+(** val wmsb : nat -> word -> bool -> bool **)
+
+let rec wmsb _ w a =
+  match w with
+  | WO -> a
+  | WS (b, n0, x) -> wmsb n0 x b
 
 (** val whd : nat -> word -> bool **)
 
@@ -812,6 +857,17 @@ let wand =
 
 let wxor =
   bitwp xorb
+
+(** val wordToZ : nat -> word -> z **)
+
+let wordToZ sz w =
+  if wmsb sz w false
+  then (match wordToN sz (wneg sz w) with
+        | N0 -> Z0
+        | Npos x -> Zneg x)
+  else (match wordToN sz w with
+        | N0 -> Z0
+        | Npos x -> Zpos x)
 
 (** val wlshift' : nat -> word -> nat -> word **)
 
@@ -1532,15 +1588,33 @@ module StackOpInstrs =
       ExecutionState.context -> Constants.coq_EVMWord list ->
       Constants.coq_EVMWord **)
 
-  let evm_slt _ _ =
-    Constants.coq_WZero
+  let evm_slt _ = function
+  | [] -> Constants.coq_WZero
+  | a::l ->
+    (match l with
+     | [] -> Constants.coq_WZero
+     | b::l0 ->
+       (match l0 with
+        | [] ->
+          if Z.ltb (wordToZ Constants.coq_EVMWordSize a)
+               (wordToZ Constants.coq_EVMWordSize b)
+          then Constants.coq_WOne
+          else Constants.coq_WZero
+        | _::_ -> Constants.coq_WZero))
 
   (** val evm_sgt :
       ExecutionState.context -> Constants.coq_EVMWord list ->
       Constants.coq_EVMWord **)
 
-  let evm_sgt _ _ =
-    Constants.coq_WZero
+  let evm_sgt ctx = function
+  | [] -> Constants.coq_WZero
+  | a::l ->
+    (match l with
+     | [] -> Constants.coq_WZero
+     | b::l0 ->
+       (match l0 with
+        | [] -> evm_slt ctx (b::(a::[]))
+        | _::_ -> Constants.coq_WZero))
 
   (** val evm_eq :
       ExecutionState.context -> Constants.coq_EVMWord list ->
@@ -2086,12 +2160,12 @@ module StackOpInstrs =
                                       evm_iszero, None, (Some __))))
                                     Program.EQ (OpImp ((S (S O)), evm_eq,
                                     (Some __), (Some __)))) Program.SGT
-                                  (OpImp ((S (S O)), evm_sgt, None, None)))
-                                Program.SLT (OpImp ((S (S O)), evm_slt, None,
-                                None))) Program.GT (OpImp ((S (S O)), evm_gt,
-                              None, (Some __)))) Program.LT (OpImp ((S (S
-                            O)), evm_lt, None, (Some __))))
-                          Program.SIGNEXTEND (OpImp ((S (S O)),
+                                  (OpImp ((S (S O)), evm_sgt, None, (Some
+                                  __)))) Program.SLT (OpImp ((S (S O)),
+                                evm_slt, None, (Some __)))) Program.GT (OpImp
+                              ((S (S O)), evm_gt, None, (Some __))))
+                            Program.LT (OpImp ((S (S O)), evm_lt, None, (Some
+                            __)))) Program.SIGNEXTEND (OpImp ((S (S O)),
                           evm_signextend, None, None))) Program.EXP (OpImp
                         ((S (S O)), evm_exp, None, (Some __))))
                       Program.MULMOD (OpImp ((S (S (S O))), evm_mulmod, None,
@@ -4950,6 +5024,60 @@ module Opt_balance_address =
     | _ -> val0 , false
  end
 
+module Opt_slt_x_x =
+ struct
+  (** val optimize_slt_x_x_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_slt_x_x_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.SLT ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 arg2 maxid sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
+module Opt_sgt_x_x =
+ struct
+  (** val optimize_sgt_x_x_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_sgt_x_x_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymOp (label, args) ->
+      (match label with
+       | Program.SGT ->
+         (match args with
+          | [] -> val0 , false
+          | arg1::l ->
+            (match l with
+             | [] -> val0 , false
+             | arg2::l0 ->
+               (match l0 with
+                | [] ->
+                  if fcmp arg1 arg2 maxid sb maxid sb instk_height ops
+                  then (SymbolicState.SymBasicVal (SymbolicState.Val
+                         Constants.coq_WZero)) , true
+                  else val0 , false
+                | _::_ -> val0 , false)))
+       | _ -> val0 , false)
+    | _ -> val0 , false
+ end
+
 module MemoryOpsSolvers =
  struct
   type mload_solver_type =
@@ -6192,6 +6320,8 @@ module BlockEquivChecker =
   | OPT_and_ffff
   | OPT_and_coinbase
   | OPT_balance_address
+  | OPT_slt_x_x
+  | OPT_sgt_x_x
 
   type list_opt_steps = available_optimization_step list
 
@@ -6262,16 +6392,18 @@ module BlockEquivChecker =
   | OPT_and_coinbase -> Opt_and_coinbase.optimize_and_coinbase_sbinding
   | OPT_balance_address ->
     Opt_balance_address.optimize_balance_address_sbinding
+  | OPT_slt_x_x -> Opt_slt_x_x.optimize_slt_x_x_sbinding
+  | OPT_sgt_x_x -> Opt_sgt_x_x.optimize_sgt_x_x_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
@@ -15425,13 +15557,13 @@ module Parser =
        if is_metapush x
        then (match xs with
              | [] -> None
-             | z::l0 ->
+             | z0::l0 ->
                (match l0 with
                 | [] -> None
                 | y::ys ->
                   (match parseHexNumber y with
                    | Some v ->
-                     (match parseDecNumber z with
+                     (match parseDecNumber z0 with
                       | Some cat ->
                         (match parse_block' ys with
                          | Some bs ->

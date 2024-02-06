@@ -22,6 +22,8 @@ type comparison =
 | Lt
 | Gt
 
+val compOpp : comparison -> comparison
+
 val id : __ -> __
 
 type uint =
@@ -80,6 +82,11 @@ type positive =
 type n =
 | N0
 | Npos of positive
+
+type z =
+| Z0
+| Zpos of positive
+| Zneg of positive
 
 module Pos :
  sig
@@ -184,6 +191,13 @@ val skipn : nat -> 'a1 list -> 'a1 list
 
 val seq : nat -> nat -> nat list
 
+module Z :
+ sig
+  val compare : z -> z -> comparison
+
+  val ltb : z -> z -> bool
+ end
+
 val n_of_digits : bool list -> n
 
 val n_of_ascii : char -> n
@@ -215,6 +229,8 @@ val posToWord : nat -> positive -> word
 val nToWord : nat -> n -> word
 
 val wones : nat -> word
+
+val wmsb : nat -> word -> bool -> bool
 
 val whd : nat -> word -> bool
 
@@ -251,6 +267,8 @@ val wor : nat -> word -> word -> word
 val wand : nat -> word -> word -> word
 
 val wxor : nat -> word -> word -> word
+
+val wordToZ : nat -> word -> z
 
 val wlshift' : nat -> word -> nat -> word
 
@@ -1253,6 +1271,16 @@ module Opt_balance_address :
     Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_slt_x_x :
+ sig
+  val optimize_slt_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_sgt_x_x :
+ sig
+  val optimize_sgt_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1689,6 +1717,8 @@ module BlockEquivChecker :
   | OPT_and_ffff
   | OPT_and_coinbase
   | OPT_balance_address
+  | OPT_slt_x_x
+  | OPT_sgt_x_x
 
   type list_opt_steps = available_optimization_step list
 

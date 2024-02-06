@@ -1,6 +1,7 @@
 Require Import bbv.Word.
 
 Require Import Coq.NArith.NArith.
+Require Import Coq.ZArith.ZArith.
 
 Require Import List.
 Import ListNotations.
@@ -202,11 +203,25 @@ Qed.
 
 
 Definition evm_slt (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+  match args with
+  | [a; b] => if (Z.ltb (wordToZ a) (wordToZ b)) then WOne else WZero
+  | _ => WZero
+  end.
+Lemma slt_ctx_ind: ctx_independent_op evm_slt.
+Proof.
+  ctx_independent_tac evm_slt.
+Qed.
 
 
 Definition evm_sgt (ctx : context) (args : list EVMWord) : EVMWord :=
-  WZero.
+  match args with
+  | [a;b] => evm_slt ctx [b; a]
+  | _ => WZero
+  end.
+Lemma sgt_ctx_ind: ctx_independent_op evm_sgt.
+Proof.
+  ctx_independent_tac evm_sgt.
+Qed.
 
 
 Definition evm_eq (ctx : context) (args : list EVMWord) : EVMWord :=
@@ -493,8 +508,8 @@ Definition evm_stack_opm : stack_op_instr_map :=
   SIGNEXTEND  |->i OpImp 2 evm_signextend None None; (*TODO*)
   LT |->i OpImp 2 evm_lt None (Some lt_ctx_ind);
   GT  |->i OpImp 2 evm_gt None (Some gt_ctx_ind);
-  SLT |->i OpImp 2 evm_slt None None; (*TODO*)
-  SGT |->i  OpImp 2 evm_sgt None None; (*TODO*)
+  SLT |->i OpImp 2 evm_slt None (Some slt_ctx_ind);
+  SGT |->i  OpImp 2 evm_sgt None (Some sgt_ctx_ind);
   EQ |->i OpImp 2 evm_eq (Some eq_comm) (Some eq_ctx_ind);
   ISZERO |->i OpImp  1 evm_iszero None (Some iszero_ctx_ind);
   AND |->i OpImp 2 evm_and (Some and_comm) (Some and_ctx_ind);

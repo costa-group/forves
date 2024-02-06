@@ -106,6 +106,9 @@ optimizations/and_ffff.v
 optimizations/and_coinbase.v
 optimizations/balance_address.v
 
+optimizations/slt_x_x.v
+optimizations/sgt_x_x.v
+
 
 block_equiv_checker.v
 block_equiv_checker_facts.v
