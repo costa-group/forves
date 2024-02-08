@@ -22,7 +22,9 @@ type comparison =
 | Lt
 | Gt
 
-val id : 'a1 -> 'a1
+val compOpp : comparison -> comparison
+
+val id : __ -> __
 
 type uint =
 | Nil
@@ -65,6 +67,8 @@ module Nat :
  sig
   val add : nat -> nat -> nat
 
+  val eqb : nat -> nat -> bool
+
   val leb : nat -> nat -> bool
 
   val div2 : nat -> nat
@@ -78,6 +82,11 @@ type positive =
 type n =
 | N0
 | Npos of positive
+
+type z =
+| Z0
+| Zpos of positive
+| Zneg of positive
 
 module Pos :
  sig
@@ -182,6 +191,13 @@ val skipn : nat -> 'a1 list -> 'a1 list
 
 val seq : nat -> nat -> nat list
 
+module Z :
+ sig
+  val compare : z -> z -> comparison
+
+  val ltb : z -> z -> bool
+ end
+
 val n_of_digits : bool list -> n
 
 val n_of_ascii : char -> n
@@ -213,6 +229,8 @@ val posToWord : nat -> positive -> word
 val nToWord : nat -> n -> word
 
 val wones : nat -> word
+
+val wmsb : nat -> word -> bool -> bool
 
 val whd : nat -> word -> bool
 
@@ -249,6 +267,8 @@ val wor : nat -> word -> word -> word
 val wand : nat -> word -> word -> word
 
 val wxor : nat -> word -> word -> word
+
+val wordToZ : nat -> word -> z
 
 val wlshift' : nat -> word -> nat -> word
 
@@ -1251,6 +1271,16 @@ module Opt_balance_address :
     Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_slt_x_x :
+ sig
+  val optimize_slt_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
+module Opt_sgt_x_x :
+ sig
+  val optimize_sgt_x_x_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryOpsSolvers :
  sig
   type mload_solver_type =
@@ -1385,14 +1415,15 @@ module StorageOpsSolversImpl :
     SymbolicState.sstack_val SymbolicState.storage_update list
 
   val not_eq_keys :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
 
   val basic_sload_solver :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
     SymbolicState.sstorage -> nat -> SymbolicState.smap ->
     StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
 
-  val basic_sload_updater_remove_dups :
+  val basic_sstorage_updater_remove_dups :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
     SymbolicState.sstorage -> nat -> SymbolicState.smap ->
     StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
@@ -1686,6 +1717,8 @@ module BlockEquivChecker :
   | OPT_and_ffff
   | OPT_and_coinbase
   | OPT_balance_address
+  | OPT_slt_x_x
+  | OPT_sgt_x_x
 
   type list_opt_steps = available_optimization_step list
 
