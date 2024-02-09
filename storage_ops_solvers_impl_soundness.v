@@ -445,34 +445,30 @@ Qed.
 
                  
                  assert( H_v1_neq_v2:  (wordToN v1 =? wordToN v2)%N = false ).
-                 {
-                   assert( (wordToNat v1) <> (wordToNat v2)).
-                   {
-                     apply wordToNat_neq1.
-                     apply weqb_false.
-                     apply not_eq_keys_snd_3.
-                   }
-                   rewrite wordToN_nat.
-                   rewrite wordToN_nat.
-                   rewrite N.eqb_neq.
-                   intuition.
-                 }
-
-                 rewrite H_v1_neq_v2.
-                 unfold eval_sstack_val' in IH_sstrg'_0_1_0_1.
-                 fold eval_sstack_val' in IH_sstrg'_0_1_0_1.
-                 rewrite HeqS_maxid in IH_sstrg'_0_1_0_1.
-                 rewrite follow_smap_first_match in IH_sstrg'_0_1_0_1; try reflexivity.
-                 destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' (S maxid) sv stk mem strg ctx maxid bindings ops)) sstrg') eqn:E_map_op_sstrg'; try discriminate.
-                 rewrite H_eval_skey in IH_sstrg'_0_1_0_1.
-                 injection IH_sstrg'_0_1_0_1 as IH_sstrg'_0_1_0_1.
-                 injection H_map_o_sstrg_1_1 as H_map_o_sstrg_1_1.
-                 rewrite H_map_o_sstrg_1_1 in IH_sstrg'_0_1_0_1.
-                 rewrite <- Heqstrg_w_v in IH_sstrg'_0_1_0_1.
-                 unfold concrete_interpreter.ConcreteInterpreter.sload in IH_sstrg'_0_1_0_1.
-                 rewrite not_eq_keys_snd_0 in IH_sstrg'_0_1_0_1.
-                 rewrite IH_sstrg'_0_1_0_1.
-                 reflexivity.
+                 ++++ assert( (wordToNat v1) <> (wordToNat v2)).
+                      +++++ apply wordToNat_neq1.
+                            apply weqb_false.
+                            apply not_eq_keys_snd_3.
+                   
+                      +++++ rewrite wordToN_nat.
+                            rewrite wordToN_nat.
+                            rewrite N.eqb_neq.
+                            intuition.
+                 ++++ rewrite H_v1_neq_v2.
+                      unfold eval_sstack_val' in IH_sstrg'_0_1_0_1.
+                      fold eval_sstack_val' in IH_sstrg'_0_1_0_1.
+                      rewrite HeqS_maxid in IH_sstrg'_0_1_0_1.
+                      rewrite follow_smap_first_match in IH_sstrg'_0_1_0_1; try reflexivity.
+                      destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val' (S maxid) sv stk mem strg ctx maxid bindings ops)) sstrg') eqn:E_map_op_sstrg'; try discriminate.
+                      rewrite H_eval_skey in IH_sstrg'_0_1_0_1.
+                      injection IH_sstrg'_0_1_0_1 as IH_sstrg'_0_1_0_1.
+                      injection H_map_o_sstrg_1_1 as H_map_o_sstrg_1_1.
+                      rewrite H_map_o_sstrg_1_1 in IH_sstrg'_0_1_0_1.
+                      rewrite <- Heqstrg_w_v in IH_sstrg'_0_1_0_1.
+                      unfold concrete_interpreter.ConcreteInterpreter.sload in IH_sstrg'_0_1_0_1.
+                      rewrite not_eq_keys_snd_0 in IH_sstrg'_0_1_0_1.
+                      rewrite IH_sstrg'_0_1_0_1.
+                      reflexivity.
         ** rewrite <- H_basic_sload_solver in H_add_to_smap.
            exists idx1.
            exists m1.
@@ -795,13 +791,10 @@ Proof.
     ( (fun key : N => if (key =? v1)%N then w1 else g key) x)
     =
       ( (fun key : N => if (key =? v1)%N then w1 else if (key =? v1)%N then w2 else g key) x)).
-  {
-    intros.
+  + intros.
     destruct ((x =? v1)%N) eqn:E_v1; try reflexivity.
-  }.
-
-  pose proof (functional_extensionality (fun key' : N => if (key' =? wordToN v)%N then svalue_v else eval_common.EvalCommon.update_storage strg updates1'' key') (fun key' : N => if (key' =? wordToN v)%N then svalue_v else if (key' =? wordToN v)%N then svalue_v' else eval_common.EvalCommon.update_storage strg updates1'' key') (H (eval_common.EvalCommon.update_storage strg updates1'') (wordToN v) svalue_v svalue_v')).
-  rewrite H0.
+  + pose proof (functional_extensionality (fun key' : N => if (key' =? wordToN v)%N then svalue_v else eval_common.EvalCommon.update_storage strg updates1'' key') (fun key' : N => if (key' =? wordToN v)%N then svalue_v else if (key' =? wordToN v)%N then svalue_v' else eval_common.EvalCommon.update_storage strg updates1'' key') (H (eval_common.EvalCommon.update_storage strg updates1'') (wordToN v) svalue_v svalue_v')).
+    rewrite H0.
   reflexivity.
 Qed.
 
