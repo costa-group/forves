@@ -209,7 +209,7 @@ Proof.
   exists l.
   auto.
 Qed.  
-  
+
 (* When map_option succeeds, the i-th element of the output is
 the result of applying f to the i-th element in the input.  *)
 Lemma map_option_nth:
