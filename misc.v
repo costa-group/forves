@@ -194,6 +194,21 @@ Proof.
   + discriminate.
 Qed.
 
+Lemma map_option_split:
+  forall (A B: Type) (f: A->option B) (l1: list A) (l2: list B) (v : A),
+    map_option f (v::l1) = Some l2 ->
+    exists e' l2',
+    l2=(e'::l2') /\ f v = Some e' /\ map_option f l1 = Some l2'.
+Proof.
+  intros A B f l1 l2 v H_fold_r.
+  pose proof (map_option_len A B f (v::l1) l2 H_fold_r) as H_fold_r_len.
+  destruct l2 as [|x l] eqn:E_l2; try discriminate.
+  pose proof (map_option_hd A B f l1 l v x H_fold_r) as H_fold_r_hd.
+  destruct H_fold_r_hd as [H_fold_r_hd_0 H_fold_r_hd_1].
+  exists x.
+  exists l.
+  auto.
+Qed.  
   
 (* When map_option succeeds, the i-th element of the output is
 the result of applying f to the i-th element in the input.  *)

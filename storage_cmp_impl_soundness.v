@@ -63,8 +63,6 @@ Module StorageCmpImplSoundness.
   Theorem basic_storage_cmp_snd:
     safe_sstorage_cmp_ext_wrt_sstack_value_cmp basic_storage_cmp.
   Proof.
-    Admitted.
-    (*
     unfold safe_sstorage_cmp_ext_wrt_sstack_value_cmp.
     intros d sstack_val_cmp H_sstack_val_cmp_snd.
     unfold safe_sstorage_cmp_ext_d.
@@ -74,13 +72,13 @@ Module StorageCmpImplSoundness.
     revert sstrg2.
     revert sstrg1.
     induction sstrg1 as [|u1 sstrg1' IHsstrg1'].
-    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx.
+    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx H_stk_len.
       destruct sstrg2; try discriminate.
       exists strg.
       unfold eval_sstorage.
       simpl.
       split; reflexivity.
-    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx.
+    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx H_stk_len.
       destruct sstrg2 as [|u2 sstrg2'] eqn:H_sstrg2.
       ++ simpl in H_basic_strg_smp.
          destruct u1.
@@ -94,15 +92,52 @@ Module StorageCmpImplSoundness.
          destruct H_valid_sstrg1 as [ [H_valid_skey1 H_valid_svalue1] H_valid_sstrg1'].
          simpl in H_valid_sstrg2.
          destruct H_valid_sstrg2 as [ [H_valid_skey2 H_valid_svalue2] H_valid_sstrg2'].
-         pose proof (IHsstrg1' sstrg2' H_valid_sstrg1' H_valid_sstrg2' H_basic_strg_smp stk mem strg ctx) as IHsstrg1'_0.
+         pose proof (IHsstrg1' sstrg2' H_valid_sstrg1' H_valid_sstrg2' H_basic_strg_smp stk mem strg ctx H_stk_len) as IHsstrg1'_0.
          destruct IHsstrg1'_0 as [strg' [IHsstrg1'_0 IHsstrg1'_1]].
 
          unfold safe_sstack_val_cmp_ext_1_d in H_sstack_val_cmp_snd.
          pose proof (H_sstack_val_cmp_snd d' H_d'_le_d) as H_sstack_val_cmp_snd_d'.
          unfold safe_sstack_val_cmp in H_sstack_val_cmp_snd_d'.
-         pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg ctx H_s).
-         pose proof (H_sstack_val_cmp_snd
-*)
+         pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg ctx H_stk_len) as H_eval_skey1_skey2.
+         destruct H_eval_skey1_skey2 as [skey_1_2_v [H_eval_skey1 H_eval_skey2]].
+
+         pose proof(H_sstack_val_cmp_snd_d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_svalue1 H_valid_svalue2 H_valid_sb1 H_valid_sb2 E_cmp_svalue1_svalue2 stk mem strg ctx H_stk_len) as H_eval_svalue1_svalue2.
+         destruct H_eval_svalue1_svalue2 as [svalue_1_2_v [H_eval_svalue1 H_eval_svalue2]].
+         exists (fun key => if (key =? wordToN skey_1_2_v)%N then svalue_1_2_v else strg' key).
+
+         unfold eval_sstorage in IHsstrg1'_0.
+         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1 sb1 ops)) sstrg1') as [updates1|] eqn:H_mo_sstrg1'; try discriminate.
+         injection IHsstrg1'_0 as IHsstrg1'_0.
+         
+         unfold eval_sstorage in IHsstrg1'_1.
+         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2 sb2 ops)) sstrg2') as [updates2|] eqn:H_mo_sstrg2'; try discriminate.
+         injection IHsstrg1'_1 as IHsstrg1'_1.
+
+         unfold eval_sstorage.
+         unfold map_option.
+         repeat rewrite <- map_option_ho.
+
+         unfold instantiate_storage_update at 1.
+         rewrite H_eval_skey1.
+         rewrite H_eval_svalue1.
+         
+         unfold instantiate_storage_update at 2.
+         rewrite H_eval_skey2.
+         rewrite H_eval_svalue2.
+
+         rewrite H_mo_sstrg1'.
+         rewrite H_mo_sstrg2'.
+
+         unfold update_storage.
+         fold update_storage.
+
+         rewrite IHsstrg1'_0.
+         rewrite IHsstrg1'_1.
+
+         split; try reflexivity.
+  Qed.
+
+         
   
   Theorem po_storage_cmp_snd:
     safe_sstorage_cmp_ext_wrt_sstack_value_cmp po_storage_cmp.
