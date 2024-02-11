@@ -178,7 +178,8 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as  H_maxidx2_gt_maxidx2'.
         
         
-        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx) as H_safe_sha3_cmp.
+        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp.
+        
         destruct H_safe_sha3_cmp as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 
         unfold eval_smemory in H_eval_smem.
@@ -451,7 +452,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -515,7 +516,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg ctx) as H_safe_sstorage_cmp_0.
+        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstorage_cmp_0.
 
         destruct H_safe_sstorage_cmp_0 as [strg' [H_eval_sstrg H_eval_sstrg0]].
         unfold eval_sstorage in H_eval_sstrg.
@@ -607,7 +608,7 @@ Module SStackValCmpImplSoundness.
         unfold safe_smemory_cmp in H_safe_smemory_cmp.
 
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg ctx) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -643,7 +644,7 @@ Module SStackValCmpImplSoundness.
         split; reflexivity.
         * unfold safe_sha3_cmp_ext_d in H_safe_sha3_cmp.
           unfold safe_sha3_cmp in H_safe_sha3_cmp.
-          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx) as H_safe_sha3_cmp_0.
+          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp_0.
 
           destruct H_safe_sha3_cmp_0 as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 

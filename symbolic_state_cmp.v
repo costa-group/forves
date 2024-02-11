@@ -115,9 +115,10 @@ Definition safe_smemory_cmp (smemory_cmp: smemory_cmp_t) :=
     valid_smemory instk_height maxidx2 smem2 ->
     smemory_cmp smem1 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
     forall stk mem strg ctx,
+      length stk = instk_height ->
       exists mem',
-           eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem' /\
-             eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem'.
+        eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem' /\
+          eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem'.
 
 Definition safe_sstorage_cmp (sstorage_cmp: sstorage_cmp_t) :=
   forall sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
@@ -127,9 +128,10 @@ Definition safe_sstorage_cmp (sstorage_cmp: sstorage_cmp_t) :=
     valid_sstorage instk_height maxidx2 sstrg2 ->
     sstorage_cmp sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
     forall stk mem strg ctx,
-    exists strg',
-      eval_sstorage sstrg1 maxidx1 sb1 stk mem strg ctx ops = Some strg' /\
-        eval_sstorage sstrg2 maxidx2 sb2 stk mem strg ctx ops = Some strg'.
+      length stk = instk_height ->
+      exists strg',
+        eval_sstorage sstrg1 maxidx1 sb1 stk mem strg ctx ops = Some strg' /\
+          eval_sstorage sstrg2 maxidx2 sb2 stk mem strg ctx ops = Some strg'.
 
 Definition safe_sha3_cmp (sha3_cmp: sha3_cmp_t) :=
   forall soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops,
@@ -143,6 +145,7 @@ Definition safe_sha3_cmp (sha3_cmp: sha3_cmp_t) :=
     valid_smemory instk_height maxidx2 smem2 ->
     sha3_cmp soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops = true ->
     forall stk mem strg ctx,
+      length stk = instk_height ->
       exists offset1 size1 mem1 offset2 size2 mem2 v,
       eval_smemory smem1 maxidx1 sb1 stk mem strg ctx ops = Some mem1 /\
       eval_smemory smem2 maxidx2 sb2 stk mem strg ctx ops = Some mem2 /\

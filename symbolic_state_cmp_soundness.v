@@ -137,7 +137,7 @@ Module SymbolicStateCmpSoundness.
     unfold safe_sstorage_cmp in H_safe_sstorage_cmp.
     pose proof (H_safe_sstorage_cmp (get_storage_sst sst1) (get_storage_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sst1_sb H_valid_sst2_sb H_valid_sstorage_sst1 H_valid_sstorage_sst2 E_sstorage_cmp) as H_safe_sstorage_cmp.
 
-    pose proof (H_safe_sstorage_cmp (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st)) as H_safe_sstorage_cmp.
+    pose proof (H_safe_sstorage_cmp (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) H_len_sst1) as H_safe_sstorage_cmp.
     destruct H_safe_sstorage_cmp as [strg' [H_safe_sstorage_cmp_0 H_safe_sstorage_cmp_1]].
     rewrite H_safe_sstorage_cmp_0.
     rewrite H_safe_sstorage_cmp_1.
@@ -147,7 +147,7 @@ Module SymbolicStateCmpSoundness.
     unfold safe_smemory_cmp in H_safe_smemory_cmp.
     pose proof (H_safe_smemory_cmp (get_memory_sst sst1) (get_memory_sst sst2) (get_maxidx_smap (get_smap_sst sst1)) (get_bindings_smap (get_smap_sst sst1)) (get_maxidx_smap (get_smap_sst sst2)) (get_bindings_smap (get_smap_sst sst2)) (get_instk_height_sst sst1) ops H_valid_sst1_sb H_valid_sst2_sb H_valid_smemory_sst1 H_valid_smemory_sst2 E_smemory_cmp) as H_safe_smemory_cmp.
 
-    pose proof (H_safe_smemory_cmp (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st)) as H_safe_smemory_cmp.
+    pose proof (H_safe_smemory_cmp (get_stack_st st) (get_memory_st st) (get_storage_st st) (get_context_st st) H_len_sst1) as H_safe_smemory_cmp.
     destruct H_safe_smemory_cmp as [mem' [H_safe_smemory_cmp_0 H_safe_smemory_cmp_1]].
     rewrite H_safe_smemory_cmp_0.
     rewrite H_safe_smemory_cmp_1.
