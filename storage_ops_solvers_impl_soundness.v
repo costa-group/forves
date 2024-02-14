@@ -516,22 +516,18 @@ Qed.
          +++ apply H_valid_skey.
          +++ apply H_valid_sstrg.
          +++ apply H_basic_sstorage_updater_remove_dups.
-      ++ destruct (not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_not_eq_keys.
-         +++ destruct sstrg_r as [|u_r sstrg_r']; try discriminate.
-             injection H_basic_sstorage_updater_remove_dups as H_u_r H_sstrg_r'.
-             simpl.
-             split.
-             ++++ rewrite <- H_u_r.
-                  simpl.
-                  split; apply H_valid_sstrg.
-             ++++ apply IHsstrg'.
-                  +++++ apply H_sstack_val_cmp_snd.
-                  +++++ apply H_valid_skey.
-                  +++++ apply H_valid_sstrg.
-                  +++++ apply H_sstrg_r'.
-         +++ rewrite <- H_basic_sstorage_updater_remove_dups.
-             simpl.
-             split; try split; apply H_valid_sstrg.
+      ++  destruct sstrg_r as [|u_r sstrg_r']; try discriminate.
+          injection H_basic_sstorage_updater_remove_dups as H_u_r H_sstrg_r'.
+          simpl.
+          split.
+          +++ rewrite <- H_u_r.
+              simpl.
+              split; apply H_valid_sstrg.
+          +++ apply IHsstrg'.
+              ++++ apply H_sstack_val_cmp_snd.
+              ++++ apply H_valid_skey.
+              ++++ apply H_valid_sstrg.
+              ++++ apply H_sstrg_r'.
   Qed.
 
     Lemma basic_sstorage_updater_valid: 
@@ -909,179 +905,173 @@ Qed.
          unfold concrete_interpreter.ConcreteInterpreter.sstore in IHsstrg'_1.
          rewrite E_w_v in IHsstrg'_1.
          apply IHsstrg'_1.
-      ++ destruct (not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_neq_skey_skey.
-         +++ destruct sstrg_r as [|u1 sstrg_r'] eqn:E_sstrg_r; try discriminate.
-             injection H_sstrg_r as H_sstrg_r_0 H_sstrg_r_1.
-             rewrite <- H_sstrg_r_0 in H_strg2.
-
-             unfold eval_sstorage in H_strg1.
-             destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg')) as [updates1|] eqn:E_mo_1; try discriminate.
-
-             unfold eval_sstorage in H_strg2.
-             destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg_r')) as [updates2|] eqn:E_mo_2; try discriminate.
-
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg') updates1 E_mo_1) as H_map_option_len_1.
+      ++ destruct sstrg_r as [|u1 sstrg_r'] eqn:E_sstrg_r; try discriminate.
+         injection H_sstrg_r as H_sstrg_r_0 H_sstrg_r_1.
+         rewrite <- H_sstrg_r_0 in H_strg2.
          
-             simpl in H_map_option_len_1.
-             destruct updates1 as [|u1' updates1']; try discriminate.
-    
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg') updates1' (U_SSTORE sstack_val skey svalue) u1' E_mo_1) as  H_map_option_hd_1.
-           
-             destruct H_map_option_hd_1 as [H_map_option_hd_1_0 H_map_option_hd_1_1].
-             simpl in H_map_option_hd_1_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_1_0.
-             rewrite H_eval_skey in H_map_option_hd_1_0.
-
-             destruct (eval_sstack_val svalue stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [svalue_v|] eqn:E_eval_svalue; try discriminate.
- 
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg') updates1' H_map_option_hd_1_1) as H_map_option_len_1_1.
-             simpl in H_map_option_len_1_1.
-             destruct updates1' as [|u1'' updates1'']; try discriminate.
-
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg' updates1'' (U_SSTORE sstack_val skey' svalue') u1'' H_map_option_hd_1_1) as  H_map_option_hd_1_2.
-           
-             destruct H_map_option_hd_1_2 as [H_map_option_hd_1_2_0 H_map_option_hd_1_2_1].
-             simpl in H_map_option_hd_1_2_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_1_2_0.
-
-             destruct (eval_sstack_val' (S (get_maxidx_smap m)) skey' stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [skey'_v|] eqn:E_eval_skey'; try discriminate.
-             destruct (eval_sstack_val svalue' stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [svalue'_v|] eqn:E_eval_svalue'; try discriminate.
-             injection H_map_option_hd_1_2_0 as H_map_option_hd_1_2_0.
-
+         unfold eval_sstorage in H_strg1.
+         destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg')) as [updates1|] eqn:E_mo_1; try discriminate.
          
-
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2 E_mo_2) as H_map_option_len_2.
+         unfold eval_sstorage in H_strg2.
+         destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg_r')) as [updates2|] eqn:E_mo_2; try discriminate.
          
-             simpl in H_map_option_len_2.
-             destruct updates2 as [|u2' updates2']; try discriminate.
-    
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2' (U_SSTORE sstack_val skey svalue) u2' E_mo_2) as  H_map_option_hd_2.
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg') updates1 E_mo_1) as H_map_option_len_1.
+         
+         simpl in H_map_option_len_1.
+         destruct updates1 as [|u1' updates1']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg') updates1' (U_SSTORE sstack_val skey svalue) u1' E_mo_1) as  H_map_option_hd_1.
+         
+         destruct H_map_option_hd_1 as [H_map_option_hd_1_0 H_map_option_hd_1_1].
+         simpl in H_map_option_hd_1_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_1_0.
+         rewrite H_eval_skey in H_map_option_hd_1_0.
+         
+         destruct (eval_sstack_val svalue stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [svalue_v|] eqn:E_eval_svalue; try discriminate.
+         
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg') updates1' H_map_option_hd_1_1) as H_map_option_len_1_1.
+         simpl in H_map_option_len_1_1.
+         destruct updates1' as [|u1'' updates1'']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg' updates1'' (U_SSTORE sstack_val skey' svalue') u1'' H_map_option_hd_1_1) as  H_map_option_hd_1_2.
+         
+         destruct H_map_option_hd_1_2 as [H_map_option_hd_1_2_0 H_map_option_hd_1_2_1].
+         simpl in H_map_option_hd_1_2_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_1_2_0.
+         
+         destruct (eval_sstack_val' (S (get_maxidx_smap m)) skey' stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [skey'_v|] eqn:E_eval_skey'; try discriminate.
+         destruct (eval_sstack_val svalue' stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [svalue'_v|] eqn:E_eval_svalue'; try discriminate.
+         injection H_map_option_hd_1_2_0 as H_map_option_hd_1_2_0.
+         
+         
+         
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2 E_mo_2) as H_map_option_len_2.
+         
+         simpl in H_map_option_len_2.
+         destruct updates2 as [|u2' updates2']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2' (U_SSTORE sstack_val skey svalue) u2' E_mo_2) as  H_map_option_hd_2.
+         
+         destruct H_map_option_hd_2 as [H_map_option_hd_2_0 H_map_option_hd_2_1].
+         simpl in H_map_option_hd_2_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_2_0.
+         rewrite H_eval_skey in H_map_option_hd_2_0.
+         rewrite E_eval_svalue in H_map_option_hd_2_0.
+         
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2' H_map_option_hd_2_1) as H_map_option_len_2_1.
+         simpl in H_map_option_len_2_1.
+         destruct updates2' as [|u2'' updates2'']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg_r' updates2'' (U_SSTORE sstack_val skey' svalue') u2'' H_map_option_hd_2_1) as  H_map_option_hd_2_2.
            
-             destruct H_map_option_hd_2 as [H_map_option_hd_2_0 H_map_option_hd_2_1].
-             simpl in H_map_option_hd_2_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_2_0.
-             rewrite H_eval_skey in H_map_option_hd_2_0.
-             rewrite E_eval_svalue in H_map_option_hd_2_0.
-
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey' svalue' :: sstrg_r') updates2' H_map_option_hd_2_1) as H_map_option_len_2_1.
-             simpl in H_map_option_len_2_1.
-             destruct updates2' as [|u2'' updates2'']; try discriminate.
-
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg_r' updates2'' (U_SSTORE sstack_val skey' svalue') u2'' H_map_option_hd_2_1) as  H_map_option_hd_2_2.
-           
-             destruct H_map_option_hd_2_2 as [H_map_option_hd_2_2_0 H_map_option_hd_2_2_1].
-             simpl in H_map_option_hd_2_2_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_2_2_0.
-             rewrite E_eval_skey' in H_map_option_hd_2_2_0.
-             rewrite E_eval_svalue' in H_map_option_hd_2_2_0.
-
-             injection H_map_option_hd_2_2_0 as H_map_option_hd_2_2_0.
-
-             injection H_strg1 as H_strg1.
-             injection H_strg2 as H_strg2.
-             rewrite <- H_strg1.
-             rewrite <- H_strg2.
-
-             injection H_map_option_hd_1_0 as H_map_option_hd_1_0.
-             injection H_map_option_hd_2_0 as H_map_option_hd_2_0.
-
-             rewrite <- H_map_option_hd_1_0.
-             rewrite <- H_map_option_hd_2_0.
-
-             rewrite <- H_map_option_hd_2_2_0.
-             rewrite <- H_map_option_hd_1_2_0.
-             simpl.
-
-             unfold concrete_interpreter.ConcreteInterpreter.sstore.
-
-             rewrite H_neq_v_w.
-
-             destruct ((w =? wordToN skey'_v)%N) eqn:E_e_skey'_v; try reflexivity.
-
-
-             simpl in H_valid_sstrg.
-             destruct H_valid_sstrg as [ [H_valid_sstrg_0 H_valid_sstrg_1] H_valid_sstrg_2].
-
-             pose proof (valid_sstorage_when_extended_with_valid_update instk_height (get_maxidx_smap m) (U_SSTORE sstack_val skey svalue) sstrg'  (valid_sstorage_update_kv instk_height (get_maxidx_smap m) skey svalue H_valid_skey H_valid_svalue) H_valid_sstrg_2) as H_valid_u'_sstrg'.
+         destruct H_map_option_hd_2_2 as [H_map_option_hd_2_2_0 H_map_option_hd_2_2_1].
+         simpl in H_map_option_hd_2_2_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_2_2_0.
+         rewrite E_eval_skey' in H_map_option_hd_2_2_0.
+         rewrite E_eval_svalue' in H_map_option_hd_2_2_0.
+         
+         injection H_map_option_hd_2_2_0 as H_map_option_hd_2_2_0.
+         
+         injection H_strg1 as H_strg1.
+         injection H_strg2 as H_strg2.
+         rewrite <- H_strg1.
+         rewrite <- H_strg2.
+         
+         injection H_map_option_hd_1_0 as H_map_option_hd_1_0.
+         injection H_map_option_hd_2_0 as H_map_option_hd_2_0.
+         
+         rewrite <- H_map_option_hd_1_0.
+         rewrite <- H_map_option_hd_2_0.
+         
+         rewrite <- H_map_option_hd_2_2_0.
+         rewrite <- H_map_option_hd_1_2_0.
+         simpl.
+         
+         unfold concrete_interpreter.ConcreteInterpreter.sstore.
+         
+         rewrite H_neq_v_w.
+         
+         destruct ((w =? wordToN skey'_v)%N) eqn:E_e_skey'_v; try reflexivity.
+         
+         
+         simpl in H_valid_sstrg.
+         destruct H_valid_sstrg as [ [H_valid_sstrg_0 H_valid_sstrg_1] H_valid_sstrg_2].
+         
+         pose proof (valid_sstorage_when_extended_with_valid_update instk_height (get_maxidx_smap m) (U_SSTORE sstack_val skey svalue) sstrg'  (valid_sstorage_update_kv instk_height (get_maxidx_smap m) skey svalue H_valid_skey H_valid_svalue) H_valid_sstrg_2) as H_valid_u'_sstrg'.
+         
+         pose proof (eval_sstorage_succ instk_height (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops (U_SSTORE sstack_val skey svalue :: sstrg') (eq_sym H_stk_len) H_valid_u'_sstrg' H_valid_smap) as H_eval_sstorage_u'_sstrg'.
+         
+         pose proof (basic_sstorage_updater_remove_dups_valid sstack_val_cmp skey instk_height m ops sstrg' sstrg_r' H_sstack_val_cmp_snd H_valid_skey H_valid_sstrg_2 H_sstrg_r_1) as H_valid_sstrg_r'.
+         
+         pose proof (valid_sstorage_when_extended_with_valid_update instk_height (get_maxidx_smap m) (U_SSTORE sstack_val skey svalue) sstrg_r'  (valid_sstorage_update_kv instk_height (get_maxidx_smap m) skey svalue H_valid_skey H_valid_svalue) H_valid_sstrg_r') as H_valid_u'_sstrg_r'.
              
-             pose proof (eval_sstorage_succ instk_height (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops (U_SSTORE sstack_val skey svalue :: sstrg') (eq_sym H_stk_len) H_valid_u'_sstrg' H_valid_smap) as H_eval_sstorage_u'_sstrg'.
+         pose proof (eval_sstorage_succ instk_height (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops (U_SSTORE sstack_val skey svalue :: sstrg_r') (eq_sym H_stk_len) H_valid_u'_sstrg_r' H_valid_smap) as H_eval_sstorage_u'_sstrg_r'.
 
-             pose proof (basic_sstorage_updater_remove_dups_valid sstack_val_cmp skey instk_height m ops sstrg' sstrg_r' H_sstack_val_cmp_snd H_valid_skey H_valid_sstrg_2 H_sstrg_r_1) as H_valid_sstrg_r'.
-
-             pose proof (valid_sstorage_when_extended_with_valid_update instk_height (get_maxidx_smap m) (U_SSTORE sstack_val skey svalue) sstrg_r'  (valid_sstorage_update_kv instk_height (get_maxidx_smap m) skey svalue H_valid_skey H_valid_svalue) H_valid_sstrg_r') as H_valid_u'_sstrg_r'.
-             
-             pose proof (eval_sstorage_succ instk_height (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops (U_SSTORE sstack_val skey svalue :: sstrg_r') (eq_sym H_stk_len) H_valid_u'_sstrg_r' H_valid_smap) as H_eval_sstorage_u'_sstrg_r'.
-
-             destruct H_eval_sstorage_u'_sstrg' as [strg1' H_eval_sstorage_u'_sstrg'].
-             destruct H_eval_sstorage_u'_sstrg_r' as [strg2' H_eval_sstorage_u'_sstrg_r'].
-             
+         destruct H_eval_sstorage_u'_sstrg' as [strg1' H_eval_sstorage_u'_sstrg'].
+         destruct H_eval_sstorage_u'_sstrg_r' as [strg2' H_eval_sstorage_u'_sstrg_r'].
+         
                
-             pose proof (IHsstrg' sstrg_r' skey svalue strg1' strg2' v w H_sstack_val_cmp_snd H_stk_len H_valid_skey H_valid_svalue H_valid_smap H_valid_sstrg_2 H_sstrg_r_1 H_eval_sstorage_u'_sstrg' H_eval_sstorage_u'_sstrg_r' H_eval_skey H_neq_v_w) as IHsstrg'_0.
+         pose proof (IHsstrg' sstrg_r' skey svalue strg1' strg2' v w H_sstack_val_cmp_snd H_stk_len H_valid_skey H_valid_svalue H_valid_smap H_valid_sstrg_2 H_sstrg_r_1 H_eval_sstorage_u'_sstrg' H_eval_sstorage_u'_sstrg_r' H_eval_skey H_neq_v_w) as IHsstrg'_0.
 
-             unfold eval_sstorage in H_eval_sstorage_u'_sstrg'.
-
-             destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg')) as [updates_3|] eqn:E_mo_3; try discriminate.
-
-             unfold eval_sstorage in H_eval_sstorage_u'_sstrg_r'.
-
-             destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg_r')) as [updates_4|] eqn:E_mo_4; try discriminate.
-
-             injection H_eval_sstorage_u'_sstrg' as H_eval_sstorage_u'_sstrg'.
-             injection H_eval_sstorage_u'_sstrg_r' as H_eval_sstorage_u'_sstrg_r'.
-
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg') updates_3 E_mo_3) as H_map_option_len_3.
-
-             simpl in H_map_option_len_3.
-             destruct updates_3 as [|u3 updates_3']; try discriminate.
-    
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg' updates_3' (U_SSTORE sstack_val skey svalue) u3 E_mo_3) as  H_map_option_hd_3.
-             destruct H_map_option_hd_3 as [H_map_option_hd_3_0 H_map_option_hd_3_1].
-             simpl in H_map_option_hd_3_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_3_0.
-             rewrite H_eval_skey in  H_map_option_hd_3_0.           
-             rewrite E_eval_svalue in  H_map_option_hd_3_0.
-             injection H_map_option_hd_3_0 as H_u3.
-
-             pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg_r') updates_4 E_mo_4) as H_map_option_len_4.
-
-             simpl in H_map_option_len_4.
-             destruct updates_4 as [|u4 updates_4']; try discriminate.
-    
-             pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg_r' updates_4' (U_SSTORE sstack_val skey svalue) u4 E_mo_4) as  H_map_option_hd_4.
-             destruct H_map_option_hd_4 as [H_map_option_hd_4_0 H_map_option_hd_4_1].
-             simpl in H_map_option_hd_4_0.
-             unfold eval_sstack_val at 1 in H_map_option_hd_4_0.
-             rewrite H_eval_skey in  H_map_option_hd_4_0.           
-             rewrite E_eval_svalue in  H_map_option_hd_4_0.
-             injection H_map_option_hd_4_0 as H_u4.
-
-             rewrite H_map_option_hd_3_1 in H_map_option_hd_1_2_1.
-             injection H_map_option_hd_1_2_1 as H_map_option_hd_1_2_1.
-
-             rewrite H_map_option_hd_4_1 in H_map_option_hd_2_2_1.
-             injection H_map_option_hd_2_2_1 as H_map_option_hd_2_2_1.
-
-             rewrite <- H_map_option_hd_1_2_1.
-             rewrite <- H_map_option_hd_2_2_1.
-
-             rewrite <- H_eval_sstorage_u'_sstrg' in IHsstrg'_0.
-             rewrite <- H_eval_sstorage_u'_sstrg_r' in IHsstrg'_0.
-
-             rewrite <- H_u3 in IHsstrg'_0.
-             rewrite <- H_u4 in IHsstrg'_0.
- 
-             unfold eval_common.EvalCommon.update_storage in IHsstrg'_0.
-             fold eval_common.EvalCommon.update_storage in IHsstrg'_0.
+         unfold eval_sstorage in H_eval_sstorage_u'_sstrg'.
+         
+         destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg')) as [updates_3|] eqn:E_mo_3; try discriminate.
+         
+         unfold eval_sstorage in H_eval_sstorage_u'_sstrg_r'.
              
-             unfold eval_common.EvalCommon.update_storage' in IHsstrg'_0.
-             unfold concrete_interpreter.ConcreteInterpreter.sstore in IHsstrg'_0.
-             rewrite H_neq_v_w in  IHsstrg'_0.
-             apply IHsstrg'_0.
-         +++ rewrite <- H_sstrg_r in H_strg2.
-             rewrite H_strg2 in H_strg1.
-             injection H_strg1 as H_strg1.
-             rewrite H_strg1.
-             reflexivity.
+         destruct (map_option (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg_r')) as [updates_4|] eqn:E_mo_4; try discriminate.
+         
+         injection H_eval_sstorage_u'_sstrg' as H_eval_sstorage_u'_sstrg'.
+         injection H_eval_sstorage_u'_sstrg_r' as H_eval_sstorage_u'_sstrg_r'.
+         
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg') updates_3 E_mo_3) as H_map_option_len_3.
+         
+         simpl in H_map_option_len_3.
+         destruct updates_3 as [|u3 updates_3']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg' updates_3' (U_SSTORE sstack_val skey svalue) u3 E_mo_3) as  H_map_option_hd_3.
+         destruct H_map_option_hd_3 as [H_map_option_hd_3_0 H_map_option_hd_3_1].
+         simpl in H_map_option_hd_3_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_3_0.
+         rewrite H_eval_skey in  H_map_option_hd_3_0.           
+         rewrite E_eval_svalue in  H_map_option_hd_3_0.
+         injection H_map_option_hd_3_0 as H_u3.
+         
+         pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg_r') updates_4 E_mo_4) as H_map_option_len_4.
+
+         simpl in H_map_option_len_4.
+         destruct updates_4 as [|u4 updates_4']; try discriminate.
+         
+         pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg_r' updates_4' (U_SSTORE sstack_val skey svalue) u4 E_mo_4) as  H_map_option_hd_4.
+         destruct H_map_option_hd_4 as [H_map_option_hd_4_0 H_map_option_hd_4_1].
+         simpl in H_map_option_hd_4_0.
+         unfold eval_sstack_val at 1 in H_map_option_hd_4_0.
+         rewrite H_eval_skey in  H_map_option_hd_4_0.           
+         rewrite E_eval_svalue in  H_map_option_hd_4_0.
+         injection H_map_option_hd_4_0 as H_u4.
+         
+         rewrite H_map_option_hd_3_1 in H_map_option_hd_1_2_1.
+         injection H_map_option_hd_1_2_1 as H_map_option_hd_1_2_1.
+         
+         rewrite H_map_option_hd_4_1 in H_map_option_hd_2_2_1.
+         injection H_map_option_hd_2_2_1 as H_map_option_hd_2_2_1.
+         
+         rewrite <- H_map_option_hd_1_2_1.
+         rewrite <- H_map_option_hd_2_2_1.
+         
+         rewrite <- H_eval_sstorage_u'_sstrg' in IHsstrg'_0.
+         rewrite <- H_eval_sstorage_u'_sstrg_r' in IHsstrg'_0.
+         
+         rewrite <- H_u3 in IHsstrg'_0.
+         rewrite <- H_u4 in IHsstrg'_0.
+         
+         unfold eval_common.EvalCommon.update_storage in IHsstrg'_0.
+         fold eval_common.EvalCommon.update_storage in IHsstrg'_0.
+         
+         unfold eval_common.EvalCommon.update_storage' in IHsstrg'_0.
+         unfold concrete_interpreter.ConcreteInterpreter.sstore in IHsstrg'_0.
+         rewrite H_neq_v_w in  IHsstrg'_0.
+         apply IHsstrg'_0.
       Qed.
              
            

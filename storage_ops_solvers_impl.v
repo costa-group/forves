@@ -78,10 +78,8 @@ Fixpoint basic_sstorage_updater_remove_dups (sstack_val_cmp: sstack_val_cmp_ext_
   | (U_SSTORE _ skey' svalue)::sstrg' =>
       if sstack_val_cmp (S (get_maxidx_smap m)) skey skey' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
         basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops (* we can also stop, since we will have at most one duplicate *)
-      else if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then
-             (U_SSTORE sstack_val skey' svalue)::(basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops)
-           else
-             sstrg
+      else (* if not_eq_keys skey skey' (get_maxidx_smap m) (get_bindings_smap m) instk_height ops then *)
+        (U_SSTORE sstack_val skey' svalue)::(basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg' instk_height m ops)
   end.
                                       
 Definition basic_sstorage_updater (sstack_val_cmp: sstack_val_cmp_ext_1_t) (update: storage_update sstack_val) (sstrg: sstorage) (instk_height: nat) (m: smap) (ops: stack_op_instr_map) :=

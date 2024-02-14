@@ -46,6 +46,9 @@ Import SymbolicStateCmp.
 Require Import FORVES.symbolic_execution_soundness.
 Import SymbolicExecutionSoundness.
 
+Require Import storage_ops_solvers_impl_soundness.
+Import StorageOpsSolversImplSoundness.
+
 Module MemoryOpsSolversImplSoundness.
 
   Lemma trivial_mload_solver_snd: mload_solver_ext_snd trivial_mload_solver.
@@ -197,56 +200,571 @@ Lemma  H_memory_slots_do_not_overlap:
   Qed.
 
 
-  Lemma S_S_n_gr_b: forall n, S (S n) > n.
+  Lemma S_S_n_gt_n: forall n, S (S n) > n.
   Proof.
     auto.
   Qed.
   
-      
-    
-  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
-    unfold mload_solver_ext_snd.
-    unfold mload_solver_snd.
-    intros sstack_val_cmp H_sstack_val_cmp.
-    split. apply basic_mload_solver_valid.
-    unfold mload_solver_correct_res.
-    intros m smem soffset instk_height smv ops idx1 m1.
-    intros H_valid_smap H_smem H_valid_soffset H_basic_mload_solver H_add_to_smap.
-    induction smem as [|u smem' IHsmem'].
-    + exists idx1. exists m1.
-      split.
-      ++ simpl in H_basic_mload_solver.
-         rewrite <- H_basic_mload_solver in H_add_to_smap.
-         apply H_add_to_smap.
-      ++ intros stk mem strg ctx H_stk_len.
-         simpl in H_basic_mload_solver.
-         rewrite <- H_basic_mload_solver in H_add_to_smap.
-         destruct m as [maxidx bs] eqn:E_m.
-         simpl in H_add_to_smap.
-         injection H_add_to_smap as H_idx1 H_m1.
-         rewrite <- H_m1.
-         rewrite <- H_idx1.
-         simpl.
-         unfold eval_sstack_val.
-         remember (S maxidx) as S_maxidx.
-         unfold eval_sstack_val'.
-         fold eval_sstack_val'.
-         unfold follow_in_smap.
-         fold follow_in_smap.
-         rewrite Nat.eqb_refl.
-         simpl.
 
-         assert(H_S_S_maxid_gt_maxidx: (S (S maxidx) > maxidx)). auto.
-         pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_soffset H_valid_smap (gt_Sn_n maxidx)) as H_eval_soffset.
-         destruct H_eval_soffset as [soffset_v H_eval_soffset].
-         rewrite HeqS_maxidx.
-         rewrite H_eval_soffset.
-         exists (concrete_interpreter.ConcreteInterpreter.mload mem soffset_v).
-         split; reflexivity.
-    + 
-      
-  Admitted.
+                                                                                               
+Lemma H_map_o_smem:
+  forall instk_height d stk mem strg ctx maxidx bs ops smem,
+    valid_smemory instk_height maxidx smem ->
+    valid_bindings instk_height maxidx bs ops ->
+    d > maxidx ->
+    instk_height = length stk ->
+    exists v,
+      map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d sv stk mem strg ctx maxidx bs ops)) smem = Some v.
+Proof.
+induction smem as [|u sstrg' IHsstrg'].
++ intros. simpl. exists []. reflexivity.
++ intros H_valid_smemory H_valid_bs H_d_gt_maxidx H_len_stk.
+  unfold map_option.
+  rewrite <- map_option_ho.
+  unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+  destruct u as [soffset' svalue' | soffset' svalue'].
+
+  ++ unfold valid_smemory in H_valid_smemory. fold valid_smemory in H_valid_smemory.
+     destruct H_valid_smemory as [H_valid_smemory_0 H_valid_smemory_1].
+     unfold valid_smemory_update in H_valid_smemory_0.
+     destruct H_valid_smemory_0 as [H_valid_smemory_0_0 H_valid_smemory_0_1].
+
+     pose proof (eval_sstack_val'_succ d instk_height soffset' stk mem strg ctx maxidx bs ops H_len_stk H_valid_smemory_0_0 H_valid_bs H_d_gt_maxidx) as eval_sstack_val'_succ_0.
   
+     destruct eval_sstack_val'_succ_0 as [v eval_sstack_val'_succ_0].
+     rewrite eval_sstack_val'_succ_0.
+     pose proof (eval_sstack_val'_succ d instk_height svalue' stk mem strg ctx maxidx bs ops H_len_stk H_valid_smemory_0_1 H_valid_bs H_d_gt_maxidx) as eval_sstack_val'_succ_1.
+     destruct eval_sstack_val'_succ_1 as [v' eval_sstack_val'_succ_1].
+     rewrite eval_sstack_val'_succ_1.
+
+     pose proof (IHsstrg' H_valid_smemory_1 H_valid_bs H_d_gt_maxidx H_len_stk) as IHsstrg'_0.
+     destruct IHsstrg'_0 as [v'' IHsstrg'_0].
+     rewrite IHsstrg'_0.
+     exists (U_MSTORE EVMWord v v' :: v'').
+     reflexivity.
+  ++ unfold valid_smemory in H_valid_smemory. fold valid_smemory in H_valid_smemory.
+     destruct H_valid_smemory as [H_valid_smemory_0 H_valid_smemory_1].
+     unfold valid_smemory_update in H_valid_smemory_0.
+     destruct H_valid_smemory_0 as [H_valid_smemory_0_0 H_valid_smemory_0_1].
+
+     pose proof (eval_sstack_val'_succ d instk_height soffset' stk mem strg ctx maxidx bs ops H_len_stk H_valid_smemory_0_0 H_valid_bs H_d_gt_maxidx) as eval_sstack_val'_succ_0.
+  
+     destruct eval_sstack_val'_succ_0 as [v eval_sstack_val'_succ_0].
+     rewrite eval_sstack_val'_succ_0.
+     pose proof (eval_sstack_val'_succ d instk_height svalue' stk mem strg ctx maxidx bs ops H_len_stk H_valid_smemory_0_1 H_valid_bs H_d_gt_maxidx) as eval_sstack_val'_succ_1.
+     destruct eval_sstack_val'_succ_1 as [v' eval_sstack_val'_succ_1].
+     rewrite eval_sstack_val'_succ_1.
+
+     pose proof (IHsstrg' H_valid_smemory_1 H_valid_bs H_d_gt_maxidx H_len_stk) as IHsstrg'_0.
+     destruct IHsstrg'_0 as [v'' IHsstrg'_0].
+     rewrite IHsstrg'_0.
+     exists (U_MSTORE8 EVMWord v v' :: v'').
+     reflexivity.
+  Qed.
+
+
+Lemma mload_mstore_same_address:
+  forall mem addr value,
+    (concrete_interpreter.ConcreteInterpreter.mload
+       (concrete_interpreter.ConcreteInterpreter.mstore mem value addr) addr) = value.
+Proof.
+  Admitted.
+
+
+Lemma do_not_overlap_mload:
+  forall mem offset offset' value' updates,
+    (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 31 <? wordToN offset)%N = true ->
+    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) (wordToN offset) 32) =
+    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
+Proof.
+  Admitted.
+
+Lemma do_not_overlap_mload_0:
+  forall mem offset offset' value' updates,
+    (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 0 <? wordToN offset)%N = true ->
+    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) (wordToN offset) 32) =
+    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
+Proof.
+  Admitted.
+
+
+
+
+Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
+  unfold mload_solver_ext_snd.
+  unfold mload_solver_snd.
+  intros sstack_val_cmp H_sstack_val_cmp.
+  split. apply basic_mload_solver_valid.
+  unfold mload_solver_correct_res.
+  intros m smem soffset instk_height smv ops idx1 m1.
+  intros H_valid_smap H_valid_smem H_valid_soffset H_basic_mload_solver H_add_to_smap.
+  induction smem as [|u smem' IHsmem'].
+  + exists idx1. exists m1.
+    split.
+    ++ simpl in H_basic_mload_solver.
+       rewrite <- H_basic_mload_solver in H_add_to_smap.
+       apply H_add_to_smap.
+    ++ intros stk mem strg ctx H_stk_len.
+       simpl in H_basic_mload_solver.
+       rewrite <- H_basic_mload_solver in H_add_to_smap.
+       destruct m as [maxidx bs] eqn:E_m.
+       simpl in H_add_to_smap.
+       injection H_add_to_smap as H_idx1 H_m1.
+       rewrite <- H_m1.
+       rewrite <- H_idx1.
+       simpl.
+       unfold eval_sstack_val.
+       remember (S maxidx) as S_maxidx.
+       unfold eval_sstack_val'.
+       fold eval_sstack_val'.
+       unfold follow_in_smap.
+       fold follow_in_smap.
+       rewrite Nat.eqb_refl.
+       simpl.
+       
+       assert(H_S_S_maxid_gt_maxidx: (S (S maxidx) > maxidx)). auto.
+       pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_soffset H_valid_smap (gt_Sn_n maxidx)) as H_eval_soffset.
+       destruct H_eval_soffset as [soffset_v H_eval_soffset].
+       rewrite HeqS_maxidx.
+       rewrite H_eval_soffset.
+       exists (concrete_interpreter.ConcreteInterpreter.mload mem soffset_v).
+       split; reflexivity.
+  + unfold basic_mload_solver in H_basic_mload_solver.
+    fold basic_mload_solver in H_basic_mload_solver.
+    destruct u as [soffset' svalue | soffset' svalue] eqn:E_u.
+    ++ destruct (sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_cmp_soffset_soffset'.
+       +++ rewrite <- H_basic_mload_solver in H_add_to_smap.
+           destruct m as [maxidx bs] eqn:E_m.
+           simpl in H_add_to_smap.
+             injection H_add_to_smap as H_idx1 H_m1.
+             rewrite <- H_idx1.
+             rewrite <- H_m1.
+             simpl.
+             exists maxidx.
+             exists (SymMap (S maxidx) ((maxidx, SymMLOAD soffset (U_MSTORE sstack_val soffset' svalue :: smem')) :: bs)).
+             split; try reflexivity.
+             intros stk mem strg ctx H_stk_len.
+             simpl.
+             unfold eval_sstack_val.
+             
+             pose proof (eval_sstack_val'_immediate_fresh_var (S (S maxidx)) maxidx stk mem strg ctx svalue bs ops) as H_eval_fresh_maxidx_0.
+             rewrite  H_eval_fresh_maxidx_0.
+
+             simpl in H_valid_smem.
+             destruct H_valid_smem as [[H_valid_soffset' H_valid_svalue] H_valid_smem'].
+
+             pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_svalue H_valid_smap (gt_Sn_n maxidx)) as H_eval_svalue.
+             destruct H_eval_svalue as [svalue_v H_eval_svalue].
+             
+             pose proof (eval_sstack_val'_preserved_when_depth_extended (S maxidx) maxidx bs svalue svalue_v stk mem strg ctx ops H_eval_svalue) as H_eval_svalue_bis.
+             
+             exists svalue_v.
+             split. apply H_eval_svalue_bis.
+             remember (S maxidx) as S_maxidx.
+             unfold eval_sstack_val'.
+             fold eval_sstack_val'.
+             unfold follow_in_smap.
+             rewrite Nat.eqb_refl.
+             simpl.
+             rewrite HeqS_maxidx.
+             pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset' stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_soffset' H_valid_smap (gt_Sn_n maxidx)) as H_eval_soffset'.
+             destruct  H_eval_soffset' as [soffset'_v H_eval_soffset'].
+             rewrite H_eval_soffset'.
+             rewrite HeqS_maxidx in  H_eval_svalue.
+             rewrite H_eval_svalue.
+             pose proof (H_map_o_smem instk_height (S maxidx) stk mem strg ctx maxidx bs ops smem' H_valid_smem' H_valid_smap (gt_Sn_n maxidx) (eq_sym H_stk_len)) as H_mo_1.
+             destruct H_mo_1 as [v H_mo_1].
+             rewrite H_mo_1.
+             pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_soffset H_valid_smap (gt_Sn_n maxidx)) as H_eval_soffset.
+             destruct H_eval_soffset as [soffset_v H_eval_soffset].
+             rewrite H_eval_soffset.
+             simpl.
+             simpl in E_cmp_soffset_soffset'.
+             unfold safe_sstack_val_cmp_ext_1 in H_sstack_val_cmp.
+             unfold safe_sstack_val_cmp_ext_1_d in H_sstack_val_cmp.
+             unfold safe_sstack_val_cmp in H_sstack_val_cmp.
+             pose proof (H_sstack_val_cmp (S maxidx) (S maxidx) (Nat.le_refl (S maxidx)) soffset soffset' maxidx bs maxidx bs instk_height ops H_valid_soffset H_valid_soffset' H_valid_smap H_valid_smap E_cmp_soffset_soffset' stk mem strg ctx H_stk_len) as H_eval_soffset_soffset'.
+             unfold eval_sstack_val in H_eval_soffset_soffset'.
+             destruct  H_eval_soffset_soffset' as [soffset_soffset'_v  [H_eval_soffset_bis  H_eval_soffset'_bis]].
+             rewrite H_eval_soffset' in H_eval_soffset'_bis.
+             injection H_eval_soffset'_bis as H_eval_soffset'_bis.
+             rewrite H_eval_soffset in H_eval_soffset_bis.
+             injection H_eval_soffset_bis as H_eval_soffset_bis.           
+             rewrite H_eval_soffset'_bis.
+             rewrite H_eval_soffset_bis.
+             pose proof (mload_mstore_same_address (eval_common.EvalCommon.update_memory mem v) soffset_soffset'_v svalue_v) as H_mload_mstore_same_address.
+             rewrite H_mload_mstore_same_address.
+             reflexivity.
+       +++ destruct (memory_slots_do_not_overlap soffset soffset' 31 31) eqn:E_not_overlap.
+           ++++ destruct m as [maxidx sb] eqn:E_m.
+                simpl in H_valid_smem.
+                destruct H_valid_smem as [[H_valid_soffset' H_valid_svalue] H_valid_smem'].
+
+                simpl.
+                exists maxidx.
+                exists (SymMap (S maxidx) ((maxidx, SymMLOAD soffset (U_MSTORE sstack_val soffset' svalue :: smem')) :: sb)).
+                split; try reflexivity.
+
+                intros stk mem strg ctx H_stk_len.
+
+                pose proof (IHsmem' H_valid_smem' H_basic_mload_solver) as IHsmem'_0.
+                destruct IHsmem'_0 as [idx2 [m2 [H_add_to_smap' IHsmem'_0]]].
+                pose proof (IHsmem'_0 stk mem strg ctx H_stk_len) as IHsmem'_1.
+                destruct IHsmem'_1 as [v' [H_eval_freshvar_idx1 H_eval_fresh_var_maxidx]].
+                exists v'.
+                split; auto.
+                simpl.
+
+                unfold eval_sstack_val.
+                remember (S maxidx) as S_maxidx.
+                unfold eval_sstack_val'.
+                fold eval_sstack_val'.
+                unfold follow_in_smap.
+                rewrite Nat.eqb_refl.
+                simpl.
+ 
+                pose proof (H_memory_slots_do_not_overlap soffset soffset' 31 31 maxidx sb instk_height ops H_valid_smap H_valid_soffset H_valid_soffset' E_not_overlap stk mem strg ctx H_stk_len) as H_memory_slots_do_not_overlap_0.
+                destruct H_memory_slots_do_not_overlap_0 as [v1' [v2' [H_eval_soffset_bis [H_eval_soffset' H_not_overlap]]]].
+                rewrite HeqS_maxidx.
+                
+                rewrite H_eval_soffset'.
+                pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue H_valid_smap (gt_Sn_n maxidx)) as H_eval_svalue.
+                destruct H_eval_svalue as [svalue_v H_eval_svalue].
+                rewrite H_eval_svalue.
+
+                pose proof (H_map_o_smem instk_height (S maxidx) stk mem strg ctx maxidx sb ops smem' H_valid_smem' H_valid_smap (gt_Sn_n maxidx) (eq_sym H_stk_len)) as H_mo_1.
+                destruct H_mo_1 as [v''' H_mo_1].
+                rewrite H_mo_1.
+                
+                rewrite H_eval_soffset_bis.
+
+                unfold concrete_interpreter.ConcreteInterpreter.mload.
+                unfold concrete_interpreter.ConcreteInterpreter.mload'.
+
+                pose proof (do_not_overlap_mload mem v1' v2' svalue_v v''' H_not_overlap) as H_do_not_overlap_mload.
+                rewrite H_do_not_overlap_mload.
+                
+                simpl in H_add_to_smap'.
+                injection H_add_to_smap' as H_idx2 H_m2.
+                rewrite <- H_m2 in H_eval_fresh_var_maxidx.
+                rewrite <- H_idx2 in H_eval_fresh_var_maxidx.
+                simpl in H_eval_fresh_var_maxidx.
+
+                unfold eval_sstack_val in H_eval_fresh_var_maxidx.
+                rewrite <- HeqS_maxidx in H_eval_fresh_var_maxidx.
+                unfold eval_sstack_val' in H_eval_fresh_var_maxidx.
+                fold eval_sstack_val' in H_eval_fresh_var_maxidx.
+                unfold follow_in_smap in H_eval_fresh_var_maxidx.
+                rewrite Nat.eqb_refl in H_eval_fresh_var_maxidx.
+                simpl in H_eval_fresh_var_maxidx.
+                destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
+                
+                
+                rewrite HeqS_maxidx in H_eval_fresh_var_maxidx.
+                rewrite H_eval_soffset_bis in H_eval_fresh_var_maxidx.
+                injection H_eval_fresh_var_maxidx as H_v'.
+                unfold concrete_interpreter.ConcreteInterpreter.mload in H_v'.
+                unfold concrete_interpreter.ConcreteInterpreter.mload' in H_v'.
+                rewrite HeqS_maxidx in E_mo_1.
+                rewrite E_mo_1 in H_mo_1.
+                injection H_mo_1 as H_mo_1.
+                rewrite <- H_mo_1.
+                rewrite <- H_v'.
+                reflexivity.
+           ++++ destruct m as [maxidx sb] eqn:E_m. 
+                simpl.
+                exists maxidx.
+                exists (SymMap (S maxidx) ((maxidx, SymMLOAD soffset (U_MSTORE sstack_val soffset' svalue :: smem')) :: sb)).
+                split; try reflexivity.
+                intros stk mem strg ctx.
+                intros H_stk_len.
+                simpl.
+                rewrite <- H_basic_mload_solver in H_add_to_smap.
+                simpl in H_add_to_smap.
+                injection H_add_to_smap as H_idx1 H_m1.
+                rewrite <- H_m1.
+                simpl.
+                rewrite <- H_idx1.
+                
+                unfold eval_sstack_val.
+                remember (S maxidx) as S_maxidx.
+
+                assert(H_valid_freshvar_maxidx: valid_sstack_value instk_height S_maxidx (FreshVar maxidx)).
+                  (* proof of assert *)
+                   simpl.
+                   rewrite HeqS_maxidx.
+                   apply lt_n_Sn.
+
+               assert(H_valid_ex_bs: valid_bindings instk_height S_maxidx ((maxidx, SymMLOAD soffset (U_MSTORE sstack_val soffset' svalue :: smem')) :: sb) ops).
+                   (* proof of assert *)
+                   rewrite HeqS_maxidx.
+                   simpl.
+                   split; try auto.
+                   
+                
+                   pose proof (eval_sstack_val'_succ (S S_maxidx) instk_height (FreshVar maxidx) stk mem strg ctx S_maxidx ((maxidx, SymMLOAD soffset (U_MSTORE sstack_val soffset' svalue :: smem')) :: sb) ops (eq_sym H_stk_len) H_valid_freshvar_maxidx H_valid_ex_bs (gt_Sn_n S_maxidx)) as H_eval_freshvar_maxidx.
+                   destruct H_eval_freshvar_maxidx as [v H_eval_freshvar_maxidx].
+                   exists v.
+                   split; apply H_eval_freshvar_maxidx.
+                    
+    (* MSTIRE8 -- copy of the previous one with changes that replace MSTORE by MSTORE8*)
+    ++ destruct (memory_slots_do_not_overlap soffset soffset' 31 0) eqn:E_not_overlap.
+       +++ destruct m as [maxidx sb] eqn:E_m.
+          simpl in H_valid_smem.
+          destruct H_valid_smem as [[H_valid_soffset' H_valid_svalue] H_valid_smem'].
+
+          simpl.
+          exists maxidx.
+          exists (SymMap (S maxidx) ((maxidx, SymMLOAD soffset (U_MSTORE8 sstack_val soffset' svalue :: smem')) :: sb)).
+          split; try reflexivity.
+
+          intros stk mem strg ctx H_stk_len.
+
+          pose proof (IHsmem' H_valid_smem' H_basic_mload_solver) as IHsmem'_0.
+          destruct IHsmem'_0 as [idx2 [m2 [H_add_to_smap' IHsmem'_0]]].
+          pose proof (IHsmem'_0 stk mem strg ctx H_stk_len) as IHsmem'_1.
+          destruct IHsmem'_1 as [v' [H_eval_freshvar_idx1 H_eval_fresh_var_maxidx]].
+          exists v'.
+          split; auto.
+          simpl.
+
+          unfold eval_sstack_val.
+          remember (S maxidx) as S_maxidx.
+          unfold eval_sstack_val'.
+          fold eval_sstack_val'.
+          unfold follow_in_smap.
+          rewrite Nat.eqb_refl.
+          simpl.
+ 
+          pose proof (H_memory_slots_do_not_overlap soffset soffset' 31 0 maxidx sb instk_height ops H_valid_smap H_valid_soffset H_valid_soffset' E_not_overlap stk mem strg ctx H_stk_len) as H_memory_slots_do_not_overlap_0.
+          destruct H_memory_slots_do_not_overlap_0 as [v1' [v2' [H_eval_soffset_bis [H_eval_soffset' H_not_overlap]]]].
+          rewrite HeqS_maxidx.
+                
+          rewrite H_eval_soffset'.
+          pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue H_valid_smap (gt_Sn_n maxidx)) as H_eval_svalue.
+          destruct H_eval_svalue as [svalue_v H_eval_svalue].
+          rewrite H_eval_svalue.
+          
+          pose proof (H_map_o_smem instk_height (S maxidx) stk mem strg ctx maxidx sb ops smem' H_valid_smem' H_valid_smap (gt_Sn_n maxidx) (eq_sym H_stk_len)) as H_mo_1.
+          destruct H_mo_1 as [v''' H_mo_1].
+          rewrite H_mo_1.
+                
+          rewrite H_eval_soffset_bis.
+
+          unfold concrete_interpreter.ConcreteInterpreter.mload.
+          unfold concrete_interpreter.ConcreteInterpreter.mload'.
+
+          pose proof (do_not_overlap_mload_0 mem v1' v2' svalue_v v''' H_not_overlap) as H_do_not_overlap_mload.
+          rewrite H_do_not_overlap_mload.
+                
+          simpl in H_add_to_smap'.
+          injection H_add_to_smap' as H_idx2 H_m2.
+          rewrite <- H_m2 in H_eval_fresh_var_maxidx.
+          rewrite <- H_idx2 in H_eval_fresh_var_maxidx.
+          simpl in H_eval_fresh_var_maxidx.
+
+          unfold eval_sstack_val in H_eval_fresh_var_maxidx.
+          rewrite <- HeqS_maxidx in H_eval_fresh_var_maxidx.
+          unfold eval_sstack_val' in H_eval_fresh_var_maxidx.
+          fold eval_sstack_val' in H_eval_fresh_var_maxidx.
+          unfold follow_in_smap in H_eval_fresh_var_maxidx.
+          rewrite Nat.eqb_refl in H_eval_fresh_var_maxidx.
+          simpl in H_eval_fresh_var_maxidx.
+          destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
+                
+                
+          rewrite HeqS_maxidx in H_eval_fresh_var_maxidx.
+          rewrite H_eval_soffset_bis in H_eval_fresh_var_maxidx.
+          injection H_eval_fresh_var_maxidx as H_v'.
+          unfold concrete_interpreter.ConcreteInterpreter.mload in H_v'.
+          unfold concrete_interpreter.ConcreteInterpreter.mload' in H_v'.
+          rewrite HeqS_maxidx in E_mo_1.
+          rewrite E_mo_1 in H_mo_1.
+          injection H_mo_1 as H_mo_1.
+          rewrite <- H_mo_1.
+          rewrite <- H_v'.
+          reflexivity.
+       +++ destruct m as [maxidx sb] eqn:E_m. 
+           simpl.
+           exists maxidx.
+           exists (SymMap (S maxidx) ((maxidx, SymMLOAD soffset (U_MSTORE8 sstack_val soffset' svalue :: smem')) :: sb)).
+           split; try reflexivity.
+           intros stk mem strg ctx.
+           intros H_stk_len.
+           simpl.
+           rewrite <- H_basic_mload_solver in H_add_to_smap.
+           simpl in H_add_to_smap.
+           injection H_add_to_smap as H_idx1 H_m1.
+           rewrite <- H_m1.
+           simpl.
+           rewrite <- H_idx1.
+                
+           unfold eval_sstack_val.
+           remember (S maxidx) as S_maxidx.
+
+           assert(H_valid_freshvar_maxidx: valid_sstack_value instk_height S_maxidx (FreshVar maxidx)).
+             (* proof of assert *)
+             simpl.
+             rewrite HeqS_maxidx.
+             apply lt_n_Sn.
+
+          assert(H_valid_ex_bs: valid_bindings instk_height S_maxidx ((maxidx, SymMLOAD soffset (U_MSTORE8 sstack_val soffset' svalue :: smem')) :: sb) ops).
+            (* proof of assert *)
+            rewrite HeqS_maxidx.
+            simpl.
+            split; try auto.
+                   
+                
+            pose proof (eval_sstack_val'_succ (S S_maxidx) instk_height (FreshVar maxidx) stk mem strg ctx S_maxidx ((maxidx, SymMLOAD soffset (U_MSTORE8 sstack_val soffset' svalue :: smem')) :: sb) ops (eq_sym H_stk_len) H_valid_freshvar_maxidx H_valid_ex_bs (gt_Sn_n S_maxidx)) as H_eval_freshvar_maxidx.
+            destruct H_eval_freshvar_maxidx as [v H_eval_freshvar_maxidx].
+            exists v.
+            split; apply H_eval_freshvar_maxidx.
+Qed.
+
+
+  Lemma basic_smemory_updater_remove_mstore_dups_valid:
+    forall sstack_val_cmp soffset instk_height m ops smem smem_r,
+      symbolic_state_cmp.SymbolicStateCmp.safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+      valid_sstack_value instk_height (get_maxidx_smap m) soffset ->
+      valid_smemory instk_height (get_maxidx_smap m) smem ->
+      basic_smemory_updater_remove_mstore_dups sstack_val_cmp soffset smem instk_height m ops = smem_r ->
+      valid_smemory instk_height (get_maxidx_smap m) smem_r.
+  Proof.
+    intros sstack_val_cmp soffset instk_height m ops.
+    induction smem as [| u smem' IHsmem'].
+    + intros smem_r H_sstack_val_cmp_snd H_valid_soffset H_valid_smem H_basic_smem_updater_remove_dups.
+      simpl in H_basic_smem_updater_remove_dups.
+      rewrite <- H_basic_smem_updater_remove_dups.
+      reflexivity.
+    + intros smem_r H_sstack_val_cmp_snd H_valid_soffset H_valid_smem H_basic_smem_updater_remove_dups.
+      unfold basic_smemory_updater_remove_mstore_dups in H_basic_smem_updater_remove_dups.
+      fold basic_smemory_updater_remove_mstore_dups in H_basic_smem_updater_remove_dups.
+      destruct u as [soffset' svalue|soffset' svalue] eqn:E_u.
+      ++ destruct (sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_cmp_soffset_soffset'.
+         +++ apply IHsmem'.
+             ++++ apply H_sstack_val_cmp_snd.
+             ++++ apply H_valid_soffset.
+             ++++ apply H_valid_smem.
+             ++++ apply H_basic_smem_updater_remove_dups.
+         +++ destruct smem_r as [|u_r smem_r']; try discriminate.
+             injection H_basic_smem_updater_remove_dups as H_u_r H_smem_r'.
+             simpl.
+             split.
+             ++++ rewrite <- H_u_r.
+                  simpl.
+                  split; apply H_valid_smem.
+             ++++ apply IHsmem'.
+                  +++++ apply H_sstack_val_cmp_snd.
+                  +++++ apply H_valid_soffset.
+                  +++++ apply H_valid_smem.
+                  +++++ apply H_smem_r'.
+      ++ destruct (mstore8_is_included_in_mstore soffset' soffset) eqn:E_cmp_soffset_soffset'.
+         +++ apply IHsmem'.
+             ++++ apply H_sstack_val_cmp_snd.
+             ++++ apply H_valid_soffset.
+             ++++ apply H_valid_smem.
+             ++++ apply H_basic_smem_updater_remove_dups.
+         +++ destruct smem_r as [|u_r smem_r']; try discriminate.
+             injection H_basic_smem_updater_remove_dups as H_u_r H_smem_r'.
+             simpl.
+             split.
+             ++++ rewrite <- H_u_r.
+                  simpl.
+                  split; apply H_valid_smem.
+             ++++ apply IHsmem'.
+                  +++++ apply H_sstack_val_cmp_snd.
+                  +++++ apply H_valid_soffset.
+                  +++++ apply H_valid_smem.
+                  +++++ apply H_smem_r'.
+  Qed.
+
+    Lemma basic_smemory_updater_remove_mstore8_dups_valid:
+    forall sstack_val_cmp soffset instk_height m ops smem smem_r,
+      symbolic_state_cmp.SymbolicStateCmp.safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+      valid_sstack_value instk_height (get_maxidx_smap m) soffset ->
+      valid_smemory instk_height (get_maxidx_smap m) smem ->
+      basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset smem instk_height m ops = smem_r ->
+      valid_smemory instk_height (get_maxidx_smap m) smem_r.
+  Proof.
+    intros sstack_val_cmp soffset instk_height m ops.
+    induction smem as [| u smem' IHsmem'].
+    + intros smem_r H_sstack_val_cmp_snd H_valid_soffset H_valid_smem H_basic_smem_updater_remove_dups.
+      simpl in H_basic_smem_updater_remove_dups.
+      rewrite <- H_basic_smem_updater_remove_dups.
+      reflexivity.
+    + intros smem_r H_sstack_val_cmp_snd H_valid_soffset H_valid_smem H_basic_smem_updater_remove_dups.
+      unfold basic_smemory_updater_remove_mstore8_dups in H_basic_smem_updater_remove_dups.
+      fold basic_smemory_updater_remove_mstore8_dups in H_basic_smem_updater_remove_dups.
+      destruct u as [soffset' svalue|soffset' svalue] eqn:E_u.
+      ++ destruct smem_r as [|u_r smem_r']; try discriminate.
+         injection H_basic_smem_updater_remove_dups as H_u_r H_smem_r'.
+         simpl.
+         split.
+         +++ rewrite <- H_u_r.
+             simpl.
+             split; apply H_valid_smem.
+         +++ apply IHsmem'.
+             ++++ apply H_sstack_val_cmp_snd.
+             ++++ apply H_valid_soffset.
+             ++++ apply H_valid_smem.
+             ++++ apply H_smem_r'.
+
+      ++ destruct (sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_cmp_soffset_soffset'.
+         +++ apply IHsmem'.
+             ++++ apply H_sstack_val_cmp_snd.
+             ++++ apply H_valid_soffset.
+             ++++ apply H_valid_smem.
+             ++++ apply H_basic_smem_updater_remove_dups.
+         +++ destruct smem_r as [|u_r smem_r']; try discriminate.
+             injection H_basic_smem_updater_remove_dups as H_u_r H_smem_r'.
+             simpl.
+             split.
+             ++++ rewrite <- H_u_r.
+                  simpl.
+                  split; apply H_valid_smem.
+             ++++ apply IHsmem'.
+                  +++++ apply H_sstack_val_cmp_snd.
+                  +++++ apply H_valid_soffset.
+                  +++++ apply H_valid_smem.
+                  +++++ apply H_smem_r'.
+  Qed.
+
+  Lemma basic_smemory_updater_valid: 
+    forall sstack_val_cmp : symbolic_state_cmp.SymbolicStateCmp.sstack_val_cmp_ext_1_t,
+      symbolic_state_cmp.SymbolicStateCmp.safe_sstack_val_cmp_ext_1 sstack_val_cmp ->
+      smemory_updater_valid_res (basic_smemory_updater sstack_val_cmp).
+  Proof.
+    intros sstack_val_cmp H_sstack_val_cmp_snd.
+    unfold smemory_updater_valid_res.
+    intros m smem smem' u instk_height ops.
+    intros H_valid_smem H_valid_u H_basic_smem_updater.
+    unfold basic_smemory_updater in H_basic_smem_updater.
+    destruct u as [soffset svalue|soffset svalue] eqn:E_u.
+    + destruct smem' as [|u' smem'']; try discriminate.
+      injection H_basic_smem_updater as H_u' H_smem''.
+      rewrite <- H_u'.
+      simpl.
+      split; try split; try apply H_valid_u.
+      apply basic_smemory_updater_remove_mstore_dups_valid in H_smem''.
+    
+      ++ apply H_smem''.
+      ++ apply H_sstack_val_cmp_snd.
+      ++ apply H_valid_u.
+      ++ apply H_valid_smem.
+    + destruct smem' as [|u' smem'']; try discriminate.
+      injection H_basic_smem_updater as H_u' H_smem''.
+      rewrite <- H_u'.
+      simpl.
+      split; try split; try apply H_valid_u.
+      apply basic_smemory_updater_remove_mstore8_dups_valid in H_smem''.
+    
+      ++ apply H_smem''.
+      ++ apply H_sstack_val_cmp_snd.
+      ++ apply H_valid_u.
+      ++ apply H_valid_smem.
+   Qed. 
+
+
   Lemma basic_smemory_updater_snd: smemory_updater_ext_snd basic_smemory_updater.
   Admitted.
   
