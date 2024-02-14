@@ -1,4 +1,4 @@
-Require Import Arith.  
+Require Import Arith.
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
@@ -36,6 +36,7 @@ Import MemoryOpsSolvers.
 
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
+
 
 Module MemoryOpsSolversImpl.
 

@@ -193,7 +193,21 @@ Module MemoryCmpImplSoundness.
              split; reflexivity.
   Qed.
 
+
   
+  Lemma swap_memory_updates_snd:
+    forall sstrg u1 u2 maxidx sb instk_height ops,
+      valid_smemory instk_height maxidx smem ->
+      valid_smemory_update instk_height maxidx u1 ->
+      valid_smemory_update instk_height maxidx u2 ->
+      valid_bindings instk_height maxidx sb ops ->
+      swap_memory_update u1 u2 maxidx sb = true ->
+      forall stk mem strg ctx, 
+             length stk = instk_height ->
+             exists strg' : storage,
+               eval_smemory (u1::u2::smem) maxidx sb stk mem strg ctx ops = Some strg' /\
+                 eval_smemory (u2::u1::smem) maxidx sb stk mem strg ctx ops = Some strg'.
+  Proof.
   Theorem po_memory_cmp_snd:
     safe_smemory_cmp_ext_wrt_sstack_value_cmp po_memory_cmp.
   Proof.

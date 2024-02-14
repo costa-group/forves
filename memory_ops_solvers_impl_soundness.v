@@ -43,6 +43,9 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
 
+Require Import FORVES.symbolic_execution_soundness.
+Import SymbolicExecutionSoundness.
+
 Module MemoryOpsSolversImplSoundness.
 
   Lemma trivial_mload_solver_snd: mload_solver_ext_snd trivial_mload_solver.
@@ -110,8 +113,138 @@ Module MemoryOpsSolversImplSoundness.
       exists smem''.
       repeat split; apply H_eval_smemory_u_smem.
   Qed.
+
+Lemma  H_memory_slots_do_not_overlap:
+    forall soffset soffset' size size' maxidx sbindings instk_height ops,
+      valid_bindings instk_height maxidx sbindings ops ->
+      valid_sstack_value instk_height maxidx soffset  ->
+      valid_sstack_value instk_height maxidx soffset' ->
+      memory_slots_do_not_overlap soffset soffset' size size' = true ->
+      forall stk mem strg ctx,
+        (length stk) = instk_height ->
+        exists v1 v2,
+        eval_sstack_val' (S maxidx) soffset stk mem strg ctx maxidx sbindings ops = Some v1 /\
+          eval_sstack_val' (S maxidx) soffset' stk mem strg ctx maxidx sbindings ops = Some v2 /\
+          orb ((wordToN v1)+size <? (wordToN v2))%N ((wordToN v2) + size' <? (wordToN v1))%N = true.
+  Proof.
+    intros soffset soffset' size size' maxidx sbindings instk_height ops.
+    intros H_valid_sbindings H_valid_offset H_valid_offset' H_addr_nover.
+    intros stk mem strg ctx H_stk_len.
+
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset stk mem strg ctx maxidx sbindings ops (eq_sym H_stk_len) H_valid_offset H_valid_sbindings (gt_Sn_n maxidx)) as H_eval_soffset.
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset' stk mem strg ctx maxidx sbindings ops (eq_sym H_stk_len) H_valid_offset' H_valid_sbindings (gt_Sn_n maxidx)) as H_eval_soffset'.
+    destruct H_eval_soffset as [soffset_v H_eval_soffset].
+    destruct H_eval_soffset' as [soffset'_v H_eval_soffset'].
+
+    exists soffset_v.
+    exists soffset'_v.
+    repeat split. apply H_eval_soffset. apply H_eval_soffset'.
+    unfold memory_slots_do_not_overlap in H_addr_nover.
+
+    destruct soffset; try discriminate.
+    destruct soffset'; try discriminate.
+
+    pose proof (eval_sstack_val'_Val val stk mem strg ctx maxidx sbindings ops) as H_eval_soffset_val.
+    rewrite H_eval_soffset_val in H_eval_soffset.
+    injection H_eval_soffset as H_eval_soffset.
+    
+    pose proof (eval_sstack_val'_Val val0 stk mem strg ctx maxidx sbindings ops) as H_eval_soffset'_val.
+    rewrite H_eval_soffset'_val in H_eval_soffset'.
+    injection H_eval_soffset' as H_eval_soffset'.
+
+    rewrite <- H_eval_soffset.
+    rewrite <- H_eval_soffset'.
+    
+    apply H_addr_nover.
+  Qed.
+
+  Lemma basic_mload_solver_valid:
+    forall sstack_val_cmp,
+      mload_solver_valid_res (basic_mload_solver sstack_val_cmp).
+  Proof.
+    intros sstack_val_cmp.
+    unfold mload_solver_valid_res.
+    intros m smem soffset instk_height smv ops H_valid_smem H_valid_offset.
+    revert H_valid_smem.
+    revert smem.
+    induction smem as [|u smem' IHsmem'].
+    + intros H_valid_smem H_basic_solver.
+      simpl in H_basic_solver.
+      rewrite <- H_basic_solver.
+      simpl.
+      split; auto.
+    + intros H_valid_smem H_basic_solver.
+      simpl in H_basic_solver.
+      destruct u as [soffset' svalue|].
+      ++ destruct (sstack_val_cmp (S (get_maxidx_smap m)) soffset soffset' (get_maxidx_smap m) (get_bindings_smap m) (get_maxidx_smap m) (get_bindings_smap m) instk_height ops) eqn:E_soffset_soffset'_cmp.
+         +++ rewrite <- H_basic_solver.
+             simpl.
+             apply H_valid_smem.
+         +++ destruct (memory_slots_do_not_overlap soffset soffset' 31 31) eqn:E_do_not_overlap.
+             ++++ apply IHsmem'.
+                  apply H_valid_smem.
+                  apply H_basic_solver.
+             ++++ rewrite <- H_basic_solver.
+                  simpl.
+                  split; auto.
+      ++ destruct (memory_slots_do_not_overlap soffset offset 31 0) eqn:E_do_not_overlap.
+         +++ apply IHsmem'.
+             apply H_valid_smem.
+             apply H_basic_solver.
+         +++ rewrite <- H_basic_solver.
+             simpl.
+             split; auto.
+  Qed.
+
+
+  Lemma S_S_n_gr_b: forall n, S (S n) > n.
+  Proof.
+    auto.
+  Qed.
   
-  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.    
+      
+    
+  Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
+    unfold mload_solver_ext_snd.
+    unfold mload_solver_snd.
+    intros sstack_val_cmp H_sstack_val_cmp.
+    split. apply basic_mload_solver_valid.
+    unfold mload_solver_correct_res.
+    intros m smem soffset instk_height smv ops idx1 m1.
+    intros H_valid_smap H_smem H_valid_soffset H_basic_mload_solver H_add_to_smap.
+    induction smem as [|u smem' IHsmem'].
+    + exists idx1. exists m1.
+      split.
+      ++ simpl in H_basic_mload_solver.
+         rewrite <- H_basic_mload_solver in H_add_to_smap.
+         apply H_add_to_smap.
+      ++ intros stk mem strg ctx H_stk_len.
+         simpl in H_basic_mload_solver.
+         rewrite <- H_basic_mload_solver in H_add_to_smap.
+         destruct m as [maxidx bs] eqn:E_m.
+         simpl in H_add_to_smap.
+         injection H_add_to_smap as H_idx1 H_m1.
+         rewrite <- H_m1.
+         rewrite <- H_idx1.
+         simpl.
+         unfold eval_sstack_val.
+         remember (S maxidx) as S_maxidx.
+         unfold eval_sstack_val'.
+         fold eval_sstack_val'.
+         unfold follow_in_smap.
+         fold follow_in_smap.
+         rewrite Nat.eqb_refl.
+         simpl.
+
+         assert(H_S_S_maxid_gt_maxidx: (S (S maxidx) > maxidx)). auto.
+         pose proof (eval_sstack_val'_succ (S maxidx) instk_height soffset stk mem strg ctx maxidx bs ops (eq_sym H_stk_len) H_valid_soffset H_valid_smap (gt_Sn_n maxidx)) as H_eval_soffset.
+         destruct H_eval_soffset as [soffset_v H_eval_soffset].
+         rewrite HeqS_maxidx.
+         rewrite H_eval_soffset.
+         exists (concrete_interpreter.ConcreteInterpreter.mload mem soffset_v).
+         split; reflexivity.
+    + 
+      
   Admitted.
   
   Lemma basic_smemory_updater_snd: smemory_updater_ext_snd basic_smemory_updater.
