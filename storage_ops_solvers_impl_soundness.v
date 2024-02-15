@@ -780,6 +780,7 @@ Proof.
   injection E_eval_skey' as E_eval_skey'.
   rewrite <- E_eval_skey'.
 
+  
   simpl.
   unfold concrete_interpreter.ConcreteInterpreter.sstore.
 
@@ -1139,7 +1140,7 @@ Qed.
     pose proof (map_option_len (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_SSTORE sstack_val skey svalue :: sstrg') updates2 H_mo_2) as H_map_option_len_2.
     simpl in H_map_option_len_2.
     destruct updates2 as [|u2 updates2']; try discriminate.
-    
+     
     pose proof (map_option_hd (storage_update sstack_val) (storage_update EVMWord) (eval_common.EvalCommon.instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) sstrg' updates2' (U_SSTORE sstack_val skey svalue) u2 H_mo_2) as  H_map_option_hd_2.
     destruct H_map_option_hd_2 as [H_map_option_hd_2_0 H_map_option_hd_2_1].
     simpl in H_map_option_hd_2_0.
@@ -1148,7 +1149,7 @@ Qed.
     rewrite E_eval_svalue in  H_map_option_hd_2_0.
     injection H_map_option_hd_2_0 as H_u2.
     injection H_strg2 as H_strg2.
-
+ 
     unfold eval_common.EvalCommon.update_storage' in H_strg1.
     rewrite <- H_u1 in H_strg1.
     unfold concrete_interpreter.ConcreteInterpreter.sstore in H_strg1.
@@ -1157,7 +1158,6 @@ Qed.
     rewrite <- H_u2 in H_strg2.
     unfold concrete_interpreter.ConcreteInterpreter.sstore in H_strg2.
     
-    unfold eq_storage.
     intro w.
 
 
