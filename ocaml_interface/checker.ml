@@ -52,7 +52,7 @@ let compOpp = function
 | Lt -> Gt
 | Gt -> Lt
 
-(** val id : __ -> __ **)
+(** val id : 'a1 -> 'a1 **)
 
 let id x =
   x
@@ -663,10 +663,9 @@ let rec npow2 = function
 
 let rec nat_cast n0 m x =
   match n0 with
-  | O ->
-    (match m with
-     | O -> Obj.magic id x
-     | S _ -> assert false (* absurd case *))
+  | O -> (match m with
+          | O -> id x
+          | S _ -> assert false (* absurd case *))
   | S n1 ->
     (match m with
      | O -> assert false (* absurd case *)
@@ -5468,12 +5467,9 @@ module StorageOpsSolversImpl =
            (SymbolicState.get_bindings_smap m) instk_height ops
       then basic_sstorage_updater_remove_dups sstack_val_cmp skey sstrg'
              instk_height m ops
-      else if not_eq_keys skey skey' (SymbolicState.get_maxidx_smap m)
-                (SymbolicState.get_bindings_smap m) instk_height ops
-           then (SymbolicState.U_SSTORE (skey',
-                  svalue))::(basic_sstorage_updater_remove_dups
-                              sstack_val_cmp skey sstrg' instk_height m ops)
-           else sstrg
+      else (SymbolicState.U_SSTORE (skey',
+             svalue))::(basic_sstorage_updater_remove_dups sstack_val_cmp
+                         skey sstrg' instk_height m ops)
 
   (** val basic_sstorage_updater :
       SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
@@ -5507,18 +5503,35 @@ module MemoryOpsSolversImpl =
     update::smem
 
   (** val memory_slots_do_not_overlap :
-      SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> bool **)
+      SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat
+      -> SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map
+      -> bool **)
 
-  let memory_slots_do_not_overlap soffset soffset' size size' =
-    match soffset with
-    | SymbolicState.Val v1 ->
-      (match soffset' with
-       | SymbolicState.Val v2 ->
-         let addr = wordToN Constants.coq_EVMWordSize v1 in
-         let addr' = wordToN Constants.coq_EVMWordSize v2 in
-         (||) (N.ltb (N.add addr size) addr') (N.ltb (N.add addr' size') addr)
+  let memory_slots_do_not_overlap soffset soffset' size size' maxidx sb _ _ =
+    match SymbolicState.follow_in_smap soffset maxidx sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymBasicVal val0 ->
+         (match val0 with
+          | SymbolicState.Val v1 ->
+            (match SymbolicState.follow_in_smap soffset' maxidx sb with
+             | Some f0 ->
+               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
+               (match smv0 with
+                | SymbolicState.SymBasicVal val1 ->
+                  (match val1 with
+                   | SymbolicState.Val v2 ->
+                     let addr = wordToN Constants.coq_EVMWordSize v1 in
+                     let addr' = wordToN Constants.coq_EVMWordSize v2 in
+                     (||) (N.ltb (N.add addr size) addr')
+                       (N.ltb (N.add addr' size') addr)
+                   | _ -> false)
+                | _ -> false)
+             | None -> false)
+          | _ -> false)
        | _ -> false)
-    | _ -> false
+    | None -> false
 
   (** val basic_mload_solver :
       SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
@@ -5539,31 +5552,51 @@ module MemoryOpsSolversImpl =
          then SymbolicState.SymBasicVal svalue
          else if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI
                    (XI (XI XH))))) (Npos (XI (XI (XI (XI XH)))))
+                   (SymbolicState.get_maxidx_smap m)
+                   (SymbolicState.get_bindings_smap m) instk_height ops
               then basic_mload_solver sstack_val_cmp soffset smem'
                      instk_height m ops
               else SymbolicState.SymMLOAD (soffset, smem)
        | SymbolicState.U_MSTORE8 (soffset', _) ->
          if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI (XI
-              (XI XH))))) N0
+              (XI XH))))) N0 (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
          then basic_mload_solver sstack_val_cmp soffset smem' instk_height m
                 ops
          else SymbolicState.SymMLOAD (soffset, smem))
 
   (** val mstore8_is_included_in_mstore :
-      SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool **)
+      SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+      SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map ->
+      bool **)
 
-  let mstore8_is_included_in_mstore soffset_mstore8 soffset_mstore =
-    match soffset_mstore8 with
-    | SymbolicState.Val v1 ->
-      (match soffset_mstore with
-       | SymbolicState.Val v2 ->
-         let addr_mstore8 = wordToN Constants.coq_EVMWordSize v1 in
-         let addr_mstore = wordToN Constants.coq_EVMWordSize v2 in
-         (&&) (N.leb addr_mstore addr_mstore8)
-           (N.leb addr_mstore8
-             (N.add addr_mstore (Npos (XI (XI (XI (XI XH)))))))
+  let mstore8_is_included_in_mstore soffset_mstore8 soffset_mstore maxidx sb _ _ =
+    match SymbolicState.follow_in_smap soffset_mstore8 maxidx sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymBasicVal val0 ->
+         (match val0 with
+          | SymbolicState.Val v1 ->
+            (match SymbolicState.follow_in_smap soffset_mstore maxidx sb with
+             | Some f0 ->
+               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
+               (match smv0 with
+                | SymbolicState.SymBasicVal val1 ->
+                  (match val1 with
+                   | SymbolicState.Val v2 ->
+                     let addr_mstore8 = wordToN Constants.coq_EVMWordSize v1
+                     in
+                     let addr_mstore = wordToN Constants.coq_EVMWordSize v2 in
+                     (&&) (N.leb addr_mstore addr_mstore8)
+                       (N.leb addr_mstore8
+                         (N.add addr_mstore (Npos (XI (XI (XI (XI XH)))))))
+                   | _ -> false)
+                | _ -> false)
+             | None -> false)
+          | _ -> false)
        | _ -> false)
-    | _ -> false
+    | None -> false
 
   (** val basic_smemory_updater_remove_mstore_dups :
       SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
@@ -5590,6 +5623,8 @@ module MemoryOpsSolversImpl =
                             m ops)
        | SymbolicState.U_MSTORE8 (soffset', svalue) ->
          if mstore8_is_included_in_mstore soffset' soffset_mstore
+              (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
          then basic_smemory_updater_remove_mstore_dups sstack_val_cmp
                 soffset_mstore smem' instk_height m ops
          else (SymbolicState.U_MSTORE8 (soffset',

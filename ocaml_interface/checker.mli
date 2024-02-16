@@ -24,7 +24,7 @@ type comparison =
 
 val compOpp : comparison -> comparison
 
-val id : __ -> __
+val id : 'a1 -> 'a1
 
 type uint =
 | Nil
@@ -1450,7 +1450,8 @@ module MemoryOpsSolversImpl :
     SymbolicState.sstack_val SymbolicState.memory_update list
 
   val memory_slots_do_not_overlap :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> bool
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
 
   val basic_mload_solver :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
@@ -1458,7 +1459,8 @@ module MemoryOpsSolversImpl :
     StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
 
   val mstore8_is_included_in_mstore :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
 
   val basic_smemory_updater_remove_mstore_dups :
     SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
