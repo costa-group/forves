@@ -83,9 +83,9 @@ Fixpoint mstore' {sz : nat} (mem : memory) : (word (sz*8)) -> N -> memory :=
   | O => fun _ _ => mem
   | S sz1' =>
       fun value offset =>
-        let byte := split1_byte value in (* split1 8 (8*sz1') value in *)
-        let mem' := fun offset' => if (offset' =? offset)%N then byte else mem offset' in
-        mstore' mem' (split2_byte value) (offset+1)%N
+        let mem' := mstore' mem (split2_byte value) (offset+1)%N in 
+         let byte := split1_byte value in (* split1 8 (8*sz1') value in *)
+         fun offset' => if (offset' =? offset)%N then byte else mem' offset'
   end.
 
 Definition mstore {sz : nat} (mem : memory) (value : word (sz*8)) (offset: EVMWord) : memory :=

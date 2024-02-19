@@ -18,6 +18,7 @@ symbolic_execution_soundness.v
 
 memory_ops_solvers.v
 memory_ops_solvers_impl.v
+memory_ops_solvers_impl_soundness_misc.v
 memory_ops_solvers_impl_soundness.v
 
 storage_ops_solvers.v

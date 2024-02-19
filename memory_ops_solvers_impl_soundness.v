@@ -49,6 +49,9 @@ Import SymbolicExecutionSoundness.
 Require Import storage_ops_solvers_impl_soundness.
 Import StorageOpsSolversImplSoundness.
 
+Require Import memory_ops_solvers_impl_soundness_misc.
+Import MemoryOpsSolversImplSoundnessMisc.
+
 Module MemoryOpsSolversImplSoundness.
 
   Lemma trivial_mload_solver_snd: mload_solver_ext_snd trivial_mload_solver.
@@ -298,12 +301,123 @@ induction smem as [|u sstrg' IHsstrg'].
   Qed.
 
 
+Lemma mstore'_aux:
+  forall sz addr (value : word (sz * 8)) mem,
+    (fix mstore' (sz : nat) (mem0 : memory) {struct sz} : word (sz * 8) -> N -> memory :=
+         match sz as sz0 return (word (sz0 * 8) -> N -> memory) with
+         | 0 => fun (_ : word (0 * 8)) (_ : N) => mem0
+         | S sz1' =>
+             fun (value0 : word (S sz1' * 8)) (offset offset'0 : N) =>
+             if (offset'0 =? offset)%N
+             then concrete_interpreter.ConcreteInterpreter.split1_byte value0
+             else mstore' sz1' mem0 (concrete_interpreter.ConcreteInterpreter.split2_byte value0) (offset + 1)%N offset'0
+         end) sz mem value addr = concrete_interpreter.ConcreteInterpreter.mstore' mem value addr.
+Proof.
+  auto.
+  Qed.
+
+Lemma mload''_aux:
+  forall n addr addr' x y,
+      (addr' > addr)%N ->
+         (concrete_interpreter.ConcreteInterpreter.mload''
+            (fun offset' : N =>
+               if (offset' =? addr)%N
+               then x
+               else y offset') addr' n) =
+           (concrete_interpreter.ConcreteInterpreter.mload'' y addr' n).
+Proof.
+  induction n as [|n' IHn'].
+  + intros.
+    simpl.
+    reflexivity.
+  + intros addr addr' x y H_addr'_gt_addr'.
+    unfold concrete_interpreter.ConcreteInterpreter.mload'' at 1.
+    fold concrete_interpreter.ConcreteInterpreter.mload''.
+
+    assert (H_addr'_neqb_addr: (addr' =? addr)%N = false).
+      (* proof of assert *)
+      rewrite N.eqb_neq.
+      intuition.
+    
+      assert (H_addr'_1_gt_addr: (addr'+1> addr)%N).
+      apply N.lt_gt.
+      apply N.lt_lt_add_r.
+      apply N.gt_lt in H_addr'_gt_addr'.
+      apply H_addr'_gt_addr'.
+      (****)
+      
+    rewrite H_addr'_neqb_addr.
+    unfold concrete_interpreter.ConcreteInterpreter.mload'' at 2.
+    fold concrete_interpreter.ConcreteInterpreter.mload''.
+
+    pose proof (IHn' addr (addr'+1)%N x y H_addr'_1_gt_addr) as IHn'_0.
+    rewrite IHn'_0.
+    reflexivity.
+Qed.
+
+
+
+Lemma mload''_mstore'_same_address:
+  forall n mem addr value,
+  concrete_interpreter.ConcreteInterpreter.mload'' (concrete_interpreter.ConcreteInterpreter.mstore' mem (value: word (n*8)) addr) addr n = value.
+Proof.
+  induction n as [|n' IHn'].
+  + intros mem addr value.
+    simpl.
+    rewrite word0.
+    reflexivity.
+  + intros mem addr value.
+    unfold concrete_interpreter.ConcreteInterpreter.mstore'.
+    rewrite mstore'_aux.
+    unfold concrete_interpreter.ConcreteInterpreter.mload''.
+    rewrite N.eqb_refl.
+    fold concrete_interpreter.ConcreteInterpreter.mload''.
+
+    destruct n' as [|n''] eqn:E_n'.
+    ++ unfold concrete_interpreter.ConcreteInterpreter.mload''.
+       unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
+       unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
+       unfold mul.
+       
+       Search (Word.combine ?x WO).
+       
+       pose proof (wordToZ_combine_WO (split1 8 0 value)) as H_wordToZ_combine_WO.
+       apply wordToZ_inj in H_wordToZ_combine_WO.
+       rewrite H_wordToZ_combine_WO at 1.
+       
+       pose proof (split1_0 value) as H_split1_0_0.
+       unfold mul in H_split1_0_0.
+       unfold add in H_split1_0_0.
+       pose proof (H_split1_0_0 (eq_refl 8)) as H_split1_0_1.
+       unfold eq_rect in H_split1_0_1.
+       apply H_split1_0_1.
+       
+    ++ rewrite mload''_aux.
+       +++ pose proof (IHn' mem (addr+1)%N (concrete_interpreter.ConcreteInterpreter.split2_byte value)) as IHn'_0.
+           rewrite IHn'_0.
+           unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
+           unfold concrete_interpreter.ConcreteInterpreter.split2_byte.
+           apply Word.combine_split.
+       +++ apply N.lt_gt.
+           apply Nlt_in.
+           rewrite N2Nat.inj_add.
+           simpl.
+           intuition.
+Qed.
+
 Lemma mload_mstore_same_address:
   forall mem addr value,
     (concrete_interpreter.ConcreteInterpreter.mload
        (concrete_interpreter.ConcreteInterpreter.mstore mem value addr) addr) = value.
 Proof.
-  Admitted.
+  intros mem addr value.
+  unfold concrete_interpreter.ConcreteInterpreter.mload.
+  unfold concrete_interpreter.ConcreteInterpreter.mload'.
+  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+  apply mload''_mstore'_same_address.
+Qed.
+
+ 
 
 
 Lemma do_not_overlap_mload:
@@ -312,7 +426,137 @@ Lemma do_not_overlap_mload:
     (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) (wordToN offset) 32) =
     (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
 Proof.
-  Admitted.
+  intros mem offset offset' value' updates H_o.
+  unfold concrete_interpreter.ConcreteInterpreter.mload''.
+
+  rewrite assoc_ones_31.
+  rewrite Reduce_ones_31.
+
+  rewrite assoc_ones_30.
+  rewrite Reduce_ones_30.
+
+  rewrite assoc_ones_29.
+  rewrite Reduce_ones_29.
+
+  rewrite assoc_ones_28.
+  rewrite Reduce_ones_28.
+
+  rewrite assoc_ones_27.
+  rewrite Reduce_ones_27.
+
+  rewrite assoc_ones_26.
+  rewrite Reduce_ones_26.
+
+  rewrite assoc_ones_25.
+  rewrite Reduce_ones_25.
+
+  rewrite assoc_ones_24.
+  rewrite Reduce_ones_24.
+
+  rewrite assoc_ones_23.
+  rewrite Reduce_ones_23.
+
+  rewrite assoc_ones_22.
+  rewrite Reduce_ones_22.
+
+  rewrite assoc_ones_21.
+  rewrite Reduce_ones_21.
+
+  rewrite assoc_ones_20.
+  rewrite Reduce_ones_20.
+
+  rewrite assoc_ones_19.
+  rewrite Reduce_ones_19.
+
+  rewrite assoc_ones_18.
+  rewrite Reduce_ones_18.
+
+  rewrite assoc_ones_17.
+  rewrite Reduce_ones_17.
+
+  rewrite assoc_ones_16.
+  rewrite Reduce_ones_16.
+
+  rewrite assoc_ones_15.
+  rewrite Reduce_ones_15.
+
+  rewrite assoc_ones_14.
+  rewrite Reduce_ones_14.
+
+  rewrite assoc_ones_13.
+  rewrite Reduce_ones_13.
+
+  rewrite assoc_ones_12.
+  rewrite Reduce_ones_12.
+
+  rewrite assoc_ones_11.
+  rewrite Reduce_ones_11.
+
+  rewrite assoc_ones_10.
+  rewrite Reduce_ones_10.
+
+    rewrite assoc_ones_9.
+  rewrite Reduce_ones_9.
+
+  rewrite assoc_ones_8.
+  rewrite Reduce_ones_8.
+
+  rewrite assoc_ones_7.
+  rewrite Reduce_ones_7.
+
+  rewrite assoc_ones_6.
+  rewrite Reduce_ones_6.
+
+  rewrite assoc_ones_5.
+  rewrite Reduce_ones_5.
+
+  rewrite assoc_ones_4.
+  rewrite Reduce_ones_4.
+
+  rewrite assoc_ones_3.
+  rewrite Reduce_ones_3.
+
+  rewrite assoc_ones_2.
+  rewrite Reduce_ones_2.
+
+
+  rewrite (do_not_overlap_mload_aux mem value' updates 1 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 2 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 3 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 4 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 5 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 6 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 7 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 8 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 9 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 10 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 11 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 12 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 13 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 14 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 15 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 16 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 17 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 18 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 19 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 20 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 21 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 22 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 23 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 24 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 25 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 26 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 27 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 28 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 29 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 30 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux mem value' updates 31 offset offset' H_31_lt_32 H_o).
+
+  assert ( H_O_0: (wordToN offset + 0 = wordToN offset)%N). apply N.add_0_r.
+  rewrite <- H_O_0.
+  rewrite (do_not_overlap_mload_aux mem value' updates 0 offset offset' H_31_lt_32 H_o).
+  reflexivity.
+Qed.
 
 Lemma do_not_overlap_mload_0:
   forall mem offset offset' value' updates,
@@ -320,7 +564,138 @@ Lemma do_not_overlap_mload_0:
     (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) (wordToN offset) 32) =
     (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
 Proof.
-  Admitted.
+Proof.
+  intros mem offset offset' value' updates H_o.
+  unfold concrete_interpreter.ConcreteInterpreter.mload''.
+
+  rewrite assoc_ones_31.
+  rewrite Reduce_ones_31.
+
+  rewrite assoc_ones_30.
+  rewrite Reduce_ones_30.
+
+  rewrite assoc_ones_29.
+  rewrite Reduce_ones_29.
+
+  rewrite assoc_ones_28.
+  rewrite Reduce_ones_28.
+
+  rewrite assoc_ones_27.
+  rewrite Reduce_ones_27.
+
+  rewrite assoc_ones_26.
+  rewrite Reduce_ones_26.
+
+  rewrite assoc_ones_25.
+  rewrite Reduce_ones_25.
+
+  rewrite assoc_ones_24.
+  rewrite Reduce_ones_24.
+
+  rewrite assoc_ones_23.
+  rewrite Reduce_ones_23.
+
+  rewrite assoc_ones_22.
+  rewrite Reduce_ones_22.
+
+  rewrite assoc_ones_21.
+  rewrite Reduce_ones_21.
+
+  rewrite assoc_ones_20.
+  rewrite Reduce_ones_20.
+
+  rewrite assoc_ones_19.
+  rewrite Reduce_ones_19.
+
+  rewrite assoc_ones_18.
+  rewrite Reduce_ones_18.
+
+  rewrite assoc_ones_17.
+  rewrite Reduce_ones_17.
+
+  rewrite assoc_ones_16.
+  rewrite Reduce_ones_16.
+
+  rewrite assoc_ones_15.
+  rewrite Reduce_ones_15.
+
+  rewrite assoc_ones_14.
+  rewrite Reduce_ones_14.
+
+  rewrite assoc_ones_13.
+  rewrite Reduce_ones_13.
+
+  rewrite assoc_ones_12.
+  rewrite Reduce_ones_12.
+
+  rewrite assoc_ones_11.
+  rewrite Reduce_ones_11.
+
+  rewrite assoc_ones_10.
+  rewrite Reduce_ones_10.
+
+    rewrite assoc_ones_9.
+  rewrite Reduce_ones_9.
+
+  rewrite assoc_ones_8.
+  rewrite Reduce_ones_8.
+
+  rewrite assoc_ones_7.
+  rewrite Reduce_ones_7.
+
+  rewrite assoc_ones_6.
+  rewrite Reduce_ones_6.
+
+  rewrite assoc_ones_5.
+  rewrite Reduce_ones_5.
+
+  rewrite assoc_ones_4.
+  rewrite Reduce_ones_4.
+
+  rewrite assoc_ones_3.
+  rewrite Reduce_ones_3.
+
+  rewrite assoc_ones_2.
+  rewrite Reduce_ones_2.
+
+
+  rewrite (do_not_overlap_mload_aux' mem value' updates 1 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 2 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 3 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 4 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 5 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 6 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 7 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 8 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 9 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 10 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 11 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 12 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 13 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 14 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 15 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 16 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 17 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 18 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 19 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 20 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 21 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 22 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 23 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 24 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 25 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 26 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 27 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 28 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 29 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 30 offset offset' H_31_lt_32 H_o).
+  rewrite (do_not_overlap_mload_aux' mem value' updates 31 offset offset' H_31_lt_32 H_o).
+
+  assert ( H_O_0: (wordToN offset + 0 = wordToN offset)%N). apply N.add_0_r.
+  rewrite <- H_O_0.
+  rewrite (do_not_overlap_mload_aux' mem value' updates 0 offset offset' H_31_lt_32 H_o).
+  reflexivity.
+Qed.
 
 
 Lemma two_consecutive_updates_same_address:
@@ -351,12 +726,15 @@ Lemma two_consecutive_updates_same_address_mstore8:
 Proof.
 Admitted.
 
-Lemma mem_eq_when_after_update_eq:
-  forall mem1 mem2 u,
-    eval_common.EvalCommon.update_memory' mem1 u = eval_common.EvalCommon.update_memory' mem2 u ->
-    mem1 = mem2.
+
+Lemma mem_eq_after_update:
+  forall smem1 smem2 u1 u2 w mem,
+  (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u1) w =
+  (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u1) w ->
+  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u2) u1 w =
+  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u2) u1 w.
 Admitted.
-                                                                                                         
+
 Lemma N_of_nat_Sn:
   forall x n, (x + N.of_nat (S n) = x+ 1 + N.of_nat n)%N.
 Proof.
@@ -380,12 +758,16 @@ Proof.
   + intros mem w offset mem' H_mstore' offset' H_n'_gt_n.
     simpl in H_mstore'.
     rewrite N_of_nat_Sn in H_n'_gt_n.
-    pose proof (IHsz' (fun offset' : N => if (offset' =? offset)%N then concrete_interpreter.ConcreteInterpreter.split1_byte w else mem offset')
-                     (concrete_interpreter.ConcreteInterpreter.split2_byte w) (offset+1)%N mem' H_mstore' offset' H_n'_gt_n) as IHsz'_0.
-    simpl in IHsz'_0.
-    destruct ((offset' =? offset)%N) eqn:E_offset_eq_offset'.
-    ++  apply N.eqb_eq in E_offset_eq_offset'.
-        intuition.        
+    remember (concrete_interpreter.ConcreteInterpreter.mstore' mem (concrete_interpreter.ConcreteInterpreter.split2_byte w) (offset + 1)) as mem''.
+    pose proof (IHsz' mem (concrete_interpreter.ConcreteInterpreter.split2_byte w) (offset + 1)%N mem'' (eq_sym Heqmem'') offset' H_n'_gt_n) as IHsz'_0.
+    rewrite <- H_mstore'.
+    destruct (offset' =? offset)%N eqn:E_offset_offset'.
+    ++ rewrite N.eqb_eq in E_offset_offset'.
+       rewrite E_offset_offset' in H_n'_gt_n.
+       contradiction H_n'_gt_n.
+       destruct offset.
+       +++ intuition.
+       +++ intuition.
     ++ rewrite IHsz'_0.
        reflexivity.
 Qed.
@@ -1078,7 +1460,7 @@ Qed.
                rewrite <- E_e1 in H_eval_u_smem'.
                rewrite <- E_e2 in H_eval_u_smem'.
 
-               apply mem_eq_when_after_update_eq in H_eval_u_smem'.
+               apply mem_eq_after_update.
                rewrite H_eval_u_smem'.
                reflexivity.
 
@@ -1202,7 +1584,7 @@ Qed.
                rewrite <- E_e1 in H_eval_u_smem'.
                rewrite <- E_e2 in H_eval_u_smem'.
 
-               apply mem_eq_when_after_update_eq in H_eval_u_smem'.
+               apply mem_eq_after_update.
                rewrite H_eval_u_smem'.
                reflexivity.
 Qed.
@@ -1341,11 +1723,11 @@ Qed.
            
            rewrite <- E_e1 in H_eval_u_smem'.
            rewrite <- E_e2 in H_eval_u_smem'.
-           
-           apply mem_eq_when_after_update_eq in H_eval_u_smem'.
+
+           apply mem_eq_after_update.
            rewrite H_eval_u_smem'.
            reflexivity.
-           
+
 
         (* MSTORE8 *)
         ++ simpl in H_valid_smem.
@@ -1465,7 +1847,7 @@ Qed.
                rewrite <- E_e1 in H_eval_u_smem'.
                rewrite <- E_e2 in H_eval_u_smem'.
 
-               apply mem_eq_when_after_update_eq in H_eval_u_smem'.
+               apply mem_eq_after_update.
                rewrite H_eval_u_smem'.
                reflexivity.
     Qed.
