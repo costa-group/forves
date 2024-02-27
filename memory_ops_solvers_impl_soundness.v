@@ -1167,13 +1167,65 @@ Proof.
 Qed.
 
 
+Lemma mem_eq_after_update'':
+forall (n m : nat)  (mem1 mem2 : memory) (svalue1 : word (n * 8)) (svalue2 : word (m * 8)) (soffset1 soffset2 : N)  (w : N),
+  concrete_interpreter.ConcreteInterpreter.mstore' mem1 svalue1 soffset1 w =
+    concrete_interpreter.ConcreteInterpreter.mstore' mem2 svalue1 soffset1 w ->
+  concrete_interpreter.ConcreteInterpreter.mstore'
+    (concrete_interpreter.ConcreteInterpreter.mstore' mem1 svalue2 soffset2) svalue1 soffset1 w =
+  concrete_interpreter.ConcreteInterpreter.mstore'
+    (concrete_interpreter.ConcreteInterpreter.mstore' mem2 svalue2 soffset2) svalue1 soffset1 w.
+Proof.
+  induction n as [|n' IHn'].
+  + induction m as [|m' IHm'].
+    ++ intros mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
+       unfold concrete_interpreter.ConcreteInterpreter.mstore' in H.
+       simpl.
+       apply H.
+    ++ intros mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
+       simpl.
+       destruct (w =? soffset2)%N eqn:E_w_off2; try reflexivity.
+       pose proof (IHm' mem1 mem2 svalue1 (concrete_interpreter.ConcreteInterpreter.split2_byte svalue2) soffset1 (soffset2 + 1)%N w H) as IHm'_0.
+       simpl in IHm'_0.
+       apply IHm'_0.
+  +  intros m mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
+     simpl.
+     destruct (w =? soffset1)%N eqn:E_w_off1; try reflexivity.
+     simpl in H.
+     rewrite E_w_off1 in H.
+     pose proof (IHn' m mem1 mem2 (concrete_interpreter.ConcreteInterpreter.split2_byte svalue1) svalue2 (soffset1+1)%N soffset2 w H).
+     apply H0.
+Qed.
+
+Lemma mem_eq_after_update':
+  forall u1 u2 w mem1 mem2,
+  (eval_common.EvalCommon.update_memory' mem1 u1) w =
+  (eval_common.EvalCommon.update_memory' mem2 u1) w ->
+  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' mem1 u2) u1 w =
+  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' mem2 u2) u1 w.
+Proof.
+  intros.
+  unfold eval_common.EvalCommon.update_memory'.
+  unfold eval_common.EvalCommon.update_memory'.
+  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+   
+  destruct u1 as [soffset1 svalue1|soffset1 svalue1]; 
+    destruct u2 as [soffset2 svalue2|soffset2 svalue2]; 
+
+    apply mem_eq_after_update''; apply H.
+Qed.
+
 Lemma mem_eq_after_update:
   forall smem1 smem2 u1 u2 w mem,
   (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u1) w =
   (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u1) w ->
   eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u2) u1 w =
   eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u2) u1 w.
-Admitted.
+Proof.
+  intros.
+  pose proof (mem_eq_after_update' u1 u2 w (eval_common.EvalCommon.update_memory mem smem1) (eval_common.EvalCommon.update_memory mem smem2) H) as H_mem_eq_after_update'.
+  apply H_mem_eq_after_update'.
+Qed.
 
 Lemma N_of_nat_Sn:
   forall x n, (x + N.of_nat (S n) = x+ 1 + N.of_nat n)%N.
