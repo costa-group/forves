@@ -230,8 +230,7 @@ def solc_json_block_to_str(b):
     return s[:-1]
 
 def print_test_2(bstr1, bstr2):
-    try:
-        
+    try:     
         bytecode_as_list = str_to_list(bstr1)
         opt_bytecode_as_list = str_to_list(bstr2)
 
@@ -245,16 +244,47 @@ def print_test_2(bstr1, bstr2):
         print(stack_size)
         print()
     except Exception as e:
-        print(e,file=sys.stderr)
+        print(f'>>>> {e}',file=sys.stderr)
+
+
+def gen_test_2(bstr1, bstr2, i, contract=""):
+    try:     
+        bytecode_as_list = str_to_list(bstr1)
+        opt_bytecode_as_list = str_to_list(bstr2)
+        if bytecode_as_list == opt_bytecode_as_list:
+            return ""
+
+        bytecode = ' '.join(bytecode_as_list)
+        opt_bytecode = ' '.join(opt_bytecode_as_list)
+        stack_size = 500
+
+        return f'# Smart contract {contract}\n# Block {i}\n{opt_bytecode}\n{bytecode}\n{stack_size}\n\n'
+    except Exception as e:
+        # print(f'>>>> {e}',file=sys.stderr)
+        return ""       
 
 def gen_tests_from_daniel_format(paths):
     for path in paths:
-        with open(path, 'r') as f:
-            bs = json.load(f)
-            for b in bs:
+        with open(path, 'r', encoding='utf8') as f:
+            json_source = f.read()
+            bs = json.loads(f'[{json_source[:-2]}]')  # Removes last comma
+            for i,b in enumerate(bs):
+                print(f'>>>> Bloque {i}',file=sys.stderr)
                 b1 = solc_json_block_to_str(b["pre"][".code"])
                 b2 = solc_json_block_to_str(b["post"][".code"])
                 print_test_2(b1,b2)
+
+def gen_blocks_from_daniel_format(path):
+    with open(path, 'r', encoding='utf8') as f:
+        json_source = f.read()
+        bs = json.loads(f'[{json_source[:-2]}]')  # Removes last comma
+        blocks = ""
+        for i,b in enumerate(bs):
+            # print(f'>>>> Bloque {i}',file=sys.stderr)
+            b1 = solc_json_block_to_str(b["pre"][".code"])
+            b2 = solc_json_block_to_str(b["post"][".code"])
+            blocks += gen_test_2(b1,b2,i,path)
+        return blocks
 
 # Usage example:
 #
@@ -262,7 +292,7 @@ def gen_tests_from_daniel_format(paths):
 #
 if __name__ == "__main__":
     paths=sys.argv[1:]
-    gen_tests(paths)
-    #gen_tests_from_daniel_format(paths)
+    #gen_tests(paths)
+    gen_tests_from_daniel_format(paths)
     #x = str_to_list("PUSH [tag] 1 ADD SUB PUSH 10")
     #print(x)
