@@ -378,9 +378,7 @@ Proof.
        unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
        unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
        unfold mul.
-       
-       Search (Word.combine ?x WO).
-       
+              
        pose proof (wordToZ_combine_WO (split1 8 0 value)) as H_wordToZ_combine_WO.
        apply wordToZ_inj in H_wordToZ_combine_WO.
        rewrite H_wordToZ_combine_WO at 1.
