@@ -45,6 +45,10 @@ Import EvalCommon.
 Require Import FORVES.concrete_interpreter.
 Import ConcreteInterpreter.
 
+Require Import Coq.Logic.FunctionalExtensionality.
+
+Require Import FORVES.memory_ops_solvers_impl_soundness.
+Import MemoryOpsSolversImplSoundness.
 
 Module MemoryCmpImplSoundness.
 
@@ -245,8 +249,174 @@ Module MemoryCmpImplSoundness.
                    +++++ apply IHd'_0.
   Qed.
 
+  Lemma x_eq_offset_false_implied:
+    forall n offset1 offset2 x,
+      (offset1+(N.of_nat (S n)) <=? offset2)%N = true ->
+      (x =? offset1)%N = true ->
+      (x =? offset2)%N = false.
+  Proof.
+    intros n offset1 offset2 x H_no_overlap H_x_offset1.
+      simpl in H_no_overlap.
+      rewrite N.eqb_eq in H_x_offset1.
+      rewrite H_x_offset1.
+      rewrite N.eqb_neq.
+      apply N.lt_neq. 
+      pose proof (N.leb_le (offset1 + N.pos (Pos.of_succ_nat n))%N offset2) as H_leb_le.
+      rewrite H_leb_le in H_no_overlap.
+      apply Nlt_in.
+      intuition.
+Qed.    
+
+  Lemma n_le_m_implies_n_lt_m_plus_1:
+    forall n m,
+      (n <=? m = true -> n <? m+1 = true)%N.
+  Proof.
+    intros n m H_n_le_m.
+    rewrite N.ltb_lt.
+    rewrite N.leb_le in H_n_le_m.
+    apply Nlt_in.
+    intuition.
+  Qed.
+
+    Lemma n_le_m_implies_n_le_m_plus_1:
+    forall n m,
+      (n <=? m = true -> n <=? m+1 = true)%N.
+  Proof.
+    intros n m H_n_le_m.
+    rewrite N.leb_le.
+    rewrite N.leb_le in H_n_le_m.
+    apply N.le_lteq.
+    left.
+    apply Nlt_in.
+    intuition.
+  Qed.
+
+  Lemma Nle_in:
+    forall n m : N, N.to_nat n <= N.to_nat m -> (n <= m)%N.
+  Proof.
+    intros n m H.
+    apply Nat.le_lteq in H.
+    destruct H.
+    + apply Nlt_in in H.
+      apply N.le_lteq.
+      left.
+      apply H.
+    + apply N.le_lteq.
+      right.
+      apply nat_of_N_eq in H.
+      apply H.
+  Qed.
+
+                                                    
+  Lemma n_lt_m_implies_n_plus_1_le_m:
+    forall n m,
+      (n <? m = true -> n+1 <=? m = true)%N.
+  Proof.
+    intros n m H_n_lt_m.
+    rewrite N.leb_le.
+    pose proof Nlt_in.
+    rewrite N.ltb_lt in H_n_lt_m.
+    apply Nlt_out in H_n_lt_m.
+    apply Nle_in.
+    intuition.
+  Qed.
 
 
+  
+Lemma update_same_address_mstore'_aux:
+  forall n m mem (value1: word (S n*8)) (value2: word (m*8)) offset1 offset2 x,
+    (offset1+(N.of_nat (S n)) <=? offset2)%N = true ->
+    (x =? offset1)%N = true ->
+    mstore'
+      (fun offset' : N =>
+         if (offset' =? offset1)%N
+         then split1_byte value1
+         else mstore' mem (split2_byte value1) (offset1 + 1) offset') value2 offset2
+      x = split1_byte value1.
+Proof.
+  intros n m.
+  revert m n.
+  induction m as [|m'].
+  + intros n mem value1 value2 offset1 offset2 x H_no_overlap H_x_eq_offset1.
+    simpl.
+    rewrite H_x_eq_offset1.
+    reflexivity.
+  + intros n mem value1 value2 offset1 offset2 x H_no_overlap H_x_eq_offset1.
+    simpl.
+
+    assert(H_x_offset2: (x =? offset2)%N = false). apply (x_eq_offset_false_implied n offset1 offset2 x H_no_overlap H_x_eq_offset1).
+    
+    assert(H_no_overlap':  (offset1 + N.of_nat (S n) <=? offset2+1)%N = true).
+       apply (n_le_m_implies_n_le_m_plus_1 (offset1 + N.of_nat (S n))%N offset2 H_no_overlap).
+    
+    rewrite H_x_offset2.
+    pose proof (IHm' n mem value1 (split2_byte value2) offset1 (offset2+1)%N x H_no_overlap' H_x_eq_offset1) as IHm'_0.
+    apply IHm'_0.
+Qed.
+
+Lemma update_same_address_mstore'_aux'':
+  forall n m mem (value1: word (S n*8)) (value2: word (m*8)) offset1 offset2 x,
+    (offset1+(N.of_nat (S n)) <=? offset2)%N = true ->
+    (x =? offset1)%N = false ->
+    mstore'
+      (fun offset' : N =>
+         if (offset' =? offset1)%N
+         then split1_byte value1
+         else mstore' mem (split2_byte value1) (offset1 + 1) offset') value2 offset2
+      x = mstore'
+            (mstore' mem (split2_byte value1) (offset1 + 1)) value2 offset2 x.
+Proof.
+  intros n m.
+  revert m n.
+  induction m as [|m' IHm'].
+  + intros n nmem value1 value2 offset1 offset2 x H_no_overlap H_x_offset1.
+    simpl.
+    rewrite H_x_offset1.
+    reflexivity.
+  + intros n mem value1 value2 offset1 offset2 x H_no_overlap H_x_offset1.
+    simpl.
+    destruct (x =? offset2)%N eqn:E_x_offset2; try reflexivity.
+
+    assert(H_no_overlap':  (offset1 + N.of_nat (S n) <=? offset2+1)%N = true). 
+       apply (n_le_m_implies_n_le_m_plus_1 (offset1 + N.of_nat (S n))%N offset2 H_no_overlap).
+
+    pose proof (IHm' n mem value1 (split2_byte value2) offset1 (offset2+1)%N x H_no_overlap' H_x_offset1) as IHm'_0.
+
+    apply IHm'_0.     
+Qed.
+  
+
+  Lemma mstore_non_overlap_updates:
+    forall n m mem offset1 (value1 : word (n*8)) offset2 (value2: word (m*8)),
+      (offset1+(N.of_nat n) <=? offset2)%N = true ->
+      mstore' (mstore' mem value1 offset1) value2 offset2 = 
+        mstore' (mstore' mem value2 offset2) value1 offset1. 
+  Proof.
+    induction n as [|n' IHn'].
+    + intros m mem offset1 value1 offset2 value2 H_no_overlap.
+      unfold mstore' at 2.
+      unfold mstore' at 2.
+      reflexivity.
+    + intros m mem offset1 value1 offset2 value2 H_no_overlap.
+      apply functional_extensionality.
+      intro x.
+      simpl.
+      destruct (x =? offset1)%N eqn:E_x_offset1.
+      ++ rewrite update_same_address_mstore'_aux.
+         reflexivity.
+         apply H_no_overlap.
+         apply E_x_offset1.
+      ++ rewrite update_same_address_mstore'_aux''.
+         
+         assert (H_no_overlap': (offset1 + 1 + N.of_nat n' <=? offset2)%N = true). rewrite <- N_x_nat_of_Si. apply H_no_overlap.
+
+         pose proof (IHn' m mem (offset1 + 1)%N (split2_byte value1) offset2 value2 H_no_overlap') as IHn'_0.
+         rewrite IHn'_0.
+         reflexivity.
+         apply H_no_overlap.
+         apply E_x_offset1.
+  Qed.
+       
   
     Lemma swap_memory_update_snd:
     forall smem u1 u2 maxidx sb instk_height ops,
@@ -261,7 +431,343 @@ Module MemoryCmpImplSoundness.
                eval_smemory (u1::u2::smem) maxidx sb stk mem strg ctx ops = Some mem' /\
                  eval_smemory (u2::u1::smem) maxidx sb stk mem strg ctx ops = Some mem'.
     Proof.
-    Admitted.
+      intros smem u1 u2 maxidx sb instk_height ops.
+      intros H_valid_smem H_valid_u1 H_valid_u2 H_valid_sb H_swap_mem_u.
+      intros stk mem strg ctx.
+      intros H_stk_len.
+     
+      pose proof (valid_smemory_when_extended_with_valid_update instk_height maxidx u1 smem H_valid_u1 H_valid_smem) as H_valid_u1_smem.
+
+      pose proof (valid_smemory_when_extended_with_valid_update instk_height maxidx u2 (u1::smem) H_valid_u2 H_valid_u1_smem) as H_valid_u2_u1_smem.
+
+      pose proof (valid_smemory_when_extended_with_valid_update instk_height maxidx u2 smem H_valid_u2 H_valid_smem) as H_valid_u2_smem.
+
+      pose proof (valid_smemory_when_extended_with_valid_update instk_height maxidx u1 (u2::smem) H_valid_u1 H_valid_u2_smem) as H_valid_u1_u2_smem.
+
+      pose proof (eval_smemory_succ instk_height maxidx sb stk mem strg ctx ops (u1::u2::smem) (eq_sym H_stk_len) H_valid_u1_u2_smem H_valid_sb) as H_eval_u1_u2_smem.
+
+      pose proof (eval_smemory_succ instk_height maxidx sb stk mem strg ctx ops (u2::u1::smem) (eq_sym H_stk_len) H_valid_u2_u1_smem H_valid_sb) as H_eval_u2_u1_smem.
+
+      destruct H_eval_u1_u2_smem as [mem1 H_eval_u1_u2_smem].
+      destruct H_eval_u2_u1_smem as [mem2 H_eval_u2_u1_smem].
+ 
+      unfold eval_smemory in H_eval_u1_u2_smem.
+
+      destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) (u1 :: u2 :: smem)) as [updates1|] eqn:E_mo1; try discriminate.
+
+      injection H_eval_u1_u2_smem as H_eval_u1_u2_smem.
+
+      unfold eval_smemory in H_eval_u2_u1_smem.
+
+      destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) (u2 :: u1 :: smem)) as [updates2|] eqn:E_mo2; try discriminate.
+
+      injection H_eval_u2_u1_smem as H_eval_u2_u1_smem.
+
+      pose proof (map_option_split_2 (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) smem updates1 u1 u2 E_mo1) as E_mo1_split.
+      destruct E_mo1_split as [u1v1 [u2v1 [updates1' [H_updates1 [H_u1v1 [H_u2v1 H_mo1_0]]]]]].
+
+      pose proof (map_option_split_2 (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) smem updates2 u2 u1 E_mo2) as E_mo2_split.
+      destruct E_mo2_split as [u2v2 [u1v2 [updates2' [H_updates2 [H_u2v2 [H_u1v2 H_mo2_0]]]]]].
+      
+      assert(H_updates1'_eq_updates2': updates1' = updates2'). rewrite  H_mo2_0 in H_mo1_0. injection H_mo1_0 as H_mo1_0. rewrite H_mo1_0. reflexivity.
+
+      assert(H_u1v1_u1v2: u1v1=u1v2). rewrite H_u1v2 in H_u1v1. injection H_u1v1 as H_u1v1. rewrite H_u1v1. reflexivity. 
+
+      assert(H_u2v1_u2v2: u2v1=u2v2). rewrite H_u2v2 in H_u2v1. injection H_u2v1 as H_u2v1. rewrite H_u2v1. reflexivity.
+      
+      rewrite <- H_updates1'_eq_updates2' in H_updates2.
+      rewrite <- H_u1v1_u1v2 in H_updates2.
+      rewrite <- H_u2v1_u2v2 in H_updates2.
+      
+      rewrite H_updates1 in H_eval_u1_u2_smem.
+      rewrite H_updates2 in H_eval_u2_u1_smem.
+
+      unfold update_memory in H_eval_u1_u2_smem.
+      fold update_memory in H_eval_u1_u2_smem.
+
+      unfold update_memory in H_eval_u2_u1_smem.
+      fold update_memory in H_eval_u2_u1_smem.
+
+      destruct u1 as [soffset1 svalue1|soffset1 svalue1] eqn:E_u1; 
+        destruct u2 as [soffset2 svalue2|soffset2 svalue2] eqn:E_u2.
+
+      + unfold instantiate_memory_update in H_u1v1.
+        destruct (eval_sstack_val soffset1 stk mem strg ctx maxidx sb ops) as [offset1_v|] eqn:E_eval_soffset1; try discriminate.
+        destruct (eval_sstack_val svalue1 stk mem strg ctx maxidx sb ops) as [svalue1_v|] eqn:E_eval_svalue1; try discriminate.
+        
+        injection H_u1v1 as H_u1v1.
+        rewrite <- H_u1v1 in H_eval_u1_u2_smem.
+        rewrite <- H_u1v1 in H_eval_u2_u1_smem.
+
+        unfold instantiate_memory_update in H_u2v1.
+        destruct (eval_sstack_val soffset2 stk mem strg ctx maxidx sb ops) as [offset2_v|] eqn:E_eval_soffset2; try discriminate.
+        destruct (eval_sstack_val svalue2 stk mem strg ctx maxidx sb ops) as [svalue2_v|] eqn:E_eval_svalue2; try discriminate.
+        injection H_u2v1 as H_u2v1.
+        rewrite <- H_u2v1 in H_eval_u2_u1_smem.
+        rewrite <- H_u2v1 in H_eval_u1_u2_smem.
+
+        simpl in H_eval_u1_u2_smem.
+        simpl in H_eval_u2_u1_smem.
+        unfold mstore in H_eval_u1_u2_smem.
+        unfold mstore in H_eval_u2_u1_smem.
+
+        unfold eval_smemory.
+        rewrite E_mo1.
+        rewrite E_mo2.
+        rewrite H_updates1.
+        rewrite H_updates2.
+        rewrite <- H_u1v1.
+        rewrite <- H_u2v1.
+        unfold update_memory.
+        fold update_memory.
+        unfold update_memory'.
+        unfold mstore.
+
+        unfold swap_memory_update in H_swap_mem_u.
+        destruct (follow_in_smap soffset1 maxidx sb) eqn:E_follow_in_smap_soffset1; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val; try discriminate.
+        destruct (follow_in_smap soffset2 maxidx sb)  eqn:E_follow_in_smap_soffset2; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val0; try discriminate.
+
+        assert(E_eval_soffset1_aux := E_eval_soffset1).
+        unfold eval_sstack_val in E_eval_soffset1_aux.
+        unfold eval_sstack_val' in E_eval_soffset1_aux.
+        fold eval_sstack_val' in E_eval_soffset1_aux.
+        rewrite E_follow_in_smap_soffset1 in E_eval_soffset1_aux.
+        injection E_eval_soffset1_aux as E_eval_soffset1_aux.
+
+        assert(E_eval_soffset2_aux := E_eval_soffset2).
+        unfold eval_sstack_val in E_eval_soffset2_aux.
+        unfold eval_sstack_val' in E_eval_soffset2_aux.
+        fold eval_sstack_val' in E_eval_soffset2_aux.
+        rewrite E_follow_in_smap_soffset2 in E_eval_soffset2_aux.
+        injection E_eval_soffset2_aux as E_eval_soffset2_aux.
+        
+        rewrite E_eval_soffset1_aux in H_swap_mem_u.
+        rewrite E_eval_soffset2_aux in H_swap_mem_u.
+
+        
+        assert( H_swap_mem_u_le: (wordToN offset2_v + 32 <=? wordToN offset1_v)%N = true).
+          pose proof (n_lt_m_implies_n_plus_1_le_m (wordToN offset2_v + 31) (wordToN offset1_v) H_swap_mem_u) as H_swap_mem_u_le_aux.
+          rewrite <- N.add_assoc in H_swap_mem_u_le_aux.
+          simpl in H_swap_mem_u_le_aux.
+          apply H_swap_mem_u_le_aux.
+          
+
+        pose proof (mstore_non_overlap_updates BytesInEVMWord BytesInEVMWord (update_memory mem updates1') (wordToN offset2_v) svalue2_v (wordToN offset1_v) svalue1_v H_swap_mem_u_le) as H_mstore_non_overlap_updates.
+        rewrite H_mstore_non_overlap_updates.
+        exists mem2.
+        split; rewrite H_eval_u2_u1_smem; reflexivity.      
+                                                                                  
+      + unfold instantiate_memory_update in H_u1v1.
+        destruct (eval_sstack_val soffset1 stk mem strg ctx maxidx sb ops) as [offset1_v|] eqn:E_eval_soffset1; try discriminate.
+        destruct (eval_sstack_val svalue1 stk mem strg ctx maxidx sb ops) as [svalue1_v|] eqn:E_eval_svalue1; try discriminate.
+        
+        injection H_u1v1 as H_u1v1.
+        rewrite <- H_u1v1 in H_eval_u1_u2_smem.
+        rewrite <- H_u1v1 in H_eval_u2_u1_smem.
+
+        unfold instantiate_memory_update in H_u2v1.
+        destruct (eval_sstack_val soffset2 stk mem strg ctx maxidx sb ops) as [offset2_v|] eqn:E_eval_soffset2; try discriminate.
+        destruct (eval_sstack_val svalue2 stk mem strg ctx maxidx sb ops) as [svalue2_v|] eqn:E_eval_svalue2; try discriminate.
+        injection H_u2v1 as H_u2v1.
+        rewrite <- H_u2v1 in H_eval_u2_u1_smem.
+        rewrite <- H_u2v1 in H_eval_u1_u2_smem.
+
+        simpl in H_eval_u1_u2_smem.
+        simpl in H_eval_u2_u1_smem.
+        unfold mstore in H_eval_u1_u2_smem.
+        unfold mstore in H_eval_u2_u1_smem.
+
+        unfold eval_smemory.
+        rewrite E_mo1.
+        rewrite E_mo2.
+        rewrite H_updates1.
+        rewrite H_updates2.
+        rewrite <- H_u1v1.
+        rewrite <- H_u2v1.
+        unfold update_memory.
+        fold update_memory.
+        unfold update_memory'.
+        unfold mstore.
+
+        unfold swap_memory_update in H_swap_mem_u.
+        destruct (follow_in_smap soffset1 maxidx sb) eqn:E_follow_in_smap_soffset1; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val; try discriminate.
+        destruct (follow_in_smap soffset2 maxidx sb)  eqn:E_follow_in_smap_soffset2; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val0; try discriminate.
+
+        assert(E_eval_soffset1_aux := E_eval_soffset1).
+        unfold eval_sstack_val in E_eval_soffset1_aux.
+        unfold eval_sstack_val' in E_eval_soffset1_aux.
+        fold eval_sstack_val' in E_eval_soffset1_aux.
+        rewrite E_follow_in_smap_soffset1 in E_eval_soffset1_aux.
+        injection E_eval_soffset1_aux as E_eval_soffset1_aux.
+
+        assert(E_eval_soffset2_aux := E_eval_soffset2).
+        unfold eval_sstack_val in E_eval_soffset2_aux.
+        unfold eval_sstack_val' in E_eval_soffset2_aux.
+        fold eval_sstack_val' in E_eval_soffset2_aux.
+        rewrite E_follow_in_smap_soffset2 in E_eval_soffset2_aux.
+        injection E_eval_soffset2_aux as E_eval_soffset2_aux.
+        
+        rewrite E_eval_soffset1_aux in H_swap_mem_u.
+        rewrite E_eval_soffset2_aux in H_swap_mem_u.
+        
+        assert( H_swap_mem_u_le: (wordToN offset2_v + 1 <=? wordToN offset1_v)%N = true).
+          apply n_lt_m_implies_n_plus_1_le_m. apply H_swap_mem_u.
+
+        pose proof (mstore_non_overlap_updates 1 BytesInEVMWord (update_memory mem updates1') (wordToN offset2_v) (split1_byte (svalue2_v : word ((S (pred BytesInEVMWord))*8))) (wordToN offset1_v) svalue1_v H_swap_mem_u_le) as H_mstore_non_overlap_updates.
+        rewrite H_mstore_non_overlap_updates.
+        exists mem2.
+        split; rewrite <- H_eval_u2_u1_smem; reflexivity.      
+
+      + unfold instantiate_memory_update in H_u1v1.
+        destruct (eval_sstack_val soffset1 stk mem strg ctx maxidx sb ops) as [offset1_v|] eqn:E_eval_soffset1; try discriminate.
+        destruct (eval_sstack_val svalue1 stk mem strg ctx maxidx sb ops) as [svalue1_v|] eqn:E_eval_svalue1; try discriminate.
+        
+        injection H_u1v1 as H_u1v1.
+        rewrite <- H_u1v1 in H_eval_u1_u2_smem.
+        rewrite <- H_u1v1 in H_eval_u2_u1_smem.
+
+        unfold instantiate_memory_update in H_u2v1.
+        destruct (eval_sstack_val soffset2 stk mem strg ctx maxidx sb ops) as [offset2_v|] eqn:E_eval_soffset2; try discriminate.
+        destruct (eval_sstack_val svalue2 stk mem strg ctx maxidx sb ops) as [svalue2_v|] eqn:E_eval_svalue2; try discriminate.
+        injection H_u2v1 as H_u2v1.
+        rewrite <- H_u2v1 in H_eval_u2_u1_smem.
+        rewrite <- H_u2v1 in H_eval_u1_u2_smem.
+
+        simpl in H_eval_u1_u2_smem.
+        simpl in H_eval_u2_u1_smem.
+        unfold mstore in H_eval_u1_u2_smem.
+        unfold mstore in H_eval_u2_u1_smem.
+
+        unfold eval_smemory.
+        rewrite E_mo1.
+        rewrite E_mo2.
+        rewrite H_updates1.
+        rewrite H_updates2.
+        rewrite <- H_u1v1.
+        rewrite <- H_u2v1.
+        unfold update_memory.
+        fold update_memory.
+        unfold update_memory'.
+        unfold mstore.
+
+        unfold swap_memory_update in H_swap_mem_u.
+        destruct (follow_in_smap soffset1 maxidx sb) eqn:E_follow_in_smap_soffset1; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val; try discriminate.
+        destruct (follow_in_smap soffset2 maxidx sb)  eqn:E_follow_in_smap_soffset2; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val0; try discriminate.
+
+        assert(E_eval_soffset1_aux := E_eval_soffset1).
+        unfold eval_sstack_val in E_eval_soffset1_aux.
+        unfold eval_sstack_val' in E_eval_soffset1_aux.
+        fold eval_sstack_val' in E_eval_soffset1_aux.
+        rewrite E_follow_in_smap_soffset1 in E_eval_soffset1_aux.
+        injection E_eval_soffset1_aux as E_eval_soffset1_aux.
+
+        assert(E_eval_soffset2_aux := E_eval_soffset2).
+        unfold eval_sstack_val in E_eval_soffset2_aux.
+        unfold eval_sstack_val' in E_eval_soffset2_aux.
+        fold eval_sstack_val' in E_eval_soffset2_aux.
+        rewrite E_follow_in_smap_soffset2 in E_eval_soffset2_aux.
+        injection E_eval_soffset2_aux as E_eval_soffset2_aux.
+        
+        rewrite E_eval_soffset1_aux in H_swap_mem_u.
+        rewrite E_eval_soffset2_aux in H_swap_mem_u.
+        
+        assert( H_swap_mem_u_le: (wordToN offset2_v + 32 <=? wordToN offset1_v)%N = true).
+          pose proof (n_lt_m_implies_n_plus_1_le_m (wordToN offset2_v + 31) (wordToN offset1_v) H_swap_mem_u) as H_swap_mem_u_le_aux.
+          rewrite <- N.add_assoc in H_swap_mem_u_le_aux.
+          simpl in H_swap_mem_u_le_aux.
+          apply H_swap_mem_u_le_aux.
+               
+        pose proof (mstore_non_overlap_updates BytesInEVMWord 1 (update_memory mem updates1') (wordToN offset2_v) svalue2_v (wordToN offset1_v) (split1_byte (svalue1_v : word ((S (pred BytesInEVMWord))*8))) H_swap_mem_u_le) as H_mstore_non_overlap_updates.
+        rewrite H_mstore_non_overlap_updates.
+        exists mem2.
+        split; rewrite <- H_eval_u2_u1_smem; reflexivity.      
+        
+      + unfold instantiate_memory_update in H_u1v1.
+        destruct (eval_sstack_val soffset1 stk mem strg ctx maxidx sb ops) as [offset1_v|] eqn:E_eval_soffset1; try discriminate.
+        destruct (eval_sstack_val svalue1 stk mem strg ctx maxidx sb ops) as [svalue1_v|] eqn:E_eval_svalue1; try discriminate.
+        
+        injection H_u1v1 as H_u1v1.
+        rewrite <- H_u1v1 in H_eval_u1_u2_smem.
+        rewrite <- H_u1v1 in H_eval_u2_u1_smem.
+
+        unfold instantiate_memory_update in H_u2v1.
+        destruct (eval_sstack_val soffset2 stk mem strg ctx maxidx sb ops) as [offset2_v|] eqn:E_eval_soffset2; try discriminate.
+        destruct (eval_sstack_val svalue2 stk mem strg ctx maxidx sb ops) as [svalue2_v|] eqn:E_eval_svalue2; try discriminate.
+        injection H_u2v1 as H_u2v1.
+        rewrite <- H_u2v1 in H_eval_u2_u1_smem.
+        rewrite <- H_u2v1 in H_eval_u1_u2_smem.
+
+        simpl in H_eval_u1_u2_smem.
+        simpl in H_eval_u2_u1_smem.
+        unfold mstore in H_eval_u1_u2_smem.
+        unfold mstore in H_eval_u2_u1_smem.
+
+        unfold eval_smemory.
+        rewrite E_mo1.
+        rewrite E_mo2.
+        rewrite H_updates1.
+        rewrite H_updates2.
+        rewrite <- H_u1v1.
+        rewrite <- H_u2v1.
+        unfold update_memory.
+        fold update_memory.
+        unfold update_memory'.
+        unfold mstore.
+
+        unfold swap_memory_update in H_swap_mem_u.
+        destruct (follow_in_smap soffset1 maxidx sb) eqn:E_follow_in_smap_soffset1; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val; try discriminate.
+        destruct (follow_in_smap soffset2 maxidx sb)  eqn:E_follow_in_smap_soffset2; try discriminate.
+        destruct f; try discriminate.
+        destruct smv; try discriminate.
+        destruct val0; try discriminate.
+
+        assert(E_eval_soffset1_aux := E_eval_soffset1).
+        unfold eval_sstack_val in E_eval_soffset1_aux.
+        unfold eval_sstack_val' in E_eval_soffset1_aux.
+        fold eval_sstack_val' in E_eval_soffset1_aux.
+        rewrite E_follow_in_smap_soffset1 in E_eval_soffset1_aux.
+        injection E_eval_soffset1_aux as E_eval_soffset1_aux.
+
+        assert(E_eval_soffset2_aux := E_eval_soffset2).
+        unfold eval_sstack_val in E_eval_soffset2_aux.
+        unfold eval_sstack_val' in E_eval_soffset2_aux.
+        fold eval_sstack_val' in E_eval_soffset2_aux.
+        rewrite E_follow_in_smap_soffset2 in E_eval_soffset2_aux.
+        injection E_eval_soffset2_aux as E_eval_soffset2_aux.
+        
+        rewrite E_eval_soffset1_aux in H_swap_mem_u.
+        rewrite E_eval_soffset2_aux in H_swap_mem_u.
+        
+        assert( H_swap_mem_u_le: (wordToN offset2_v + 1 <=? wordToN offset1_v)%N = true).
+          apply n_lt_m_implies_n_plus_1_le_m. apply H_swap_mem_u.
+
+        
+        pose proof (mstore_non_overlap_updates 1 1 (update_memory mem updates1') (wordToN offset2_v) (split1_byte (svalue2_v : word ((S (pred BytesInEVMWord))*8))) (wordToN offset1_v) (split1_byte (svalue1_v : word ((S (pred BytesInEVMWord))*8))) H_swap_mem_u_le) as H_mstore_non_overlap_updates.
+        rewrite H_mstore_non_overlap_updates.
+        exists mem2.
+        split; rewrite <- H_eval_u2_u1_smem; reflexivity.
+    Qed.
 
     
   Lemma reorder_updates'_snd:
