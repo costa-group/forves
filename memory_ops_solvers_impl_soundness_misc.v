@@ -43,6 +43,12 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
 
+Require Import FORVES.eval_common.
+Import EvalCommon.
+
+Require Import FORVES.concrete_interpreter.
+Import ConcreteInterpreter.
+
 Require Import FORVES.symbolic_execution_soundness.
 Import SymbolicExecutionSoundness.
 
@@ -225,17 +231,17 @@ Proof.
     Qed.
 
 Lemma do_not_overlap_mload_aux mem value' updates i offset offset' (H_i_lt_32: (i<32)%N) (H_not_overlap: (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 31 <? wordToN offset)%N = true):
-    (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) ((wordToN offset)+i)%N =
-    (eval_common.EvalCommon.update_memory mem  updates) ((wordToN (offset : EVMWord)+i))%N.
+    (update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) ((wordToN offset)+i)%N =
+    (update_memory mem  updates) ((wordToN (offset : EVMWord)+i))%N.
 Proof.
-  unfold eval_common.EvalCommon.update_memory.
+  unfold update_memory.
   remember ((fix update_memory (mem0 : memory) (updates0 : memory_updates EVMWord) {struct updates0} : memory := match updates0 with
                                                                                                                  | [] => mem0
-                                                                                                                 | u :: us => eval_common.EvalCommon.update_memory' (update_memory mem0 us) u
+                                                                                                                 | u :: us => update_memory' (update_memory mem0 us) u
                                                                                                                  end) mem updates) as XX.
-  unfold eval_common.EvalCommon.update_memory'.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore'.
+  unfold update_memory'.
+  unfold ConcreteInterpreter.mstore.
+  unfold ConcreteInterpreter.mstore'.
   unfold BytesInEVMWord.
 
   rewrite assoc_ones_31.
@@ -366,17 +372,17 @@ Proof.
 Qed.
 
 Lemma do_not_overlap_mload_aux' mem value' updates i offset offset' (H_i_lt_32: (i<32)%N) (H_not_overlap: (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 0 <? wordToN offset)%N = true):
-    (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) ((wordToN offset)+i)%N =
-    (eval_common.EvalCommon.update_memory mem  updates) ((wordToN (offset : EVMWord)+i))%N.
+    (update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) ((wordToN offset)+i)%N =
+    (update_memory mem  updates) ((wordToN (offset : EVMWord)+i))%N.
 Proof.
-  unfold eval_common.EvalCommon.update_memory.
+  unfold update_memory.
   remember ((fix update_memory (mem0 : memory) (updates0 : memory_updates EVMWord) {struct updates0} : memory := match updates0 with
                                                                                                                  | [] => mem0
-                                                                                                                 | u :: us => eval_common.EvalCommon.update_memory' (update_memory mem0 us) u
+                                                                                                                 | u :: us => update_memory' (update_memory mem0 us) u
                                                                                                                  end) mem updates) as XX.
-  unfold eval_common.EvalCommon.update_memory'.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore'.
+  unfold update_memory'.
+  unfold ConcreteInterpreter.mstore.
+  unfold ConcreteInterpreter.mstore'.
 
   
 

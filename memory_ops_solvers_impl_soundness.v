@@ -43,6 +43,12 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.symbolic_state_cmp.
 Import SymbolicStateCmp.
 
+Require Import FORVES.eval_common.
+Import EvalCommon.
+
+Require Import FORVES.concrete_interpreter.
+Import ConcreteInterpreter.
+
 Require Import FORVES.symbolic_execution_soundness.
 Import SymbolicExecutionSoundness.
 
@@ -252,14 +258,14 @@ Lemma H_map_o_smem:
     d > maxidx ->
     instk_height = length stk ->
     exists v,
-      map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d sv stk mem strg ctx maxidx bs ops)) smem = Some v.
+      map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' d sv stk mem strg ctx maxidx bs ops)) smem = Some v.
 Proof.
 induction smem as [|u sstrg' IHsstrg'].
 + intros. simpl. exists []. reflexivity.
 + intros H_valid_smemory H_valid_bs H_d_gt_maxidx H_len_stk.
   unfold map_option.
   rewrite <- map_option_ho.
-  unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+  unfold instantiate_memory_update at 1.
   destruct u as [soffset' svalue' | soffset' svalue'].
 
   ++ unfold valid_smemory in H_valid_smemory. fold valid_smemory in H_valid_smemory.
@@ -309,9 +315,9 @@ Lemma mstore'_aux:
          | S sz1' =>
              fun (value0 : word (S sz1' * 8)) (offset offset'0 : N) =>
              if (offset'0 =? offset)%N
-             then concrete_interpreter.ConcreteInterpreter.split1_byte value0
-             else mstore' sz1' mem0 (concrete_interpreter.ConcreteInterpreter.split2_byte value0) (offset + 1)%N offset'0
-         end) sz mem value addr = concrete_interpreter.ConcreteInterpreter.mstore' mem value addr.
+             then ConcreteInterpreter.split1_byte value0
+             else mstore' sz1' mem0 (ConcreteInterpreter.split2_byte value0) (offset + 1)%N offset'0
+         end) sz mem value addr = ConcreteInterpreter.mstore' mem value addr.
 Proof.
   auto.
   Qed.
@@ -319,20 +325,20 @@ Proof.
 Lemma mload''_aux:
   forall n addr addr' x y,
       (addr' > addr)%N ->
-         (concrete_interpreter.ConcreteInterpreter.mload''
+         (ConcreteInterpreter.mload''
             (fun offset' : N =>
                if (offset' =? addr)%N
                then x
                else y offset') addr' n) =
-           (concrete_interpreter.ConcreteInterpreter.mload'' y addr' n).
+           (ConcreteInterpreter.mload'' y addr' n).
 Proof.
   induction n as [|n' IHn'].
   + intros.
     simpl.
     reflexivity.
   + intros addr addr' x y H_addr'_gt_addr'.
-    unfold concrete_interpreter.ConcreteInterpreter.mload'' at 1.
-    fold concrete_interpreter.ConcreteInterpreter.mload''.
+    unfold ConcreteInterpreter.mload'' at 1.
+    fold ConcreteInterpreter.mload''.
 
     assert (H_addr'_neqb_addr: (addr' =? addr)%N = false).
       (* proof of assert *)
@@ -347,8 +353,8 @@ Proof.
       (****)
       
     rewrite H_addr'_neqb_addr.
-    unfold concrete_interpreter.ConcreteInterpreter.mload'' at 2.
-    fold concrete_interpreter.ConcreteInterpreter.mload''.
+    unfold ConcreteInterpreter.mload'' at 2.
+    fold ConcreteInterpreter.mload''.
 
     pose proof (IHn' addr (addr'+1)%N x y H_addr'_1_gt_addr) as IHn'_0.
     rewrite IHn'_0.
@@ -359,7 +365,7 @@ Qed.
 
 Lemma mload''_mstore'_same_address:
   forall n mem addr value,
-  concrete_interpreter.ConcreteInterpreter.mload'' (concrete_interpreter.ConcreteInterpreter.mstore' mem (value: word (n*8)) addr) addr n = value.
+  ConcreteInterpreter.mload'' (ConcreteInterpreter.mstore' mem (value: word (n*8)) addr) addr n = value.
 Proof.
   induction n as [|n' IHn'].
   + intros mem addr value.
@@ -367,16 +373,16 @@ Proof.
     rewrite word0.
     reflexivity.
   + intros mem addr value.
-    unfold concrete_interpreter.ConcreteInterpreter.mstore'.
+    unfold ConcreteInterpreter.mstore'.
     rewrite mstore'_aux.
-    unfold concrete_interpreter.ConcreteInterpreter.mload''.
+    unfold ConcreteInterpreter.mload''.
     rewrite N.eqb_refl.
-    fold concrete_interpreter.ConcreteInterpreter.mload''.
+    fold ConcreteInterpreter.mload''.
 
     destruct n' as [|n''] eqn:E_n'.
-    ++ unfold concrete_interpreter.ConcreteInterpreter.mload''.
-       unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
-       unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
+    ++ unfold ConcreteInterpreter.mload''.
+       unfold ConcreteInterpreter.split1_byte.
+       unfold ConcreteInterpreter.split1_byte.
        unfold mul.
               
        pose proof (wordToZ_combine_WO (split1 8 0 value)) as H_wordToZ_combine_WO.
@@ -391,10 +397,10 @@ Proof.
        apply H_split1_0_1.
        
     ++ rewrite mload''_aux.
-       +++ pose proof (IHn' mem (addr+1)%N (concrete_interpreter.ConcreteInterpreter.split2_byte value)) as IHn'_0.
+       +++ pose proof (IHn' mem (addr+1)%N (ConcreteInterpreter.split2_byte value)) as IHn'_0.
            rewrite IHn'_0.
-           unfold concrete_interpreter.ConcreteInterpreter.split1_byte.
-           unfold concrete_interpreter.ConcreteInterpreter.split2_byte.
+           unfold ConcreteInterpreter.split1_byte.
+           unfold ConcreteInterpreter.split2_byte.
            apply Word.combine_split.
        +++ apply N.lt_gt.
            apply Nlt_in.
@@ -405,13 +411,13 @@ Qed.
 
 Lemma mload_mstore_same_address:
   forall mem addr value,
-    (concrete_interpreter.ConcreteInterpreter.mload
-       (concrete_interpreter.ConcreteInterpreter.mstore mem value addr) addr) = value.
+    (ConcreteInterpreter.mload
+       (ConcreteInterpreter.mstore mem value addr) addr) = value.
 Proof.
   intros mem addr value.
-  unfold concrete_interpreter.ConcreteInterpreter.mload.
-  unfold concrete_interpreter.ConcreteInterpreter.mload'.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+  unfold ConcreteInterpreter.mload.
+  unfold ConcreteInterpreter.mload'.
+  unfold ConcreteInterpreter.mstore.
   apply mload''_mstore'_same_address.
 Qed.
 
@@ -421,11 +427,11 @@ Qed.
 Lemma do_not_overlap_mload:
   forall mem offset offset' value' updates,
     (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 31 <? wordToN offset)%N = true ->
-    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) (wordToN offset) 32) =
-    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
+    (ConcreteInterpreter.mload'' (update_memory mem (U_MSTORE EVMWord offset' value' :: updates)) (wordToN offset) 32) =
+    (ConcreteInterpreter.mload'' (update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
 Proof.
   intros mem offset offset' value' updates H_o.
-  unfold concrete_interpreter.ConcreteInterpreter.mload''.
+  unfold ConcreteInterpreter.mload''.
 
   rewrite assoc_ones_31.
   rewrite Reduce_ones_31.
@@ -559,12 +565,12 @@ Qed.
 Lemma do_not_overlap_mload_0:
   forall mem offset offset' value' updates,
     (wordToN offset + 31 <? wordToN offset')%N || (wordToN offset' + 0 <? wordToN offset)%N = true ->
-    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) (wordToN offset) 32) =
-    (concrete_interpreter.ConcreteInterpreter.mload'' (eval_common.EvalCommon.update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
+    (ConcreteInterpreter.mload'' (update_memory mem (U_MSTORE8 EVMWord offset' value' :: updates)) (wordToN offset) 32) =
+    (ConcreteInterpreter.mload'' (update_memory mem  updates) (wordToN (offset : EVMWord)) 32).
 Proof.
 Proof.
   intros mem offset offset' value' updates H_o.
-  unfold concrete_interpreter.ConcreteInterpreter.mload''.
+  unfold ConcreteInterpreter.mload''.
 
   rewrite assoc_ones_31.
   rewrite Reduce_ones_31.
@@ -699,8 +705,8 @@ Qed.
 Lemma update_same_address_mstore'_aux:
   forall n mem (value: word (n*8)) z offset1 offset2 x,
     (x =? offset1)%N = false ->
-    (concrete_interpreter.ConcreteInterpreter.mstore' mem value offset2) x =
-      (concrete_interpreter.ConcreteInterpreter.mstore'
+    (ConcreteInterpreter.mstore' mem value offset2) x =
+      (ConcreteInterpreter.mstore'
          (fun (offset':N) => if (offset' =? offset1)%N then z else mem offset')
          value
          offset2) x.
@@ -712,7 +718,7 @@ Proof.
     reflexivity.
   + intros.
     simpl.
-    pose proof (IHn' mem (concrete_interpreter.ConcreteInterpreter.split2_byte value) z offset1 (offset2+1)%N x).
+    pose proof (IHn' mem (ConcreteInterpreter.split2_byte value) z offset1 (offset2+1)%N x).
     rewrite H0.
     reflexivity.
     apply H.
@@ -721,21 +727,21 @@ Qed.
 Lemma update_same_address_mstore'_a:
   forall n m mem (value: word (n*8)) (value' : word (m*8)) offset,
     n>=m ->
-    concrete_interpreter.ConcreteInterpreter.mstore' mem value offset =
-      concrete_interpreter.ConcreteInterpreter.mstore' (concrete_interpreter.ConcreteInterpreter.mstore' mem value' offset) value offset.
+    ConcreteInterpreter.mstore' mem value offset =
+      ConcreteInterpreter.mstore' (ConcreteInterpreter.mstore' mem value' offset) value offset.
 Proof.
   induction n as [|n' IHn'].
   + intros.
     assert(m=0). intuition.
     simpl.
-    unfold concrete_interpreter.ConcreteInterpreter.mstore'.
+    unfold ConcreteInterpreter.mstore'.
     destruct m; try (discriminate || reflexivity).
   + intros.
     destruct m as [|m'] eqn:E_m.
-    ++ unfold concrete_interpreter.ConcreteInterpreter.mstore' at 3.
+    ++ unfold ConcreteInterpreter.mstore' at 3.
        reflexivity.
     ++ assert(n'>=m'). intuition.
-       pose proof (IHn' m' mem (concrete_interpreter.ConcreteInterpreter.split2_byte value) (concrete_interpreter.ConcreteInterpreter.split2_byte value') (offset+1)%N H0) as IHn'_0.
+       pose proof (IHn' m' mem (ConcreteInterpreter.split2_byte value) (ConcreteInterpreter.split2_byte value') (offset+1)%N H0) as IHn'_0.
        
        apply functional_extensionality.
        intro x.
@@ -743,8 +749,8 @@ Proof.
        
        destruct (x =? offset)%N eqn:E_x_offset; try reflexivity.
        
-       pose proof (update_same_address_mstore'_aux n' (concrete_interpreter.ConcreteInterpreter.mstore' mem
-        (concrete_interpreter.ConcreteInterpreter.split2_byte value') (offset + 1)) (concrete_interpreter.ConcreteInterpreter.split2_byte value) (concrete_interpreter.ConcreteInterpreter.split1_byte value') offset (offset+1) x E_x_offset).
+       pose proof (update_same_address_mstore'_aux n' (ConcreteInterpreter.mstore' mem
+        (ConcreteInterpreter.split2_byte value') (offset + 1)) (ConcreteInterpreter.split2_byte value) (ConcreteInterpreter.split1_byte value') offset (offset+1) x E_x_offset).
        rewrite <- H1.
        rewrite IHn'_0.
        reflexivity.
@@ -754,8 +760,8 @@ Qed.
 
 Lemma update_same_address_mstore':
   forall n mem (value value': word (n*8)) offset, 
-    concrete_interpreter.ConcreteInterpreter.mstore' mem value offset =
-      concrete_interpreter.ConcreteInterpreter.mstore' (concrete_interpreter.ConcreteInterpreter.mstore' mem value' offset) value offset.
+    ConcreteInterpreter.mstore' mem value offset =
+      ConcreteInterpreter.mstore' (ConcreteInterpreter.mstore' mem value' offset) value offset.
 Proof.
   intros.
   assert(H_ge_refl: n>=n). intuition.
@@ -795,8 +801,8 @@ Lemma update_same_address_mstore8_mstore':
   forall i n mem (value : word (n*8)) (value': word (1*8)) offset,
     n > 0 ->
     i < n ->
-    concrete_interpreter.ConcreteInterpreter.mstore' mem value offset =
-      concrete_interpreter.ConcreteInterpreter.mstore' (concrete_interpreter.ConcreteInterpreter.mstore' mem value' (offset+ N.of_nat i)%N) value offset.
+    ConcreteInterpreter.mstore' mem value offset =
+      ConcreteInterpreter.mstore' (ConcreteInterpreter.mstore' mem value' (offset+ N.of_nat i)%N) value offset.
 Proof.
   induction i as [|i' IHi'].
   + intros n mem value value' offset H_n_gt_0 H_i_lt_n.
@@ -822,7 +828,7 @@ Proof.
 
        assert(H_n'_gt_0: n'>0). intuition.
        assert(H_i'_lt_n': i'<n'). intuition.
-       pose proof (IHi' n' mem (concrete_interpreter.ConcreteInterpreter.split2_byte value) value' (offset+1)%N H_n'_gt_0 H_i'_lt_n') as IHi'_0.
+       pose proof (IHi' n' mem (ConcreteInterpreter.split2_byte value) value' (offset+1)%N H_n'_gt_0 H_i'_lt_n') as IHi'_0.
 
        rewrite IHi'_0.
        simpl.
@@ -832,13 +838,13 @@ Qed.
 
 Lemma two_consecutive_updates_same_address_conc:
   forall v v1 v2 mem mem',
-    eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord v v1 :: U_MSTORE EVMWord v v2 :: mem') = eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord v v1 :: mem').
+    update_memory mem (U_MSTORE EVMWord v v1 :: U_MSTORE EVMWord v v2 :: mem') = update_memory mem (U_MSTORE EVMWord v v1 :: mem').
 Proof.
   intros v v1 v2 mem mem'.
   simpl.
-  remember (eval_common.EvalCommon.update_memory mem mem') as mem_i.
+  remember (update_memory mem mem') as mem_i.
   
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+  unfold ConcreteInterpreter.mstore.
   pose proof (update_same_address_mstore' 32 mem_i v1 v2 (wordToN v)).
   symmetry in H.
   rewrite H at 1.
@@ -847,14 +853,14 @@ Qed.
 
 Lemma two_consecutive_mstore8_updates_same_address_conc:
   forall v v1 v2 mem mem',
-    eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord v v1 :: U_MSTORE8 EVMWord v v2 :: mem') = eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord v v1 :: mem').
+    update_memory mem (U_MSTORE8 EVMWord v v1 :: U_MSTORE8 EVMWord v v2 :: mem') = update_memory mem (U_MSTORE8 EVMWord v v1 :: mem').
 Proof.
   intros v v1 v2 mem mem'.
   simpl.
-  remember (eval_common.EvalCommon.update_memory mem mem') as mem_i.
+  remember (update_memory mem mem') as mem_i.
   
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
-  pose proof (update_same_address_mstore' 1 mem_i (concrete_interpreter.ConcreteInterpreter.split1_byte (v1 : word (BytesInEVMWord*8))) (concrete_interpreter.ConcreteInterpreter.split1_byte (v2 : word (BytesInEVMWord*8))) (wordToN v)).
+  unfold ConcreteInterpreter.mstore.
+  pose proof (update_same_address_mstore' 1 mem_i (ConcreteInterpreter.split1_byte (v1 : word (BytesInEVMWord*8))) (ConcreteInterpreter.split1_byte (v2 : word (BytesInEVMWord*8))) (wordToN v)).
   symmetry in H.
   rewrite H at 1.
   reflexivity.
@@ -913,11 +919,11 @@ Qed.
 Lemma two_consecutive_updates_same_address_mstore8_conc:
   forall offset offset_8 v1 v2 mem mem',
     (wordToN offset <=? wordToN offset_8)%N && (wordToN offset_8 <=? wordToN offset + 31)%N = true ->
-    eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset v1 :: U_MSTORE8 EVMWord offset_8 v2 :: mem') = eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord offset v1 :: mem').
+    update_memory mem (U_MSTORE EVMWord offset v1 :: U_MSTORE8 EVMWord offset_8 v2 :: mem') = update_memory mem (U_MSTORE EVMWord offset v1 :: mem').
 Proof.
   intros offset offset_8 v1 v2 mem mem' H.
   simpl.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+  unfold ConcreteInterpreter.mstore.
   
   pose proof (N_inter_n_j (wordToN offset) (wordToN offset_8) 31 H) as H_0.
   destruct H_0 as [i [H_0_0 H_0_1]].
@@ -933,7 +939,7 @@ Proof.
      simpl in H_0_0.
      apply H_0_0.
   
-  pose proof (update_same_address_mstore8_mstore' (N.to_nat i) BytesInEVMWord (eval_common.EvalCommon.update_memory mem mem') v1 (concrete_interpreter.ConcreteInterpreter.split1_byte (v2: word ((S (pred BytesInEVMWord))*8))) (wordToN offset) H1 H2) as H3.
+  pose proof (update_same_address_mstore8_mstore' (N.to_nat i) BytesInEVMWord (update_memory mem mem') v1 (ConcreteInterpreter.split1_byte (v2: word ((S (pred BytesInEVMWord))*8))) (wordToN offset) H1 H2) as H3.
   rewrite N2Nat.id in H3.
   rewrite H3.
   reflexivity.
@@ -976,27 +982,27 @@ Proof.
   destruct H_map_o_smem_1 as [u1_smem_v H_map_o_smem_1].
   rewrite H_map_o_smem_1.
 
-  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE sstack_val soffset svalue) (U_MSTORE sstack_val soffset' svalue') H_map_o_smem_0) as H_map_o_smem_0_0.
+  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE sstack_val soffset svalue) (U_MSTORE sstack_val soffset' svalue') H_map_o_smem_0) as H_map_o_smem_0_0.
   destruct H_map_o_smem_0_0 as [u1_v [u2_v [smem_v [H_u1_u2_smem_v [H_map_o_smem_0_u1 [H_map_o_smem_0_u2 H_map_o_smem_0_smem]]]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u1.
+  unfold instantiate_memory_update in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_soffset.
   rewrite H_eval_soffset in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_svalue.
   rewrite H_eval_svalue in H_map_o_smem_0_u1.
   injection H_map_o_smem_0_u1 as H_map_o_smem_0_u1.
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u2.
+  unfold instantiate_memory_update in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_soffset'.
   rewrite H_eval_soffset' in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_svalue'.
   rewrite H_eval_svalue' in H_map_o_smem_0_u2.
   injection H_map_o_smem_0_u2 as H_map_o_smem_0_u2.
   
-  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE sstack_val soffset svalue) H_map_o_smem_1) as H_map_o_smem_1_0.
+  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE sstack_val soffset svalue) H_map_o_smem_1) as H_map_o_smem_1_0.
   destruct H_map_o_smem_1_0 as [u1_v' [smem_v' [H_u1_smem_v' [H_map_o_smem_1_u1 H_map_o_smem_1_smem]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_1_u1.
+  unfold instantiate_memory_update in H_map_o_smem_1_u1.
   rewrite H_eval_soffset in H_map_o_smem_1_u1.
   rewrite H_eval_svalue in H_map_o_smem_1_u1.
   injection H_map_o_smem_1_u1 as H_map_o_smem_1_u1.
@@ -1050,27 +1056,27 @@ Proof.
   destruct H_map_o_smem_1 as [u1_smem_v H_map_o_smem_1].
   rewrite H_map_o_smem_1.
 
-  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE8 sstack_val soffset svalue) (U_MSTORE8 sstack_val soffset' svalue') H_map_o_smem_0) as H_map_o_smem_0_0.
+  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE8 sstack_val soffset svalue) (U_MSTORE8 sstack_val soffset' svalue') H_map_o_smem_0) as H_map_o_smem_0_0.
   destruct H_map_o_smem_0_0 as [u1_v [u2_v [smem_v [H_u1_u2_smem_v [H_map_o_smem_0_u1 [H_map_o_smem_0_u2 H_map_o_smem_0_smem]]]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u1.
+  unfold instantiate_memory_update in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_soffset.
   rewrite H_eval_soffset in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_svalue.
   rewrite H_eval_svalue in H_map_o_smem_0_u1.
   injection H_map_o_smem_0_u1 as H_map_o_smem_0_u1.
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u2.
+  unfold instantiate_memory_update in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_soffset'.
   rewrite H_eval_soffset' in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_svalue'.
   rewrite H_eval_svalue' in H_map_o_smem_0_u2.
   injection H_map_o_smem_0_u2 as H_map_o_smem_0_u2.
   
-  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE8 sstack_val soffset svalue) H_map_o_smem_1) as H_map_o_smem_1_0.
+  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE8 sstack_val soffset svalue) H_map_o_smem_1) as H_map_o_smem_1_0.
   destruct H_map_o_smem_1_0 as [u1_v' [smem_v' [H_u1_smem_v' [H_map_o_smem_1_u1 H_map_o_smem_1_smem]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_1_u1.
+  unfold instantiate_memory_update in H_map_o_smem_1_u1.
   rewrite H_eval_soffset in H_map_o_smem_1_u1.
   rewrite H_eval_svalue in H_map_o_smem_1_u1.
   injection H_map_o_smem_1_u1 as H_map_o_smem_1_u1.
@@ -1125,27 +1131,27 @@ Proof.
   destruct H_map_o_smem_1 as [u1_smem_v H_map_o_smem_1].
   rewrite H_map_o_smem_1.
 
-  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE sstack_val soffset' svalue') (U_MSTORE8 sstack_val soffset svalue) H_map_o_smem_0) as H_map_o_smem_0_0.
+  pose proof (map_option_split_2 (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_u2_smem_v (U_MSTORE sstack_val soffset' svalue') (U_MSTORE8 sstack_val soffset svalue) H_map_o_smem_0) as H_map_o_smem_0_0.
   destruct H_map_o_smem_0_0 as [u1_v [u2_v [smem_v [H_u1_u2_smem_v [H_map_o_smem_0_u1 [H_map_o_smem_0_u2 H_map_o_smem_0_smem]]]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u1.
+  unfold instantiate_memory_update in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_soffset'.
   rewrite H_eval_soffset' in H_map_o_smem_0_u1.
   unfold eval_sstack_val in H_eval_svalue'.
   rewrite H_eval_svalue' in H_map_o_smem_0_u1.
   injection H_map_o_smem_0_u1 as H_map_o_smem_0_u1.
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_0_u2.
+  unfold instantiate_memory_update in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_soffset.
   rewrite H_eval_soffset in H_map_o_smem_0_u2.
   unfold eval_sstack_val in H_eval_svalue.
   rewrite H_eval_svalue in H_map_o_smem_0_u2.
   injection H_map_o_smem_0_u2 as H_map_o_smem_0_u2.
  
-  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE sstack_val soffset' svalue') H_map_o_smem_1) as H_map_o_smem_1_0.
+  pose proof (map_option_split (memory_update sstack_val)  (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx bs ops)) smem u1_smem_v (U_MSTORE sstack_val soffset' svalue') H_map_o_smem_1) as H_map_o_smem_1_0.
   destruct H_map_o_smem_1_0 as [u1_v' [smem_v' [H_u1_smem_v' [H_map_o_smem_1_u1 H_map_o_smem_1_smem]]]].
 
-  unfold eval_common.EvalCommon.instantiate_memory_update in H_map_o_smem_1_u1.
+  unfold instantiate_memory_update in H_map_o_smem_1_u1.
   rewrite H_eval_soffset' in H_map_o_smem_1_u1.
   rewrite H_eval_svalue' in H_map_o_smem_1_u1.
   injection H_map_o_smem_1_u1 as H_map_o_smem_1_u1.
@@ -1167,23 +1173,23 @@ Qed.
 
 Lemma mem_eq_after_update'':
 forall (n m : nat)  (mem1 mem2 : memory) (svalue1 : word (n * 8)) (svalue2 : word (m * 8)) (soffset1 soffset2 : N)  (w : N),
-  concrete_interpreter.ConcreteInterpreter.mstore' mem1 svalue1 soffset1 w =
-    concrete_interpreter.ConcreteInterpreter.mstore' mem2 svalue1 soffset1 w ->
-  concrete_interpreter.ConcreteInterpreter.mstore'
-    (concrete_interpreter.ConcreteInterpreter.mstore' mem1 svalue2 soffset2) svalue1 soffset1 w =
-  concrete_interpreter.ConcreteInterpreter.mstore'
-    (concrete_interpreter.ConcreteInterpreter.mstore' mem2 svalue2 soffset2) svalue1 soffset1 w.
+  ConcreteInterpreter.mstore' mem1 svalue1 soffset1 w =
+    ConcreteInterpreter.mstore' mem2 svalue1 soffset1 w ->
+  ConcreteInterpreter.mstore'
+    (ConcreteInterpreter.mstore' mem1 svalue2 soffset2) svalue1 soffset1 w =
+  ConcreteInterpreter.mstore'
+    (ConcreteInterpreter.mstore' mem2 svalue2 soffset2) svalue1 soffset1 w.
 Proof.
   induction n as [|n' IHn'].
   + induction m as [|m' IHm'].
     ++ intros mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
-       unfold concrete_interpreter.ConcreteInterpreter.mstore' in H.
+       unfold ConcreteInterpreter.mstore' in H.
        simpl.
        apply H.
     ++ intros mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
        simpl.
        destruct (w =? soffset2)%N eqn:E_w_off2; try reflexivity.
-       pose proof (IHm' mem1 mem2 svalue1 (concrete_interpreter.ConcreteInterpreter.split2_byte svalue2) soffset1 (soffset2 + 1)%N w H) as IHm'_0.
+       pose proof (IHm' mem1 mem2 svalue1 (ConcreteInterpreter.split2_byte svalue2) soffset1 (soffset2 + 1)%N w H) as IHm'_0.
        simpl in IHm'_0.
        apply IHm'_0.
   +  intros m mem1 mem2 svalue1 svalue2 soffset1 soffset2 w H.
@@ -1191,21 +1197,21 @@ Proof.
      destruct (w =? soffset1)%N eqn:E_w_off1; try reflexivity.
      simpl in H.
      rewrite E_w_off1 in H.
-     pose proof (IHn' m mem1 mem2 (concrete_interpreter.ConcreteInterpreter.split2_byte svalue1) svalue2 (soffset1+1)%N soffset2 w H).
+     pose proof (IHn' m mem1 mem2 (ConcreteInterpreter.split2_byte svalue1) svalue2 (soffset1+1)%N soffset2 w H).
      apply H0.
 Qed.
 
 Lemma mem_eq_after_update':
   forall u1 u2 w mem1 mem2,
-  (eval_common.EvalCommon.update_memory' mem1 u1) w =
-  (eval_common.EvalCommon.update_memory' mem2 u1) w ->
-  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' mem1 u2) u1 w =
-  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' mem2 u2) u1 w.
+  (update_memory' mem1 u1) w =
+  (update_memory' mem2 u1) w ->
+  update_memory' (update_memory' mem1 u2) u1 w =
+  update_memory' (update_memory' mem2 u2) u1 w.
 Proof.
   intros.
-  unfold eval_common.EvalCommon.update_memory'.
-  unfold eval_common.EvalCommon.update_memory'.
-  unfold concrete_interpreter.ConcreteInterpreter.mstore.
+  unfold update_memory'.
+  unfold update_memory'.
+  unfold ConcreteInterpreter.mstore.
    
   destruct u1 as [soffset1 svalue1|soffset1 svalue1]; 
     destruct u2 as [soffset2 svalue2|soffset2 svalue2]; 
@@ -1215,13 +1221,13 @@ Qed.
 
 Lemma mem_eq_after_update:
   forall smem1 smem2 u1 u2 w mem,
-  (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u1) w =
-  (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u1) w ->
-  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem1) u2) u1 w =
-  eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory' (eval_common.EvalCommon.update_memory mem smem2) u2) u1 w.
+  (update_memory' (update_memory mem smem1) u1) w =
+  (update_memory' (update_memory mem smem2) u1) w ->
+  update_memory' (update_memory' (update_memory mem smem1) u2) u1 w =
+  update_memory' (update_memory' (update_memory mem smem2) u2) u1 w.
 Proof.
   intros.
-  pose proof (mem_eq_after_update' u1 u2 w (eval_common.EvalCommon.update_memory mem smem1) (eval_common.EvalCommon.update_memory mem smem2) H) as H_mem_eq_after_update'.
+  pose proof (mem_eq_after_update' u1 u2 w (update_memory mem smem1) (update_memory mem smem2) H) as H_mem_eq_after_update'.
   apply H_mem_eq_after_update'.
 Qed.
 
@@ -1237,19 +1243,19 @@ Qed.
 
 Lemma mstore'_not_touched_addresses_remain_the_same:
   forall sz mem w offset mem',
-    concrete_interpreter.ConcreteInterpreter.mstore' mem  (w : (word (sz*8))) offset = mem' ->
+    ConcreteInterpreter.mstore' mem  (w : (word (sz*8))) offset = mem' ->
     forall offset', (offset' >= offset + (N.of_nat sz))%N -> mem offset' = mem' offset'.
 Proof.
   induction sz as [| sz' IHsz'].
   + intros mem w n mem' H_mstore' n' H_n'_gt_n.
-    unfold concrete_interpreter.ConcreteInterpreter.mstore' in H_mstore'.
+    unfold ConcreteInterpreter.mstore' in H_mstore'.
     rewrite H_mstore'.
     reflexivity.
   + intros mem w offset mem' H_mstore' offset' H_n'_gt_n.
     simpl in H_mstore'.
     rewrite N_of_nat_Sn in H_n'_gt_n.
-    remember (concrete_interpreter.ConcreteInterpreter.mstore' mem (concrete_interpreter.ConcreteInterpreter.split2_byte w) (offset + 1)) as mem''.
-    pose proof (IHsz' mem (concrete_interpreter.ConcreteInterpreter.split2_byte w) (offset + 1)%N mem'' (eq_sym Heqmem'') offset' H_n'_gt_n) as IHsz'_0.
+    remember (ConcreteInterpreter.mstore' mem (ConcreteInterpreter.split2_byte w) (offset + 1)) as mem''.
+    pose proof (IHsz' mem (ConcreteInterpreter.split2_byte w) (offset + 1)%N mem'' (eq_sym Heqmem'') offset' H_n'_gt_n) as IHsz'_0.
     rewrite <- H_mstore'.
     destruct (offset' =? offset)%N eqn:E_offset_offset'.
     ++ rewrite N.eqb_eq in E_offset_offset'.
@@ -1299,7 +1305,7 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
        destruct H_eval_soffset as [soffset_v H_eval_soffset].
        rewrite HeqS_maxidx.
        rewrite H_eval_soffset.
-       exists (concrete_interpreter.ConcreteInterpreter.mload mem soffset_v).
+       exists (ConcreteInterpreter.mload mem soffset_v).
        split; reflexivity.
   + unfold basic_mload_solver in H_basic_mload_solver.
     fold basic_mload_solver in H_basic_mload_solver.
@@ -1364,7 +1370,7 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
              injection H_eval_soffset_bis as H_eval_soffset_bis.           
              rewrite H_eval_soffset'_bis.
              rewrite H_eval_soffset_bis.
-             pose proof (mload_mstore_same_address (eval_common.EvalCommon.update_memory mem v) soffset_soffset'_v svalue_v) as H_mload_mstore_same_address.
+             pose proof (mload_mstore_same_address (update_memory mem v) soffset_soffset'_v svalue_v) as H_mload_mstore_same_address.
              rewrite H_mload_mstore_same_address.
              reflexivity.
        +++ destruct (memory_slots_do_not_overlap soffset soffset' 31 31) eqn:E_not_overlap.
@@ -1410,8 +1416,8 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
                 
                 rewrite H_eval_soffset_bis.
 
-                unfold concrete_interpreter.ConcreteInterpreter.mload.
-                unfold concrete_interpreter.ConcreteInterpreter.mload'.
+                unfold ConcreteInterpreter.mload.
+                unfold ConcreteInterpreter.mload'.
 
                 pose proof (do_not_overlap_mload mem v1' v2' svalue_v v''' H_not_overlap) as H_do_not_overlap_mload.
                 rewrite H_do_not_overlap_mload.
@@ -1429,14 +1435,14 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
                 unfold follow_in_smap in H_eval_fresh_var_maxidx.
                 rewrite Nat.eqb_refl in H_eval_fresh_var_maxidx.
                 simpl in H_eval_fresh_var_maxidx.
-                destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
+                destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
                 
                 
                 rewrite HeqS_maxidx in H_eval_fresh_var_maxidx.
                 rewrite H_eval_soffset_bis in H_eval_fresh_var_maxidx.
                 injection H_eval_fresh_var_maxidx as H_v'.
-                unfold concrete_interpreter.ConcreteInterpreter.mload in H_v'.
-                unfold concrete_interpreter.ConcreteInterpreter.mload' in H_v'.
+                unfold ConcreteInterpreter.mload in H_v'.
+                unfold ConcreteInterpreter.mload' in H_v'.
                 rewrite HeqS_maxidx in E_mo_1.
                 rewrite E_mo_1 in H_mo_1.
                 injection H_mo_1 as H_mo_1.
@@ -1523,8 +1529,8 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
                 
           rewrite H_eval_soffset_bis.
 
-          unfold concrete_interpreter.ConcreteInterpreter.mload.
-          unfold concrete_interpreter.ConcreteInterpreter.mload'.
+          unfold ConcreteInterpreter.mload.
+          unfold ConcreteInterpreter.mload'.
 
           pose proof (do_not_overlap_mload_0 mem v1' v2' svalue_v v''' H_not_overlap) as H_do_not_overlap_mload.
           rewrite H_do_not_overlap_mload.
@@ -1542,14 +1548,14 @@ Lemma basic_mload_solver_snd: mload_solver_ext_snd basic_mload_solver.
           unfold follow_in_smap in H_eval_fresh_var_maxidx.
           rewrite Nat.eqb_refl in H_eval_fresh_var_maxidx.
           simpl in H_eval_fresh_var_maxidx.
-          destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
+          destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' S_maxidx sv stk mem strg ctx maxidx sb ops)) smem') as [smem_updates|] eqn:E_mo_1; try discriminate.
                 
                 
           rewrite HeqS_maxidx in H_eval_fresh_var_maxidx.
           rewrite H_eval_soffset_bis in H_eval_fresh_var_maxidx.
           injection H_eval_fresh_var_maxidx as H_v'.
-          unfold concrete_interpreter.ConcreteInterpreter.mload in H_v'.
-          unfold concrete_interpreter.ConcreteInterpreter.mload' in H_v'.
+          unfold ConcreteInterpreter.mload in H_v'.
+          unfold ConcreteInterpreter.mload' in H_v'.
           rewrite HeqS_maxidx in E_mo_1.
           rewrite E_mo_1 in H_mo_1.
           injection H_mo_1 as H_mo_1.
@@ -1750,34 +1756,34 @@ Qed.
       eval_smemory (U_MSTORE sstack_val soffset svalue :: smem1) (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some mem1 ->
       eval_smemory (U_MSTORE sstack_val soffset svalue :: smem2) (get_maxidx_smap m) (get_bindings_smap m) stk mem strg ctx ops = Some mem2 ->
       eval_sstack_val' (S (get_maxidx_smap m)) soffset stk mem strg ctx (get_maxidx_smap m)  (get_bindings_smap m) ops = Some v ->
-      concrete_interpreter.ConcreteInterpreter.mload mem1 v = concrete_interpreter.ConcreteInterpreter.mload mem2 v.
+      ConcreteInterpreter.mload mem1 v = ConcreteInterpreter.mload mem2 v.
   Proof.
     intros sstack_val_cmp soffset svalue instk_height stk mem strg ctx m ops smem1 smem2 mem1 mem2 v.
     intros H_sstack_val_cmp_snd H_stk_len H_valid_soffset H_valid_svalue H_valid_smap H_valid_smem1 H_valid_smem2 H_eval_smem1 H_eval_smem2 H_eval_soffset.
 
     unfold eval_smemory in H_eval_smem1.
-    destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem1)) as [updates1|] eqn:E_mo_1; try discriminate.
+    destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem1)) as [updates1|] eqn:E_mo_1; try discriminate.
     injection H_eval_smem1 as H_mem1.
 
     unfold eval_smemory in H_eval_smem2.
-    destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem2)) as [updates2|] eqn:E_mo_2; try discriminate.
+    destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem2)) as [updates2|] eqn:E_mo_2; try discriminate.
     injection H_eval_smem2 as H_mem2.
     
 
-    pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem1 updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_0.
+    pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem1 updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_0.
     destruct E_mo_1_0 as [e1 [updates1' [E_updates1 [E_e1 H_mo_1_0]]]].
 
-    pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem2 updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_0.
+    pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem2 updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_0.
     destruct E_mo_2_0 as [e2 [updates2' [E_updates2 [E_e2 H_mo_2_0]]]].
 
 
-    unfold eval_common.EvalCommon.instantiate_memory_update in E_e1.
+    unfold instantiate_memory_update in E_e1.
     unfold eval_sstack_val in E_e1.
     rewrite H_eval_soffset in E_e1.
     destruct (eval_sstack_val' (S (get_maxidx_smap m)) svalue stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops) as [svalue_v|] eqn:H_eval_svalue; try discriminate.
     injection E_e1 as E_e1.
     
-    unfold eval_common.EvalCommon.instantiate_memory_update in E_e2.
+    unfold instantiate_memory_update in E_e2.
     unfold eval_sstack_val in E_e2.
     rewrite H_eval_soffset in E_e2.
     rewrite H_eval_svalue in E_e2.
@@ -1790,9 +1796,9 @@ Qed.
     rewrite <- E_e1.
     rewrite <- E_e2.
 
-    unfold eval_common.EvalCommon.update_memory.
-    fold eval_common.EvalCommon.update_memory.
-    unfold eval_common.EvalCommon.update_memory'.
+    unfold update_memory.
+    fold update_memory.
+    unfold update_memory'.
     
     repeat rewrite mload_mstore_same_address.
     reflexivity.
@@ -1882,21 +1888,21 @@ Qed.
                unfold map_option.
                repeat rewrite <- map_option_ho.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
               
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
@@ -1905,45 +1911,45 @@ Qed.
                unfold eval_sstack_val in  H_eval_u_smem'.
                
 
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
                destruct E_mo_1_split as [e1 [smem'' [E_updates_1 [E_mo_1_0 E_mo_1_1]]]].
                rewrite E_mo_1_1.
 
                unfold eval_smemory in H_eval_u_smem'_r.
                unfold eval_sstack_val in  H_eval_u_smem'_r.
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
                destruct E_mo_2_split as [e2 [smem'_r' [E_updates_2 [E_mo_2_0 E_mo_2_1]]]].
                rewrite E_mo_2_1.
 
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'')).
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'_r')).
+               exists (update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'')).
+               exists (update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'_r')).
 	       split. reflexivity.
                split. reflexivity.
                intro w.
                
-               unfold eval_common.EvalCommon.update_memory.
-               fold eval_common.EvalCommon.update_memory.
+               unfold update_memory.
+               fold update_memory.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_1_0.
+               unfold instantiate_memory_update in E_mo_1_0.
                rewrite H_eval_soffset in E_mo_1_0.
                rewrite H_eval_svalue in E_mo_1_0.
                injection E_mo_1_0 as E_e1.
                
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_2_0.
+               unfold instantiate_memory_update in E_mo_2_0.
                rewrite H_eval_soffset in E_mo_2_0.
                rewrite H_eval_svalue in E_mo_2_0.
                injection E_mo_2_0 as E_e2.
 
                rewrite E_updates_1 in H_eval_u_smem'.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
+               unfold update_memory in H_eval_u_smem'.
+               fold update_memory in H_eval_u_smem'.
                injection H_eval_u_smem' as H_eval_u_smem'.
 
                rewrite E_updates_2 in H_eval_u_smem'_r.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
+               unfold update_memory in H_eval_u_smem'_r.
+               fold update_memory in H_eval_u_smem'_r.
                injection H_eval_u_smem'_r as H_eval_u_smem'_r.
                rewrite H_eq_mem1'_mem2'_f in H_eval_u_smem'.
                rewrite <- H_eval_u_smem'_r in H_eval_u_smem'.
@@ -2006,21 +2012,21 @@ Qed.
                unfold map_option.
                repeat rewrite <- map_option_ho.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
               
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
@@ -2029,45 +2035,45 @@ Qed.
                unfold eval_sstack_val in  H_eval_u_smem'.
                
 
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
                destruct E_mo_1_split as [e1 [smem'' [E_updates_1 [E_mo_1_0 E_mo_1_1]]]].
                rewrite E_mo_1_1.
 
                unfold eval_smemory in H_eval_u_smem'_r.
                unfold eval_sstack_val in  H_eval_u_smem'_r.
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
                destruct E_mo_2_split as [e2 [smem'_r' [E_updates_2 [E_mo_2_0 E_mo_2_1]]]].
                rewrite E_mo_2_1.
 
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'')).
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'_r')).
+               exists (update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'')).
+               exists (update_memory mem (U_MSTORE EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'_r')).
 	       split. reflexivity.
                split. reflexivity.
                intro w.
                
-               unfold eval_common.EvalCommon.update_memory.
-               fold eval_common.EvalCommon.update_memory.
+               unfold update_memory.
+               fold update_memory.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_1_0.
+               unfold instantiate_memory_update in E_mo_1_0.
                rewrite H_eval_soffset in E_mo_1_0.
                rewrite H_eval_svalue in E_mo_1_0.
                injection E_mo_1_0 as E_e1.
                
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_2_0.
+               unfold instantiate_memory_update in E_mo_2_0.
                rewrite H_eval_soffset in E_mo_2_0.
                rewrite H_eval_svalue in E_mo_2_0.
                injection E_mo_2_0 as E_e2.
 
                rewrite E_updates_1 in H_eval_u_smem'.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
+               unfold update_memory in H_eval_u_smem'.
+               fold update_memory in H_eval_u_smem'.
                injection H_eval_u_smem' as H_eval_u_smem'.
 
                rewrite E_updates_2 in H_eval_u_smem'_r.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
+               unfold update_memory in H_eval_u_smem'_r.
+               fold update_memory in H_eval_u_smem'_r.
                injection H_eval_u_smem'_r as H_eval_u_smem'_r.
                rewrite H_eq_mem1'_mem2'_f in H_eval_u_smem'.
                rewrite <- H_eval_u_smem'_r in H_eval_u_smem'.
@@ -2146,21 +2152,21 @@ Qed.
            unfold map_option.
            repeat rewrite <- map_option_ho.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+           unfold instantiate_memory_update at 1.
            unfold eval_sstack_val.
            rewrite H_eval_soffset.
            rewrite H_eval_svalue.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+           unfold instantiate_memory_update at 1.
            unfold eval_sstack_val.
            rewrite H_eval_soffset'.
            rewrite H_eval_svalue'.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+           unfold instantiate_memory_update at 2.
            rewrite H_eval_soffset.
            rewrite H_eval_svalue.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+           unfold instantiate_memory_update at 2.
            unfold eval_sstack_val.
            rewrite H_eval_soffset'.
            rewrite H_eval_svalue'.
@@ -2169,45 +2175,45 @@ Qed.
            unfold eval_sstack_val in  H_eval_u_smem'.
            
 
-           destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
-           pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE8 sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
+           destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
+           pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE8 sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
            destruct E_mo_1_split as [e1 [smem'' [E_updates_1 [E_mo_1_0 E_mo_1_1]]]].
            rewrite E_mo_1_1.
 
            unfold eval_smemory in H_eval_u_smem'_r.
            unfold eval_sstack_val in  H_eval_u_smem'_r.
-           destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
-           pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE8 sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
+           destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
+           pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE8 sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
            destruct E_mo_2_split as [e2 [smem'_r' [E_updates_2 [E_mo_2_0 E_mo_2_1]]]].
            rewrite E_mo_2_1.
            
-           exists (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'')).
-           exists (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'_r')).
+           exists (update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'')).
+           exists (update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE EVMWord soffset'_v svlaue_v' :: smem'_r')).
 	   split. reflexivity.
            split. reflexivity.
            intro w.
            
-           unfold eval_common.EvalCommon.update_memory.
-           fold eval_common.EvalCommon.update_memory.
+           unfold update_memory.
+           fold update_memory.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_1_0.
+           unfold instantiate_memory_update in E_mo_1_0.
            rewrite H_eval_soffset in E_mo_1_0.
            rewrite H_eval_svalue in E_mo_1_0.
            injection E_mo_1_0 as E_e1.
            
-           unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_2_0.
+           unfold instantiate_memory_update in E_mo_2_0.
            rewrite H_eval_soffset in E_mo_2_0.
            rewrite H_eval_svalue in E_mo_2_0.
            injection E_mo_2_0 as E_e2.
            
            rewrite E_updates_1 in H_eval_u_smem'.
-           unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
-           fold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
+           unfold update_memory in H_eval_u_smem'.
+           fold update_memory in H_eval_u_smem'.
            injection H_eval_u_smem' as H_eval_u_smem'.
            
            rewrite E_updates_2 in H_eval_u_smem'_r.
-           unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
-           fold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
+           unfold update_memory in H_eval_u_smem'_r.
+           fold update_memory in H_eval_u_smem'_r.
            injection H_eval_u_smem'_r as H_eval_u_smem'_r.
            rewrite H_eq_mem1'_mem2'_f in H_eval_u_smem'.
            rewrite <- H_eval_u_smem'_r in H_eval_u_smem'.
@@ -2269,21 +2275,21 @@ Qed.
                unfold map_option.
                repeat rewrite <- map_option_ho.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 1.
+               unfold instantiate_memory_update at 1.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
               
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                rewrite H_eval_soffset.
                rewrite H_eval_svalue.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update at 2.
+               unfold instantiate_memory_update at 2.
                unfold eval_sstack_val.
                rewrite H_eval_soffset'.
                rewrite H_eval_svalue'.
@@ -2292,45 +2298,45 @@ Qed.
                unfold eval_sstack_val in  H_eval_u_smem'.
                
 
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE8 sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem')) as [updates1|] eqn:E_mo_1; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem' updates1 (U_MSTORE8 sstack_val soffset svalue) E_mo_1) as E_mo_1_split.
                destruct E_mo_1_split as [e1 [smem'' [E_updates_1 [E_mo_1_0 E_mo_1_1]]]].
                rewrite E_mo_1_1.
 
                unfold eval_smemory in H_eval_u_smem'_r.
                unfold eval_sstack_val in  H_eval_u_smem'_r.
-               destruct (map_option (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
-               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (eval_common.EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE8 sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
+               destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val'  (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) (U_MSTORE8 sstack_val soffset svalue :: smem'_r)) as [updates2|] eqn:E_mo_2; try discriminate.
+               pose proof (map_option_split (memory_update sstack_val) (memory_update EVMWord) (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val' (S (get_maxidx_smap m)) sv stk mem strg ctx (get_maxidx_smap m) (get_bindings_smap m) ops)) smem'_r updates2 (U_MSTORE8 sstack_val soffset svalue) E_mo_2) as E_mo_2_split.
                destruct E_mo_2_split as [e2 [smem'_r' [E_updates_2 [E_mo_2_0 E_mo_2_1]]]].
                rewrite E_mo_2_1.
 
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'')).
-               exists (eval_common.EvalCommon.update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'_r')).
+               exists (update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'')).
+               exists (update_memory mem (U_MSTORE8 EVMWord soffset_v svlaue_v :: U_MSTORE8 EVMWord soffset'_v svlaue_v' :: smem'_r')).
 	       split. reflexivity.
                split. reflexivity.
                intro w.
                
-               unfold eval_common.EvalCommon.update_memory.
-               fold eval_common.EvalCommon.update_memory.
+               unfold update_memory.
+               fold update_memory.
 
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_1_0.
+               unfold instantiate_memory_update in E_mo_1_0.
                rewrite H_eval_soffset in E_mo_1_0.
                rewrite H_eval_svalue in E_mo_1_0.
                injection E_mo_1_0 as E_e1.
                
-               unfold eval_common.EvalCommon.instantiate_memory_update in E_mo_2_0.
+               unfold instantiate_memory_update in E_mo_2_0.
                rewrite H_eval_soffset in E_mo_2_0.
                rewrite H_eval_svalue in E_mo_2_0.
                injection E_mo_2_0 as E_e2.
 
                rewrite E_updates_1 in H_eval_u_smem'.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'.
+               unfold update_memory in H_eval_u_smem'.
+               fold update_memory in H_eval_u_smem'.
                injection H_eval_u_smem' as H_eval_u_smem'.
 
                rewrite E_updates_2 in H_eval_u_smem'_r.
-               unfold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
-               fold eval_common.EvalCommon.update_memory in H_eval_u_smem'_r.
+               unfold update_memory in H_eval_u_smem'_r.
+               fold update_memory in H_eval_u_smem'_r.
                injection H_eval_u_smem'_r as H_eval_u_smem'_r.
                rewrite H_eq_mem1'_mem2'_f in H_eval_u_smem'.
                rewrite <- H_eval_u_smem'_r in H_eval_u_smem'.

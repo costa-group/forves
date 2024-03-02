@@ -48,6 +48,9 @@ Require Import FORVES.eval_common.
 Import EvalCommon.
 
 
+Require Import FORVES.concrete_interpreter.
+Import ConcreteInterpreter.
+
 Module StorageCmpImplSoundness.
 
   Theorem trivial_storage_cmp_snd:
@@ -266,7 +269,7 @@ Module StorageCmpImplSoundness.
     injection H_eval_sstrg as H_eval_sstrg.
     rewrite H_eval_sstrg.
  
-    unfold concrete_interpreter.ConcreteInterpreter.sstore.
+    unfold sstore.
     split; try reflexivity.
    
     unfold eval_sstack_val' in H_eval_skey1.
