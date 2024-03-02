@@ -90,26 +90,26 @@ Module MemoryCmpImplSoundness.
       ++ simpl in H_basic_mem_cmp.
          destruct u1; try discriminate.
       ++ simpl in H_basic_mem_cmp.
-         destruct u1 as [skey1 svalue1|skey1 svalue1] eqn:E_u1; destruct u2 as [skey2 svalue2|skey2 svalue2] eqn:E_u2; try discriminate.
-         +++ destruct (sstack_val_cmp d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_skey1_skey2; try discriminate.
+         destruct u1 as [soffset1 svalue1|soffset1 svalue1] eqn:E_u1; destruct u2 as [soffset2 svalue2|soffset2 svalue2] eqn:E_u2; try discriminate.
+         +++ destruct (sstack_val_cmp d' soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_soffset1_soffset2; try discriminate.
              destruct (sstack_val_cmp d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_svalue1_svalue2; try discriminate.
              simpl in H_valid_smem1.
-             destruct H_valid_smem1 as [ [H_valid_skey1 H_valid_svalue1] H_valid_smem1'].
+             destruct H_valid_smem1 as [ [H_valid_soffset1 H_valid_svalue1] H_valid_smem1'].
              simpl in H_valid_smem2.
-             destruct H_valid_smem2 as [ [H_valid_skey2 H_valid_svalue2] H_valid_smem2'].
+             destruct H_valid_smem2 as [ [H_valid_soffset2 H_valid_svalue2] H_valid_smem2'].
              pose proof (IHsmem1' smem2' H_valid_smem1' H_valid_smem2' H_basic_mem_cmp stk mem strg ctx H_stk_len) as IHsmem1'_0.
              destruct IHsmem1'_0 as [mem' [IHsmem1'_0 IHsmem1'_1]].
              
              unfold safe_sstack_val_cmp_ext_1_d in H_sstack_val_cmp_snd.
              pose proof (H_sstack_val_cmp_snd d' H_d'_le_d) as H_sstack_val_cmp_snd_d'.
              unfold safe_sstack_val_cmp in H_sstack_val_cmp_snd_d'.
-             pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg ctx H_stk_len) as H_eval_skey1_skey2.
-             destruct H_eval_skey1_skey2 as [skey_1_2_v [H_eval_skey1 H_eval_skey2]].
+             pose proof(H_sstack_val_cmp_snd_d' soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_soffset1 H_valid_soffset2 H_valid_sb1 H_valid_sb2 E_cmp_soffset1_soffset2 stk mem strg ctx H_stk_len) as H_eval_soffset1_soffset2.
+             destruct H_eval_soffset1_soffset2 as [soffset_1_2_v [H_eval_soffset1 H_eval_soffset2]].
              
              pose proof(H_sstack_val_cmp_snd_d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_svalue1 H_valid_svalue2 H_valid_sb1 H_valid_sb2 E_cmp_svalue1_svalue2 stk mem strg ctx H_stk_len) as H_eval_svalue1_svalue2.
              destruct H_eval_svalue1_svalue2 as [svalue_1_2_v [H_eval_svalue1 H_eval_svalue2]].
              
-             exists (mstore mem' svalue_1_2_v  skey_1_2_v).
+             exists (mstore mem' svalue_1_2_v  soffset_1_2_v).
              
              unfold eval_smemory in IHsmem1'_0.
              destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1 sb1 ops)) smem1') as [updates1|] eqn:H_mo_smem1'; try discriminate.
@@ -124,11 +124,11 @@ Module MemoryCmpImplSoundness.
              repeat rewrite <- map_option_ho.
              
              unfold instantiate_memory_update at 1.
-             rewrite H_eval_skey1.
+             rewrite H_eval_soffset1.
              rewrite H_eval_svalue1.
              
              unfold instantiate_memory_update at 2.
-             rewrite H_eval_skey2.
+             rewrite H_eval_soffset2.
              rewrite H_eval_svalue2.
              
              rewrite H_mo_smem1'.
@@ -143,25 +143,25 @@ Module MemoryCmpImplSoundness.
              simpl.
              split; reflexivity.
          (* copy of previous item *)
-         +++ destruct (sstack_val_cmp d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_skey1_skey2; try discriminate.
+         +++ destruct (sstack_val_cmp d' soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_soffset1_soffset2; try discriminate.
              destruct (sstack_val_cmp d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_cmp_svalue1_svalue2; try discriminate.
              simpl in H_valid_smem1.
-             destruct H_valid_smem1 as [ [H_valid_skey1 H_valid_svalue1] H_valid_smem1'].
+             destruct H_valid_smem1 as [ [H_valid_soffset1 H_valid_svalue1] H_valid_smem1'].
              simpl in H_valid_smem2.
-             destruct H_valid_smem2 as [ [H_valid_skey2 H_valid_svalue2] H_valid_smem2'].
+             destruct H_valid_smem2 as [ [H_valid_soffset2 H_valid_svalue2] H_valid_smem2'].
              pose proof (IHsmem1' smem2' H_valid_smem1' H_valid_smem2' H_basic_mem_cmp stk mem strg ctx H_stk_len) as IHsmem1'_0.
              destruct IHsmem1'_0 as [mem' [IHsmem1'_0 IHsmem1'_1]].
              
              unfold safe_sstack_val_cmp_ext_1_d in H_sstack_val_cmp_snd.
              pose proof (H_sstack_val_cmp_snd d' H_d'_le_d) as H_sstack_val_cmp_snd_d'.
              unfold safe_sstack_val_cmp in H_sstack_val_cmp_snd_d'.
-             pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg ctx H_stk_len) as H_eval_skey1_skey2.
-             destruct H_eval_skey1_skey2 as [skey_1_2_v [H_eval_skey1 H_eval_skey2]].
+             pose proof(H_sstack_val_cmp_snd_d' soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_soffset1 H_valid_soffset2 H_valid_sb1 H_valid_sb2 E_cmp_soffset1_soffset2 stk mem strg ctx H_stk_len) as H_eval_soffset1_soffset2.
+             destruct H_eval_soffset1_soffset2 as [soffset_1_2_v [H_eval_soffset1 H_eval_soffset2]].
              
              pose proof(H_sstack_val_cmp_snd_d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_svalue1 H_valid_svalue2 H_valid_sb1 H_valid_sb2 E_cmp_svalue1_svalue2 stk mem strg ctx H_stk_len) as H_eval_svalue1_svalue2.
              destruct H_eval_svalue1_svalue2 as [svalue_1_2_v [H_eval_svalue1 H_eval_svalue2]].
              
-             exists (mstore mem' (split1_byte (svalue_1_2_v: word ((S (pred BytesInEVMWord))*8))) skey_1_2_v).
+             exists (mstore mem' (split1_byte (svalue_1_2_v: word ((S (pred BytesInEVMWord))*8))) soffset_1_2_v).
              
              unfold eval_smemory in IHsmem1'_0.
              destruct (map_option (instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1 sb1 ops)) smem1') as [updates1|] eqn:H_mo_smem1'; try discriminate.
@@ -176,11 +176,11 @@ Module MemoryCmpImplSoundness.
              repeat rewrite <- map_option_ho.
              
              unfold instantiate_memory_update at 1.
-             rewrite H_eval_skey1.
+             rewrite H_eval_soffset1.
              rewrite H_eval_svalue1.
              
              unfold instantiate_memory_update at 2.
-             rewrite H_eval_skey2.
+             rewrite H_eval_soffset2.
              rewrite H_eval_svalue2.
              
              rewrite H_mo_smem1'.
