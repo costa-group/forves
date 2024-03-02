@@ -608,7 +608,7 @@ Qed.
     unfold safe_sstorage_cmp.
     intros d sstack_val_cmp H_sstack_val_cmp_snd d' H_d'_le_d sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sb1 H_valid_sb2 H_valid_sstrg1 H_valid_sstrg2 H_po_cmp stk mem strg ctx H_stk_len.
     unfold po_storage_cmp in H_po_cmp.
-    destruct (length sstrg1 =? length sstrg2); try discriminate.
+    Destruct (length sstrg1 =? length sstrg2); try discriminate.
 
     remember (reorder_storage_updates (length sstrg1) (length sstrg1) sstrg1 maxidx1 sb1) as sstrg1_r.
     remember (reorder_storage_updates (length sstrg2) (length sstrg2) sstrg2 maxidx2 sb2) as sstrg2_r.
