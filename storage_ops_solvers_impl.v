@@ -1,4 +1,4 @@
-Require Import Arith.  
+Require Import Arith.
 Require Import Nat.
 Require Import Bool.
 Require Import bbv.Word.
