@@ -289,34 +289,38 @@ def gen_tests_from_daniel_format(paths):
 
 
 def gen_blocks_from_daniel_format(path, smart_contract_name=""):
-    # Removes duplicates in the same smart contract
+    # Removes duplicates in the same smart contract. I assume solc optimizations are deterministic, so I only
+    # check the 'pre' code
     past = set()
-    with open(path, 'r', encoding='utf8') as f:
+    blocks_list = []
+
+    with open(path, 'r', encoding='ascii') as f:
         json_source = f.read()
         bs = json.loads(f'[{json_source[:-2]}]')  # Removes last comma
-        blocks = ""
         for i, b in enumerate(bs):
             # print(f'>>>> Bloque {i}',file=sys.stderr)
             b1 = solc_json_block_to_str(b["pre"][".code"])
             b2 = solc_json_block_to_str(b["post"][".code"])
-            if (b1, b2) not in past:
-                blocks += gen_test_2(b1, b2, i, smart_contract_name)
-                past.add((b1, b2))
+            if b1 != b2 and b1 not in past:
+                # Only generate the block if 'pre' and 'post' are different (something has been optimized)
+                # and 'pre' has not appeared before
+                blocks_list.append(gen_test_2(b1, b2, i, smart_contract_name))
+                past.add(b1)
 
-        return blocks
+        return "".join(blocks_list)
 
 
-def gen_blocks_from_daniel_format_gz(path, smart_contract_name=""):
-    with gzip.open(path, 'rb') as f:
-        json_source = f.read().decode('utf-8')
-        bs = json.loads(f'[{json_source[:-2]}]')  # Removes last comma
-        blocks = ""
-        for i, b in enumerate(bs):
-            # print(f'>>>> Bloque {i}',file=sys.stderr)
-            b1 = solc_json_block_to_str(b["pre"][".code"])
-            b2 = solc_json_block_to_str(b["post"][".code"])
-            blocks += gen_test_2(b1, b2, i, smart_contract_name)
-        return blocks
+# def gen_blocks_from_daniel_format_gz(path, smart_contract_name=""):
+#     with gzip.open(path, 'rb') as f:
+#         json_source = f.read().decode('utf-8')
+#         bs = json.loads(f'[{json_source[:-2]}]')  # Removes last comma
+#         blocks = ""
+#         for i, b in enumerate(bs):
+#             # print(f'>>>> Bloque {i}',file=sys.stderr)
+#             b1 = solc_json_block_to_str(b["pre"][".code"])
+#             b2 = solc_json_block_to_str(b["post"][".code"])
+#             blocks += gen_test_2(b1, b2, i, smart_contract_name)
+#         return blocks
 
 
 # Usage example:
