@@ -125,6 +125,12 @@ Proof.
   destruct a; destruct b; try reflexivity || discriminate.
 Qed.
 
+Definition stack_op_eq_dec : forall (a b : stack_op_instr), { a = b } + { a <> b }.
+Proof.
+decide equality.
+Defined.
+
+
 (*
 
 Instructions: (1) the basic stack manipulation ones -- PUSH, POP, DUP

@@ -140,10 +140,10 @@ Module MemoryCmpImpl.
   Definition po_memory_cmp (sstack_val_cmp : sstack_val_cmp_t) (smem1 smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
     let n1 := length smem1 in
     let n2 := length smem2 in
-    if (n1 =? n2) then 
-      let smem1' := reorder_memory_updates n1 n1 smem1 maxidx1 sb1 in
-      let smem2' := reorder_memory_updates n2 n2 smem2 maxidx2 sb2 in
-      basic_memory_cmp sstack_val_cmp smem1' smem2' maxidx1 sb1 maxidx2 sb2 instk_height ops
+    if (n1 =? n2) then
+        let smem1' := reorder_memory_updates n1 n1 smem1 maxidx1 sb1 in
+        let smem2' := reorder_memory_updates n2 n2 smem2 maxidx2 sb2 in
+        basic_memory_cmp sstack_val_cmp smem1' smem2' maxidx1 sb1 maxidx2 sb2 instk_height ops
     else
       false.
       

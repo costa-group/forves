@@ -323,11 +323,13 @@ Module BlockEquivChecker.
   | SHA3Cmp (f: sha3_cmp_ext_t) (H_snd: safe_sha3_cmp_ext_wrt_sstack_value_cmp f).
 
   Inductive available_sha3_cmp :=
-  | SHA3Cmp_Trivial.
+  | SHA3Cmp_Trivial
+  | SHA3Cmp_Basic.
 
   Definition get_sha3_cmp (tag: available_sha3_cmp) : sha3_cmp_v :=
     match tag with
     | SHA3Cmp_Trivial => SHA3Cmp trivial_sha3_cmp trivial_sha3_cmp_snd
+    | SHA3Cmp_Basic => SHA3Cmp basic_sha3_cmp basic_sha3_cmp_snd
   end.
 
 
@@ -337,13 +339,15 @@ Module BlockEquivChecker.
 
   Inductive available_sstack_val_cmp :=
   | SStackValCmp_Trivial
-  | SStackValCmp_Basic.
+  | SStackValCmp_Basic
+  | SStackValCmp_Basic_w_eq_chk.
 
   Definition get_sstack_val_cmp (tag: available_sstack_val_cmp) : sstack_val_cmp_v :=
     match tag with
     | SStackValCmp_Trivial => SStackValCmp trivial_compare_sstack_val trivial_compare_sstack_val_snd trivial_compare_sstack_val_d0_snd
     | SStackValCmp_Basic => SStackValCmp basic_compare_sstack_val basic_compare_sstack_val_snd basic_compare_sstack_val_d0_snd
-  end.
+    | SStackValCmp_Basic_w_eq_chk => SStackValCmp basic_compare_sstack_val_w_eq_chk basic_compare_sstack_val_w_eq_chk_snd basic_compare_sstack_val_w_eq_chk_d0_snd
+    end.
   
   
 Inductive available_optimization_step :=

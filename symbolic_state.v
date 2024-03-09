@@ -17,7 +17,6 @@ Import ListNotations.
 
 Module SymbolicState.
 
-
 (* symbolic stack *)
 
 Inductive sstack_val : Type :=

@@ -21,7 +21,10 @@ Require Import FORVES.memory_ops_solvers.
 Import MemoryOpsSolvers.
 
 Require Import FORVES.storage_ops_solvers.
-Import StorageOpsSolvers.
+Import StorageOpsSolvers. 
+
+Require Import FORVES.execution_state.
+Import ExecutionState.
 
 Require Import List.
 Import ListNotations.
@@ -159,19 +162,47 @@ Definition sstore_s (sstrg_updater: sstorage_updater_type) (sst : sstate) (ops: 
   | _ => None
   end.
 
+Fixpoint all_concrete' (l :list sstack_val) (maxidx: nat) (sb: sbindings) : option (list EVMWord) :=
+  match l with
+  | [] => Some []
+  | sv::l' =>
+    match follow_in_smap sv maxidx sb with
+    | Some (FollowSmapVal (SymBasicVal (Val v)) _ _) =>
+        match (all_concrete' l' maxidx sb) with
+        | None => None
+        | Some vs => Some (v::vs)
+        end
+    | _ => None
+    end
+  end.
+
+Definition all_concrete (l : list sstack_val) (sst : sstate) :=
+  let map := get_smap_sst sst in
+  let maxidx := get_maxidx_smap map in
+  let bs := get_bindings_smap map in
+  all_concrete' l maxidx bs.
+
 Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | OpImp nb_args _ _ _ =>
+  | OpImp nb_args f _ H_ctx =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>
-          let sm : smap := get_smap_sst sst in
-          let v : smap_value := SymOp label s1 in
-          match add_to_smap sm v with
-          | pair key sm' =>
-              let sst' := set_stack_sst sst ((FreshVar key)::s2) in
-              let sst'' := set_smap_sst sst' sm' in
-              Some sst''
+          match H_ctx, all_concrete s1 sst with
+          | Some _, Some vs =>
+              let v := (f empty_context vs) in
+              let sst' := set_stack_sst sst ((Val v)::s2) in
+              Some sst'
+          | _,_ =>
+              let sm : smap := get_smap_sst sst in
+              let v : smap_value := SymOp label s1 in
+              match add_to_smap sm v with
+              | pair key sm' =>
+                  let sst' := set_stack_sst sst ((FreshVar key)::s2) in
+                  let sst'' := set_smap_sst sst' sm' in
+                  Some sst''
+              end
+              
           end
       | _, _ => None
       end

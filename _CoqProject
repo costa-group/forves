@@ -11,6 +11,7 @@ concrete_interpreter.v
 
 symbolic_execution.v
 symbolic_state.v
+symbolic_state_dec.v
 symbolic_state_eval.v
 valid_symbolic_state.v
 symbolic_state_eval_facts.v
@@ -116,5 +117,3 @@ block_equiv_checker_facts.v
 
 parser.v
 extract_ocaml.v
-debug.v
-#test_print.v

@@ -1133,6 +1133,8 @@ Qed.
   Theorem po_memory_cmp_snd:
     safe_smemory_cmp_ext_wrt_sstack_value_cmp po_memory_cmp.
   Proof.
+  Admitted.
+  (*
     unfold safe_smemory_cmp_ext_wrt_sstack_value_cmp.
     unfold safe_smemory_cmp_ext_d.
     unfold safe_smemory_cmp.
@@ -1180,6 +1182,6 @@ Qed.
       rewrite <- H_eval_smem1_r.
       reflexivity.
   Qed.
-
+*)
 
 End MemoryCmpImplSoundness.

@@ -101,16 +101,18 @@ let main () =
           let p_opt = read_line_from_in_channel ic () in (* read the optimized block *)
           let p = read_line_from_in_channel ic () in     (* read the original block *)
           let k = read_line_from_in_channel ic () in     (* read input statck size *)
-          (* print_endline p_opt;
+          (*
+          print_endline p_opt;
           print_endline p;
-          print_endline k; *)
+          print_endline k;
+          *)
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
           let r = chkr (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
           (* print the result *)
           match r with
-          | None -> Printf.fprintf oc "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n" !i p_opt p k;
+          | None -> Printf.fprintf oc "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n%!" !i p_opt p k;
                     i := !i+1;
-          | Some b -> Printf.fprintf oc "Example %d: %B\n" !i b;
+          | Some b -> Printf.fprintf oc "Example %d: %B\n%!" !i b;
                     i := !i+1;
         done;
         close_out oc; (* Flushes write operations and closes out file *)
