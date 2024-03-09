@@ -319,8 +319,6 @@ Lemma exec_stack_op_intsr_valid_sst:
     exec_stack_op_intsr_s label sst ops = Some sst' ->
     valid_sstate sst' ops.
 Proof.
-Admitted.
-(*
   intros sst sst' label ops H_valid_sst H_exec_s.
   unfold exec_stack_op_intsr_s in H_exec_s.
   destruct (ops label) as [nargs f H_com H_coh] eqn:E_label.
@@ -395,7 +393,7 @@ Admitted.
       * apply H_valid_sst_smemory_add.
       * apply H_valid_sst_sstorage_add.
 Qed.
- *)
+
 
 (* mload generates valid states *)
 Lemma mload_valid_sst:
@@ -3134,9 +3132,7 @@ Qed.
 Lemma exec_stack_op_intsr_snd:
   forall label, snd_state_transformer (exec_stack_op_intsr_c label) (exec_stack_op_intsr_s label).
 Proof.
-  Admitted.
-(*
-intro label.
+  intro label.
   unfold snd_state_transformer.
   intros sst sst' ops H_valid_sst H_execop_s. 
   split.
@@ -3349,7 +3345,7 @@ intro label.
       rewrite  E_n_lt_len_stk_sst in E_firstn_e.
       discriminate.
 Qed.
-*)
+
 
 (* exec_stack_op_intsr_s is a sound symbolic transformer *)
 

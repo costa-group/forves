@@ -182,7 +182,8 @@ Definition all_concrete (l : list sstack_val) (sst : sstate) :=
   let bs := get_bindings_smap map in
   all_concrete' l maxidx bs.
 
-Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
+
+Definition exec_stack_op_intsr_w_eval_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
   | OpImp nb_args f _ H_ctx =>
       let sstk := get_stack_sst sst in
@@ -203,6 +204,25 @@ Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : 
                   Some sst''
               end
               
+          end
+      | _, _ => None
+      end
+  end.
+
+
+Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
+  match (ops label) with
+  | OpImp nb_args f _ H_ctx =>
+      let sstk := get_stack_sst sst in
+      match firstn_e nb_args sstk, skipn_e nb_args sstk with
+      | Some s1,Some s2 =>
+          let sm : smap := get_smap_sst sst in
+          let v : smap_value := SymOp label s1 in
+          match add_to_smap sm v with
+          | pair key sm' =>
+              let sst' := set_stack_sst sst ((FreshVar key)::s2) in
+              let sst'' := set_smap_sst sst' sm' in
+              Some sst''
           end
       | _, _ => None
       end
