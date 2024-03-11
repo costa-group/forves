@@ -6,8 +6,14 @@
 *.aux
 *.lia.cache
 *.crashcoqide
+*.o
+*.cmi
+*.cmx
 Makefile
 Makefile.conf
 .Makefile.d
 !extraction/Makefile
 !ocaml_interface/Makefile
+__pycache__
+ocaml_interface/checker
+ocaml_interface/static_checker
