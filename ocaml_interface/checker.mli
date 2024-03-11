@@ -61,6 +61,8 @@ val ltb : nat -> nat -> bool
 
 val max : nat -> nat -> nat
 
+val bool_dec : bool -> bool -> bool
+
 val eqb0 : bool -> bool -> bool
 
 module Nat :
@@ -72,6 +74,8 @@ module Nat :
   val leb : nat -> nat -> bool
 
   val div2 : nat -> nat
+
+  val eq_dec : nat -> nat -> bool
  end
 
 type positive =
@@ -138,6 +142,8 @@ module Coq_Pos :
   val to_nat : positive -> nat
 
   val of_succ_nat : nat -> positive
+
+  val eq_dec : positive -> positive -> bool
  end
 
 module N :
@@ -175,6 +181,8 @@ module N :
   val to_nat : n -> nat
 
   val of_nat : nat -> n
+
+  val eq_dec : n -> n -> bool
  end
 
 val nth_error : 'a1 list -> nat -> 'a1 option
@@ -235,6 +243,8 @@ val wmsb : nat -> word -> bool -> bool
 val whd : nat -> word -> bool
 
 val wtl : nat -> word -> word
+
+val weq : nat -> word -> word -> bool
 
 val weqb : nat -> word -> word -> bool
 
@@ -324,7 +334,23 @@ module Program :
   | GAS
   | JUMPI
 
+  val stack_op_instr_rect :
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
+    -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
+    -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
+
+  val stack_op_instr_rec :
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
+    -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
+    -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
+
   val eqb_stack_op_instr : stack_op_instr -> stack_op_instr -> bool
+
+  val stack_op_eq_dec : stack_op_instr -> stack_op_instr -> bool
 
   type instr =
   | PUSH of nat * n
@@ -1305,6 +1331,51 @@ module MemoryOpsSolvers :
     SymbolicState.smemory
  end
 
+module MemoryOpsSolversImpl :
+ sig
+  val trivial_mload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val trivial_smemory_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.memory_update list
+
+  val memory_slots_do_not_overlap :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_mload_solver :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+
+  val mstore8_is_included_in_mstore :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_smemory_updater_remove_mstore_dups :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+    SymbolicState.memory_update list
+
+  val basic_smemory_updater_remove_mstore8_dups :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.smap ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+    SymbolicState.memory_update list
+
+  val basic_smemory_updater :
+    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+    SymbolicState.sstack_val SymbolicState.memory_update list
+ end
+
 module StorageOpsSolvers :
  sig
   type sload_solver_type =
@@ -1436,49 +1507,34 @@ module StorageOpsSolversImpl :
     SymbolicState.sstack_val SymbolicState.storage_update list
  end
 
-module MemoryOpsSolversImpl :
+module SymbolicStateDec :
  sig
-  val trivial_mload_solver :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-    SymbolicState.smemory -> nat -> SymbolicState.smap ->
-    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+  val sstack_val_eq_dec :
+    SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool
 
-  val trivial_smemory_updater :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
-    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
-    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
-    SymbolicState.sstack_val SymbolicState.memory_update list
+  val sstack_eq_dec : SymbolicState.sstack -> SymbolicState.sstack -> bool
 
-  val memory_slots_do_not_overlap :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat ->
-    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+  val smemory_update_eq_dec :
+    SymbolicState.sstack_val SymbolicState.memory_update ->
+    SymbolicState.sstack_val SymbolicState.memory_update -> bool
 
-  val basic_mload_solver :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-    SymbolicState.smemory -> nat -> SymbolicState.smap ->
-    StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value
+  val smemory_eq_dec : SymbolicState.smemory -> SymbolicState.smemory -> bool
 
-  val mstore8_is_included_in_mstore :
-    SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
-    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+  val sstorage_update_eq_dec :
+    SymbolicState.sstack_val SymbolicState.storage_update ->
+    SymbolicState.sstack_val SymbolicState.storage_update -> bool
 
-  val basic_smemory_updater_remove_mstore_dups :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-    SymbolicState.smemory -> nat -> SymbolicState.smap ->
-    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
-    SymbolicState.memory_update list
+  val sstorage_eq_dec :
+    SymbolicState.sstorage -> SymbolicState.sstorage -> bool
 
-  val basic_smemory_updater_remove_mstore8_dups :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-    SymbolicState.smemory -> nat -> SymbolicState.smap ->
-    StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
-    SymbolicState.memory_update list
+  val smap_value_eq_dec :
+    SymbolicState.smap_value -> SymbolicState.smap_value -> bool
 
-  val basic_smemory_updater :
-    SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
-    SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
-    SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
-    SymbolicState.sstack_val SymbolicState.memory_update list
+  val sbinding_eq_dec :
+    SymbolicState.sbinding -> SymbolicState.sbinding -> bool
+
+  val sbindings_eq_dec :
+    SymbolicState.sbindings -> SymbolicState.sbindings -> bool
  end
 
 module SStackValCmpImpl :
@@ -1494,6 +1550,17 @@ module SStackValCmpImpl :
     -> SymbolicStateCmp.sha3_cmp_ext_t -> nat -> SymbolicState.sstack_val ->
     SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
     SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val basic_compare_sstack_val_w_eq_chk :
+    SymbolicStateCmp.smemory_cmp_ext_t -> SymbolicStateCmp.sstorage_cmp_ext_t
+    -> SymbolicStateCmp.sha3_cmp_ext_t -> nat -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+ end
+
+module Opt_mem_solver :
+ sig
+  val optimize_mem_solver_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
 module MemoryCmpImpl :
@@ -1527,9 +1594,29 @@ module MemoryCmpImpl :
     SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
  end
 
-module SHA3CmpImplSoundness :
+module SHA3CmpImpl :
  sig
   val trivial_sha3_cmp :
+    SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> SymbolicState.smemory ->
+    SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+    SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val update_out_of_slot :
+    SymbolicState.sstack_val SymbolicState.memory_update -> n -> n -> nat ->
+    SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map -> bool
+
+  val remove_out_of_slot' :
+    SymbolicState.smemory -> n -> n -> nat -> SymbolicState.sbindings -> nat
+    -> StackOpInstrs.stack_op_instr_map -> SymbolicState.smemory
+
+  val remove_out_of_slot :
+    SymbolicState.smemory -> SymbolicState.sstack_val ->
+    SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
+    StackOpInstrs.stack_op_instr_map -> SymbolicState.smemory
+
+  val basic_sha3_cmp :
     SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack_val ->
     SymbolicState.sstack_val -> SymbolicState.smemory ->
     SymbolicState.sstack_val -> SymbolicState.sstack_val ->
@@ -1644,7 +1731,11 @@ module BlockEquivChecker :
     SymbolicStateCmp.sha3_cmp_ext_t
     (* singleton inductive, whose constructor was SHA3Cmp *)
 
-  val get_sha3_cmp : __ -> sha3_cmp_v
+  type available_sha3_cmp =
+  | SHA3Cmp_Trivial
+  | SHA3Cmp_Basic
+
+  val get_sha3_cmp : available_sha3_cmp -> sha3_cmp_v
 
   type sstack_val_cmp_v =
     SymbolicStateCmp.sstack_val_cmp_ext_2_t
@@ -1653,6 +1744,7 @@ module BlockEquivChecker :
   type available_sstack_val_cmp =
   | SStackValCmp_Trivial
   | SStackValCmp_Basic
+  | SStackValCmp_Basic_w_eq_chk
 
   val get_sstack_val_cmp : available_sstack_val_cmp -> sstack_val_cmp_v
 
@@ -1721,6 +1813,7 @@ module BlockEquivChecker :
   | OPT_balance_address
   | OPT_slt_x_x
   | OPT_sgt_x_x
+  | OPT_mem_solver
 
   type list_opt_steps = available_optimization_step list
 
@@ -1747,8 +1840,8 @@ module BlockEquivChecker :
     available_smemory_updaters -> available_sstorage_updaters ->
     available_mload_solvers -> available_sload_solvers ->
     available_sstack_val_cmp -> available_memory_cmp -> available_storage_cmp
-    -> list_opt_steps -> nat -> nat -> Program.block -> Program.block -> nat
-    -> bool
+    -> available_sha3_cmp -> list_opt_steps -> nat -> nat -> Program.block ->
+    Program.block -> nat -> bool
  end
 
 module Parser :
@@ -1828,7 +1921,8 @@ module Parser :
   val parse_storage_cmp :
     char list -> BlockEquivChecker.available_storage_cmp option
 
-  val parse_sha3_cmp : char list -> __ option
+  val parse_sha3_cmp :
+    char list -> BlockEquivChecker.available_sha3_cmp option
 
   val block_eq :
     char list -> char list -> char list -> char list -> char list ->

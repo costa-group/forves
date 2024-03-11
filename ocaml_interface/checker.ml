@@ -141,6 +141,11 @@ let rec max n0 m =
              | O -> n0
              | S m' -> S (max n' m'))
 
+(** val bool_dec : bool -> bool -> bool **)
+
+let bool_dec b1 b2 =
+  if b1 then if b2 then true else false else if b2 then false else true
+
 (** val eqb0 : bool -> bool -> bool **)
 
 let eqb0 b1 b2 =
@@ -182,6 +187,17 @@ module Nat =
   | S n1 -> (match n1 with
              | O -> O
              | S n' -> S (div2 n'))
+
+  (** val eq_dec : nat -> nat -> bool **)
+
+  let rec eq_dec n0 m =
+    match n0 with
+    | O -> (match m with
+            | O -> true
+            | S _ -> false)
+    | S n1 -> (match m with
+               | O -> false
+               | S n2 -> eq_dec n1 n2)
  end
 
 type positive =
@@ -395,6 +411,20 @@ module Coq_Pos =
   let rec of_succ_nat = function
   | O -> XH
   | S x -> succ (of_succ_nat x)
+
+  (** val eq_dec : positive -> positive -> bool **)
+
+  let rec eq_dec p x0 =
+    match p with
+    | XI p0 -> (match x0 with
+                | XI p1 -> eq_dec p0 p1
+                | _ -> false)
+    | XO p0 -> (match x0 with
+                | XO p1 -> eq_dec p0 p1
+                | _ -> false)
+    | XH -> (match x0 with
+             | XH -> true
+             | _ -> false)
  end
 
 module N =
@@ -541,6 +571,17 @@ module N =
   let of_nat = function
   | O -> N0
   | S n' -> Npos (Coq_Pos.of_succ_nat n')
+
+  (** val eq_dec : n -> n -> bool **)
+
+  let eq_dec n0 m =
+    match n0 with
+    | N0 -> (match m with
+             | N0 -> true
+             | Npos _ -> false)
+    | Npos p -> (match m with
+                 | N0 -> false
+                 | Npos p0 -> Coq_Pos.eq_dec p p0)
  end
 
 (** val nth_error : 'a1 list -> nat -> 'a1 option **)
@@ -753,6 +794,14 @@ let wtl _ = function
 | WO -> Obj.magic ()
 | WS (_, _, w') -> w'
 
+(** val weq : nat -> word -> word -> bool **)
+
+let rec weq _ x y =
+  match x with
+  | WO -> true
+  | WS (b, n0, x') ->
+    if bool_dec b (whd n0 y) then weq n0 x' (wtl n0 y) else false
+
 (** val weqb : nat -> word -> word -> bool **)
 
 let rec weqb _ x x0 =
@@ -926,9 +975,274 @@ module Program =
   | GAS
   | JUMPI
 
+  (** val stack_op_instr_rect :
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr
+      -> 'a1 **)
+
+  let stack_op_instr_rect f f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 f31 f32 f33 f34 f35 f36 f37 f38 f39 f40 f41 f42 f43 f44 f45 f46 = function
+  | ADD -> f
+  | MUL -> f0
+  | SUB -> f1
+  | DIV -> f2
+  | SDIV -> f3
+  | MOD -> f4
+  | SMOD -> f5
+  | ADDMOD -> f6
+  | MULMOD -> f7
+  | EXP -> f8
+  | SIGNEXTEND -> f9
+  | LT -> f10
+  | GT -> f11
+  | SLT -> f12
+  | SGT -> f13
+  | EQ -> f14
+  | ISZERO -> f15
+  | AND -> f16
+  | OR -> f17
+  | XOR -> f18
+  | NOT -> f19
+  | BYTE -> f20
+  | SHL -> f21
+  | SHR -> f22
+  | SAR -> f23
+  | ADDRESS -> f24
+  | BALANCE -> f25
+  | ORIGIN -> f26
+  | CALLER -> f27
+  | CALLVALUE -> f28
+  | CALLDATALOAD -> f29
+  | CALLDATASIZE -> f30
+  | CODESIZE -> f31
+  | GASPRICE -> f32
+  | EXTCODESIZE -> f33
+  | RETURNDATASIZE -> f34
+  | EXTCODEHASH -> f35
+  | BLOCKHASH -> f36
+  | COINBASE -> f37
+  | TIMESTAMP -> f38
+  | NUMBER -> f39
+  | DIFFICULTY -> f40
+  | GASLIMIT -> f41
+  | CHAINID -> f42
+  | SELFBALANCE -> f43
+  | BASEFEE -> f44
+  | GAS -> f45
+  | JUMPI -> f46
+
+  (** val stack_op_instr_rec :
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
+      'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr
+      -> 'a1 **)
+
+  let stack_op_instr_rec f f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 f25 f26 f27 f28 f29 f30 f31 f32 f33 f34 f35 f36 f37 f38 f39 f40 f41 f42 f43 f44 f45 f46 = function
+  | ADD -> f
+  | MUL -> f0
+  | SUB -> f1
+  | DIV -> f2
+  | SDIV -> f3
+  | MOD -> f4
+  | SMOD -> f5
+  | ADDMOD -> f6
+  | MULMOD -> f7
+  | EXP -> f8
+  | SIGNEXTEND -> f9
+  | LT -> f10
+  | GT -> f11
+  | SLT -> f12
+  | SGT -> f13
+  | EQ -> f14
+  | ISZERO -> f15
+  | AND -> f16
+  | OR -> f17
+  | XOR -> f18
+  | NOT -> f19
+  | BYTE -> f20
+  | SHL -> f21
+  | SHR -> f22
+  | SAR -> f23
+  | ADDRESS -> f24
+  | BALANCE -> f25
+  | ORIGIN -> f26
+  | CALLER -> f27
+  | CALLVALUE -> f28
+  | CALLDATALOAD -> f29
+  | CALLDATASIZE -> f30
+  | CODESIZE -> f31
+  | GASPRICE -> f32
+  | EXTCODESIZE -> f33
+  | RETURNDATASIZE -> f34
+  | EXTCODEHASH -> f35
+  | BLOCKHASH -> f36
+  | COINBASE -> f37
+  | TIMESTAMP -> f38
+  | NUMBER -> f39
+  | DIFFICULTY -> f40
+  | GASLIMIT -> f41
+  | CHAINID -> f42
+  | SELFBALANCE -> f43
+  | BASEFEE -> f44
+  | GAS -> f45
+  | JUMPI -> f46
+
   (** val eqb_stack_op_instr : stack_op_instr -> stack_op_instr -> bool **)
 
   let eqb_stack_op_instr a b =
+    match a with
+    | ADD -> (match b with
+              | ADD -> true
+              | _ -> false)
+    | MUL -> (match b with
+              | MUL -> true
+              | _ -> false)
+    | SUB -> (match b with
+              | SUB -> true
+              | _ -> false)
+    | DIV -> (match b with
+              | DIV -> true
+              | _ -> false)
+    | SDIV -> (match b with
+               | SDIV -> true
+               | _ -> false)
+    | MOD -> (match b with
+              | MOD -> true
+              | _ -> false)
+    | SMOD -> (match b with
+               | SMOD -> true
+               | _ -> false)
+    | ADDMOD -> (match b with
+                 | ADDMOD -> true
+                 | _ -> false)
+    | MULMOD -> (match b with
+                 | MULMOD -> true
+                 | _ -> false)
+    | EXP -> (match b with
+              | EXP -> true
+              | _ -> false)
+    | SIGNEXTEND -> (match b with
+                     | SIGNEXTEND -> true
+                     | _ -> false)
+    | LT -> (match b with
+             | LT -> true
+             | _ -> false)
+    | GT -> (match b with
+             | GT -> true
+             | _ -> false)
+    | SLT -> (match b with
+              | SLT -> true
+              | _ -> false)
+    | SGT -> (match b with
+              | SGT -> true
+              | _ -> false)
+    | EQ -> (match b with
+             | EQ -> true
+             | _ -> false)
+    | ISZERO -> (match b with
+                 | ISZERO -> true
+                 | _ -> false)
+    | AND -> (match b with
+              | AND -> true
+              | _ -> false)
+    | OR -> (match b with
+             | OR -> true
+             | _ -> false)
+    | XOR -> (match b with
+              | XOR -> true
+              | _ -> false)
+    | NOT -> (match b with
+              | NOT -> true
+              | _ -> false)
+    | BYTE -> (match b with
+               | BYTE -> true
+               | _ -> false)
+    | SHL -> (match b with
+              | SHL -> true
+              | _ -> false)
+    | SHR -> (match b with
+              | SHR -> true
+              | _ -> false)
+    | SAR -> (match b with
+              | SAR -> true
+              | _ -> false)
+    | ADDRESS -> (match b with
+                  | ADDRESS -> true
+                  | _ -> false)
+    | BALANCE -> (match b with
+                  | BALANCE -> true
+                  | _ -> false)
+    | ORIGIN -> (match b with
+                 | ORIGIN -> true
+                 | _ -> false)
+    | CALLER -> (match b with
+                 | CALLER -> true
+                 | _ -> false)
+    | CALLVALUE -> (match b with
+                    | CALLVALUE -> true
+                    | _ -> false)
+    | CALLDATALOAD -> (match b with
+                       | CALLDATALOAD -> true
+                       | _ -> false)
+    | CALLDATASIZE -> (match b with
+                       | CALLDATASIZE -> true
+                       | _ -> false)
+    | CODESIZE -> (match b with
+                   | CODESIZE -> true
+                   | _ -> false)
+    | GASPRICE -> (match b with
+                   | GASPRICE -> true
+                   | _ -> false)
+    | EXTCODESIZE -> (match b with
+                      | EXTCODESIZE -> true
+                      | _ -> false)
+    | RETURNDATASIZE -> (match b with
+                         | RETURNDATASIZE -> true
+                         | _ -> false)
+    | EXTCODEHASH -> (match b with
+                      | EXTCODEHASH -> true
+                      | _ -> false)
+    | BLOCKHASH -> (match b with
+                    | BLOCKHASH -> true
+                    | _ -> false)
+    | COINBASE -> (match b with
+                   | COINBASE -> true
+                   | _ -> false)
+    | TIMESTAMP -> (match b with
+                    | TIMESTAMP -> true
+                    | _ -> false)
+    | NUMBER -> (match b with
+                 | NUMBER -> true
+                 | _ -> false)
+    | DIFFICULTY -> (match b with
+                     | DIFFICULTY -> true
+                     | _ -> false)
+    | GASLIMIT -> (match b with
+                   | GASLIMIT -> true
+                   | _ -> false)
+    | CHAINID -> (match b with
+                  | CHAINID -> true
+                  | _ -> false)
+    | SELFBALANCE -> (match b with
+                      | SELFBALANCE -> true
+                      | _ -> false)
+    | BASEFEE -> (match b with
+                  | BASEFEE -> true
+                  | _ -> false)
+    | GAS -> (match b with
+              | GAS -> true
+              | _ -> false)
+    | JUMPI -> (match b with
+                | JUMPI -> true
+                | _ -> false)
+
+  (** val stack_op_eq_dec : stack_op_instr -> stack_op_instr -> bool **)
+
+  let stack_op_eq_dec a b =
     match a with
     | ADD -> (match b with
               | ADD -> true
@@ -5101,6 +5415,200 @@ module MemoryOpsSolvers =
     SymbolicState.smemory
  end
 
+module MemoryOpsSolversImpl =
+ struct
+  (** val trivial_mload_solver :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+      SymbolicState.smemory -> nat -> SymbolicState.smap ->
+      StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value **)
+
+  let trivial_mload_solver _ soffset smem _ _ _ =
+    SymbolicState.SymMLOAD (soffset, smem)
+
+  (** val trivial_smemory_updater :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+      SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+      SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+      SymbolicState.sstack_val SymbolicState.memory_update list **)
+
+  let trivial_smemory_updater _ update smem _ _ _ =
+    update::smem
+
+  (** val memory_slots_do_not_overlap :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat
+      -> SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map
+      -> bool **)
+
+  let memory_slots_do_not_overlap soffset soffset' size size' maxidx sb _ _ =
+    match SymbolicState.follow_in_smap soffset maxidx sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymBasicVal val0 ->
+         (match val0 with
+          | SymbolicState.Val v1 ->
+            (match SymbolicState.follow_in_smap soffset' maxidx sb with
+             | Some f0 ->
+               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
+               (match smv0 with
+                | SymbolicState.SymBasicVal val1 ->
+                  (match val1 with
+                   | SymbolicState.Val v2 ->
+                     let addr = wordToN Constants.coq_EVMWordSize v1 in
+                     let addr' = wordToN Constants.coq_EVMWordSize v2 in
+                     (||) (N.ltb (N.add addr size) addr')
+                       (N.ltb (N.add addr' size') addr)
+                   | _ -> false)
+                | _ -> false)
+             | None -> false)
+          | _ -> false)
+       | _ -> false)
+    | None -> false
+
+  (** val basic_mload_solver :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+      SymbolicState.smemory -> nat -> SymbolicState.smap ->
+      StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value **)
+
+  let rec basic_mload_solver sstack_val_cmp soffset smem instk_height m ops =
+    match smem with
+    | [] -> SymbolicState.SymMLOAD (soffset, [])
+    | m0::smem' ->
+      (match m0 with
+       | SymbolicState.U_MSTORE (soffset', svalue) ->
+         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m)) soffset
+              soffset' (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m)
+              (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
+         then SymbolicState.SymBasicVal svalue
+         else if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI
+                   (XI (XI XH))))) (Npos (XI (XI (XI (XI XH)))))
+                   (SymbolicState.get_maxidx_smap m)
+                   (SymbolicState.get_bindings_smap m) instk_height ops
+              then basic_mload_solver sstack_val_cmp soffset smem'
+                     instk_height m ops
+              else SymbolicState.SymMLOAD (soffset, smem)
+       | SymbolicState.U_MSTORE8 (soffset', _) ->
+         if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI (XI
+              (XI XH))))) N0 (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
+         then basic_mload_solver sstack_val_cmp soffset smem' instk_height m
+                ops
+         else SymbolicState.SymMLOAD (soffset, smem))
+
+  (** val mstore8_is_included_in_mstore :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
+      SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map ->
+      bool **)
+
+  let mstore8_is_included_in_mstore soffset_mstore8 soffset_mstore maxidx sb _ _ =
+    match SymbolicState.follow_in_smap soffset_mstore8 maxidx sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymBasicVal val0 ->
+         (match val0 with
+          | SymbolicState.Val v1 ->
+            (match SymbolicState.follow_in_smap soffset_mstore maxidx sb with
+             | Some f0 ->
+               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
+               (match smv0 with
+                | SymbolicState.SymBasicVal val1 ->
+                  (match val1 with
+                   | SymbolicState.Val v2 ->
+                     let addr_mstore8 = wordToN Constants.coq_EVMWordSize v1
+                     in
+                     let addr_mstore = wordToN Constants.coq_EVMWordSize v2 in
+                     (&&) (N.leb addr_mstore addr_mstore8)
+                       (N.leb addr_mstore8
+                         (N.add addr_mstore (Npos (XI (XI (XI (XI XH)))))))
+                   | _ -> false)
+                | _ -> false)
+             | None -> false)
+          | _ -> false)
+       | _ -> false)
+    | None -> false
+
+  (** val basic_smemory_updater_remove_mstore_dups :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+      SymbolicState.smemory -> nat -> SymbolicState.smap ->
+      StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+      SymbolicState.memory_update list **)
+
+  let rec basic_smemory_updater_remove_mstore_dups sstack_val_cmp soffset_mstore smem instk_height m ops =
+    match smem with
+    | [] -> []
+    | m0::smem' ->
+      (match m0 with
+       | SymbolicState.U_MSTORE (soffset', svalue) ->
+         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m))
+              soffset_mstore soffset' (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m)
+              (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
+         then basic_smemory_updater_remove_mstore_dups sstack_val_cmp
+                soffset_mstore smem' instk_height m ops
+         else (SymbolicState.U_MSTORE (soffset',
+                svalue))::(basic_smemory_updater_remove_mstore_dups
+                            sstack_val_cmp soffset_mstore smem' instk_height
+                            m ops)
+       | SymbolicState.U_MSTORE8 (soffset', svalue) ->
+         if mstore8_is_included_in_mstore soffset' soffset_mstore
+              (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
+         then basic_smemory_updater_remove_mstore_dups sstack_val_cmp
+                soffset_mstore smem' instk_height m ops
+         else (SymbolicState.U_MSTORE8 (soffset',
+                svalue))::(basic_smemory_updater_remove_mstore_dups
+                            sstack_val_cmp soffset_mstore smem' instk_height
+                            m ops))
+
+  (** val basic_smemory_updater_remove_mstore8_dups :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
+      SymbolicState.smemory -> nat -> SymbolicState.smap ->
+      StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
+      SymbolicState.memory_update list **)
+
+  let rec basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset_mstore8 smem instk_height m ops =
+    match smem with
+    | [] -> []
+    | m0::smem' ->
+      (match m0 with
+       | SymbolicState.U_MSTORE (soffset', svalue) ->
+         (SymbolicState.U_MSTORE (soffset',
+           svalue))::(basic_smemory_updater_remove_mstore8_dups
+                       sstack_val_cmp soffset_mstore8 smem' instk_height m
+                       ops)
+       | SymbolicState.U_MSTORE8 (soffset', svalue) ->
+         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m))
+              soffset_mstore8 soffset' (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m)
+              (SymbolicState.get_maxidx_smap m)
+              (SymbolicState.get_bindings_smap m) instk_height ops
+         then basic_smemory_updater_remove_mstore8_dups sstack_val_cmp
+                soffset_mstore8 smem' instk_height m ops
+         else (SymbolicState.U_MSTORE8 (soffset',
+                svalue))::(basic_smemory_updater_remove_mstore8_dups
+                            sstack_val_cmp soffset_mstore8 smem' instk_height
+                            m ops))
+
+  (** val basic_smemory_updater :
+      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
+      SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
+      SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
+      SymbolicState.sstack_val SymbolicState.memory_update list **)
+
+  let basic_smemory_updater sstack_val_cmp update smem instk_height m ops =
+    match update with
+    | SymbolicState.U_MSTORE (soffset, _) ->
+      update::(basic_smemory_updater_remove_mstore_dups sstack_val_cmp
+                soffset smem instk_height m ops)
+    | SymbolicState.U_MSTORE8 (soffset, _) ->
+      update::(basic_smemory_updater_remove_mstore8_dups sstack_val_cmp
+                soffset smem instk_height m ops)
+ end
+
 module StorageOpsSolvers =
  struct
   type sload_solver_type =
@@ -5483,198 +5991,172 @@ module StorageOpsSolversImpl =
               instk_height m ops)
  end
 
-module MemoryOpsSolversImpl =
+module SymbolicStateDec =
  struct
-  (** val trivial_mload_solver :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-      SymbolicState.smemory -> nat -> SymbolicState.smap ->
-      StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value **)
+  (** val sstack_val_eq_dec :
+      SymbolicState.sstack_val -> SymbolicState.sstack_val -> bool **)
 
-  let trivial_mload_solver _ soffset smem _ _ _ =
-    SymbolicState.SymMLOAD (soffset, smem)
-
-  (** val trivial_smemory_updater :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
-      SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
-      SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
-      SymbolicState.sstack_val SymbolicState.memory_update list **)
-
-  let trivial_smemory_updater _ update smem _ _ _ =
-    update::smem
-
-  (** val memory_slots_do_not_overlap :
-      SymbolicState.sstack_val -> SymbolicState.sstack_val -> n -> n -> nat
-      -> SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map
-      -> bool **)
-
-  let memory_slots_do_not_overlap soffset soffset' size size' maxidx sb _ _ =
-    match SymbolicState.follow_in_smap soffset maxidx sb with
-    | Some f ->
-      let SymbolicState.FollowSmapVal (smv, _, _) = f in
-      (match smv with
-       | SymbolicState.SymBasicVal val0 ->
-         (match val0 with
-          | SymbolicState.Val v1 ->
-            (match SymbolicState.follow_in_smap soffset' maxidx sb with
-             | Some f0 ->
-               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
-               (match smv0 with
-                | SymbolicState.SymBasicVal val1 ->
-                  (match val1 with
-                   | SymbolicState.Val v2 ->
-                     let addr = wordToN Constants.coq_EVMWordSize v1 in
-                     let addr' = wordToN Constants.coq_EVMWordSize v2 in
-                     (||) (N.ltb (N.add addr size) addr')
-                       (N.ltb (N.add addr' size') addr)
-                   | _ -> false)
-                | _ -> false)
-             | None -> false)
-          | _ -> false)
+  let sstack_val_eq_dec sv1 sv2 =
+    match sv1 with
+    | SymbolicState.Val w1 ->
+      (match sv2 with
+       | SymbolicState.Val w2 -> weq Constants.coq_EVMWordSize w1 w2
        | _ -> false)
-    | None -> false
-
-  (** val basic_mload_solver :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-      SymbolicState.smemory -> nat -> SymbolicState.smap ->
-      StackOpInstrs.stack_op_instr_map -> SymbolicState.smap_value **)
-
-  let rec basic_mload_solver sstack_val_cmp soffset smem instk_height m ops =
-    match smem with
-    | [] -> SymbolicState.SymMLOAD (soffset, [])
-    | m0::smem' ->
-      (match m0 with
-       | SymbolicState.U_MSTORE (soffset', svalue) ->
-         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m)) soffset
-              soffset' (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m)
-              (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m) instk_height ops
-         then SymbolicState.SymBasicVal svalue
-         else if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI
-                   (XI (XI XH))))) (Npos (XI (XI (XI (XI XH)))))
-                   (SymbolicState.get_maxidx_smap m)
-                   (SymbolicState.get_bindings_smap m) instk_height ops
-              then basic_mload_solver sstack_val_cmp soffset smem'
-                     instk_height m ops
-              else SymbolicState.SymMLOAD (soffset, smem)
-       | SymbolicState.U_MSTORE8 (soffset', _) ->
-         if memory_slots_do_not_overlap soffset soffset' (Npos (XI (XI (XI
-              (XI XH))))) N0 (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m) instk_height ops
-         then basic_mload_solver sstack_val_cmp soffset smem' instk_height m
-                ops
-         else SymbolicState.SymMLOAD (soffset, smem))
-
-  (** val mstore8_is_included_in_mstore :
-      SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat ->
-      SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map ->
-      bool **)
-
-  let mstore8_is_included_in_mstore soffset_mstore8 soffset_mstore maxidx sb _ _ =
-    match SymbolicState.follow_in_smap soffset_mstore8 maxidx sb with
-    | Some f ->
-      let SymbolicState.FollowSmapVal (smv, _, _) = f in
-      (match smv with
-       | SymbolicState.SymBasicVal val0 ->
-         (match val0 with
-          | SymbolicState.Val v1 ->
-            (match SymbolicState.follow_in_smap soffset_mstore maxidx sb with
-             | Some f0 ->
-               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
-               (match smv0 with
-                | SymbolicState.SymBasicVal val1 ->
-                  (match val1 with
-                   | SymbolicState.Val v2 ->
-                     let addr_mstore8 = wordToN Constants.coq_EVMWordSize v1
-                     in
-                     let addr_mstore = wordToN Constants.coq_EVMWordSize v2 in
-                     (&&) (N.leb addr_mstore addr_mstore8)
-                       (N.leb addr_mstore8
-                         (N.add addr_mstore (Npos (XI (XI (XI (XI XH)))))))
-                   | _ -> false)
-                | _ -> false)
-             | None -> false)
-          | _ -> false)
+    | SymbolicState.InStackVar n1 ->
+      (match sv2 with
+       | SymbolicState.InStackVar n2 -> Nat.eq_dec n1 n2
        | _ -> false)
-    | None -> false
+    | SymbolicState.FreshVar n1 ->
+      (match sv2 with
+       | SymbolicState.FreshVar n2 -> Nat.eq_dec n1 n2
+       | _ -> false)
 
-  (** val basic_smemory_updater_remove_mstore_dups :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-      SymbolicState.smemory -> nat -> SymbolicState.smap ->
-      StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
-      SymbolicState.memory_update list **)
+  (** val sstack_eq_dec :
+      SymbolicState.sstack -> SymbolicState.sstack -> bool **)
 
-  let rec basic_smemory_updater_remove_mstore_dups sstack_val_cmp soffset_mstore smem instk_height m ops =
-    match smem with
-    | [] -> []
-    | m0::smem' ->
-      (match m0 with
-       | SymbolicState.U_MSTORE (soffset', svalue) ->
-         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m))
-              soffset_mstore soffset' (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m)
-              (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m) instk_height ops
-         then basic_smemory_updater_remove_mstore_dups sstack_val_cmp
-                soffset_mstore smem' instk_height m ops
-         else (SymbolicState.U_MSTORE (soffset',
-                svalue))::(basic_smemory_updater_remove_mstore_dups
-                            sstack_val_cmp soffset_mstore smem' instk_height
-                            m ops)
-       | SymbolicState.U_MSTORE8 (soffset', svalue) ->
-         if mstore8_is_included_in_mstore soffset' soffset_mstore
-              (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m) instk_height ops
-         then basic_smemory_updater_remove_mstore_dups sstack_val_cmp
-                soffset_mstore smem' instk_height m ops
-         else (SymbolicState.U_MSTORE8 (soffset',
-                svalue))::(basic_smemory_updater_remove_mstore_dups
-                            sstack_val_cmp soffset_mstore smem' instk_height
-                            m ops))
+  let rec sstack_eq_dec sstk1 sstk2 =
+    match sstk1 with
+    | [] -> (match sstk2 with
+             | [] -> true
+             | _::_ -> false)
+    | sv1::sstk1' ->
+      (match sstk2 with
+       | [] -> false
+       | sv2::sstk2' ->
+         if sstack_val_eq_dec sv1 sv2
+         then sstack_eq_dec sstk1' sstk2'
+         else false)
 
-  (** val basic_smemory_updater_remove_mstore8_dups :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val ->
-      SymbolicState.smemory -> nat -> SymbolicState.smap ->
-      StackOpInstrs.stack_op_instr_map -> SymbolicState.sstack_val
-      SymbolicState.memory_update list **)
+  (** val smemory_update_eq_dec :
+      SymbolicState.sstack_val SymbolicState.memory_update ->
+      SymbolicState.sstack_val SymbolicState.memory_update -> bool **)
 
-  let rec basic_smemory_updater_remove_mstore8_dups sstack_val_cmp soffset_mstore8 smem instk_height m ops =
-    match smem with
-    | [] -> []
-    | m0::smem' ->
-      (match m0 with
-       | SymbolicState.U_MSTORE (soffset', svalue) ->
-         (SymbolicState.U_MSTORE (soffset',
-           svalue))::(basic_smemory_updater_remove_mstore8_dups
-                       sstack_val_cmp soffset_mstore8 smem' instk_height m
-                       ops)
-       | SymbolicState.U_MSTORE8 (soffset', svalue) ->
-         if sstack_val_cmp (S (SymbolicState.get_maxidx_smap m))
-              soffset_mstore8 soffset' (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m)
-              (SymbolicState.get_maxidx_smap m)
-              (SymbolicState.get_bindings_smap m) instk_height ops
-         then basic_smemory_updater_remove_mstore8_dups sstack_val_cmp
-                soffset_mstore8 smem' instk_height m ops
-         else (SymbolicState.U_MSTORE8 (soffset',
-                svalue))::(basic_smemory_updater_remove_mstore8_dups
-                            sstack_val_cmp soffset_mstore8 smem' instk_height
-                            m ops))
+  let smemory_update_eq_dec u1 u2 =
+    match u1 with
+    | SymbolicState.U_MSTORE (soffset1, svalue1) ->
+      (match u2 with
+       | SymbolicState.U_MSTORE (soffset2, svalue2) ->
+         if sstack_val_eq_dec soffset1 soffset2
+         then sstack_val_eq_dec svalue1 svalue2
+         else false
+       | SymbolicState.U_MSTORE8 (_, _) -> false)
+    | SymbolicState.U_MSTORE8 (soffset1, svalue1) ->
+      (match u2 with
+       | SymbolicState.U_MSTORE (_, _) -> false
+       | SymbolicState.U_MSTORE8 (soffset2, svalue2) ->
+         if sstack_val_eq_dec soffset1 soffset2
+         then sstack_val_eq_dec svalue1 svalue2
+         else false)
 
-  (** val basic_smemory_updater :
-      SymbolicStateCmp.sstack_val_cmp_ext_1_t -> SymbolicState.sstack_val
-      SymbolicState.memory_update -> SymbolicState.smemory -> nat ->
-      SymbolicState.smap -> StackOpInstrs.stack_op_instr_map ->
-      SymbolicState.sstack_val SymbolicState.memory_update list **)
+  (** val smemory_eq_dec :
+      SymbolicState.smemory -> SymbolicState.smemory -> bool **)
 
-  let basic_smemory_updater sstack_val_cmp update smem instk_height m ops =
-    match update with
-    | SymbolicState.U_MSTORE (soffset, _) ->
-      update::(basic_smemory_updater_remove_mstore_dups sstack_val_cmp
-                soffset smem instk_height m ops)
-    | SymbolicState.U_MSTORE8 (soffset, _) ->
-      update::(basic_smemory_updater_remove_mstore8_dups sstack_val_cmp
-                soffset smem instk_height m ops)
+  let rec smemory_eq_dec smem1 smem2 =
+    match smem1 with
+    | [] -> (match smem2 with
+             | [] -> true
+             | _::_ -> false)
+    | u1::smem1' ->
+      (match smem2 with
+       | [] -> false
+       | u2::smem2' ->
+         if smemory_update_eq_dec u1 u2
+         then smemory_eq_dec smem1' smem2'
+         else false)
+
+  (** val sstorage_update_eq_dec :
+      SymbolicState.sstack_val SymbolicState.storage_update ->
+      SymbolicState.sstack_val SymbolicState.storage_update -> bool **)
+
+  let sstorage_update_eq_dec u1 u2 =
+    let SymbolicState.U_SSTORE (skey1, svalue1) = u1 in
+    let SymbolicState.U_SSTORE (skey2, svalue2) = u2 in
+    if sstack_val_eq_dec skey1 skey2
+    then sstack_val_eq_dec svalue1 svalue2
+    else false
+
+  (** val sstorage_eq_dec :
+      SymbolicState.sstorage -> SymbolicState.sstorage -> bool **)
+
+  let rec sstorage_eq_dec smem1 smem2 =
+    match smem1 with
+    | [] -> (match smem2 with
+             | [] -> true
+             | _::_ -> false)
+    | u1::smem1' ->
+      (match smem2 with
+       | [] -> false
+       | u2::smem2' ->
+         if sstorage_update_eq_dec u1 u2
+         then sstorage_eq_dec smem1' smem2'
+         else false)
+
+  (** val smap_value_eq_dec :
+      SymbolicState.smap_value -> SymbolicState.smap_value -> bool **)
+
+  let smap_value_eq_dec smv1 smv2 =
+    match smv1 with
+    | SymbolicState.SymBasicVal val1 ->
+      (match smv2 with
+       | SymbolicState.SymBasicVal val2 -> sstack_val_eq_dec val1 val2
+       | _ -> false)
+    | SymbolicState.SymMETAPUSH (cat1, val1) ->
+      (match smv2 with
+       | SymbolicState.SymMETAPUSH (cat2, val2) ->
+         if N.eq_dec cat1 cat2 then N.eq_dec val1 val2 else false
+       | _ -> false)
+    | SymbolicState.SymOp (label1, args1) ->
+      (match smv2 with
+       | SymbolicState.SymOp (label2, args2) ->
+         if Program.stack_op_eq_dec label1 label2
+         then sstack_eq_dec args1 args2
+         else false
+       | _ -> false)
+    | SymbolicState.SymMLOAD (soffset1, smem1) ->
+      (match smv2 with
+       | SymbolicState.SymMLOAD (soffset2, smem2) ->
+         if sstack_val_eq_dec soffset1 soffset2
+         then smemory_eq_dec smem1 smem2
+         else false
+       | _ -> false)
+    | SymbolicState.SymSLOAD (skey1, sstrg1) ->
+      (match smv2 with
+       | SymbolicState.SymSLOAD (skey2, sstrg2) ->
+         if sstack_val_eq_dec skey1 skey2
+         then sstorage_eq_dec sstrg1 sstrg2
+         else false
+       | _ -> false)
+    | SymbolicState.SymSHA3 (soffset1, ssize1, smem1) ->
+      (match smv2 with
+       | SymbolicState.SymSHA3 (soffset2, ssize2, smem2) ->
+         if sstack_val_eq_dec soffset1 soffset2
+         then if sstack_val_eq_dec ssize1 ssize2
+              then smemory_eq_dec smem1 smem2
+              else false
+         else false
+       | _ -> false)
+
+  (** val sbinding_eq_dec :
+      SymbolicState.sbinding -> SymbolicState.sbinding -> bool **)
+
+  let sbinding_eq_dec b1 b2 =
+    let idx1 , smv1 = b1 in
+    let idx2 , smv2 = b2 in
+    if Nat.eq_dec idx1 idx2 then smap_value_eq_dec smv1 smv2 else false
+
+  (** val sbindings_eq_dec :
+      SymbolicState.sbindings -> SymbolicState.sbindings -> bool **)
+
+  let rec sbindings_eq_dec bs1 bs2 =
+    match bs1 with
+    | [] -> (match bs2 with
+             | [] -> true
+             | _::_ -> false)
+    | b1::bs1' ->
+      (match bs2 with
+       | [] -> false
+       | b2::bs2' ->
+         if sbinding_eq_dec b1 b2 then sbindings_eq_dec bs1' bs2' else false)
  end
 
 module SStackValCmpImpl =
@@ -5686,8 +6168,32 @@ module SStackValCmpImpl =
       -> SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
       StackOpInstrs.stack_op_instr_map -> bool **)
 
-  let trivial_compare_sstack_val _ _ _ _ _ _ _ _ _ _ _ _ =
-    false
+  let trivial_compare_sstack_val _ _ _ d sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height _ =
+    match d with
+    | O -> false
+    | S _ ->
+      (match sv1 with
+       | SymbolicState.Val w1 ->
+         (match sv2 with
+          | SymbolicState.Val w2 -> weqb Constants.coq_EVMWordSize w1 w2
+          | _ -> false)
+       | SymbolicState.InStackVar n1 ->
+         (match sv2 with
+          | SymbolicState.InStackVar n2 ->
+            (&&) (eqb n1 n2)
+              ((&&) (ltb n1 instk_height) (ltb n2 instk_height))
+          | _ -> false)
+       | SymbolicState.FreshVar n1 ->
+         (match sv2 with
+          | SymbolicState.FreshVar n2 ->
+            if eqb n1 n2
+            then if eqb maxidx1 maxidx2
+                 then if SymbolicStateDec.sbindings_eq_dec sb1 sb2
+                      then true
+                      else false
+                 else false
+            else false
+          | _ -> false))
 
   (** val basic_compare_sstack_val :
       SymbolicStateCmp.smemory_cmp_ext_t ->
@@ -5813,6 +6319,161 @@ module SStackValCmpImpl =
                 | _ -> false))
           | None -> false)
        | None -> false)
+
+  (** val basic_compare_sstack_val_w_eq_chk :
+      SymbolicStateCmp.smemory_cmp_ext_t ->
+      SymbolicStateCmp.sstorage_cmp_ext_t -> SymbolicStateCmp.sha3_cmp_ext_t
+      -> nat -> SymbolicState.sstack_val -> SymbolicState.sstack_val -> nat
+      -> SymbolicState.sbindings -> nat -> SymbolicState.sbindings -> nat ->
+      StackOpInstrs.stack_op_instr_map -> bool **)
+
+  let rec basic_compare_sstack_val_w_eq_chk smemory_cmp sstorage_cmp sha3_cmp d sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops =
+    if trivial_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d sv1 sv2
+         maxidx1 sb1 maxidx2 sb2 instk_height ops
+    then true
+    else (match d with
+          | O -> false
+          | S d' ->
+            let basic_compare_sstack_val_w_eq_chk_rec =
+              basic_compare_sstack_val_w_eq_chk smemory_cmp sstorage_cmp
+                sha3_cmp d'
+            in
+            (match SymbolicState.follow_in_smap sv1 maxidx1 sb1 with
+             | Some f ->
+               let SymbolicState.FollowSmapVal (smv1, maxidx1', sb1') = f in
+               (match SymbolicState.follow_in_smap sv2 maxidx2 sb2 with
+                | Some f0 ->
+                  let SymbolicState.FollowSmapVal (smv2, maxidx2', sb2') = f0
+                  in
+                  (match smv1 with
+                   | SymbolicState.SymBasicVal sv1' ->
+                     (match smv2 with
+                      | SymbolicState.SymBasicVal sv2' ->
+                        (match sv1' with
+                         | SymbolicState.Val w1 ->
+                           (match sv2' with
+                            | SymbolicState.Val w2 ->
+                              weqb Constants.coq_EVMWordSize w1 w2
+                            | _ -> false)
+                         | SymbolicState.InStackVar n1 ->
+                           (match sv2' with
+                            | SymbolicState.InStackVar n2 ->
+                              (&&) (eqb n1 n2)
+                                ((&&) (ltb n1 instk_height)
+                                  (ltb n2 instk_height))
+                            | _ -> false)
+                         | SymbolicState.FreshVar _ -> false)
+                      | _ -> false)
+                   | SymbolicState.SymMETAPUSH (cat1, v1) ->
+                     (match smv2 with
+                      | SymbolicState.SymMETAPUSH (cat2, v2) ->
+                        (&&) (N.eqb cat1 cat2) (N.eqb v1 v2)
+                      | _ -> false)
+                   | SymbolicState.SymOp (label1, args1) ->
+                     (match smv2 with
+                      | SymbolicState.SymOp (label2, args2) ->
+                        if Program.eqb_stack_op_instr label1 label2
+                        then let StackOpInstrs.OpImp (_, _, h_Comm, _) =
+                               ops label1
+                             in
+                             if Misc.fold_right_two_lists (fun e1 e2 ->
+                                  basic_compare_sstack_val_w_eq_chk_rec e1 e2
+                                    maxidx1' sb1' maxidx2' sb2' instk_height
+                                    ops) args1 args2
+                             then true
+                             else (match h_Comm with
+                                   | Some _ ->
+                                     (match args1 with
+                                      | [] -> false
+                                      | a1::l ->
+                                        (match l with
+                                         | [] -> false
+                                         | a2::l0 ->
+                                           (match l0 with
+                                            | [] ->
+                                              (match args2 with
+                                               | [] -> false
+                                               | b1::l1 ->
+                                                 (match l1 with
+                                                  | [] -> false
+                                                  | b2::l2 ->
+                                                    (match l2 with
+                                                     | [] ->
+                                                       if basic_compare_sstack_val_w_eq_chk_rec
+                                                            a1 b2 maxidx1'
+                                                            sb1' maxidx2'
+                                                            sb2' instk_height
+                                                            ops
+                                                       then basic_compare_sstack_val_w_eq_chk_rec
+                                                              a2 b1 maxidx1'
+                                                              sb1' maxidx2'
+                                                              sb2'
+                                                              instk_height ops
+                                                       else false
+                                                     | _::_ -> false)))
+                                            | _::_ -> false)))
+                                   | None -> false)
+                        else false
+                      | _ -> false)
+                   | SymbolicState.SymMLOAD (soffset1, smem1) ->
+                     (match smv2 with
+                      | SymbolicState.SymMLOAD (soffset2, smem2) ->
+                        if basic_compare_sstack_val_w_eq_chk smemory_cmp
+                             sstorage_cmp sha3_cmp d' soffset1 soffset2
+                             maxidx1' sb1' maxidx2' sb2' instk_height ops
+                        then smemory_cmp
+                               basic_compare_sstack_val_w_eq_chk_rec smem1
+                               smem2 maxidx1' sb1' maxidx2' sb2' instk_height
+                               ops
+                        else false
+                      | _ -> false)
+                   | SymbolicState.SymSLOAD (skey1, sstrg1) ->
+                     (match smv2 with
+                      | SymbolicState.SymSLOAD (skey2, sstrg2) ->
+                        if basic_compare_sstack_val_w_eq_chk smemory_cmp
+                             sstorage_cmp sha3_cmp d' skey1 skey2 maxidx1'
+                             sb1' maxidx2' sb2' instk_height ops
+                        then sstorage_cmp
+                               basic_compare_sstack_val_w_eq_chk_rec sstrg1
+                               sstrg2 maxidx1' sb1' maxidx2' sb2'
+                               instk_height ops
+                        else false
+                      | _ -> false)
+                   | SymbolicState.SymSHA3 (soffset1, ssize1, smem1) ->
+                     (match smv2 with
+                      | SymbolicState.SymSHA3 (soffset2, ssize2, smem2) ->
+                        if if basic_compare_sstack_val_w_eq_chk_rec soffset1
+                                soffset2 maxidx1' sb1' maxidx2' sb2'
+                                instk_height ops
+                           then if basic_compare_sstack_val_w_eq_chk_rec
+                                     ssize1 ssize2 maxidx1' sb1' maxidx2'
+                                     sb2' instk_height ops
+                                then smemory_cmp
+                                       basic_compare_sstack_val_w_eq_chk_rec
+                                       smem1 smem2 maxidx1' sb1' maxidx2'
+                                       sb2' instk_height ops
+                                else false
+                           else false
+                        then true
+                        else sha3_cmp basic_compare_sstack_val_w_eq_chk_rec
+                               soffset1 ssize1 smem1 soffset2 ssize2 smem2
+                               maxidx1' sb1' maxidx2' sb2' instk_height ops
+                      | _ -> false))
+                | None -> false)
+             | None -> false))
+ end
+
+module Opt_mem_solver =
+ struct
+  (** val optimize_mem_solver_sbinding :
+      Optimizations_Def.opt_smap_value_type **)
+
+  let optimize_mem_solver_sbinding val0 fcmp sb maxid instk_height ops =
+    match val0 with
+    | SymbolicState.SymMLOAD (offset, smem) ->
+      (MemoryOpsSolversImpl.basic_mload_solver (fun _ -> fcmp) offset smem
+        instk_height (SymbolicState.SymMap (maxid, sb)) ops) , true
+    | _ -> val0 , false
  end
 
 module MemoryCmpImpl =
@@ -6030,7 +6691,7 @@ module MemoryCmpImpl =
     else false
  end
 
-module SHA3CmpImplSoundness =
+module SHA3CmpImpl =
  struct
   (** val trivial_sha3_cmp :
       SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack_val ->
@@ -6042,6 +6703,114 @@ module SHA3CmpImplSoundness =
 
   let trivial_sha3_cmp _ _ _ _ _ _ _ _ _ _ _ _ _ =
     false
+
+  (** val update_out_of_slot :
+      SymbolicState.sstack_val SymbolicState.memory_update -> n -> n -> nat
+      -> SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map
+      -> bool **)
+
+  let update_out_of_slot u min max0 maxidx sb _ _ =
+    match u with
+    | SymbolicState.U_MSTORE (offset, _) ->
+      (match SymbolicState.follow_in_smap offset maxidx sb with
+       | Some f ->
+         let SymbolicState.FollowSmapVal (smv, _, _) = f in
+         (match smv with
+          | SymbolicState.SymBasicVal val0 ->
+            (match val0 with
+             | SymbolicState.Val v ->
+               (||)
+                 (N.ltb
+                   (N.add (wordToN Constants.coq_EVMWordSize v) (Npos (XI (XI
+                     (XI (XI XH)))))) min)
+                 (N.ltb max0 (wordToN Constants.coq_EVMWordSize v))
+             | _ -> false)
+          | _ -> false)
+       | None -> false)
+    | SymbolicState.U_MSTORE8 (offset, _) ->
+      (match SymbolicState.follow_in_smap offset maxidx sb with
+       | Some f ->
+         let SymbolicState.FollowSmapVal (smv, _, _) = f in
+         (match smv with
+          | SymbolicState.SymBasicVal val0 ->
+            (match val0 with
+             | SymbolicState.Val v ->
+               (||) (N.ltb (wordToN Constants.coq_EVMWordSize v) min)
+                 (N.ltb max0 (wordToN Constants.coq_EVMWordSize v))
+             | _ -> false)
+          | _ -> false)
+       | None -> false)
+
+  (** val remove_out_of_slot' :
+      SymbolicState.smemory -> n -> n -> nat -> SymbolicState.sbindings ->
+      nat -> StackOpInstrs.stack_op_instr_map -> SymbolicState.smemory **)
+
+  let rec remove_out_of_slot' smem min max0 maxidx sb instk_height ops =
+    match smem with
+    | [] -> []
+    | u::us ->
+      if update_out_of_slot u min max0 maxidx sb instk_height ops
+      then remove_out_of_slot' us min max0 maxidx sb instk_height ops
+      else u::(remove_out_of_slot' us min max0 maxidx sb instk_height ops)
+
+  (** val remove_out_of_slot :
+      SymbolicState.smemory -> SymbolicState.sstack_val ->
+      SymbolicState.sstack_val -> nat -> SymbolicState.sbindings -> nat ->
+      StackOpInstrs.stack_op_instr_map -> SymbolicState.smemory **)
+
+  let remove_out_of_slot smem soffset ssize maxidx sb instk_height ops =
+    match SymbolicState.follow_in_smap soffset maxidx sb with
+    | Some f ->
+      let SymbolicState.FollowSmapVal (smv, _, _) = f in
+      (match smv with
+       | SymbolicState.SymBasicVal val0 ->
+         (match val0 with
+          | SymbolicState.Val v1 ->
+            (match SymbolicState.follow_in_smap ssize maxidx sb with
+             | Some f0 ->
+               let SymbolicState.FollowSmapVal (smv0, _, _) = f0 in
+               (match smv0 with
+                | SymbolicState.SymBasicVal val1 ->
+                  (match val1 with
+                   | SymbolicState.Val v2 ->
+                     remove_out_of_slot' smem
+                       (wordToN Constants.coq_EVMWordSize v1)
+                       (N.sub
+                         (N.add (wordToN Constants.coq_EVMWordSize v1)
+                           (wordToN Constants.coq_EVMWordSize v2)) (Npos XH))
+                       maxidx sb instk_height ops
+                   | _ -> smem)
+                | _ -> smem)
+             | None -> smem)
+          | _ -> smem)
+       | _ -> smem)
+    | None -> smem
+
+  (** val basic_sha3_cmp :
+      SymbolicStateCmp.sstack_val_cmp_t -> SymbolicState.sstack_val ->
+      SymbolicState.sstack_val -> SymbolicState.smemory ->
+      SymbolicState.sstack_val -> SymbolicState.sstack_val ->
+      SymbolicState.smemory -> nat -> SymbolicState.sbindings -> nat ->
+      SymbolicState.sbindings -> nat -> StackOpInstrs.stack_op_instr_map ->
+      bool **)
+
+  let basic_sha3_cmp sstack_val_cmp soffset1 ssize1 smem1 soffset2 ssize2 smem2 maxidx1 sb1 maxidx2 sb2 instk_height ops =
+    if (&&)
+         (sstack_val_cmp soffset1 soffset2 maxidx1 sb1 maxidx2 sb2
+           instk_height ops)
+         (sstack_val_cmp ssize1 ssize2 maxidx1 sb1 maxidx2 sb2 instk_height
+           ops)
+    then let smem3 =
+           remove_out_of_slot smem1 soffset1 ssize1 maxidx1 sb1 instk_height
+             ops
+         in
+         let smem4 =
+           remove_out_of_slot smem2 soffset2 ssize2 maxidx2 sb2 instk_height
+             ops
+         in
+         MemoryCmpImpl.po_memory_cmp sstack_val_cmp smem3 smem4 maxidx1 sb1
+           maxidx2 sb2 instk_height ops
+    else false
  end
 
 module StorageCmpImpl =
@@ -6272,10 +7041,15 @@ module BlockEquivChecker =
     SymbolicStateCmp.sha3_cmp_ext_t
     (* singleton inductive, whose constructor was SHA3Cmp *)
 
-  (** val get_sha3_cmp : __ -> sha3_cmp_v **)
+  type available_sha3_cmp =
+  | SHA3Cmp_Trivial
+  | SHA3Cmp_Basic
 
-  let get_sha3_cmp _ =
-    SHA3CmpImplSoundness.trivial_sha3_cmp
+  (** val get_sha3_cmp : available_sha3_cmp -> sha3_cmp_v **)
+
+  let get_sha3_cmp = function
+  | SHA3Cmp_Trivial -> SHA3CmpImpl.trivial_sha3_cmp
+  | SHA3Cmp_Basic -> SHA3CmpImpl.basic_sha3_cmp
 
   type sstack_val_cmp_v =
     SymbolicStateCmp.sstack_val_cmp_ext_2_t
@@ -6284,6 +7058,7 @@ module BlockEquivChecker =
   type available_sstack_val_cmp =
   | SStackValCmp_Trivial
   | SStackValCmp_Basic
+  | SStackValCmp_Basic_w_eq_chk
 
   (** val get_sstack_val_cmp :
       available_sstack_val_cmp -> sstack_val_cmp_v **)
@@ -6291,6 +7066,8 @@ module BlockEquivChecker =
   let get_sstack_val_cmp = function
   | SStackValCmp_Trivial -> SStackValCmpImpl.trivial_compare_sstack_val
   | SStackValCmp_Basic -> SStackValCmpImpl.basic_compare_sstack_val
+  | SStackValCmp_Basic_w_eq_chk ->
+    SStackValCmpImpl.basic_compare_sstack_val_w_eq_chk
 
   type available_optimization_step =
   | OPT_eval
@@ -6357,6 +7134,7 @@ module BlockEquivChecker =
   | OPT_balance_address
   | OPT_slt_x_x
   | OPT_sgt_x_x
+  | OPT_mem_solver
 
   type list_opt_steps = available_optimization_step list
 
@@ -6429,16 +7207,17 @@ module BlockEquivChecker =
     Opt_balance_address.optimize_balance_address_sbinding
   | OPT_slt_x_x -> Opt_slt_x_x.optimize_slt_x_x_sbinding
   | OPT_sgt_x_x -> Opt_sgt_x_x.optimize_sgt_x_x_sbinding
+  | OPT_mem_solver -> Opt_mem_solver.optimize_mem_solver_sbinding
 
   (** val all_optimization_steps : available_optimization_step list **)
 
   let all_optimization_steps =
-    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_div_shl::(OPT_mul_shl::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::(OPT_mem_solver::[]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val all_optimization_steps' : available_optimization_step list **)
 
   let all_optimization_steps' =
-    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::[])))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    OPT_div_shl::(OPT_mul_shl::(OPT_eval::(OPT_add_zero::(OPT_not_not::(OPT_and_and::(OPT_and_origin::(OPT_shr_zero_x::(OPT_shr_x_zero::(OPT_eq_zero::(OPT_sub_x_x::(OPT_and_zero::(OPT_div_one::(OPT_lt_x_one::(OPT_gt_one_x::(OPT_and_address::(OPT_mul_one::(OPT_iszero_gt::(OPT_eq_iszero::(OPT_and_caller::(OPT_iszero3::(OPT_add_sub::(OPT_shl_zero_x::(OPT_sub_zero::(OPT_shl_x_zero::(OPT_mul_zero::(OPT_div_x_x::(OPT_div_zero::(OPT_mod_one::(OPT_mod_zero::(OPT_mod_x_x::(OPT_exp_x_zero::(OPT_exp_x_one::(OPT_exp_one_x::(OPT_exp_zero_x::(OPT_exp_two_x::(OPT_gt_zero_x::(OPT_gt_x_x::(OPT_lt_x_zero::(OPT_lt_x_x::(OPT_eq_x_x::(OPT_iszero_sub::(OPT_iszero_lt::(OPT_iszero_xor::(OPT_iszero2_gt::(OPT_iszero2_lt::(OPT_iszero2_eq::(OPT_xor_x_x::(OPT_xor_zero::(OPT_xor_xor::(OPT_or_or::(OPT_or_and::(OPT_and_or::(OPT_and_not::(OPT_or_not::(OPT_or_x_x::(OPT_and_x_x::(OPT_or_zero::(OPT_or_ffff::(OPT_and_ffff::(OPT_and_coinbase::(OPT_balance_address::(OPT_slt_x_x::(OPT_sgt_x_x::(OPT_mem_solver::[]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 
   (** val get_pipeline : list_opt_steps -> Optimizations_Def.opt_pipeline **)
 
@@ -6495,17 +7274,17 @@ module BlockEquivChecker =
       available_smemory_updaters -> available_sstorage_updaters ->
       available_mload_solvers -> available_sload_solvers ->
       available_sstack_val_cmp -> available_memory_cmp ->
-      available_storage_cmp -> list_opt_steps -> nat -> nat -> Program.block
-      -> Program.block -> nat -> bool **)
+      available_storage_cmp -> available_sha3_cmp -> list_opt_steps -> nat ->
+      nat -> Program.block -> Program.block -> nat -> bool **)
 
-  let evm_eq_block_chkr_lazy memory_updater_tag storage_updater_tag mload_solver_tag sload_solver_tag sstack_value_cmp_tag memory_cmp_tag storage_cmp_tag optimization_steps opt_step_rep opt_pipeline_rep opt_p p k =
+  let evm_eq_block_chkr_lazy memory_updater_tag storage_updater_tag mload_solver_tag sload_solver_tag sstack_value_cmp_tag memory_cmp_tag storage_cmp_tag sha3_cmp_tag optimization_steps opt_step_rep opt_pipeline_rep opt_p p k =
     evm_eq_block_chkr' (get_smemory_updater memory_updater_tag)
       (get_sstorage_updater storage_updater_tag)
       (get_mload_solver mload_solver_tag) (get_sload_solver sload_solver_tag)
       (get_sstack_val_cmp sstack_value_cmp_tag)
       (get_memory_cmp memory_cmp_tag) (get_storage_cmp storage_cmp_tag)
-      (get_sha3_cmp __) (get_pipeline optimization_steps) opt_step_rep
-      opt_pipeline_rep opt_p p k
+      (get_sha3_cmp sha3_cmp_tag) (get_pipeline optimization_steps)
+      opt_step_rep opt_pipeline_rep opt_p p k
  end
 
 module Parser =
@@ -27623,8 +28402,324 @@ module Parser =
                                                                     | [] ->
                                                                     Some
                                                                     BlockEquivChecker.SStackValCmp_Basic
+                                                                    | a4::s5 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b39 b40 b41 b42 b43 b44 b45 b46 ->
+                                                                    if b39
+                                                                    then 
+                                                                    if b40
+                                                                    then 
+                                                                    if b41
+                                                                    then 
+                                                                    if b42
+                                                                    then 
+                                                                    if b43
+                                                                    then 
+                                                                    if b44
+                                                                    then None
+                                                                    else 
+                                                                    if b45
+                                                                    then 
+                                                                    if b46
+                                                                    then None
+                                                                    else 
+                                                                    (match s5 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a5::s6 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b47 b48 b49 b50 b51 b52 b53 b54 ->
+                                                                    if b47
+                                                                    then 
+                                                                    if b48
+                                                                    then 
+                                                                    if b49
+                                                                    then 
+                                                                    if b50
+                                                                    then None
+                                                                    else 
+                                                                    if b51
+                                                                    then 
+                                                                    if b52
+                                                                    then 
+                                                                    if b53
+                                                                    then 
+                                                                    if b54
+                                                                    then None
+                                                                    else 
+                                                                    (match s6 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a6::s7 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b55 b56 b57 b58 b59 b60 b61 b62 ->
+                                                                    if b55
+                                                                    then 
+                                                                    if b56
+                                                                    then 
+                                                                    if b57
+                                                                    then 
+                                                                    if b58
+                                                                    then 
+                                                                    if b59
+                                                                    then 
+                                                                    if b60
+                                                                    then None
+                                                                    else 
+                                                                    if b61
+                                                                    then 
+                                                                    if b62
+                                                                    then None
+                                                                    else 
+                                                                    (match s7 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a7::s8 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b63 b64 b65 b66 b67 b68 b69 b70 ->
+                                                                    if b63
+                                                                    then 
+                                                                    if b64
+                                                                    then None
+                                                                    else 
+                                                                    if b65
+                                                                    then 
+                                                                    if b66
+                                                                    then None
+                                                                    else 
+                                                                    if b67
+                                                                    then None
+                                                                    else 
+                                                                    if b68
+                                                                    then 
+                                                                    if b69
+                                                                    then 
+                                                                    if b70
+                                                                    then None
+                                                                    else 
+                                                                    (match s8 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a8::s9 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b71 b72 b73 b74 b75 b76 b77 b78 ->
+                                                                    if b71
+                                                                    then 
+                                                                    if b72
+                                                                    then None
+                                                                    else 
+                                                                    if b73
+                                                                    then None
+                                                                    else 
+                                                                    if b74
+                                                                    then None
+                                                                    else 
+                                                                    if b75
+                                                                    then 
+                                                                    if b76
+                                                                    then 
+                                                                    if b77
+                                                                    then 
+                                                                    if b78
+                                                                    then None
+                                                                    else 
+                                                                    (match s9 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a9::s10 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b79 b80 b81 b82 b83 b84 b85 b86 ->
+                                                                    if b79
+                                                                    then 
+                                                                    if b80
+                                                                    then 
+                                                                    if b81
+                                                                    then 
+                                                                    if b82
+                                                                    then 
+                                                                    if b83
+                                                                    then 
+                                                                    if b84
+                                                                    then None
+                                                                    else 
+                                                                    if b85
+                                                                    then 
+                                                                    if b86
+                                                                    then None
+                                                                    else 
+                                                                    (match s10 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a10::s11 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b87 b88 b89 b90 b91 b92 b93 b94 ->
+                                                                    if b87
+                                                                    then 
+                                                                    if b88
+                                                                    then 
+                                                                    if b89
+                                                                    then None
+                                                                    else 
+                                                                    if b90
+                                                                    then None
+                                                                    else 
+                                                                    if b91
+                                                                    then None
+                                                                    else 
+                                                                    if b92
+                                                                    then 
+                                                                    if b93
+                                                                    then 
+                                                                    if b94
+                                                                    then None
+                                                                    else 
+                                                                    (match s11 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a11::s12 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b95 b96 b97 b98 b99 b100 b101 b102 ->
+                                                                    if b95
+                                                                    then None
+                                                                    else 
+                                                                    if b96
+                                                                    then None
+                                                                    else 
+                                                                    if b97
+                                                                    then None
+                                                                    else 
+                                                                    if b98
+                                                                    then 
+                                                                    if b99
+                                                                    then None
+                                                                    else 
+                                                                    if b100
+                                                                    then 
+                                                                    if b101
+                                                                    then 
+                                                                    if b102
+                                                                    then None
+                                                                    else 
+                                                                    (match s12 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a12::s13 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b103 b104 b105 b106 b107 b108 b109 b110 ->
+                                                                    if b103
+                                                                    then 
+                                                                    if b104
+                                                                    then 
+                                                                    if b105
+                                                                    then None
+                                                                    else 
+                                                                    if b106
+                                                                    then 
+                                                                    if b107
+                                                                    then None
+                                                                    else 
+                                                                    if b108
+                                                                    then 
+                                                                    if b109
+                                                                    then 
+                                                                    if b110
+                                                                    then None
+                                                                    else 
+                                                                    (match s13 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.SStackValCmp_Basic_w_eq_chk
                                                                     | _::_ ->
                                                                     None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a12)
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a11)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a10)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a9)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a8)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a7)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a6)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a5)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a4)
                                                                     else None
                                                                     else None
                                                                     else None
@@ -28755,7 +29850,8 @@ module Parser =
                           else None)
       a
 
-  (** val parse_sha3_cmp : char list -> __ option **)
+  (** val parse_sha3_cmp :
+      char list -> BlockEquivChecker.available_sha3_cmp option **)
 
   let parse_sha3_cmp = function
   | [] -> None
@@ -28769,7 +29865,160 @@ module Parser =
       if b
       then None
       else if b0
-           then None
+           then if b1
+                then None
+                else if b2
+                     then None
+                     else if b3
+                          then None
+                          else if b4
+                               then if b5
+                                    then if b6
+                                         then None
+                                         else (match s0 with
+                                               | [] -> None
+                                               | a0::s1 ->
+                                                 (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                   (fun b7 b8 b9 b10 b11 b12 b13 b14 ->
+                                                   if b7
+                                                   then if b8
+                                                        then None
+                                                        else if b9
+                                                             then None
+                                                             else if b10
+                                                                  then None
+                                                                  else 
+                                                                    if b11
+                                                                    then None
+                                                                    else 
+                                                                    if b12
+                                                                    then 
+                                                                    if b13
+                                                                    then 
+                                                                    if b14
+                                                                    then None
+                                                                    else 
+                                                                    (match s1 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a1::s2 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b15 b16 b17 b18 b19 b20 b21 b22 ->
+                                                                    if b15
+                                                                    then 
+                                                                    if b16
+                                                                    then 
+                                                                    if b17
+                                                                    then None
+                                                                    else 
+                                                                    if b18
+                                                                    then None
+                                                                    else 
+                                                                    if b19
+                                                                    then 
+                                                                    if b20
+                                                                    then 
+                                                                    if b21
+                                                                    then 
+                                                                    if b22
+                                                                    then None
+                                                                    else 
+                                                                    (match s2 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a2::s3 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b23 b24 b25 b26 b27 b28 b29 b30 ->
+                                                                    if b23
+                                                                    then 
+                                                                    if b24
+                                                                    then None
+                                                                    else 
+                                                                    if b25
+                                                                    then None
+                                                                    else 
+                                                                    if b26
+                                                                    then 
+                                                                    if b27
+                                                                    then None
+                                                                    else 
+                                                                    if b28
+                                                                    then 
+                                                                    if b29
+                                                                    then 
+                                                                    if b30
+                                                                    then None
+                                                                    else 
+                                                                    (match s3 with
+                                                                    | [] ->
+                                                                    None
+                                                                    | a3::s4 ->
+                                                                    (* If this appears, you're using Ascii internals. Please don't *)
+ (fun f c ->
+  let n = Char.code c in
+  let h i = (n land (1 lsl i)) <> 0 in
+  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
+                                                                    (fun b31 b32 b33 b34 b35 b36 b37 b38 ->
+                                                                    if b31
+                                                                    then 
+                                                                    if b32
+                                                                    then 
+                                                                    if b33
+                                                                    then None
+                                                                    else 
+                                                                    if b34
+                                                                    then None
+                                                                    else 
+                                                                    if b35
+                                                                    then None
+                                                                    else 
+                                                                    if b36
+                                                                    then 
+                                                                    if b37
+                                                                    then 
+                                                                    if b38
+                                                                    then None
+                                                                    else 
+                                                                    (match s4 with
+                                                                    | [] ->
+                                                                    Some
+                                                                    BlockEquivChecker.SHA3Cmp_Basic
+                                                                    | _::_ ->
+                                                                    None)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a3)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a2)
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None
+                                                                    else None)
+                                                                    a1)
+                                                                    else None
+                                                                    else None
+                                                   else None)
+                                                   a0)
+                                    else None
+                               else None
            else if b1
                 then if b2
                      then None
@@ -28956,7 +30205,8 @@ module Parser =
                                                                     else 
                                                                     (match s6 with
                                                                     | [] ->
-                                                                    Some __
+                                                                    Some
+                                                                    BlockEquivChecker.SHA3Cmp_Trivial
                                                                     | _::_ ->
                                                                     None)
                                                                     else None
@@ -29017,7 +30267,7 @@ module Parser =
                      (match parse_storage_cmp storage_cmp with
                       | Some storage_cmp_tag ->
                         (match parse_sha3_cmp sha3_cmp with
-                         | Some _ ->
+                         | Some sha3_cmp_tag ->
                            (match parseDecNumber opt_step_rep with
                             | Some opt_step_rep_nat ->
                               (match parseDecNumber opt_pipeline_rep with
@@ -29030,8 +30280,8 @@ module Parser =
                                         storage_updater_tag mload_solver_tag
                                         sload_solver_tag sstack_value_cmp_tag
                                         memory_cmp_tag storage_cmp_tag
-                                        optimization_steps opt_step_rep_nat
-                                        opt_pipeline_rep_nat
+                                        sha3_cmp_tag optimization_steps
+                                        opt_step_rep_nat opt_pipeline_rep_nat
                                     in
                                     Some (fun p_opt p k ->
                                     match parse_block p_opt with

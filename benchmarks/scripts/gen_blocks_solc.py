@@ -1,6 +1,7 @@
 import gzip
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -144,6 +145,8 @@ def gen_blocks_no_json(directory, sample=1.0):
                 non_yul += 1
                 blocks_path = os.path.join(dir_path, 'blocks.txt')
                 print(f'    * Processing non-YUL {json_path}', flush=True)
+                # TODO: pass a list of previous blocks to avoid the generation of equivalent blocks modulo constants
+                # TODO: in PUSHx and METAPUSHx
                 blocks = gen_blocks_from_daniel_format(json_path, smart_contract)
                 with open(blocks_path, 'wt', encoding='utf8') as f:
                     f.write(blocks)
@@ -156,6 +159,8 @@ def gen_blocks_no_json(directory, sample=1.0):
                 yul += 1
                 blocks_path = os.path.join(dir_path, 'blocks_yul.txt')
                 print(f'    * Processing YUL {json_path}', flush=True)
+                # TODO: pass a list of previous blocks to avoid the generation of equivalent blocks modulo constants
+                # TODO: in PUSHx and METAPUSHx
                 blocks = gen_blocks_from_daniel_format(json_path, smart_contract)
                 with open(blocks_path, 'wt', encoding='utf8') as f:
                     f.write(blocks)
@@ -168,9 +173,52 @@ def gen_blocks_no_json(directory, sample=1.0):
     print(f'Generated {yul} block files from YUL optimizations')
 
 
+def equiv_blocks(b1, b2):
+    """ Checks if b1 and b2 are equivalente blocks modulo constants in PUSHx or 'METAPUSH x' opcodes """
+    b1_plain = re.sub(r"METAPUSH (\d)", r"PUSH\1", b1)  # Replaces "METAPUSH x" by "PUSHx"
+    b2_plain = re.sub(r"METAPUSH (\d)", r"PUSH\1", b2)
+    b1_l = b1_plain.split()
+    b2_l = b2_plain.split()
+    if len(b1_l) != len(b2_l):
+        return False
+
+    ignore_next = False
+    for op1, op2 in zip(b1_l, b2_l):
+        if ignore_next:
+            # We're reading constants 0x...
+            ignore_next = False
+            continue
+
+        if op1 != op2:
+            return False
+
+        if op1.startswith('PUSH'):
+            ignore_next = True
+
+    return True
+
+
+# def new_block(previous, b):
+#     return all(map(lambda x: not equiv_blocks(x, b)), previous)
+
+
 if __name__ == "__main__":
+    # b1 = "PUSH1 0x0 SLOAD PUSH20 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP1"
+    # b2 = "PUSH1 0xFF SLOAD PUSH20 0xF00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP1"
+    # b3 = "PUSH1 0xFF SLOAD PUSH20 0xF00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF AND SWAP1 ADD"
+    # b4 = "METAPUSH 5 0x9 METAPUSH 5 0x10 CALLDATASIZE PUSH1 0x4 METAPUSH 5 0x11"
+    # b5 = "METAPUSH 5 0xAA METAPUSH 5 0x0 CALLDATASIZE PUSH1 0x66 METAPUSH 5 0x22"
+    # b6 = "METAPUSH 5 0xAA PUSH5 0x0 CALLDATASIZE PUSH1 0x66 METAPUSH 5 0x22"
+    # b7 = "PUSH5 0xBB METAPUSH 5 0x0F CALLDATASIZE PUSH1 0x66 PUSH5 0x22"
+    # print(equiv_blocks(b1, b2))  # True
+    # print(equiv_blocks(b2, b3))  # False
+    # print(equiv_blocks(b4, b5))  # True
+    # print(equiv_blocks(b4, b6))  # True
+    # print(equiv_blocks(b4, b7))  # True
+
     # gen_evm_json_gz(sys.argv[1])
     # gen_blocks_from_json_gz(sys.argv[1])
     gen_blocks_no_json(sys.argv[1], 0.05)  # Random sampling 5%
     # print(get_all_solc(sys.argv[1]))
+
 
