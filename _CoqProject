@@ -111,6 +111,7 @@ optimizations/slt_x_x.v
 optimizations/sgt_x_x.v
 
 optimizations/mem_solver.v
+optimizations/strg_solver.v
 
 
 block_equiv_checker.v

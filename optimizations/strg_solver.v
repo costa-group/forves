@@ -52,26 +52,26 @@ Import Optimizations_Def.
 Require Import FORVES.optimizations_common.
 Import Optimizations_Common.
 
-Require Import FORVES.memory_ops_solvers.
-Import MemoryOpsSolvers.
+Require Import FORVES.storage_ops_solvers.
+Import StorageOpsSolvers.
 
-Require Import FORVES.memory_ops_solvers_impl.
-Import MemoryOpsSolversImpl.
+Require Import FORVES.storage_ops_solvers_impl.
+Import StorageOpsSolversImpl.
 
-Require Import FORVES.memory_ops_solvers_impl_soundness.
-Import MemoryOpsSolversImplSoundness.
+Require Import FORVES.storage_ops_solvers_impl_soundness.
+Import StorageOpsSolversImplSoundness.
 
 Require Import List.
 Import ListNotations.
 
 
-Module Opt_mem_solver.
+Module Opt_strg_solver.
 
-(* Memory solver 
-  SymMLOAD offset smem --> smapv
-     if basic_mload_solver (SymMLOAD offset smem) = smapv
+(* Storage solver 
+  SymSLOAD skey sstrg --> smapv
+     if basic_sload_solver (SymSLOAD skey sstrg) = smapv
 *)
-Definition optimize_mem_solver_sbinding : opt_smap_value_type :=
+Definition optimize_strg_solver_sbinding : opt_smap_value_type :=
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
 fun (sb: sbindings) =>
@@ -79,8 +79,8 @@ fun (maxid: nat) =>
 fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
-| SymMLOAD offset smem => 
-     (basic_mload_solver (fun _:nat => fcmp) offset smem instk_height 
+| SymSLOAD skey sstrg => 
+     (basic_sload_solver (fun _:nat => fcmp) skey sstrg instk_height 
         (SymMap maxid sb) ops, 
      true)
 | _ => (val, false)
@@ -94,64 +94,64 @@ end.
 *)
 
 
-Lemma optimize_mem_solver_sbinding_smapv_valid:
-opt_smapv_valid_snd optimize_mem_solver_sbinding.
+Lemma optimize_strg_solver_sbinding_smapv_valid:
+opt_smapv_valid_snd optimize_strg_solver_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
-unfold optimize_mem_solver_sbinding in Hoptm_sbinding.
-destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
+unfold optimize_strg_solver_sbinding in Hoptm_sbinding.
+destruct (val) as [basicv|pushtagv|label args|offset smem|skey sstrg|
   offset size smem] eqn: eq_val; try (
     injection Hoptm_sbinding as eq_val' _;
     rewrite <- eq_val';
     assumption).
-(* SymMLOAD offset smem *)
+(* SymSLOAD skey sstrg *)
 assert (safe_sstack_val_cmp fcmp) as Hsafe_sstack_val_cmp.
 * admit. (* Must be a hypothesis, extend opt_smapv_valid_snd *)
-* pose proof (basic_mload_solver_snd (fun _ : nat => fcmp)
+* pose proof (basic_sload_solver_snd (fun _ : nat => fcmp)
       (safe_fcm_ext_1 fcmp Hsafe_sstack_val_cmp)).
-  unfold mload_solver_snd in H.
+  unfold sload_solver_snd in H.
   destruct H as [Hsolver_valid _].
-  unfold mload_solver_valid_res in Hsolver_valid.
-  specialize Hsolver_valid with (m:=SymMap n sb)(smem:=smem)(soffset:=offset)
+  unfold sload_solver_valid_res in Hsolver_valid.
+  specialize Hsolver_valid with (m:=SymMap n sb)(sstrg:=sstrg)(skey:=skey)
     (instk_height:=instk_height)(smv:=val')(ops:=evm_stack_opm).
   simpl in Hsolver_valid.
   unfold valid_smap_value in Hvalid_smapv_val.
-  destruct Hvalid_smapv_val as [Hvalid_sstack_val Hvalid_smemory].
+  destruct Hvalid_smapv_val as [Hvalid_sstack_val Hvalid_sstorage].
   injection Hoptm_sbinding as eq_basic_mload_solver _.
-  pose proof (Hsolver_valid Hvalid_smemory Hvalid_sstack_val 
+  pose proof (Hsolver_valid Hvalid_sstorage Hvalid_sstack_val 
     eq_basic_mload_solver).
   assumption.
 Admitted.
 
 
-Lemma optimize_mem_solver_sbinding_snd:
-opt_sbinding_snd optimize_mem_solver_sbinding.
+Lemma optimize_strg_solver_sbinding_snd:
+opt_sbinding_snd optimize_strg_solver_sbinding.
 Proof.
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
 split.
 - (* valid_sbindings *)
-  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_mem_solver_sbinding)
+  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_strg_solver_sbinding)
     (fcmp:=fcmp)(flag:=flag); try assumption.
-  apply optimize_mem_solver_sbinding_smapv_valid. 
+  apply optimize_strg_solver_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
   intros stk mem strg ctx v Hlen Heval_orig.
-  unfold optimize_mem_solver_sbinding in Hoptm_sbinding.
-  destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
+  unfold optimize_strg_solver_sbinding in Hoptm_sbinding.
+  destruct val as [vv|vv|label args|offset smem|skey sstrg|offset size smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
-  (* SymMLOAD offset smem *)
+  (* SymSLOAD skey sstrg *)
   injection Hoptm_sbinding as eq_basic_solver eq_flag.
-  pose proof (basic_mload_solver_snd (fun _ : nat => fcmp)
+  pose proof (basic_sload_solver_snd (fun _ : nat => fcmp)
       (safe_fcm_ext_1 fcmp Hsafe_sstack_val_cmp)).
-  unfold mload_solver_snd in H.
+  unfold sload_solver_snd in H.
   destruct H as [Hsolver_valid Hsolver_correct].
-  unfold mload_solver_correct_res in Hsolver_correct.
-  specialize Hsolver_correct with (m := SymMap idx sb)(smem:=smem)
-    (soffset:=offset)(instk_height:=instk_height)(smv:=val')
+  unfold sload_solver_correct_res in Hsolver_correct.
+  specialize Hsolver_correct with (m := SymMap idx sb)(sstrg:=sstrg)
+    (skey:=skey)(instk_height:=instk_height)(smv:=val')
     (ops:=evm_stack_opm)(idx1:=idx)(m1:=SymMap maxidx
     ((idx,val')::sb)).
   unfold valid_bindings in Hvalid.
@@ -187,4 +187,4 @@ split.
 Qed.
 
 
-End Opt_mem_solver.
+End Opt_strg_solver.

@@ -1031,6 +1031,15 @@ Compute
    MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
    SStrgCmp_Basic SHA3Cmp_Basic
    all_optimization_steps 10 10 b1 b2 0).
+   
+(* Test of OPT_strg_solver *)
+Compute
+  let b1 := str2block "PUSH1 0xFF PUSH1 0x15 SSTORE PUSH1 0x15 SLOAD" in
+  let b2 := str2block "PUSH1 0xFF PUSH1 0x15 SSTORE PUSH1 0x0 PUSH1 0x15 ADD SLOAD" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+   SStrgCmp_Basic SHA3Cmp_Basic
+   all_optimization_steps 10 10 b1 b2 0).
 
 
 (* From GASOL_gas_simp #1256*)

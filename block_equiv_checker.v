@@ -145,6 +145,8 @@ Require Import FORVES.optimizations.sgt_x_x.
 Import Opt_sgt_x_x.
 Require Import FORVES.optimizations.mem_solver.
 Import Opt_mem_solver.
+Require Import FORVES.optimizations.strg_solver.
+Import Opt_strg_solver.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -419,6 +421,7 @@ Inductive available_optimization_step :=
 | OPT_sgt_x_x
 
 | OPT_mem_solver
+| OPT_strg_solver
 .
 
 
@@ -492,6 +495,7 @@ match tag with
 | OPT_sgt_x_x => OpEntry optimize_sgt_x_x_sbinding optimize_sgt_x_x_sbinding_snd
 
 | OPT_mem_solver => OpEntry optimize_mem_solver_sbinding optimize_mem_solver_sbinding_snd
+| OPT_strg_solver => OpEntry optimize_strg_solver_sbinding optimize_strg_solver_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -561,8 +565,9 @@ Definition all_optimization_steps :=
    OPT_balance_address;
    OPT_slt_x_x;
    OPT_sgt_x_x;
-   
-   OPT_mem_solver
+
+   OPT_mem_solver;
+   OPT_strg_solver
 ].
 
 Definition all_optimization_steps' := 
@@ -633,7 +638,8 @@ Definition all_optimization_steps' :=
    OPT_slt_x_x;
    OPT_sgt_x_x;
    
-   OPT_mem_solver
+   OPT_mem_solver;
+   OPT_strg_solver
 ].
 
   

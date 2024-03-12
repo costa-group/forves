@@ -1908,4 +1908,14 @@ destruct maxidx as [|n].
 Qed.
 
 
+Lemma safe_fcm_ext_1: forall fcmp, 
+  safe_sstack_val_cmp fcmp -> (safe_sstack_val_cmp_ext_1 (fun _ : nat => fcmp)).
+Proof.
+intros fcmp Hfcmp.
+unfold safe_sstack_val_cmp_ext_1.
+intros d. unfold safe_sstack_val_cmp_ext_1_d. intros d' Hd'.
+assumption.
+Qed.
+
+
 End Optimizations_Common.
