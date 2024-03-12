@@ -1021,6 +1021,16 @@ Definition evm_eq_block_chkr_lazy_dbg
           end
       end
   end.
+  
+  
+(* Test of OPT_mem_solver *)
+Compute
+  let b1 := str2block "PUSH1 0xFF PUSH1 0x5 MSTORE PUSH1 0x5 MLOAD" in
+  let b2 := str2block "PUSH1 0xFF PUSH1 0x5 MSTORE PUSH1 0x5 PUSH1 0x0 ADD MLOAD" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+   SStrgCmp_Basic SHA3Cmp_Basic
+   all_optimization_steps 10 10 b1 b2 0).
 
 
 (* From GASOL_gas_simp #1256*)
@@ -1115,7 +1125,7 @@ let maxid := 3 in
 let instk_height := 1 in
 let ops := evm_stack_opm in
 
-(*ollow_in_smap (FreshVar 1) maxid sb).*)
+(*follow_in_smap (FreshVar 1) maxid sb).*)
 (*fcmp (FreshVar 1) (Val two_exp_160_minus_1) maxid sb maxid sb instk_height ops).*)
 
 optimize_and_address_sbinding (SymOp AND [FreshVar 0; FreshVar 1]) 
@@ -1705,8 +1715,7 @@ Compute
      MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_Trivial
      SStrgCmp_Trivial SHA3Cmp_Trivial 
      all_optimization_steps 10 10 b1 b2 500).
-
-
+     
 
 (* Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
 Lemma div_mult_2 (x y:N):
