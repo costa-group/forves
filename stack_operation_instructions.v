@@ -546,7 +546,7 @@ Definition evm_stack_opm : stack_op_instr_map :=
   BASEFEE |->i OpImp 0 evm_basefee None None;
   GAS |->i OpImp 0 evm_gas None (Some gas_ctx_ind);
   JUMPI |->i OpImp 2 evm_jumpi None (Some jumpi_ctx_ind);
-  PREVRANDAO |->i OpImp 2 evm_prevrando None None.
+  PREVRANDAO |->i OpImp 0 evm_prevrando None None.
  
 
 
