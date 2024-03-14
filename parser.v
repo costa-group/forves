@@ -233,6 +233,7 @@ Definition parse_non_push_instr (s : string) : option instr :=
                        | "BASEFEE"%string => Some (OpInstr BASEFEE)
                        | "GAS"%string => Some (OpInstr GAS)
                        | "JUMPI"%string => Some (OpInstr JUMPI)
+                       | "PREVRANDAO"%string => Some (OpInstr PREVRANDAO)
                        | "POP"%string => Some POP
                        | "MLOAD"%string => Some MLOAD
                        | "MSTORE"%string => Some MSTORE

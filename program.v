@@ -58,7 +58,8 @@ Inductive stack_op_instr :=
 | SELFBALANCE
 | BASEFEE
 | GAS
-| JUMPI.
+| JUMPI
+| PREVRANDAO.    
 
 
 Definition eqb_stack_op_instr (a b: stack_op_instr) : bool :=
@@ -111,6 +112,7 @@ Definition eqb_stack_op_instr (a b: stack_op_instr) : bool :=
   | CODESIZE,CODESIZE => true
   | GAS, GAS => true
   | JUMPI, JUMPI => true
+  | PREVRANDAO, PREVRANDAO => true
   | _,_ => false
   end.
 

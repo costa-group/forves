@@ -16,7 +16,7 @@ bytecode_vocab = ['ADD', 'MUL', 'NOT', 'SUB', 'DIV', 'SDIV', 'MOD', 'SMOD', 'ADD
                   'CODESIZE', 'GASPRICE', 'EXTCODESIZE', 'RETURNDATASIZE', 'EXTCODEHASH', 'BLOCKHASH', 'COINBASE',
                   'TIMESTAMP', 'NUMBER', 'DIFFICULTY', 'GASLIMIT', 'CHAINID', 'SELFBALANCE', 'BASEFEE', 'SLOAD',
                   'MLOAD', 'MSTORE', 'MSTORE8', 'SSTORE', 'PC', 'MSIZE', 'GAS', 'CREATE', 'CREATE2', 'CALLDATASIZE',
-                  'CALLDATALOAD', 'JUMPI', 'JUMPDEST', 'METAPUSH',
+                  'CALLDATALOAD', 'JUMPI', 'JUMPDEST', 'METAPUSH', 'PREVRANDAO',
                   'POP',
                   'DUP1', 'DUP2', 'DUP3', 'DUP4', 'DUP5', 'DUP6', 'DUP7', 'DUP8', 'DUP9', 'DUP10', 'DUP11', 'DUP12',
                   'DUP13', 'DUP14', 'DUP15', 'DUP16',
@@ -229,6 +229,67 @@ def gen_tests(paths):
     print(f'{total_p / i:.2f},{total_opt_p / i:.2f}', file=sys.stderr)
 
 
+#
+#
+def print_test_csv(bench_id, block_info):
+    try:
+        if not block_info["model_found"] == "True":
+            return
+
+        if not include_identical and block_info["previous_solution"].lower() == block_info["solution_found"].lower():
+            return
+
+        bytecode_as_list = str_to_list(block_info["previous_solution"])
+        opt_bytecode_as_list = str_to_list(block_info["solution_found"])
+
+        bytecode = ' '.join(bytecode_as_list)
+        opt_bytecode = ' '.join(opt_bytecode_as_list)
+        stack_size = 100 #len(block_sfs["src_ws"])
+
+        print(f'# serial number: {block_info["sn"]}')
+        print(f'# csv: {block_info["csv"]}')
+        print(f'# block id: {block_info["block_id"]}')
+        print(f'# rules applied: {block_info["rules"]}')
+        print(opt_bytecode)
+        print(bytecode)
+        print(stack_size)
+        print()
+        return (len(bytecode_as_list), len(opt_bytecode_as_list))
+    except Exception as e:
+        print(e, file=sys.stderr)
+        print(f' # serial number: {block_info["sn"]}', file=sys.stderr)
+        print(f' # csv: {block_info["csv"]}', file=sys.stderr)
+        print(f' # block id: {block_info["block_id"]}', file=sys.stderr)
+        print(f' F: {block_info["model_found"]}', file=sys.stderr)
+        print(f' I: {block_info["previous_solution"]}', file=sys.stderr)
+        print(f' O: {block_info["solution_found"]}', file=sys.stderr)
+        return None
+
+#
+#
+def gen_tests_csv(paths):
+    total_p = 0
+    total_opt_p = 0
+    all_ex = []
+    i = 0
+    for path in paths:
+        csv_dir = f'{path}/csv'
+        for csv_filename in os.listdir(csv_dir):
+            csv_filename_noext = os.path.splitext(csv_filename)[0]
+            with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
+                csv_reader = csv.DictReader(csvfile)
+                for block_info in csv_reader:
+                    block_info["csv"] = csv_filename
+                    block_info["sn"] = i
+                    block_id = block_info['block_id']
+                    r = print_test_csv(i, block_info)
+                    if r is not None:
+                        total_p = total_p + r[0]
+                        total_opt_p = total_p + r[1]
+                        i = i + 1
+    print(f'{total_p / i:.2f},{total_opt_p / i:.2f}', file=sys.stderr)
+
+
 def solc_json_block_to_str(b):
     s = ""
     for o in b:
@@ -325,11 +386,13 @@ def gen_blocks_from_daniel_format(path, smart_contract_name=""):
 
 # Usage example:
 #
-#   python3 gen_tests.py /path-to/results_coq_evm/no_rl_gas_opt > no_rl_gas_opt_tests.v
+#   python3 gen_tests_for_ocaml.py /path-to/results_coq_evm/no_rl_gas_opt > no_rl_gas_opt_tests.v
 #
 if __name__ == "__main__":
     paths = sys.argv[1:]
     # gen_tests(paths)
-    gen_tests_from_daniel_format(paths)
+    gen_tests_csv(paths)
+    #gen_tests_from_daniel_format(paths)
     # x = str_to_list("PUSH [tag] 1 ADD SUB PUSH 10")
     # print(x)
+#    print(split_bytecode("PUSH 1 PUSH 1 PUSH a0 SHL SUB AND PUSH bebbf4d0 DUP14 DUP16 PUSH 40 MLOAD DUP4 PUSH ffffffff AND PUSH e0 SHL DUP2 MSTORE PUSH 4 ADD PUSH [tag] 355 SWAP3 SWAP2 SWAP1 PUSH [tag] 253"))

@@ -493,6 +493,9 @@ Proof.
   ctx_independent_tac evm_jumpi.
 Qed.
 
+Definition evm_prevrando (ctx : context) (args: list EVMWord) : EVMWord :=
+  (get_prevrandao_ctx ctx).
+
 
 Definition evm_stack_opm : stack_op_instr_map :=
   ADD |->i OpImp 2 evm_add (Some add_comm) (Some add_ctx_ind);
@@ -542,7 +545,8 @@ Definition evm_stack_opm : stack_op_instr_map :=
   SELFBALANCE |->i OpImp 0  evm_selfbalance None None;
   BASEFEE |->i OpImp 0 evm_basefee None None;
   GAS |->i OpImp 0 evm_gas None (Some gas_ctx_ind);
-  JUMPI |->i OpImp 2 evm_jumpi None (Some jumpi_ctx_ind).
+  JUMPI |->i OpImp 2 evm_jumpi None (Some jumpi_ctx_ind);
+  PREVRANDAO |->i OpImp 2 evm_prevrando None None.
  
 
 

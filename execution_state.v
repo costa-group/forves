@@ -72,10 +72,11 @@ Inductive context :=
   (basefee : EVMWord)
   (keccak256 : forall (n : nat), word (n*8) -> EVMWord)
   (tags : N -> N -> EVMWord)
-  (_extra_2 : nat)
+  (prevrando : EVMWord)
   (_extra_3 : nat)
   (_extra_4 : nat)
   (_extra_5 : nat).
+
 
 
 Definition empty_context : context :=
@@ -97,7 +98,7 @@ Definition empty_context : context :=
   WZero (* (basefee : EVMWord) *)
   (fun _ _ => WZero) (* (keccak256 : memory -> EVMWord -> EVMWord -> EVMWord) *)
   (fun cat v => (NToWord EVMWordSize (cat + v))) (* tags: N -> EVMWord *)
-  0 (* (_extra_2 : nat) *)
+  WZero (* PREVRANDAO : EVMWord*)
   0 (* (_extra_3 : nat) *)
   0 (* (_extra_4 : nat) *)
   0. (* (_extra_5 : nat) *)
@@ -189,6 +190,10 @@ Definition get_tags_ctx (c : context) :=
   | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ => x
   end.
 
+Definition get_prevrandao_ctx (c : context) :=
+  match c with
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ => x
+  end.
 
 Inductive state :=
 | ExState (stk: stack) (mem: memory) (strg: storage) (ctx :context).

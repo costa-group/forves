@@ -80,7 +80,7 @@ Definition remove_out_of_slot (smem :smemory) (soffset ssize: sstack_val) (maxid
         | Some (FollowSmapVal (SymBasicVal (Val v1)) _ _), Some (FollowSmapVal (SymBasicVal (Val v2)) _ _) =>
             remove_out_of_slot' smem (wordToN v1) ((wordToN v1)+(wordToN v2)-1)%N maxidx sb instk_height ops
         | _, _ => smem
-        end. 
+        end.
 
 Definition basic_sha3_cmp (sstack_val_cmp: sstack_val_cmp_t) (soffset1 ssize1: sstack_val) (smem1 :smemory) (soffset2 ssize2: sstack_val) (smem2 :smemory) (maxidx1: nat) (sb1: sbindings) (maxidx2: nat) (sb2: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : bool :=
   if (andb (sstack_val_cmp soffset1 soffset2 maxidx1 sb1 maxidx2 sb2 instk_height ops) (sstack_val_cmp ssize1 ssize2 maxidx1 sb1 maxidx2 sb2 instk_height ops)) then
