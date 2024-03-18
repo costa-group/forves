@@ -270,6 +270,8 @@ def print_test_csv(bench_id, block_info):
 def gen_tests_csv(paths):
     total_p = 0
     total_opt_p = 0
+    max_p = 0
+    max_opt_p = 0
     all_ex = []
     i = 0
     for path in paths:
@@ -286,8 +288,10 @@ def gen_tests_csv(paths):
                     if r is not None:
                         total_p = total_p + r[0]
                         total_opt_p = total_p + r[1]
+                        max_p = max(max_p,r[0])
+                        max_opt_p = max(max_opt_p,r[1])
                         i = i + 1
-    print(f'{total_p / i:.2f},{total_opt_p / i:.2f}', file=sys.stderr)
+    print(f'STATS: {total_p / i:.2f},{total_opt_p / i:.2f},{max_p},{max_opt_p}', file=sys.stderr)
 
 
 def solc_json_block_to_str(b):

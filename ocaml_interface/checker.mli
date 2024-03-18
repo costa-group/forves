@@ -333,20 +333,21 @@ module Program :
   | BASEFEE
   | GAS
   | JUMPI
+  | PREVRANDAO
 
   val stack_op_instr_rect :
     'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
     -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
     'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
     -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
-    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
 
   val stack_op_instr_rec :
     'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
     -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
     'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1
     -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 ->
-    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
+    'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> 'a1 -> stack_op_instr -> 'a1
 
   val eqb_stack_op_instr : stack_op_instr -> stack_op_instr -> bool
 
@@ -414,7 +415,8 @@ module ExecutionState :
      * chunk * (Constants.coq_EVMWord -> block_info) * Constants.coq_EVMAddr
      * Constants.coq_EVMWord * Constants.coq_EVMWord * Constants.coq_EVMWord
      * Constants.coq_EVMWord * (nat -> word -> Constants.coq_EVMWord)
-     * (n -> n -> Constants.coq_EVMWord) * nat * nat * nat * nat
+     * (n -> n -> Constants.coq_EVMWord) * Constants.coq_EVMWord * nat * 
+     nat * nat
 
   val empty_context : context
 
@@ -448,6 +450,8 @@ module ExecutionState :
   val get_chainid_ctx : context -> Constants.coq_EVMWord
 
   val get_basefee_ctx : context -> Constants.coq_EVMWord
+
+  val get_prevrandao_ctx : context -> Constants.coq_EVMWord
  end
 
 module Misc :
@@ -676,6 +680,10 @@ module StackOpInstrs :
     Constants.coq_EVMWord
 
   val evm_jumpi :
+    ExecutionState.context -> Constants.coq_EVMWord list ->
+    Constants.coq_EVMWord
+
+  val evm_prevrando :
     ExecutionState.context -> Constants.coq_EVMWord list ->
     Constants.coq_EVMWord
 
@@ -1563,6 +1571,11 @@ module Opt_mem_solver :
   val optimize_mem_solver_sbinding : Optimizations_Def.opt_smap_value_type
  end
 
+module Opt_strg_solver :
+ sig
+  val optimize_strg_solver_sbinding : Optimizations_Def.opt_smap_value_type
+ end
+
 module MemoryCmpImpl :
  sig
   val trivial_memory_cmp :
@@ -1814,6 +1827,7 @@ module BlockEquivChecker :
   | OPT_slt_x_x
   | OPT_sgt_x_x
   | OPT_mem_solver
+  | OPT_strg_solver
 
   type list_opt_steps = available_optimization_step list
 

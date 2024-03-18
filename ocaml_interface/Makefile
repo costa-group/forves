@@ -9,7 +9,7 @@ STATIC_EXE = static_checker
 all: executable static
 
 executable: checker $(MAIN)
-	ocamlopt -o $(EXE)  checker.cmx str.cmxa $(MAIN) 
+	ocamlopt -o $(EXE)  checker.cmx str.cmxa nums.cmxa $(MAIN) 
 	cp $(EXE) ../bin
 
 checker: checker.ml checker.mli
