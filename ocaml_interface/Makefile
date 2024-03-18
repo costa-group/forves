@@ -28,6 +28,7 @@ clean:
 	rm -f *.cmi
 	rm -f *.cmx
 	rm -f *.o
+	rm -f *.cmo
 	rm -f $(EXE)
 	rm -f $(STATIC_EXE)
 
