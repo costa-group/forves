@@ -45,6 +45,7 @@ sha3_cmp_impl_soundness.v
 
 optimizations_common.v
 optimizations_def.v
+
 optimizations/add_zero.v
 optimizations/eval.v
 optimizations/not_not.v
@@ -109,10 +110,8 @@ optimizations/and_coinbase.v
 optimizations/balance_address.v
 optimizations/slt_x_x.v
 optimizations/sgt_x_x.v
-
 optimizations/mem_solver.v
 optimizations/strg_solver.v
-
 
 block_equiv_checker.v
 block_equiv_checker_facts.v

@@ -154,7 +154,7 @@ opt_smapv_valid_snd optimize_or_and_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
-intros Hvalid_smapv_val Hvalid Hoptm_sbinding.
+intros _ Hvalid_smapv_val Hvalid Hoptm_sbinding.
 unfold optimize_or_and_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; 

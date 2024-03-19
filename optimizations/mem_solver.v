@@ -112,7 +112,7 @@ opt_smapv_valid_snd optimize_mem_solver_sbinding.
 Proof.
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
-intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
+intros Hsafe_sstack_val_cmp Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
 unfold optimize_mem_solver_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; try (
@@ -120,23 +120,21 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
     rewrite <- eq_val';
     assumption).
 (* SymMLOAD offset smem *)
-assert (safe_sstack_val_cmp fcmp) as Hsafe_sstack_val_cmp.
-* admit. (* Must be a hypothesis, extend opt_smapv_valid_snd *)
-* pose proof (basic_mload_solver_snd (fun _ : nat => fcmp)
+pose proof (basic_mload_solver_snd (fun _ : nat => fcmp)
       (safe_fcm_ext_1 fcmp Hsafe_sstack_val_cmp)).
-  unfold mload_solver_snd in H.
-  destruct H as [Hsolver_valid _].
-  unfold mload_solver_valid_res in Hsolver_valid.
-  specialize Hsolver_valid with (m:=SymMap n sb)(smem:=smem)(soffset:=offset)
-    (instk_height:=instk_height)(smv:=val')(ops:=evm_stack_opm).
-  simpl in Hsolver_valid.
-  unfold valid_smap_value in Hvalid_smapv_val.
-  destruct Hvalid_smapv_val as [Hvalid_sstack_val Hvalid_smemory].
-  injection Hoptm_sbinding as eq_basic_mload_solver _.
-  pose proof (Hsolver_valid Hvalid_smemory Hvalid_sstack_val 
-    eq_basic_mload_solver).
-  assumption.
-Admitted.
+unfold mload_solver_snd in H.
+destruct H as [Hsolver_valid _].
+unfold mload_solver_valid_res in Hsolver_valid.
+specialize Hsolver_valid with (m:=SymMap n sb)(smem:=smem)(soffset:=offset)
+  (instk_height:=instk_height)(smv:=val')(ops:=evm_stack_opm).
+simpl in Hsolver_valid.
+unfold valid_smap_value in Hvalid_smapv_val.
+destruct Hvalid_smapv_val as [Hvalid_sstack_val Hvalid_smemory].
+injection Hoptm_sbinding as eq_basic_mload_solver _.
+pose proof (Hsolver_valid Hvalid_smemory Hvalid_sstack_val 
+  eq_basic_mload_solver).
+assumption.
+Qed.
 
 
 Lemma optimize_mem_solver_sbinding_snd:
