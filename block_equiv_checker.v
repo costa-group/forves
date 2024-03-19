@@ -637,7 +637,7 @@ Definition all_optimization_steps' :=
    OPT_balance_address;
    OPT_slt_x_x;
    OPT_sgt_x_x;
-   
+
    OPT_mem_solver;
    OPT_strg_solver
 ].

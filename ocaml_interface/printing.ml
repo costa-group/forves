@@ -26,6 +26,7 @@ let rec binToDigit b1 b2 b3 b4 =
   | false,true ,true ,true  -> "e"
   | true ,true ,true ,true  -> "f"
 
+
 let rec wordToStr' w =
   match w with
   | WS (b1, _, WS (b2, _, WS (b3, _, WS (b4, _, w')))) ->
@@ -34,13 +35,15 @@ let rec wordToStr' w =
      if  ( (String.length rest == 0) && (String.compare digit "0" == 0) ) then
        ""
      else
-       String.concat "" [digit;rest];
+       String.concat "" [rest;digit];
   | WO -> ""
   | _ -> "..."
 
 let rec wordToStr w =
-  String.concat "" ["0x"; wordToStr' w]
-
+  let ws = wordToStr' w in
+  if (String.length ws == 0)
+  then "0x0"
+  else String.concat "" ["0x"; wordToStr' w]
 
   let rec nat_to_int n =
     match n with
