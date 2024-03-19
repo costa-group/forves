@@ -70,6 +70,15 @@ Import ListNotations.
 
 Module Opt_mem_solver.
 
+
+Definition mem_solver_applied (val1 val2: smap_value) : bool :=
+(* If mload_solver does not return SymMLOAD or the symbolic memories have 
+   different lengths, then optimized *)
+match val1, val2 with
+| SymMLOAD offset smem, SymMLOAD offset' smem' => negb (length smem =? length smem')
+| _, _ => true
+end.
+
 (* Memory solver 
   SymMLOAD offset smem --> smapv
      if basic_mload_solver (SymMLOAD offset smem) = smapv
@@ -84,11 +93,9 @@ fun (ops: stack_op_instr_map) =>
 match val with
 | SymMLOAD offset smem => 
      let val' := basic_mload_solver (fun _:nat => fcmp) offset smem instk_height 
-        (SymMap maxid sb) ops in
-     if smap_value_eq_dec val val' then
-        (val, false) (* no optimization was applied *)
-     else
-        (val', true)
+                   (SymMap maxid sb) ops in 
+     let flag := mem_solver_applied val val' in 
+     (val', flag)
 | _ => (val, false)
 end.
 (* TODO:
@@ -103,8 +110,6 @@ end.
 Lemma optimize_mem_solver_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_mem_solver_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
@@ -131,14 +136,12 @@ assert (safe_sstack_val_cmp fcmp) as Hsafe_sstack_val_cmp.
   pose proof (Hsolver_valid Hvalid_smemory Hvalid_sstack_val 
     eq_basic_mload_solver).
   assumption.
-Admitted.*)
+Admitted.
 
 
 Lemma optimize_mem_solver_sbinding_snd:
 opt_sbinding_snd optimize_mem_solver_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
@@ -195,7 +198,6 @@ split.
   rewrite -> eq_maxidx_idx.
   assumption.
 Qed.
-*)
 
 
 End Opt_mem_solver.

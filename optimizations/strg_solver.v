@@ -67,6 +67,14 @@ Import ListNotations.
 
 Module Opt_strg_solver.
 
+Definition strg_solver_applied (val1 val2: smap_value) : bool :=
+(* If sload_solver does not return SymSLOAD or the symbolic storages have 
+   different lengths, then optimized *)
+match val1, val2 with
+| SymSLOAD skey sstrg, SymSLOAD skey' sstrg' => negb (length sstrg =? length sstrg')
+| _, _ => true
+end.
+
 (* Storage solver 
   SymSLOAD skey sstrg --> smapv
      if basic_sload_solver (SymSLOAD skey sstrg) = smapv
@@ -80,9 +88,10 @@ fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
 | SymSLOAD skey sstrg => 
-     (basic_sload_solver (fun _:nat => fcmp) skey sstrg instk_height 
-        (SymMap maxid sb) ops, 
-     true)
+     let val' := (basic_sload_solver (fun _:nat => fcmp) skey sstrg instk_height 
+                   (SymMap maxid sb) ops) in
+     let flag := strg_solver_applied val val' in
+     (val', flag)
 | _ => (val, false)
 end.
 (* TODO:
