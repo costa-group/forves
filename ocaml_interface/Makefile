@@ -29,7 +29,7 @@ clean:
 	rm -f *.cmx
 	rm -f *.o
 	rm -f *.cmo
-ma	rm -f $(EXE)
+	rm -f $(EXE)
 	rm -f $(STATIC_EXE)
 
 clean_all: clean
