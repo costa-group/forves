@@ -60,7 +60,7 @@ Import ListNotations.
 Module Opt_div_shl.
 
 (*
-For priving the usual definition of evm_shr
+For proving the usual definition of evm_shr
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wrshift' b (wordToNat a)
