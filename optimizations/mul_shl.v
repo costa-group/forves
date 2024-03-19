@@ -115,6 +115,42 @@ apply wmult_shl_1.
 Qed.
 
 
+(*
+Lemma mul_shiftl : forall (x y: N), N.mul (N.shiftl 1 x) y = N.shiftl y x.
+Proof.
+intros.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> N.shiftl_mul_pow2. 
+rewrite -> N.mul_1_l.
+apply N.mul_comm.
+Qed.
+
+
+Lemma WOneN: wordToN WOne = 1%N.
+Proof.
+intuition.
+Qed.
+
+Lemma mul_shiftl_w : forall (x y: EVMWord) (ctx : context), 
+  evm_mul ctx [evm_shl ctx [x; WOne]; y] = evm_shl ctx [x; y].
+Proof.
+intros.
+unfold evm_mul. unfold wmult. unfold wordBin.
+unfold evm_shl.
+rewrite -> WOneN.
+assert ((N.shiftl 1 (wordToN x) < Npow2 EVMWordSize)%N \/ 
+  (N.shiftl 1 (wordToN x) >= Npow2 EVMWordSize)%N) as H.
+- admit.
+- destruct H.
+  * rewrite -> wordToN_NToWord_2; try assumption.
+    rewrite -> mul_shiftl. reflexivity.
+  * Search (wordToN _).
+    simpl in H.  
+    reflexivity.
+    Search N.shiftl.
+*)    
+
+
 Lemma optimize_mul_shl_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_mul_shl_sbinding.
 Proof.

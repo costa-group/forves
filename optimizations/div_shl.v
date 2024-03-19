@@ -59,14 +59,24 @@ Import ListNotations.
 
 Module Opt_div_shl.
 
-(*
-For proving the usual definition of evm_shr
-Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
+
+(* For proving the usual definition of evm_shr 
+
+Lemma div_shl : forall (x y: N), N.div x (N.shiftl 1 y) = N.shiftr x y.
+Proof.
+intros.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> N.mul_1_l.
+rewrite -> N.shiftr_div_pow2.
+reflexivity.
+Qed.
+
+Definition evm_shr' (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wrshift' b (wordToNat a)
+  | [a;b] => NToWord EVMWordSize (N.shiftr_nat (wordToN a) (wordToNat b))
   | _ => WZero
-  end.*)
-(*
+  end.
+
 Lemma wlshift_gte: forall (sz n : nat) (w : word sz), 
 n >= sz -> wlshift w n = wzero sz.
 Proof.

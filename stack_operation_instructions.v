@@ -84,6 +84,7 @@ Proof.
   ctx_independent_tac evm_add.
 Qed.
 
+
 Definition evm_mul (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wmult a b
@@ -325,6 +326,7 @@ Definition evm_byte (ctx : context) (args : list EVMWord) : EVMWord :=
 Definition evm_shl (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => wlshift' b (wordToNat a)
+  (*| [shift;value] => NToWord EVMWordSize (N.shiftl (wordToN value) (wordToN shift))*)
   | _ => WZero
   end.
 Lemma shl_ctx_ind: ctx_independent_op evm_shl.
@@ -337,6 +339,7 @@ Qed.
 Definition evm_shr (ctx : context) (args : list EVMWord) : EVMWord :=
   match args with
   | [shift;value] => wdiv value (wlshift' WOne (wordToNat shift))
+  (*| [shift;value] => NToWord EVMWordSize (N.shiftl (wordToN value) (wordToN shift))*)
   | _ => WZero
   end.
 (*
