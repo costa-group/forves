@@ -118,3 +118,6 @@ block_equiv_checker_facts.v
 
 parser.v
 extract_ocaml.v
+
+tests.v
+# debug.v
