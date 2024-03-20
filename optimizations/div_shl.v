@@ -71,7 +71,7 @@ rewrite -> N.shiftr_div_pow2.
 reflexivity.
 Qed.
 
-Definition evm_shr' (ctx : context) (args : list EVMWord) : EVMWord :=
+Definition evm_shr' (exts : externals) (args : list EVMWord) : EVMWord :=
   match args with
   | [a;b] => NToWord EVMWordSize (N.shiftr_nat (wordToN a) (wordToNat b))
   | _ => WZero
@@ -102,20 +102,20 @@ Proof.
 Admitted.
 
 
-Lemma evm_div_shl: forall (x y: EVMWord) ctx,
-evm_div ctx [x; evm_shl ctx [y; WOne]] = evm_shr ctx [y; x].
+Lemma evm_div_shl: forall (x y: EVMWord) exts,
+evm_div exts [x; evm_shl exts [y; WOne]] = evm_shr exts [y; x].
 Proof.
-intros x y ctx. simpl.
+intros x y exts. simpl.
 destruct ((wordToNat y) >=? 256).
 unfold wdiv. unfold wordBin.
 intuition.
 
 (*
 Compute (
-let ctx := empty_context in
+let exts := empty_externals in
 let shift := natToWord EVMWordSize 2 in
 let value := natToWord EVMWordSize 255 in
-evm_shr ctx [shift;value]
+evm_shr exts [shift;value]
 ).*)
 *)
 
@@ -239,7 +239,7 @@ split.
   apply optimize_div_shl_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_div_shl_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -268,9 +268,9 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
     evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-  destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
+  destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
     evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
   rewrite <- Heval_orig. simpl.
     
@@ -281,9 +281,9 @@ split.
   unfold eval_sstack_val' in eval_arg2.
   rewrite -> Hfollow_arg2 in eval_arg2.
   simpl in eval_arg2. fold eval_sstack_val' in eval_arg2.
-  destruct (eval_sstack_val' maxidx' yy stk mem strg ctx idx' sb'
+  destruct (eval_sstack_val' maxidx' yy stk mem strg exts idx' sb'
     evm_stack_opm) as [yyv|] eqn: eval_yy_sb'; try discriminate.
-  destruct (eval_sstack_val' maxidx' onev stk mem strg ctx idx' sb'
+  destruct (eval_sstack_val' maxidx' onev stk mem strg exts idx' sb'
     evm_stack_opm) as [onev_v|] eqn: eval_onev; try discriminate.
   injection is_shl_arg2 as eq_yy. rewrite -> eq_yy in eval_yy_sb'.
   injection eval_arg2 as eq_arg2v. rewrite <- eq_arg2v.
@@ -297,7 +297,7 @@ split.
     Hfollow_arg2) as [prefix sb_prefix].
   rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_yy_sb'.
   pose proof (eval_sstack_val'_extend_sb instk_height maxidx' stk mem strg
-    ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yyv
+    exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yyv
     eval_yy_sb') as eval_y_sb.
   apply eval_sstack_val'_preserved_when_depth_extended in eval_y_sb.
   rewrite -> eval_y_sb.
@@ -318,12 +318,12 @@ split.
   pose proof (valid_sstack_value_const instk_height idx WOne) as Hvalid_WOne.
   pose proof (Hsafe_sstack_val_cmp onev (Val WOne) idx sb idx sb instk_height
     evm_stack_opm Hvalid_onev_sb Hvalid_WOne Hvalid_sb Hvalid_sb fcmp_onev
-    stk mem strg ctx Hlen) as [vv [eval_onev' eval_WOne]].
+    stk mem strg exts Hlen) as [vv [eval_onev' eval_WOne]].
   rewrite -> eval_sstack_val_const in eval_WOne.
   rewrite <- eval_WOne in eval_onev'.
   unfold eval_sstack_val in eval_onev'.
   pose proof (eval_eq_prefix instk_height idx idx' sb sb' evm_stack_opm onev
-    stk mem strg ctx (S idx) maxidx' prefix WOne onev_v Hvalid_sb idx_gt_idx'
+    stk mem strg exts (S idx) maxidx' prefix WOne onev_v Hvalid_sb idx_gt_idx'
     sb_prefix eval_onev' eval_onev) as eq_onev_WOne.
   rewrite <- eq_onev_WOne.
   reflexivity.

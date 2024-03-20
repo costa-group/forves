@@ -46,14 +46,14 @@ Definition flat_smemory : Type := memory_updates sexpr.
 Definition flat_sstorage : Type := storage_updates sexpr.
 Definition flat_sbindings : Type := list (nat*sexpr).
 
-Inductive flat_scontext :=
-  | FlatSymCtx. 
+Inductive flat_sexternals :=
+  | FlatSymExts. 
 
 Inductive flat_sstate :=
-  | FlatSymExState (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstg: flat_sstorage) (sctx: flat_scontext) (max_depth: nat).
+  | FlatSymExState (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstg: flat_sstorage) (sexts: flat_sexternals) (max_depth: nat).
 
-Definition make_flat_sst (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstrg: flat_sstorage) (sctx : flat_scontext) (max_depth: nat) : flat_sstate :=
-  FlatSymExState instk_height sstk smem sstrg sctx max_depth.
+Definition make_flat_sst (instk_height: nat) (sstk: flat_sstack) (smem: flat_smemory) (sstrg: flat_sstorage) (sexts : flat_sexternals) (max_depth: nat) : flat_sstate :=
+  FlatSymExState instk_height sstk smem sstrg sexts max_depth.
 
 Definition get_instk_height_fsst (fsst: flat_sstate) : nat :=
   match fsst with
@@ -75,9 +75,9 @@ Definition get_storage_fsst (fsst : flat_sstate) : flat_sstorage :=
   | FlatSymExState _ _ _ sstrg _ _ => sstrg
   end.
 
-Definition get_context_fsst (fsst : flat_sstate) : flat_scontext :=
+Definition get_externals_fsst (fsst : flat_sstate) : flat_sexternals :=
   match fsst with
-  | FlatSymExState _ _ _ _ sctx _ => sctx
+  | FlatSymExState _ _ _ _ sexts _ => sexts
   end.
 
 Definition get_max_depth_fsst (fsst : flat_sstate) : nat :=
@@ -194,7 +194,7 @@ Definition sstate_to_flat_sstate (sst : sstate) : option flat_sstate :=
               | Some flat_smem =>
                   match sstorage_to_flat_sstorage sst flat_sb with
                   | None => None
-                  | Some flat_sstrg => Some (make_flat_sst (get_instk_height_sst sst) flat_sstk flat_smem flat_sstrg FlatSymCtx ((length flat_sb) + 1))
+                  | Some flat_sstrg => Some (make_flat_sst (get_instk_height_sst sst) flat_sstk flat_smem flat_sstrg FlatSymExts ((length flat_sb) + 1))
                   end
               end
           end

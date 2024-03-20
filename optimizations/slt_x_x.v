@@ -105,8 +105,8 @@ Qed.
 
 
 
-Lemma slt_x_x_zero: forall (x: EVMWord) ctx,
-evm_slt ctx [x; x] = WZero.
+Lemma slt_x_x_zero: forall (x: EVMWord) exts,
+evm_slt exts [x; x] = WZero.
 Proof.
 intros. simpl. rewrite -> Z.ltb_irrefl.
 reflexivity.
@@ -126,7 +126,7 @@ split.
   apply optimize_slt_x_x_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   assert (Hlen2 := Hlen).
   rewrite -> Hlen in Hlen2.
   rewrite <- Hlen in Hlen2 at 2.
@@ -151,9 +151,9 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
     as [varg1|] eqn: eval_arg1; try discriminate.
-  destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb evm_stack_opm)
     as [varg2|] eqn: eval_arg2; try discriminate.
 
   unfold valid_bindings in Hvalid.
@@ -166,7 +166,7 @@ split.
 
   pose proof (Hsafe_sstack_val_cmp arg1 arg2 idx sb idx sb 
     instk_height evm_stack_opm Hvalid_arg1 Hvalid_arg2 Hvalid_bindings_sb
-    Hvalid_bindings_sb fcmp_arg1_arg2 stk mem strg ctx Hlen2)
+    Hvalid_bindings_sb fcmp_arg1_arg2 stk mem strg exts Hlen2)
     as [vv [Heval_arg1 Heval_arg2]].
   unfold eval_sstack_val in Heval_arg1. 
   rewrite -> eq_maxidx_idx in Heval_arg1. 

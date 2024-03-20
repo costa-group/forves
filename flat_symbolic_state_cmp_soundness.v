@@ -64,19 +64,19 @@ Lemma sexp_cmp_snd:
     mload_cmp_snd mload_cmp ->
     sload_cmp_snd sload_cmp ->
     sha3_cmp_snd sha3_cmp ->
-    forall d e1 e2 instk_height ops stk mem strg ctx,
+    forall d e1 e2 instk_height ops stk mem strg exts,
       length stk = instk_height ->
       sexp_cmp d e1 e2 instk_height ops mload_cmp sload_cmp sha3_cmp = true ->
       exists v,
-        eval_sexpr e1 stk mem strg ctx ops = Some v /\
-          eval_sexpr e2 stk mem strg ctx ops = Some v.
+        eval_sexpr e1 stk mem strg exts ops = Some v /\
+          eval_sexpr e2 stk mem strg exts ops = Some v.
 Proof.
   intros mload_cmp sload_cmp sha3_cmp H_mload_cmp H_sload_cmp H_sha3_cmp.
   induction d as [|d' IHd'].
-  - intros e1 e2 instk_height ops stk mem strg ctx H_len_stk H_sexp_cmp.
+  - intros e1 e2 instk_height ops stk mem strg exts H_len_stk H_sexp_cmp.
     simpl in H_sexp_cmp.
     discriminate H_sexp_cmp.
-  - intros e1 e2 instk_height ops stk mem strg ctx H_len_stk H_sexp_cmp.
+  - intros e1 e2 instk_height ops stk mem strg exts H_len_stk H_sexp_cmp.
     destruct e1 eqn:E_e1; destruct e2 eqn:E_e2; try discriminate.
 
     (* SExpr_Val *)
@@ -126,8 +126,8 @@ Proof.
                   fold_right_two_lists (fun e1 e2 : sexpr => sexp_cmp d' e1 e2 instk_height ops mload_cmp sload_cmp sha3_cmp) args1 args2 = true
                   ->
                     exists l,
-                      map_option (fun fsv' : sexpr => eval_sexpr fsv' stk mem strg ctx ops) args1 = Some l /\
-                      map_option (fun fsv' : sexpr => eval_sexpr fsv' stk mem strg ctx ops) args2 = Some l).
+                      map_option (fun fsv' : sexpr => eval_sexpr fsv' stk mem strg exts ops) args1 = Some l /\
+                      map_option (fun fsv' : sexpr => eval_sexpr fsv' stk mem strg exts ops) args2 = Some l).
 
         ++ (* proof of assert starts here *)
           induction args1 as [|a args1'].
@@ -136,7 +136,7 @@ Proof.
               simpl in H_fldr.
               destruct (sexp_cmp d' a s instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_a_s; try discriminate.
 
-              pose proof (IHd' a s instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_a_s) as IHd'_0.
+              pose proof (IHd' a s instk_height ops stk mem strg exts H_len_stk E_sexp_cmp_a_s) as IHd'_0.
               destruct IHd'_0 as [v [IHd'_0_0 IHd'_0_1]].
 
               pose proof (IHargs1' args2 H_fldr) as IHargs1'_0.
@@ -155,7 +155,7 @@ Proof.
            destruct H_map_op_0 as [l [H_map_op_0_0 H_map_op_0_1]].
            rewrite H_map_op_0_0.
            rewrite H_map_op_0_1.
-           exists (f ctx l).
+           exists (f exts l).
            split; reflexivity.
               
 
@@ -170,10 +170,10 @@ Proof.
         
         apply andb_prop in H_sexp_cmp as [H_sexp_cmp_1 H_sexp_cmp_2].
 
-        pose proof (IHd' a1 b2 instk_height ops stk mem strg ctx H_len_stk H_sexp_cmp_1) as H_sexp_cmp_1_0.
+        pose proof (IHd' a1 b2 instk_height ops stk mem strg exts H_len_stk H_sexp_cmp_1) as H_sexp_cmp_1_0.
         destruct H_sexp_cmp_1_0 as [v1 [H_sexp_cmp_1_0 H_sexp_cmp_1_1]].
 
-        pose proof (IHd' a2 b1 instk_height ops stk mem strg ctx H_len_stk H_sexp_cmp_2) as H_sexp_cmp_2_0.
+        pose proof (IHd' a2 b1 instk_height ops stk mem strg exts H_len_stk H_sexp_cmp_2) as H_sexp_cmp_2_0.
         destruct H_sexp_cmp_2_0 as [v2 [H_sexp_cmp_2_0 H_sexp_cmp_2_1]].
 
 
@@ -190,7 +190,7 @@ Proof.
         unfold commutative_op in H_f_is_Comm.
         rewrite H_f_is_Comm with (a:=v1)(b:=v2).
 
-        exists (f ctx [v2; v1]).
+        exists (f exts [v2; v1]).
         split; reflexivity.
 
     (* SExpr_PUSHTAG *)
@@ -198,17 +198,17 @@ Proof.
       apply N.eqb_eq in H_sexp_cmp.
       rewrite <- H_sexp_cmp.
       simpl.
-      exists (get_tags_ctx ctx v).
+      exists (get_tags_exts exts v).
       split; reflexivity.
 
     (* SExpr_MLOAD *)
     + simpl in H_sexp_cmp.
       destruct (sexp_cmp d' s s0 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s_s0; try discriminate.
-      pose proof (IHd' s s0 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s_s0) as IHd'_0.
+      pose proof (IHd' s s0 instk_height ops stk mem strg exts H_len_stk E_sexp_cmp_s_s0) as IHd'_0.
       destruct IHd'_0 as [v [IHd'_0 IHd'_1]]. 
 
       unfold mload_cmp_snd in H_mload_cmp.
-      pose proof (H_mload_cmp d' s smem smem0 instk_height ops H_sexp_cmp stk mem strg ctx v H_len_stk IHd'_0) as H_mload_cmp_0.
+      pose proof (H_mload_cmp d' s smem smem0 instk_height ops H_sexp_cmp stk mem strg exts v H_len_stk IHd'_0) as H_mload_cmp_0.
       
       destruct H_mload_cmp_0 as [mem1 [mem2 [mem_updates1 [mem_updates2 [H_mload_cmp_1_0 [H_mload_cmp_1_1 [H_mload_cmp_1_2 [H_mload_cmp_1_3 H_mload_cmp_1_4]]]]]]]].
 
@@ -232,11 +232,11 @@ Proof.
     (* SExpr_SLOAD *)
     + simpl in H_sexp_cmp.
       destruct (sexp_cmp d' s s0 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s_s0; try discriminate.
-      pose proof (IHd' s s0 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s_s0) as IHd'_0.
+      pose proof (IHd' s s0 instk_height ops stk mem strg exts H_len_stk E_sexp_cmp_s_s0) as IHd'_0.
       destruct IHd'_0 as [v [IHd'_0 IHd'_1]]. 
 
       unfold sload_cmp_snd in H_sload_cmp.
-      pose proof (H_sload_cmp d' s sstrg sstrg0 instk_height ops H_sexp_cmp stk mem strg ctx v H_len_stk IHd'_0) as H_sload_cmp_0.
+      pose proof (H_sload_cmp d' s sstrg sstrg0 instk_height ops H_sexp_cmp stk mem strg exts v H_len_stk IHd'_0) as H_sload_cmp_0.
       
       destruct H_sload_cmp_0 as [strg1 [strg2 [strg_updates1 [strg_updates2 [H_mload_cmp_1_0 [H_mload_cmp_1_1 [H_mload_cmp_1_2 [H_mload_cmp_1_3 H_mload_cmp_1_4]]]]]]]].
 
@@ -260,14 +260,14 @@ Proof.
       destruct (sexp_cmp d' s1 s3 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s1_s3; try discriminate.
       destruct (sexp_cmp d' s2 s4 instk_height ops mload_cmp sload_cmp sha3_cmp) eqn:E_sexp_cmp_s2_s4; try discriminate.
 
-      pose proof (IHd' s1 s3 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s1_s3) as IHd'_0.
+      pose proof (IHd' s1 s3 instk_height ops stk mem strg exts H_len_stk E_sexp_cmp_s1_s3) as IHd'_0.
       destruct IHd'_0 as [v1 [IHd'_0 IHd'_1]]. 
 
-      pose proof (IHd' s2 s4 instk_height ops stk mem strg ctx H_len_stk E_sexp_cmp_s2_s4) as IHd'_3.
+      pose proof (IHd' s2 s4 instk_height ops stk mem strg exts H_len_stk E_sexp_cmp_s2_s4) as IHd'_3.
       destruct IHd'_3 as [v2 [IHd'_3 IHd'_4]]. 
 
       unfold sha3_cmp_snd in H_sha3_cmp.
-      pose proof (H_sha3_cmp d' s1 s2 smem smem0 instk_height ops H_sexp_cmp stk mem strg ctx v1 v2 H_len_stk IHd'_0 IHd'_3) as H_sha3_cmp_0.
+      pose proof (H_sha3_cmp d' s1 s2 smem smem0 instk_height ops H_sexp_cmp stk mem strg exts v1 v2 H_len_stk IHd'_0 IHd'_3) as H_sha3_cmp_0.
       
       destruct H_sha3_cmp_0 as [mem1 [mem2 [mem_updates1 [mem_updates2 [H_mload_cmp_1_0 [H_mload_cmp_1_1 [H_mload_cmp_1_2 [H_mload_cmp_1_3 H_mload_cmp_1_4]]]]]]]].
 
@@ -284,7 +284,7 @@ Proof.
       rewrite H_mload_cmp_1_3.
       rewrite H_mload_cmp_1_4.
 
-      exists (get_keccak256_ctx ctx (wordToNat v2) (mload' mem2 v1 (wordToNat v2))).
+      exists (get_keccak256_exts exts (wordToNat v2) (mload' mem2 v1 (wordToNat v2))).
 
       split; reflexivity.
 Qed.

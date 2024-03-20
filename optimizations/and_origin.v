@@ -174,7 +174,7 @@ split.
   apply optimize_and_origin_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_and_origin_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -206,9 +206,9 @@ split.
     simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eq_eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
       evm_stack_opm) as [arg2v|] eqn: eq_eval_arg2; try discriminate.
     injection Heval_orig as eq_v. rewrite <- eq_v.
     
@@ -234,7 +234,7 @@ split.
     pose proof (Hsafe_sstack_val_cmp arg2 (Val two_exp_160_minus_1) idx sb
       idx sb instk_height evm_stack_opm Hvalid_arg2 
       valid_sstack_two_exp_160_minus_1 Hvalid_sb Hvalid_sb is_origin_arg1_arg2
-      stk mem strg ctx Hlen) as eval_arg2_two_exp.
+      stk mem strg exts Hlen) as eval_arg2_two_exp.
     destruct eval_arg2_two_exp as [vv [eval_arg2_vv eval_two_exp_vv]].
     unfold eval_sstack_val in eval_arg2_vv.
     unfold eval_sstack_val in eval_two_exp_vv.
@@ -265,9 +265,9 @@ split.
     simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eq_eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
       evm_stack_opm) as [arg2v|] eqn: eq_eval_arg2; try discriminate.
     injection Heval_orig as eq_v. rewrite <- eq_v.
     
@@ -293,7 +293,7 @@ split.
     pose proof (Hsafe_sstack_val_cmp arg1 (Val two_exp_160_minus_1) idx sb
       idx sb instk_height evm_stack_opm Hvalid_arg1 
       valid_sstack_two_exp_160_minus_1 Hvalid_sb Hvalid_sb eq_is_origin
-      stk mem strg ctx Hlen) as eval_arg1_two_exp.
+      stk mem strg exts Hlen) as eval_arg1_two_exp.
     destruct eval_arg1_two_exp as [vv [eval_arg1_vv eval_two_exp_vv]].
     unfold eval_sstack_val in eval_arg1_vv.
     unfold eval_sstack_val in eval_two_exp_vv.

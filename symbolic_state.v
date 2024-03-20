@@ -48,9 +48,9 @@ Definition storage_updates (A : Type) : Type := list (storage_update A).
 Definition sstorage : Type := storage_updates sstack_val.
 Definition empty_sstorage : sstorage := [].
 
-Inductive scontext :=
-  | SymCtx. 
-Definition empty_scontext : scontext := SymCtx.
+Inductive sexternals :=
+  | SymExts. 
+Definition empty_sexternals : sexternals := SymExts.
 
 
 
@@ -126,15 +126,15 @@ Fixpoint follow_in_smap (sv: sstack_val) (maxidx: nat) (sb: sbindings) : option 
 (* Symbolic state: type, constructor, getters and setters *)
 
 Inductive sstate :=
-| SymExState (instk_height: nat) (sstk: sstack) (smem: smemory) (sstg: sstorage) (sctx : scontext) (sm: smap).
+| SymExState (instk_height: nat) (sstk: sstack) (smem: smemory) (sstg: sstorage) (sexts : sexternals) (sm: smap).
 
-Definition make_sst (instk_height: nat) (sstk: sstack) (smem: smemory) (sstrg: sstorage) (sctx : scontext) (sm: smap) : sstate :=
-  SymExState instk_height sstk smem sstrg sctx sm.
+Definition make_sst (instk_height: nat) (sstk: sstack) (smem: smemory) (sstrg: sstorage) (sexts : sexternals) (sm: smap) : sstate :=
+  SymExState instk_height sstk smem sstrg sexts sm.
 
 Definition gen_empty_sstate (instk_height: nat) : sstate :=
   let ids := seq 0 instk_height in
   let sstk := List.map InStackVar ids in
-  make_sst instk_height sstk empty_smemory empty_sstorage empty_scontext empty_smap.
+  make_sst instk_height sstk empty_smemory empty_sstorage empty_sexternals empty_smap.
 
 Definition get_instk_height_sst (sst: sstate) : nat :=
   match sst with
@@ -143,7 +143,7 @@ Definition get_instk_height_sst (sst: sstate) : nat :=
 
 Definition set_instk_height_sst (sst: sstate) (instk_height : nat) : sstate :=
   match sst with
-  | SymExState _ sstk smem sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState _ sstk smem sstrg sexts sm => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
 Definition get_stack_sst (sst: sstate) : sstack :=
@@ -153,7 +153,7 @@ Definition get_stack_sst (sst: sstate) : sstack :=
 
 Definition set_stack_sst (sst: sstate) (sstk: sstack) : sstate :=
   match sst with
-  | SymExState instk_height _ smem sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState instk_height _ smem sstrg sexts sm => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
 Definition get_memory_sst (sst: sstate) : smemory :=
@@ -163,7 +163,7 @@ Definition get_memory_sst (sst: sstate) : smemory :=
 
 Definition set_memory_sst (sst: sstate) (smem: smemory) : sstate :=
   match sst with
-  | SymExState instk_height sstk _ sstrg sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState instk_height sstk _ sstrg sexts sm => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
 Definition get_storage_sst (sst : sstate) : sstorage :=
@@ -173,17 +173,17 @@ Definition get_storage_sst (sst : sstate) : sstorage :=
 
 Definition set_storage_sst (sst : sstate) (sstrg: sstorage) : sstate :=
   match sst with
-  | SymExState instk_height sstk smem _ sctx sm => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState instk_height sstk smem _ sexts sm => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
-Definition get_context_sst (sst : sstate) : scontext :=
+Definition get_externals_sst (sst : sstate) : sexternals :=
   match sst with
-  | SymExState _ _ _ _ sctx _ => sctx
+  | SymExState _ _ _ _ sexts _ => sexts
   end.
 
-Definition set_context_sst (sst : sstate) (sctx: scontext) : sstate :=
+Definition set_externals_sst (sst : sstate) (sexts: sexternals) : sstate :=
   match sst with
-  | SymExState instk_height sstk smem sstrg _ sm => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState instk_height sstk smem sstrg _ sm => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
 Definition get_smap_sst (sst : sstate) : smap :=
@@ -193,7 +193,7 @@ Definition get_smap_sst (sst : sstate) : smap :=
 
 Definition set_smap_sst (sst : sstate) (sm: smap) : sstate :=
   match sst with
-  | SymExState instk_height sstk smem sstrg sctx _ => SymExState instk_height sstk smem sstrg sctx sm
+  | SymExState instk_height sstk smem sstrg sexts _ => SymExState instk_height sstk smem sstrg sexts sm
   end.
 
  

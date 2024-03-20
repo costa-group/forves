@@ -155,7 +155,7 @@ split.
   apply optimize_not_not_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_not_not_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -179,7 +179,7 @@ split.
   unfold eval_sstack_val in Heval_orig.
   simpl in Heval_orig. rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
     as [arg1_v|] eqn: eq_eval_arg1_sb; try discriminate.
   rewrite <- Heval_orig.
   destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate. 
@@ -194,7 +194,7 @@ split.
   rewrite -> eq_op' in eq_eval_arg1_sb.
   simpl in eq_eval_arg1_sb. rewrite -> eq_args' in eq_eval_arg1_sb.
   simpl in eq_eval_arg1_sb.
-  destruct (eval_sstack_val' maxidx' arg2 stk mem strg ctx idx1 sb1 
+  destruct (eval_sstack_val' maxidx' arg2 stk mem strg exts idx1 sb1 
     evm_stack_opm) as [arg2v|] eqn: eq_eval_arg2_sb1; try discriminate.
   injection eq_eval_arg1_sb as eq_arg1v.
   rewrite <- eq_arg1v. 
@@ -211,7 +211,7 @@ split.
   simpl in Hvalid. 
   destruct Hvalid as [eq_idx_maxidx' [Hvalid_stack_op Hvalid_sb1]].
   pose proof (eval_sstack_val'_extend_sb_indep instk_height idx 
-    (S (S maxidx')) stk mem strg ctx idx1 (S maxidx') sb sb1 evm_stack_opm
+    (S (S maxidx')) stk mem strg exts idx1 (S maxidx') sb sb1 evm_stack_opm
     prefix Hvalid_sb1 eq_sb_prefix arg2 arg2v eq_eval_arg2_sb1)
     as eq_eval_ext.
   rewrite -> eq_eval_ext. simpl.

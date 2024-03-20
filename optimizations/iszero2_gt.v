@@ -83,10 +83,10 @@ match val with
 end.
 
 
-Lemma evm_iszero2_gt_snd: forall ctx x y,
-evm_iszero ctx [evm_iszero ctx [evm_gt ctx [x; y]]] = evm_gt ctx [x; y].
+Lemma evm_iszero2_gt_snd: forall exts x y,
+evm_iszero exts [evm_iszero exts [evm_gt exts [x; y]]] = evm_gt exts [x; y].
 Proof.
-intros ctx x y.
+intros exts x y.
 unfold evm_gt.
 unfold evm_lt.
 destruct (wordToN y <? wordToN x)%N eqn: eq_y_lt_x; try reflexivity.
@@ -167,7 +167,7 @@ split.
   apply optimize_iszero2_gt_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_iszero2_gt_sbinding in Hoptm_sbinding.
   destruct (val) as [basicv|pushtagv|label1 args1|offset smem|key sstrg|
   offset size smem] eqn: eq_val; 
@@ -199,7 +199,7 @@ split.
   unfold eval_sstack_val in Heval_orig.
   simpl in Heval_orig. rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
     as [arg1_v|] eqn: eval_arg1; try discriminate.
   destruct maxidx as [|maxidx']; try discriminate. simpl in eval_arg1.
   rewrite -> eq_follow_arg1 in eval_arg1. simpl in eval_arg1.
@@ -207,9 +207,9 @@ split.
   simpl in eval_arg1. rewrite -> eq_follow_arg2 in eval_arg1.
   simpl in eval_arg1.
   
-  destruct (eval_sstack_val' maxidx'' x stk mem strg ctx idx'' sb'' 
+  destruct (eval_sstack_val' maxidx'' x stk mem strg exts idx'' sb'' 
     evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
-  destruct (eval_sstack_val' maxidx'' y stk mem strg ctx idx'' sb'' 
+  destruct (eval_sstack_val' maxidx'' y stk mem strg exts idx'' sb'' 
     evm_stack_opm) as [yv|] eqn: eval_y; try discriminate.    
   unfold eval_sstack_val.
   
@@ -231,14 +231,14 @@ split.
   apply eval_sstack_val'_preserved_when_depth_extended in eval_x as eval_x.
   rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_x.
   pose proof (eval_sstack_val'_extend_sb instk_height (S (S maxidx'')) stk 
-    mem strg ctx idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb x
+    mem strg exts idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb x
     xv eval_x) as eval_x_sb.
   rewrite -> eval_x_sb. 
   apply eval_sstack_val'_preserved_when_depth_extended in eval_y as eval_y.
   apply eval_sstack_val'_preserved_when_depth_extended in eval_y as eval_y.
   rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_y.
   pose proof (eval_sstack_val'_extend_sb instk_height (S (S maxidx'')) stk 
-    mem strg ctx idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb y
+    mem strg exts idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb y
     yv eval_y) as eval_y_sb.
   rewrite -> eval_y_sb. 
 

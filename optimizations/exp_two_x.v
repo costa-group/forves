@@ -80,8 +80,8 @@ end.
 
 
 
-Lemma exp_two_shl: forall (x: EVMWord) ctx,
-evm_exp ctx [WTwo; x] = evm_shl ctx [x; WOne].
+Lemma exp_two_shl: forall (x: EVMWord) exts,
+evm_exp exts [WTwo; x] = evm_shl exts [x; WOne].
 Proof.
 intros. simpl. unfold wordBin. simpl.
 rewrite -> wlshift_alt. 
@@ -133,7 +133,7 @@ split.
   apply optimize_exp_two_x_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   assert (Hlen2 := Hlen).
   rewrite -> Hlen in Hlen2.
   rewrite <- Hlen in Hlen2 at 2.
@@ -157,9 +157,9 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
     as [varg1|] eqn: eval_arg1; try discriminate.
-  destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb evm_stack_opm)
     as [varg2|] eqn: eval_arg2; try discriminate.
   unfold safe_sstack_val_cmp in Hsafe_sstack_val_cmp.
 
@@ -174,7 +174,7 @@ split.
   pose proof (valid_sstack_value_const instk_height idx v) as Hvalid_zero.
   pose proof (Hsafe_sstack_val_cmp arg1 (Val WTwo) idx sb idx sb 
     instk_height evm_stack_opm Hvalid_arg1 Hvalid_zero Hvalid_bindings_sb
-    Hvalid_bindings_sb fcmp_arg1_two stk mem strg ctx Hlen2)
+    Hvalid_bindings_sb fcmp_arg1_two stk mem strg exts Hlen2)
     as [vtwo [Heval_arg1 Heval_vtwo]].
   assert (Heval_arg1_copy := Heval_arg1).
   unfold eval_sstack_val in Heval_arg1_copy.

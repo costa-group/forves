@@ -185,13 +185,13 @@ Definition all_concrete (l : list sstack_val) (sst : sstate) :=
 
 Definition exec_stack_op_intsr_w_eval_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | OpImp nb_args f _ H_ctx =>
+  | OpImp nb_args f _ H_exts =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>
-          match H_ctx, all_concrete s1 sst with
+          match H_exts, all_concrete s1 sst with
           | Some _, Some vs =>
-              let v := (f empty_context vs) in
+              let v := (f empty_externals vs) in
               let sst' := set_stack_sst sst ((Val v)::s2) in
               Some sst'
           | _,_ =>
@@ -212,7 +212,7 @@ Definition exec_stack_op_intsr_w_eval_s (label : stack_op_instr) (sst : sstate) 
 
 Definition exec_stack_op_intsr_s (label : stack_op_instr) (sst : sstate) (ops : stack_op_instr_map) : option sstate :=
   match (ops label) with
-  | OpImp nb_args f _ H_ctx =>
+  | OpImp nb_args f _ H_exts =>
       let sstk := get_stack_sst sst in
       match firstn_e nb_args sstk, skipn_e nb_args sstk with
       | Some s1,Some s2 =>

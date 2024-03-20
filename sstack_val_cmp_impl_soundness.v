@@ -74,7 +74,7 @@ Module SStackValCmpImplSoundness.
     intros d' H_d'_le_Sd'.
     unfold safe_sstack_val_cmp.
     intros sv1 sv2 maxidx1 bs1 maxidx2 bs2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_bs1 H_valid_bs2 H_cmp.
-    intros stk mem strg ctx H_stk_len.
+    intros stk mem strg exts H_stk_len.
     unfold trivial_compare_sstack_val in H_cmp.
     destruct d' as [|d''] eqn:E_d; try discriminate.
 
@@ -84,16 +84,16 @@ Module SStackValCmpImplSoundness.
 
     + apply weqb_sound in H_cmp.
 
-      pose proof (eval_sstack_val'_Val w1 stk mem strg ctx maxidx1 bs1 ops) as H_eval_w1.
-      pose proof (eval_sstack_val'_Val w2 stk mem strg ctx maxidx2 bs2 ops) as H_eval_w2.
+      pose proof (eval_sstack_val'_Val w1 stk mem strg exts maxidx1 bs1 ops) as H_eval_w1.
+      pose proof (eval_sstack_val'_Val w2 stk mem strg exts maxidx2 bs2 ops) as H_eval_w2.
       rewrite H_eval_w1.
       rewrite H_eval_w2.
       rewrite H_cmp.
       exists w2.
       split; reflexivity.
 
-    + pose proof (eval_sstack_val'_InStackVar n1 stk mem strg ctx maxidx1 bs1 ops) as H_eval_instkv_n1.
-      pose proof (eval_sstack_val'_InStackVar n2 stk mem strg ctx maxidx2 bs2 ops) as H_eval_instkv_n2.
+    + pose proof (eval_sstack_val'_InStackVar n1 stk mem strg exts maxidx1 bs1 ops) as H_eval_instkv_n1.
+      pose proof (eval_sstack_val'_InStackVar n2 stk mem strg exts maxidx2 bs2 ops) as H_eval_instkv_n2.
       rewrite H_eval_instkv_n1.
       rewrite H_eval_instkv_n2.
 
@@ -126,7 +126,7 @@ Module SStackValCmpImplSoundness.
       rewrite E_maxidx1_eq_maxidx2.
       rewrite e.
                   
-      pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg ctx maxidx2 bs2 ops (eq_sym H_stk_len) H_valid_sv2 H_valid_bs2 (gt_Sn_n maxidx2)) as H_eval_sv2.
+      pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg exts maxidx2 bs2 ops (eq_sym H_stk_len) H_valid_sv2 H_valid_bs2 (gt_Sn_n maxidx2)) as H_eval_sv2.
       destruct H_eval_sv2 as [v2 H_eval_sv2].
 
       rewrite H_eval_sv2.
@@ -157,7 +157,7 @@ Module SStackValCmpImplSoundness.
       unfold safe_sstack_val_cmp.
       intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_cmp_sv1_sv2.      apply Nat.leb_le in H_d'_le_1 as H_d'_le_1_leb.
  
-      intros stk mem strg ctx H_len_stk.
+      intros stk mem strg exts H_len_stk.
       unfold eval_sstack_val.
       unfold eval_sstack_val'. fold eval_sstack_val'.
 
@@ -203,7 +203,7 @@ Module SStackValCmpImplSoundness.
         apply N.eqb_eq in H_cmp_sv1_sv2_1.
         rewrite H_cmp_sv1_sv2_0.
         rewrite H_cmp_sv1_sv2_1.
-        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
+        exists (get_tags_exts exts cat0 val0). split; reflexivity.
       + destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.
@@ -213,7 +213,7 @@ Module SStackValCmpImplSoundness.
         * simpl in H_cmp_sv1_sv2.
           simpl.
           destruct n.
-          ** exists (f ctx []). split; reflexivity.
+          ** exists (f exts []). split; reflexivity.
           ** simpl in H_follow_valid_sv1.
              simpl in H_follow_valid_sv2.
              destruct H_follow_valid_sv1 as [H_follow_valid_sv1_0 _].
@@ -243,38 +243,38 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as  H_maxidx2_gt_maxidx2'.
         
         
-        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp.
+        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sha3_cmp.
         
         destruct H_safe_sha3_cmp as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 
         unfold eval_smemory in H_eval_smem.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem_0.
         assert (H_maxidx1_ge_S_maxidx1': S maxidx1' <= maxidx1). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
         rewrite H_eval_smem_0_ext.
         
         unfold eval_smemory in H_eval_smem0.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem0_0.
         assert (H_maxidx2_ge_S_maxidx2': S maxidx2' <= maxidx2). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
         rewrite H_eval_smem0_0_ext.
 
         unfold eval_sstack_val in H_eval_offset.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
         rewrite H_eval_offset_0.
 
         unfold eval_sstack_val in H_eval_size.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
         rewrite H_eval_size_0.
 
         unfold eval_sstack_val in H_eval_offset0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
         rewrite H_eval_offset0_0.
 
         unfold eval_sstack_val in H_eval_size0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
         rewrite H_eval_size0_0.
 
         injection H_eval_smem as H_eval_smem.
@@ -293,7 +293,7 @@ Module SStackValCmpImplSoundness.
       unfold safe_sstack_val_cmp.
       intros d'0 H_d'0_le_SS_d'.
       intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_cmp_sv1_sv2.
-      intros stk mem strg ctx.
+      intros stk mem strg exts.
       destruct d'0; try discriminate.
       simpl in H_cmp_sv1_sv2.
       unfold eval_sstack_val.
@@ -348,7 +348,7 @@ Module SStackValCmpImplSoundness.
         apply N.eqb_eq in H_cmp_sv1_sv2_1.
         rewrite H_cmp_sv1_sv2_0.
         rewrite H_cmp_sv1_sv2_1.
-        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
+        exists (get_tags_exts exts cat0 val0). split; reflexivity.
       + fold eval_sstack_val' in H_cmp_sv1_sv2. destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.
@@ -385,8 +385,8 @@ Module SStackValCmpImplSoundness.
                   valid_sstack instk_height maxidx2' args2 ->
                   fold_right_two_lists (fun e1 e2 : sstack_val => basic_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2 = true ->
                   exists args',
-                    map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx1') sv' stk mem strg ctx maxidx1' sb1' ops) args1 = Some args' /\
-                      map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx2') sv' stk mem strg ctx maxidx2' sb2' ops) args2 = Some args').
+                    map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx1') sv' stk mem strg exts maxidx1' sb1' ops) args1 = Some args' /\
+                      map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx2') sv' stk mem strg exts maxidx2' sb2' ops) args2 = Some args').
         (* staring proof of assert *)
         * induction args1 as [|a1_1 args1'].
           ** destruct args2 as [|a1_2 args2']; try discriminate.
@@ -405,7 +405,7 @@ Module SStackValCmpImplSoundness.
              simpl in H_valid_sstack_args2.
              destruct H_valid_sstack_args2 as [H_valid_a1_2 H_valid_arg2'].
              
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1_1 a1_2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_a1_1 H_valid_a1_2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_1_a1_2 stk mem strg ctx H_len_stk) as H_eval_sstack_value_a1_1_a1_2.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1_1 a1_2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_a1_1 H_valid_a1_2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_1_a1_2 stk mem strg exts H_len_stk) as H_eval_sstack_value_a1_1_a1_2.
              destruct H_eval_sstack_value_a1_1_a1_2 as [v [H_eval_sstack_value_a1_1 H_eval_sstack_value_a1_2]].
 
              unfold eval_sstack_val in H_eval_sstack_value_a1_1.
@@ -435,13 +435,13 @@ Module SStackValCmpImplSoundness.
              pose proof (H_follow_valid_sv1_2 (eq_refl true)) as H_follow_valid_sv1_2.
              assert (H_maxidx1_ge_S_maxidx1': maxidx1 >= S maxidx1'). intuition.
              
-             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops args' H_maxidx1_ge_S_maxidx1' H_fldr_0_0) as H_fldr_0_0_0.
+             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops args' H_maxidx1_ge_S_maxidx1' H_fldr_0_0) as H_fldr_0_0_0.
              rewrite H_fldr_0_0_0.
 
              assert (H_maxidx2_ge_S_maxidx2': maxidx2 >= S maxidx2'). intuition.
-             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops args' H_maxidx2_ge_S_maxidx2' H_fldr_0_1) as H_fldr_0_1_0.
+             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops args' H_maxidx2_ge_S_maxidx2' H_fldr_0_1) as H_fldr_0_1_0.
              rewrite H_fldr_0_1_0.
-             exists (f ctx args').
+             exists (f exts args').
              split; reflexivity.
           ** destruct H_comm as [H_f_comm_proof|]; try discriminate.
 
@@ -459,24 +459,24 @@ Module SStackValCmpImplSoundness.
              simpl in H_follow_valid_sv2_0_1.
              destruct H_follow_valid_sv2_0_1 as [H_follow_valid_b1 [H_follow_valid_b2 _]].
              
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a1 H_follow_valid_b2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_b2 stk mem strg ctx H_len_stk) as H_safe_sstack_value_cmp_a1_b2.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a1 H_follow_valid_b2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_b2 stk mem strg exts H_len_stk) as H_safe_sstack_value_cmp_a1_b2.
              unfold eval_sstack_val in H_safe_sstack_value_cmp_a1_b2.
              destruct H_safe_sstack_value_cmp_a1_b2 as [v1 [H_safe_sstack_value_cmp_a1 H_safe_sstack_value_cmp_b2]].
 
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a2 H_follow_valid_b1 H_follow_valid_sv1_1 H_follow_valid_sv2_1 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstack_value_cmp_a2_b1.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a2 H_follow_valid_b1 H_follow_valid_sv1_1 H_follow_valid_sv2_1 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sstack_value_cmp_a2_b1.
              unfold eval_sstack_val in H_safe_sstack_value_cmp_a2_b1.
              destruct H_safe_sstack_value_cmp_a2_b1 as [v2 [H_safe_sstack_value_cmp_a2 H_safe_sstack_value_cmp_b1]].
 
              assert(H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a1 v1 stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a1) as H_safe_sstack_value_cmp_a1_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a1 v1 stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a1) as H_safe_sstack_value_cmp_a1_ext.
 
              assert(H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b2 v1 stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b2) as H_safe_sstack_value_cmp_b2_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b2 v1 stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b2) as H_safe_sstack_value_cmp_b2_ext.
 
 
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a2 v2 stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a2) as H_safe_sstack_value_cmp_a2_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a2 v2 stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a2) as H_safe_sstack_value_cmp_a2_ext.
 
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b1 v2 stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b1) as H_safe_sstack_value_cmp_b1_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b1 v2 stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b1) as H_safe_sstack_value_cmp_b1_ext.
 
              unfold map_option.
              rewrite H_safe_sstack_value_cmp_a1_ext.
@@ -484,7 +484,7 @@ Module SStackValCmpImplSoundness.
              rewrite H_safe_sstack_value_cmp_a2_ext.
              rewrite H_safe_sstack_value_cmp_b1_ext.
 
-             exists (f ctx [v1; v2]).
+             exists (f exts [v1; v2]).
 
              unfold commutative_op in H_f_comm_proof.
              rewrite H_f_comm_proof.
@@ -500,16 +500,16 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as H_maxidx2_gt_maxidx2'.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg ctx H_len_stk) as H_eval_offset_offset0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg exts H_len_stk) as H_eval_offset_offset0.
         unfold eval_sstack_val in H_eval_offset_offset0.
         destruct H_eval_offset_offset0 as [v [H_eval_offset H_eval_offset0]].
         
 
         assert (H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
         rewrite H_eval_soffset_ext.
         assert (H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
         rewrite H_eval_soffset0_ext.
 
         unfold safe_smemory_cmp_ext_d in H_safe_smemory_cmp.
@@ -517,7 +517,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -527,21 +527,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_memory_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) smem) as [updates|] eqn:E_mapo_mem; try discriminate.
         unfold eval_sstack_val in E_mapo_mem.
         
         destruct (map_option
                     (instantiate_memory_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) smem0) as [updates0|] eqn:E_mapo_mem0; try discriminate.
         unfold eval_sstack_val in E_mapo_mem0.
 
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
         rewrite E_mapo_mem_ext.
         
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
         rewrite E_mapo_mem0_ext.
 
         injection H_eval_mem0 as H_eval_mem0.
@@ -564,16 +564,16 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as H_maxidx2_gt_maxidx2'.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_key H_valid_key0 H_valid_sb1' H_valid_sb2' E_cmp_key_key0 stk mem strg ctx H_len_stk) as H_eval_key_key0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_key H_valid_key0 H_valid_sb1' H_valid_sb2' E_cmp_key_key0 stk mem strg exts H_len_stk) as H_eval_key_key0.
         unfold eval_sstack_val in H_eval_key_key0.
         destruct H_eval_key_key0 as [v [H_eval_key H_eval_key0]].
         
 
         assert (H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' key v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_key) as H_eval_skey_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' key v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_key) as H_eval_skey_ext.
         rewrite H_eval_skey_ext.
         assert (H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' key0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_key0) as H_eval_skey0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' key0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_key0) as H_eval_skey0_ext.
         rewrite H_eval_skey0_ext.
 
         unfold safe_sstorage_cmp_ext_d in H_safe_sstorage_cmp.
@@ -581,7 +581,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstorage_cmp_0.
+        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sstorage_cmp_0.
 
         destruct H_safe_sstorage_cmp_0 as [strg' [H_eval_sstrg H_eval_sstrg0]].
         unfold eval_sstorage in H_eval_sstrg.
@@ -591,21 +591,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_storage_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) sstrg) as [updates|] eqn:E_mapo_strg; try discriminate.
         unfold eval_sstack_val in E_mapo_strg.
         
         destruct (map_option
                     (instantiate_storage_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) sstrg0) as [updates0|] eqn:E_mapo_strg0; try discriminate.
         unfold eval_sstack_val in E_mapo_strg0.
 
-        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_strg) as E_mapo_strg_ext.
+        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_strg) as E_mapo_strg_ext.
         rewrite E_mapo_strg_ext.
         
-        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_strg0) as E_mapo_strg0_ext.
+        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_strg0) as E_mapo_strg0_ext.
         rewrite E_mapo_strg0_ext.
 
         injection H_eval_sstrg0 as H_eval_sstrg0.
@@ -647,25 +647,25 @@ Module SStackValCmpImplSoundness.
 
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg ctx H_len_stk) as H_eval_offset_offset0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg exts H_len_stk) as H_eval_offset_offset0.
         unfold eval_sstack_val in H_eval_offset_offset0.
         destruct H_eval_offset_offset0 as [v [H_eval_offset H_eval_offset0]].
         
 
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
         rewrite H_eval_soffset_ext.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
         rewrite H_eval_soffset0_ext.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_size H_valid_size0 H_valid_sb1' H_valid_sb2' E_cmp_size_size0 stk mem strg ctx H_len_stk) as H_eval_size_size0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_size H_valid_size0 H_valid_sb1' H_valid_sb2' E_cmp_size_size0 stk mem strg exts H_len_stk) as H_eval_size_size0.
         unfold eval_sstack_val in H_eval_size_size0.
         destruct H_eval_size_size0 as [v' [H_eval_size H_eval_size0]].
         
 
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size v' stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_size) as H_eval_ssize_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size v' stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_size) as H_eval_ssize_ext.
         rewrite H_eval_ssize_ext.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 v' stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_size0) as H_eval_ssize0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 v' stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_size0) as H_eval_ssize0_ext.
         rewrite H_eval_ssize0_ext.
 
         
@@ -673,7 +673,7 @@ Module SStackValCmpImplSoundness.
         unfold safe_smemory_cmp in H_safe_smemory_cmp.
 
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg exts H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -683,21 +683,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_memory_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) smem) as [updates|] eqn:E_mapo_mem; try discriminate.
         unfold eval_sstack_val in E_mapo_mem.
         
         destruct (map_option
                     (instantiate_memory_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) smem0) as [updates0|] eqn:E_mapo_mem0; try discriminate.
         unfold eval_sstack_val in E_mapo_mem0.
 
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
         rewrite E_mapo_mem_ext.
         
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
         rewrite E_mapo_mem0_ext.
 
         injection H_eval_mem0 as H_eval_mem0.
@@ -705,42 +705,42 @@ Module SStackValCmpImplSoundness.
 
         rewrite H_eval_mem0.
         rewrite H_eval_mem.
-        exists (get_keccak256_ctx ctx (wordToNat v') (concrete_interpreter.ConcreteInterpreter.mload' mem' v (wordToNat v'))).
+        exists (get_keccak256_exts exts (wordToNat v') (concrete_interpreter.ConcreteInterpreter.mload' mem' v (wordToNat v'))).
         split; reflexivity.
         * unfold safe_sha3_cmp_ext_d in H_safe_sha3_cmp.
           unfold safe_sha3_cmp in H_safe_sha3_cmp.
-          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp_0.
+          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sha3_cmp_0.
 
           destruct H_safe_sha3_cmp_0 as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 
         unfold eval_smemory in H_eval_smem.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem_0.
         assert (H_maxidx1_ge_S_maxidx1': S maxidx1' <= maxidx1). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
         rewrite H_eval_smem_0_ext.
         
         unfold eval_smemory in H_eval_smem0.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem0_0.
         assert (H_maxidx2_ge_S_maxidx2': S maxidx2' <= maxidx2). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
         rewrite H_eval_smem0_0_ext.
 
         unfold eval_sstack_val in H_eval_offset.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
         rewrite H_eval_offset_0.
 
         unfold eval_sstack_val in H_eval_size.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
         rewrite H_eval_size_0.
 
         unfold eval_sstack_val in H_eval_offset0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
         rewrite H_eval_offset0_0.
 
         unfold eval_sstack_val in H_eval_size0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
         rewrite H_eval_size0_0.
 
         injection H_eval_smem as H_eval_smem.
@@ -779,7 +779,7 @@ Module SStackValCmpImplSoundness.
       destruct d' as [|d''] eqn:E_d'; try discriminate; destruct d'' as [|d'''] eqn:E_d''; try discriminate.
       unfold basic_compare_sstack_val_w_eq_chk in H_cmp_sv1_sv2.
 
-      intros stk mem strg ctx H_len_stk.
+      intros stk mem strg exts H_len_stk.
       unfold eval_sstack_val.
 
       destruct(trivial_compare_sstack_val smemory_cmp sstorage_cmp sha3_cmp 1 sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops) eqn:E_trivial_chk.
@@ -791,8 +791,8 @@ Module SStackValCmpImplSoundness.
         (* Val *)
         apply weqb_sound in E_trivial_chk.
 
-        pose proof (eval_sstack_val'_Val w1 stk mem strg ctx maxidx1 sb1 ops) as H_eval_w1.
-        pose proof (eval_sstack_val'_Val w2 stk mem strg ctx maxidx2 sb2 ops) as H_eval_w2.
+        pose proof (eval_sstack_val'_Val w1 stk mem strg exts maxidx1 sb1 ops) as H_eval_w1.
+        pose proof (eval_sstack_val'_Val w2 stk mem strg exts maxidx2 sb2 ops) as H_eval_w2.
         rewrite H_eval_w1.
         rewrite H_eval_w2.
         rewrite E_trivial_chk.
@@ -800,8 +800,8 @@ Module SStackValCmpImplSoundness.
         split; reflexivity.
 
         (* InStackVar *)
-        pose proof (eval_sstack_val'_InStackVar n1 stk mem strg ctx maxidx1 sb1 ops) as H_eval_instkv_n1.
-        pose proof (eval_sstack_val'_InStackVar n2 stk mem strg ctx maxidx2 sb2 ops) as H_eval_instkv_n2.
+        pose proof (eval_sstack_val'_InStackVar n1 stk mem strg exts maxidx1 sb1 ops) as H_eval_instkv_n1.
+        pose proof (eval_sstack_val'_InStackVar n2 stk mem strg exts maxidx2 sb2 ops) as H_eval_instkv_n2.
         rewrite H_eval_instkv_n1.
         rewrite H_eval_instkv_n2.
 
@@ -835,7 +835,7 @@ Module SStackValCmpImplSoundness.
         rewrite E_maxidx1_eq_maxidx2.
         rewrite e.
                   
-        pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg ctx maxidx2 sb2 ops (eq_sym H_len_stk) H_valid_sv2 H_valid_sb2 (gt_Sn_n maxidx2)) as H_eval_sv2.
+        pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg exts maxidx2 sb2 ops (eq_sym H_len_stk) H_valid_sv2 H_valid_sb2 (gt_Sn_n maxidx2)) as H_eval_sv2.
         destruct H_eval_sv2 as [v2 H_eval_sv2].
 
         rewrite H_eval_sv2.
@@ -886,7 +886,7 @@ Module SStackValCmpImplSoundness.
         apply N.eqb_eq in H_cmp_sv1_sv2_1.
         rewrite H_cmp_sv1_sv2_0.
         rewrite H_cmp_sv1_sv2_1.
-        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
+        exists (get_tags_exts exts cat0 val0). split; reflexivity.
       + destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.
@@ -896,7 +896,7 @@ Module SStackValCmpImplSoundness.
         * simpl in H_cmp_sv1_sv2.
           simpl.
           destruct n.
-          ** exists (f ctx []). split; reflexivity.
+          ** exists (f exts []). split; reflexivity.
           ** simpl in H_follow_valid_sv1.
              simpl in H_follow_valid_sv2.
              destruct H_follow_valid_sv1 as [H_follow_valid_sv1_0 _].
@@ -926,38 +926,38 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as  H_maxidx2_gt_maxidx2'.
         
         
-        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp.
+        pose proof (H_safe_sha3_cmp offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_offset H_follow_valid_size H_follow_valid_offset0 H_follow_valid_size0 H_follow_valid_sb1' H_follow_valid_sb2' H_follow_valid_smem H_follow_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sha3_cmp.
         
         destruct H_safe_sha3_cmp as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 
         unfold eval_smemory in H_eval_smem.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem_0.
         assert (H_maxidx1_ge_S_maxidx1': S maxidx1' <= maxidx1). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
         rewrite H_eval_smem_0_ext.
         
         unfold eval_smemory in H_eval_smem0.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem0_0.
         assert (H_maxidx2_ge_S_maxidx2': S maxidx2' <= maxidx2). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
         rewrite H_eval_smem0_0_ext.
 
         unfold eval_sstack_val in H_eval_offset.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
         rewrite H_eval_offset_0.
 
         unfold eval_sstack_val in H_eval_size.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
         rewrite H_eval_size_0.
 
         unfold eval_sstack_val in H_eval_offset0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
         rewrite H_eval_offset0_0.
 
         unfold eval_sstack_val in H_eval_size0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
         rewrite H_eval_size0_0.
 
         injection H_eval_smem as H_eval_smem.
@@ -976,7 +976,7 @@ Module SStackValCmpImplSoundness.
       unfold safe_sstack_val_cmp.
       intros d'0 H_d'0_le_SS_d'.
       intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_cmp_sv1_sv2.
-      intros stk mem strg ctx H_len_stk.
+      intros stk mem strg exts H_len_stk.
       destruct d'0; try discriminate.
       simpl in H_cmp_sv1_sv2.
       unfold eval_sstack_val.
@@ -1011,8 +1011,8 @@ Module SStackValCmpImplSoundness.
         (* Val *)
         apply weqb_sound in E_trivial_chk.
 
-        pose proof (eval_sstack_val'_Val w1 stk mem strg ctx maxidx1 sb1 ops) as H_eval_w1.
-        pose proof (eval_sstack_val'_Val w2 stk mem strg ctx maxidx2 sb2 ops) as H_eval_w2.
+        pose proof (eval_sstack_val'_Val w1 stk mem strg exts maxidx1 sb1 ops) as H_eval_w1.
+        pose proof (eval_sstack_val'_Val w2 stk mem strg exts maxidx2 sb2 ops) as H_eval_w2.
         rewrite H_eval_w1.
         rewrite H_eval_w2.
         rewrite E_trivial_chk.
@@ -1021,8 +1021,8 @@ Module SStackValCmpImplSoundness.
 
 
         (* InStackVar *)
-        pose proof (eval_sstack_val'_InStackVar n1 stk mem strg ctx maxidx1 sb1 ops) as H_eval_instkv_n1.
-        pose proof (eval_sstack_val'_InStackVar n2 stk mem strg ctx maxidx2 sb2 ops) as H_eval_instkv_n2.
+        pose proof (eval_sstack_val'_InStackVar n1 stk mem strg exts maxidx1 sb1 ops) as H_eval_instkv_n1.
+        pose proof (eval_sstack_val'_InStackVar n2 stk mem strg exts maxidx2 sb2 ops) as H_eval_instkv_n2.
         rewrite H_eval_instkv_n1.
         rewrite H_eval_instkv_n2.
 
@@ -1056,7 +1056,7 @@ Module SStackValCmpImplSoundness.
         rewrite E_maxidx1_eq_maxidx2.
         rewrite e.
                   
-        pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg ctx maxidx2 sb2 ops (eq_sym H_len_stk) H_valid_sv2 H_valid_sb2 (gt_Sn_n maxidx2)) as H_eval_sv2.
+        pose proof (eval_sstack_val'_succ (S maxidx2) instk_height (FreshVar n2) stk mem strg exts maxidx2 sb2 ops (eq_sym H_len_stk) H_valid_sv2 H_valid_sb2 (gt_Sn_n maxidx2)) as H_eval_sv2.
         destruct H_eval_sv2 as [v2 H_eval_sv2].
 
         rewrite H_eval_sv2.
@@ -1116,7 +1116,7 @@ Module SStackValCmpImplSoundness.
         apply N.eqb_eq in H_cmp_sv1_sv2_1.
         rewrite H_cmp_sv1_sv2_0.
         rewrite H_cmp_sv1_sv2_1.
-        exists (get_tags_ctx ctx cat0 val0). split; reflexivity.
+        exists (get_tags_exts exts cat0 val0). split; reflexivity.
       + fold eval_sstack_val' in H_cmp_sv1_sv2. destruct (label =?i label0) eqn:E_eqb_label_label0; try discriminate.
         apply eqb_stack_op_instr_eq in E_eqb_label_label0 as E_eq_label_label0.
         rewrite <- E_eq_label_label0.
@@ -1153,8 +1153,8 @@ Module SStackValCmpImplSoundness.
                   valid_sstack instk_height maxidx2' args2 ->
                   fold_right_two_lists (fun e1 e2 : sstack_val => basic_compare_sstack_val_w_eq_chk smemory_cmp sstorage_cmp sha3_cmp d'0 e1 e2 maxidx1' sb1' maxidx2' sb2' instk_height ops) args1 args2 = true ->
                   exists args',
-                    map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx1') sv' stk mem strg ctx maxidx1' sb1' ops) args1 = Some args' /\
-                      map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx2') sv' stk mem strg ctx maxidx2' sb2' ops) args2 = Some args').
+                    map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx1') sv' stk mem strg exts maxidx1' sb1' ops) args1 = Some args' /\
+                      map_option (fun sv' : sstack_val => eval_sstack_val' (S maxidx2') sv' stk mem strg exts maxidx2' sb2' ops) args2 = Some args').
         (* staring proof of assert *)
         * induction args1 as [|a1_1 args1'].
           ** destruct args2 as [|a1_2 args2']; try discriminate.
@@ -1173,7 +1173,7 @@ Module SStackValCmpImplSoundness.
              simpl in H_valid_sstack_args2.
              destruct H_valid_sstack_args2 as [H_valid_a1_2 H_valid_arg2'].
              
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1_1 a1_2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_a1_1 H_valid_a1_2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_1_a1_2 stk mem strg ctx H_len_stk) as H_eval_sstack_value_a1_1_a1_2.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1_1 a1_2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_a1_1 H_valid_a1_2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_1_a1_2 stk mem strg exts H_len_stk) as H_eval_sstack_value_a1_1_a1_2.
              destruct H_eval_sstack_value_a1_1_a1_2 as [v [H_eval_sstack_value_a1_1 H_eval_sstack_value_a1_2]].
 
              unfold eval_sstack_val in H_eval_sstack_value_a1_1.
@@ -1203,13 +1203,13 @@ Module SStackValCmpImplSoundness.
              pose proof (H_follow_valid_sv1_2 (eq_refl true)) as H_follow_valid_sv1_2.
              assert (H_maxidx1_ge_S_maxidx1': maxidx1 >= S maxidx1'). intuition.
              
-             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops args' H_maxidx1_ge_S_maxidx1' H_fldr_0_0) as H_fldr_0_0_0.
+             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops args' H_maxidx1_ge_S_maxidx1' H_fldr_0_0) as H_fldr_0_0_0.
              rewrite H_fldr_0_0_0.
 
              assert (H_maxidx2_ge_S_maxidx2': maxidx2 >= S maxidx2'). intuition.
-             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops args' H_maxidx2_ge_S_maxidx2' H_fldr_0_1) as H_fldr_0_1_0.
+             pose proof (eval_sstack_val'_mapo_preserved_when_depth_ext_le args0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops args' H_maxidx2_ge_S_maxidx2' H_fldr_0_1) as H_fldr_0_1_0.
              rewrite H_fldr_0_1_0.
-             exists (f ctx args').
+             exists (f exts args').
              split; reflexivity.
           ** destruct H_comm as [H_f_comm_proof|]; try discriminate.
 
@@ -1227,24 +1227,24 @@ Module SStackValCmpImplSoundness.
              simpl in H_follow_valid_sv2_0_1.
              destruct H_follow_valid_sv2_0_1 as [H_follow_valid_b1 [H_follow_valid_b2 _]].
              
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a1 H_follow_valid_b2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_b2 stk mem strg ctx H_len_stk) as H_safe_sstack_value_cmp_a1_b2.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a1 b2 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a1 H_follow_valid_b2 H_follow_valid_sv1_1 H_follow_valid_sv2_1 E_cmp_a1_b2 stk mem strg exts H_len_stk) as H_safe_sstack_value_cmp_a1_b2.
              unfold eval_sstack_val in H_safe_sstack_value_cmp_a1_b2.
              destruct H_safe_sstack_value_cmp_a1_b2 as [v1 [H_safe_sstack_value_cmp_a1 H_safe_sstack_value_cmp_b2]].
 
-             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a2 H_follow_valid_b1 H_follow_valid_sv1_1 H_follow_valid_sv2_1 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstack_value_cmp_a2_b1.
+             pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) a2 b1 maxidx1' sb1' maxidx2' sb2' instk_height ops H_follow_valid_a2 H_follow_valid_b1 H_follow_valid_sv1_1 H_follow_valid_sv2_1 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sstack_value_cmp_a2_b1.
              unfold eval_sstack_val in H_safe_sstack_value_cmp_a2_b1.
              destruct H_safe_sstack_value_cmp_a2_b1 as [v2 [H_safe_sstack_value_cmp_a2 H_safe_sstack_value_cmp_b1]].
 
              assert(H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a1 v1 stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a1) as H_safe_sstack_value_cmp_a1_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a1 v1 stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a1) as H_safe_sstack_value_cmp_a1_ext.
 
              assert(H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b2 v1 stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b2) as H_safe_sstack_value_cmp_b2_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b2 v1 stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b2) as H_safe_sstack_value_cmp_b2_ext.
 
 
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a2 v2 stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a2) as H_safe_sstack_value_cmp_a2_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' a2 v2 stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_safe_sstack_value_cmp_a2) as H_safe_sstack_value_cmp_a2_ext.
 
-             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b1 v2 stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b1) as H_safe_sstack_value_cmp_b1_ext.
+             pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' b1 v2 stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_safe_sstack_value_cmp_b1) as H_safe_sstack_value_cmp_b1_ext.
 
              unfold map_option.
              rewrite H_safe_sstack_value_cmp_a1_ext.
@@ -1252,7 +1252,7 @@ Module SStackValCmpImplSoundness.
              rewrite H_safe_sstack_value_cmp_a2_ext.
              rewrite H_safe_sstack_value_cmp_b1_ext.
 
-             exists (f ctx [v1; v2]).
+             exists (f exts [v1; v2]).
 
              unfold commutative_op in H_f_comm_proof.
              rewrite H_f_comm_proof.
@@ -1268,16 +1268,16 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as H_maxidx2_gt_maxidx2'.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg ctx H_len_stk) as H_eval_offset_offset0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg exts H_len_stk) as H_eval_offset_offset0.
         unfold eval_sstack_val in H_eval_offset_offset0.
         destruct H_eval_offset_offset0 as [v [H_eval_offset H_eval_offset0]].
         
 
         assert (H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
         rewrite H_eval_soffset_ext.
         assert (H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
         rewrite H_eval_soffset0_ext.
 
         unfold safe_smemory_cmp_ext_d in H_safe_smemory_cmp.
@@ -1285,7 +1285,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -1295,21 +1295,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_memory_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) smem) as [updates|] eqn:E_mapo_mem; try discriminate.
         unfold eval_sstack_val in E_mapo_mem.
         
         destruct (map_option
                     (instantiate_memory_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) smem0) as [updates0|] eqn:E_mapo_mem0; try discriminate.
         unfold eval_sstack_val in E_mapo_mem0.
 
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
         rewrite E_mapo_mem_ext.
         
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
         rewrite E_mapo_mem0_ext.
 
         injection H_eval_mem0 as H_eval_mem0.
@@ -1332,16 +1332,16 @@ Module SStackValCmpImplSoundness.
         pose proof (H_maxidx2_gt_maxidx2' (eq_refl true)) as H_maxidx2_gt_maxidx2'.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_key H_valid_key0 H_valid_sb1' H_valid_sb2' E_cmp_key_key0 stk mem strg ctx H_len_stk) as H_eval_key_key0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) key key0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_key H_valid_key0 H_valid_sb1' H_valid_sb2' E_cmp_key_key0 stk mem strg exts H_len_stk) as H_eval_key_key0.
         unfold eval_sstack_val in H_eval_key_key0.
         destruct H_eval_key_key0 as [v [H_eval_key H_eval_key0]].
         
 
         assert (H_Smaxidx1'_le_maxidx1: S maxidx1' <= maxidx1). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' key v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_key) as H_eval_skey_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' key v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_key) as H_eval_skey_ext.
         rewrite H_eval_skey_ext.
         assert (H_Smaxidx2'_le_maxidx2: S maxidx2' <= maxidx2). intuition.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' key0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_key0) as H_eval_skey0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' key0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_key0) as H_eval_skey0_ext.
         rewrite H_eval_skey0_ext.
 
         unfold safe_sstorage_cmp_ext_d in H_safe_sstorage_cmp.
@@ -1349,7 +1349,7 @@ Module SStackValCmpImplSoundness.
 
         assert(H_d'0_le_d': d'0 <= S d'). intuition.
 
-        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sstorage_cmp_0.
+        pose proof (H_safe_sstorage_cmp d'0 H_d'0_le_d' sstrg sstrg0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_sstrg H_valid_sstrg0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sstorage_cmp_0.
 
         destruct H_safe_sstorage_cmp_0 as [strg' [H_eval_sstrg H_eval_sstrg0]].
         unfold eval_sstorage in H_eval_sstrg.
@@ -1359,21 +1359,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_storage_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) sstrg) as [updates|] eqn:E_mapo_strg; try discriminate.
         unfold eval_sstack_val in E_mapo_strg.
         
         destruct (map_option
                     (instantiate_storage_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) sstrg0) as [updates0|] eqn:E_mapo_strg0; try discriminate.
         unfold eval_sstack_val in E_mapo_strg0.
 
-        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_strg) as E_mapo_strg_ext.
+        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_strg) as E_mapo_strg_ext.
         rewrite E_mapo_strg_ext.
         
-        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_strg0) as E_mapo_strg0_ext.
+        pose proof (instantiate_storage_update_mapo_preserved_when_depth_ext_le sstrg0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_strg0) as E_mapo_strg0_ext.
         rewrite E_mapo_strg0_ext.
 
         injection H_eval_sstrg0 as H_eval_sstrg0.
@@ -1415,25 +1415,25 @@ Module SStackValCmpImplSoundness.
 
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg ctx H_len_stk) as H_eval_offset_offset0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) offset offset0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_offset0 H_valid_sb1' H_valid_sb2' E_cmp_offset_offset0 stk mem strg exts H_len_stk) as H_eval_offset_offset0.
         unfold eval_sstack_val in H_eval_offset_offset0.
         destruct H_eval_offset_offset0 as [v [H_eval_offset H_eval_offset0]].
         
 
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset v stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_offset) as H_eval_soffset_ext.
         rewrite H_eval_soffset_ext.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 v stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_offset0) as H_eval_soffset0_ext.
         rewrite H_eval_soffset0_ext.
 
 
-        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_size H_valid_size0 H_valid_sb1' H_valid_sb2' E_cmp_size_size0 stk mem strg ctx H_len_stk) as H_eval_size_size0.
+        pose proof (H_safe_sstack_value_cmp_cmp_d'0 d'0 (Nat.le_refl d'0) size size0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_size H_valid_size0 H_valid_sb1' H_valid_sb2' E_cmp_size_size0 stk mem strg exts H_len_stk) as H_eval_size_size0.
         unfold eval_sstack_val in H_eval_size_size0.
         destruct H_eval_size_size0 as [v' [H_eval_size H_eval_size0]].
         
 
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size v' stk mem strg ctx ops H_Smaxidx1'_le_maxidx1 H_eval_size) as H_eval_ssize_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size v' stk mem strg exts ops H_Smaxidx1'_le_maxidx1 H_eval_size) as H_eval_ssize_ext.
         rewrite H_eval_ssize_ext.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 v' stk mem strg ctx ops H_Smaxidx2'_le_maxidx2 H_eval_size0) as H_eval_ssize0_ext.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 v' stk mem strg exts ops H_Smaxidx2'_le_maxidx2 H_eval_size0) as H_eval_ssize0_ext.
         rewrite H_eval_ssize0_ext.
 
         
@@ -1441,7 +1441,7 @@ Module SStackValCmpImplSoundness.
         unfold safe_smemory_cmp in H_safe_smemory_cmp.
 
 
-        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg ctx H_len_stk) as H_safe_smemory_cmp_0.
+        pose proof (H_safe_smemory_cmp d'0 H_d'0_le_d' smem smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 E_std_sha3 stk mem strg exts H_len_stk) as H_safe_smemory_cmp_0.
 
         destruct H_safe_smemory_cmp_0 as [mem' [H_eval_mem H_eval_mem0]].
         unfold eval_smemory in H_eval_mem.
@@ -1451,21 +1451,21 @@ Module SStackValCmpImplSoundness.
         destruct (map_option
                    (instantiate_memory_update
                       (fun sv : sstack_val =>
-                       eval_sstack_val sv stk mem strg ctx maxidx1'
+                       eval_sstack_val sv stk mem strg exts maxidx1'
                          sb1' ops)) smem) as [updates|] eqn:E_mapo_mem; try discriminate.
         unfold eval_sstack_val in E_mapo_mem.
         
         destruct (map_option
                     (instantiate_memory_update
                        (fun sv : sstack_val =>
-                        eval_sstack_val sv stk mem strg ctx maxidx2'
+                        eval_sstack_val sv stk mem strg exts maxidx2'
                           sb2' ops)) smem0) as [updates0|] eqn:E_mapo_mem0; try discriminate.
         unfold eval_sstack_val in E_mapo_mem0.
 
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_Smaxidx1'_le_maxidx1 E_mapo_mem) as E_mapo_mem_ext.
         rewrite E_mapo_mem_ext.
         
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_Smaxidx2'_le_maxidx2 E_mapo_mem0) as E_mapo_mem0_ext.
         rewrite E_mapo_mem0_ext.
 
         injection H_eval_mem0 as H_eval_mem0.
@@ -1473,42 +1473,42 @@ Module SStackValCmpImplSoundness.
 
         rewrite H_eval_mem0.
         rewrite H_eval_mem.
-        exists (get_keccak256_ctx ctx (wordToNat v') (concrete_interpreter.ConcreteInterpreter.mload' mem' v (wordToNat v'))).
+        exists (get_keccak256_exts exts (wordToNat v') (concrete_interpreter.ConcreteInterpreter.mload' mem' v (wordToNat v'))).
         split; reflexivity.
         * unfold safe_sha3_cmp_ext_d in H_safe_sha3_cmp.
           unfold safe_sha3_cmp in H_safe_sha3_cmp.
-          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg ctx H_len_stk) as H_safe_sha3_cmp_0.
+          pose proof (H_safe_sha3_cmp d'0 H_d'0_le_d' offset size smem offset0 size0 smem0 maxidx1' sb1' maxidx2' sb2' instk_height ops H_valid_offset H_valid_size H_valid_offset0 H_valid_size0 H_valid_sb1' H_valid_sb2' H_valid_smem H_valid_smem0 H_cmp_sv1_sv2 stk mem strg exts H_len_stk) as H_safe_sha3_cmp_0.
 
           destruct H_safe_sha3_cmp_0 as [coffset [csize [mem1 [coffset0 [csize0 [mem2 [v [H_eval_smem [H_eval_smem0 [H_eval_offset [H_eval_size [H_eval_offset0 [H_eval_size0 [H_sha3_mem1 H_sha3_mem2]]]]]]]]]]]]]].
 
         unfold eval_smemory in H_eval_smem.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx1' sb1' ops)) smem) as [updates|] eqn:H_eval_smem_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem_0.
         assert (H_maxidx1_ge_S_maxidx1': S maxidx1' <= maxidx1). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg ctx maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem (S maxidx1') maxidx1 stk mem strg exts maxidx1' sb1' ops updates H_maxidx1_ge_S_maxidx1' H_eval_smem_0) as H_eval_smem_0_ext.
         rewrite H_eval_smem_0_ext.
         
         unfold eval_smemory in H_eval_smem0.
-        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
+        destruct (map_option (EvalCommon.instantiate_memory_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx2' sb2' ops)) smem0) as [updates0|] eqn:H_eval_smem0_0; try discriminate.
         unfold eval_sstack_val in H_eval_smem0_0.
         assert (H_maxidx2_ge_S_maxidx2': S maxidx2' <= maxidx2). intuition.
-        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg ctx maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
+        pose proof (instantiate_memory_update_mapo_preserved_when_depth_ext_le smem0 (S maxidx2') maxidx2 stk mem strg exts maxidx2' sb2' ops updates0 H_maxidx2_ge_S_maxidx2' H_eval_smem0_0) as H_eval_smem0_0_ext.
         rewrite H_eval_smem0_0_ext.
 
         unfold eval_sstack_val in H_eval_offset.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' offset coffset stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_offset) as H_eval_offset_0.
         rewrite H_eval_offset_0.
 
         unfold eval_sstack_val in H_eval_size.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg ctx ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx1') maxidx1 maxidx1' sb1' size csize stk mem strg exts ops H_maxidx1_ge_S_maxidx1' H_eval_size) as H_eval_size_0.
         rewrite H_eval_size_0.
 
         unfold eval_sstack_val in H_eval_offset0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' offset0 coffset0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_offset0) as H_eval_offset0_0.
         rewrite H_eval_offset0_0.
 
         unfold eval_sstack_val in H_eval_size0.
-        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg ctx ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
+        pose proof (eval_sstack_val'_preserved_when_depth_extended_le (S maxidx2') maxidx2 maxidx2' sb2' size0 csize0 stk mem strg exts ops H_maxidx2_ge_S_maxidx2' H_eval_size0) as H_eval_size0_0.
         rewrite H_eval_size0_0.
 
         injection H_eval_smem as H_eval_smem.

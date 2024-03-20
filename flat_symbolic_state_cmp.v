@@ -53,12 +53,12 @@ Definition sexpr_eval_type := nat -> flat_sstorage -> flat_sstorage -> nat -> st
 Definition mload_cmp_snd (mload_cmp: mload_cmp_type) :=
   forall d flat_offset flat_memory1 flat_memory2 instk_height ops,
     mload_cmp d flat_offset flat_memory1 flat_memory2 instk_height ops = true ->
-    forall stk mem strg ctx offset,
+    forall stk mem strg exts offset,
       length stk = instk_height ->
-      eval_sexpr flat_offset stk mem strg ctx ops = Some offset ->
+      eval_sexpr flat_offset stk mem strg exts ops = Some offset ->
       exists mem1 mem2 mem_updates1 mem_updates2,
-               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_memory1 = Some mem_updates1 /\
-               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_memory2 = Some mem_updates2 /\
+               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_memory1 = Some mem_updates1 /\
+               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_memory2 = Some mem_updates2 /\
                update_memory mem mem_updates1 = mem1 /\
                update_memory mem mem_updates2 = mem2 /\
                mload mem1 offset = mload mem2 offset.
@@ -66,12 +66,12 @@ Definition mload_cmp_snd (mload_cmp: mload_cmp_type) :=
 Definition sload_cmp_snd (sload_cmp : sload_cmp_type) :=
   forall d flat_key flat_storage1 flat_storage2 instk_height ops,
     sload_cmp d flat_key flat_storage1 flat_storage2 instk_height ops = true ->
-    forall stk mem strg ctx key,
+    forall stk mem strg exts key,
       length stk = instk_height ->
-      eval_sexpr flat_key stk mem strg ctx ops = Some key ->
+      eval_sexpr flat_key stk mem strg exts ops = Some key ->
       exists strg1 strg2 strg_updates1 strg_updates2,
-               map_option (instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_storage1 = Some strg_updates1 /\
-               map_option (instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_storage2 = Some strg_updates2 /\
+               map_option (instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_storage1 = Some strg_updates1 /\
+               map_option (instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_storage2 = Some strg_updates2 /\
                update_storage strg strg_updates1 = strg1 /\
                update_storage strg strg_updates2 = strg2 /\
                sload strg1 key = sload strg2 key.
@@ -79,24 +79,24 @@ Definition sload_cmp_snd (sload_cmp : sload_cmp_type) :=
 Definition sha3_cmp_snd (sha3_cmp: sha3_cmp_type) :=
   forall d flat_offset flat_size flat_memory1 flat_memory2 instk_height ops,
     sha3_cmp d flat_offset flat_size flat_memory1 flat_memory2 instk_height ops = true ->
-    forall stk mem strg ctx offset size,
+    forall stk mem strg exts offset size,
       length stk = instk_height ->
-      eval_sexpr flat_offset stk mem strg ctx ops = Some offset ->
-        eval_sexpr flat_size stk mem strg ctx ops = Some size ->
+      eval_sexpr flat_offset stk mem strg exts ops = Some offset ->
+        eval_sexpr flat_size stk mem strg exts ops = Some size ->
       exists mem1 mem2 mem_updates1 mem_updates2,
-               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_memory1 = Some mem_updates1 /\
-               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops)) flat_memory2 = Some mem_updates2 /\
+               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_memory1 = Some mem_updates1 /\
+               map_option (instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg exts ops)) flat_memory2 = Some mem_updates2 /\
                update_memory mem mem_updates1 = mem1 /\
                update_memory mem mem_updates2 = mem2 /\
-               (get_keccak256_ctx ctx) (wordToNat size) (mload' mem1 offset (wordToNat size)) =
-               (get_keccak256_ctx ctx) (wordToNat size) (mload' mem2 offset (wordToNat size)).
+               (get_keccak256_exts exts) (wordToNat size) (mload' mem1 offset (wordToNat size)) =
+               (get_keccak256_exts exts) (wordToNat size) (mload' mem2 offset (wordToNat size)).
 
 Definition smemory_cmp_snd (smem_cmp : smemory_cmp_type) :=
   forall d flat_memory1 flat_memory2 instk_height ops,
     smem_cmp d flat_memory1 flat_memory2 instk_height ops = true ->
-    forall stk mem strg ctx f_eval_mem_update,
+    forall stk mem strg exts f_eval_mem_update,
       length stk = instk_height ->
-      f_eval_mem_update = instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg ctx ops)  ->
+      f_eval_mem_update = instantiate_memory_update (fun sv => eval_sexpr sv stk mem strg exts ops)  ->
       exists mem1 mem2 mem_updates1 mem_updates2,
           map_option f_eval_mem_update flat_memory1 = Some mem_updates1 /\
           map_option f_eval_mem_update flat_memory2 = Some mem_updates2 /\
@@ -107,9 +107,9 @@ Definition smemory_cmp_snd (smem_cmp : smemory_cmp_type) :=
 Definition sstorage_cmp_snd (sstrg_cmp : sstorage_cmp_type) :=
   forall d flat_storage1 flat_storage2 instk_height ops,
     sstrg_cmp d flat_storage1 flat_storage2 instk_height ops = true ->
-    forall stk mem strg ctx f_eval_strg_update,
+    forall stk mem strg exts f_eval_strg_update,
       length stk = instk_height ->
-      f_eval_strg_update = instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg ctx ops)  ->
+      f_eval_strg_update = instantiate_storage_update (fun sv => eval_sexpr sv stk mem strg exts ops)  ->
       exists strg1 strg2 strg_updates1 strg_updates2,
           map_option f_eval_strg_update flat_storage1 = Some strg_updates1 /\
           map_option f_eval_strg_update flat_storage2 = Some strg_updates2 /\

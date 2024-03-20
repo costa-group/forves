@@ -96,10 +96,10 @@ end.
 
 
 
-Lemma eq_iszero_one_l_snd: forall ctx x,
-evm_eq ctx [evm_iszero ctx [x]; WOne] = evm_iszero ctx [x].
+Lemma eq_iszero_one_l_snd: forall exts x,
+evm_eq exts [evm_iszero exts [x]; WOne] = evm_iszero exts [x].
 Proof.
-intros ctx x.
+intros exts x.
 unfold evm_iszero. unfold evm_eq.
 destruct (weqb x WZero) eqn: eq_weqb.
 - reflexivity.
@@ -107,10 +107,10 @@ destruct (weqb x WZero) eqn: eq_weqb.
 Qed.
 
 
-Lemma eq_iszero_one_r_snd: forall ctx x,
-evm_eq ctx [WOne; evm_iszero ctx [x]] = evm_iszero ctx [x].
+Lemma eq_iszero_one_r_snd: forall exts x,
+evm_eq exts [WOne; evm_iszero exts [x]] = evm_iszero exts [x].
 Proof.
-intros ctx x.
+intros exts x.
 unfold evm_iszero. unfold evm_eq.
 destruct (weqb x WZero) eqn: eq_weqb.
 - reflexivity.
@@ -204,8 +204,8 @@ destruct (is_iszero arg1 fcmp n instk_height sb evm_stack_opm) as [x|]
 Qed.
 
 
-Lemma evm_iszero_def: forall ctx x,
-evm_iszero ctx [x] = if weqb x WZero then WOne else WZero.
+Lemma evm_iszero_def: forall exts x,
+evm_iszero exts [x] = if weqb x WZero then WOne else WZero.
 Proof.
 intuition.
 Qed.
@@ -224,7 +224,7 @@ split.
   apply optimize_eq_iszero_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_eq_iszero_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -253,21 +253,21 @@ split.
     unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb 
       evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
 
     unfold eval_sstack_val. simpl.
     rewrite -> PeanoNat.Nat.eqb_refl. simpl.
-    pose proof (eval'_succ_then_nonzero maxidx arg1 stk mem strg ctx idx sb
+    pose proof (eval'_succ_then_nonzero maxidx arg1 stk mem strg exts idx sb
        evm_stack_opm arg1v eval_arg1) as [n eq_maxidx].
     rewrite -> eq_maxidx in eval_arg1. simpl in eval_arg1.
     rewrite -> Hfollow_arg1 in eval_arg1. simpl in eval_arg1.
-    destruct (eval_sstack_val' n x stk mem strg ctx idx' sb'
+    destruct (eval_sstack_val' n x stk mem strg exts idx' sb'
       evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
     injection eval_arg1 as eq_argv1.
-    rewrite <- evm_iszero_def with (ctx:=ctx) in eq_argv1.
+    rewrite <- evm_iszero_def with (exts:=exts) in eq_argv1.
     rewrite <- eq_argv1 in Heval_orig.
     
     pose proof (follow_suffix sb arg1 idx (SymOp ISZERO [x]) idx' sb'
@@ -279,7 +279,7 @@ split.
     destruct Hvalid_eq as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
     rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_x.
     pose proof (eval_sstack_val'_extend_sb instk_height n stk mem strg
-      ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix x xv
+      exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix x xv
       eval_x) as eval_x_sb.
     apply eval_sstack_val'_preserved_when_depth_extended in eval_x_sb.
     rewrite <- eq_maxidx in eval_x_sb.
@@ -290,7 +290,7 @@ split.
     symmetry in Hlen.
     pose proof (Hsafe_sstack_val_cmp arg2 (Val WOne) idx sb idx sb instk_height
       evm_stack_opm Hvalid_arg2 Hvalid_WOne Hvalid_sb Hvalid_sb eq_fcmp_arg2_one
-      stk mem strg ctx Hlen) as [vone [eval_onev' eval_WOne]].
+      stk mem strg exts Hlen) as [vone [eval_onev' eval_WOne]].
     unfold eval_sstack_val in eval_onev'.
     unfold eval_sstack_val in eval_WOne.
     rewrite -> eval_sstack_val'_const in eval_WOne.
@@ -324,21 +324,21 @@ split.
     unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb 
       evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
 
     unfold eval_sstack_val. simpl.
     rewrite -> PeanoNat.Nat.eqb_refl. simpl.
-    pose proof (eval'_succ_then_nonzero maxidx arg1 stk mem strg ctx idx sb
+    pose proof (eval'_succ_then_nonzero maxidx arg1 stk mem strg exts idx sb
        evm_stack_opm arg1v eval_arg1) as [n eq_maxidx].
     rewrite -> eq_maxidx in eval_arg2. simpl in eval_arg2.
     rewrite -> Hfollow_arg2 in eval_arg2. simpl in eval_arg2.
-    destruct (eval_sstack_val' n x stk mem strg ctx idx' sb'
+    destruct (eval_sstack_val' n x stk mem strg exts idx' sb'
       evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
     injection eval_arg2 as eq_argv2.
-    rewrite <- evm_iszero_def with (ctx:=ctx) in eq_argv2.
+    rewrite <- evm_iszero_def with (exts:=exts) in eq_argv2.
     rewrite <- eq_argv2 in Heval_orig.
     
     pose proof (follow_suffix sb arg2 idx (SymOp ISZERO [x]) idx' sb'
@@ -350,7 +350,7 @@ split.
     destruct Hvalid_eq as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
     rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_x.
     pose proof (eval_sstack_val'_extend_sb instk_height n stk mem strg
-      ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix x xv
+      exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix x xv
       eval_x) as eval_x_sb.
     apply eval_sstack_val'_preserved_when_depth_extended in eval_x_sb.
     rewrite <- eq_maxidx in eval_x_sb.
@@ -361,7 +361,7 @@ split.
     symmetry in Hlen.
     pose proof (Hsafe_sstack_val_cmp arg1 (Val WOne) idx sb idx sb instk_height
       evm_stack_opm Hvalid_arg1 Hvalid_WOne Hvalid_sb Hvalid_sb eq_fcmp_arg1_one
-      stk mem strg ctx Hlen) as [vone [eval_onev' eval_WOne]].
+      stk mem strg exts Hlen) as [vone [eval_onev' eval_WOne]].
     unfold eval_sstack_val in eval_onev'.
     unfold eval_sstack_val in eval_WOne.
     rewrite -> eval_sstack_val'_const in eval_WOne.

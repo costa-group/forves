@@ -125,7 +125,7 @@ split.
   apply optimize_shr_x_zero_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_shr_x_zero_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -143,9 +143,9 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx x stk mem strg ctx idx sb 
+  destruct (eval_sstack_val' maxidx x stk mem strg exts idx sb 
     evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-  destruct (eval_sstack_val' maxidx zero stk mem strg ctx idx sb
+  destruct (eval_sstack_val' maxidx zero stk mem strg exts idx sb
     evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
   rewrite <- Heval_orig. simpl.
   unfold eval_sstack_val.
@@ -165,7 +165,7 @@ split.
   symmetry in Hlen.
   pose proof (Hsafe_sstack_val_cmp zero (Val WZero) idx sb idx sb instk_height
     evm_stack_opm Hvalid_arg2 valid_WZero Hvalid_bindings_sb 
-    Hvalid_bindings_sb fcmp_zero_WZero stk mem strg ctx Hlen)
+    Hvalid_bindings_sb fcmp_zero_WZero stk mem strg exts Hlen)
     as [vv [eval_zero eval_wzero]].
   unfold eval_sstack_val in eval_zero.
   unfold eval_sstack_val in eval_wzero.

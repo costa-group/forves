@@ -154,7 +154,7 @@ Inductive smap_dbg := SymMap' (maxid : nat) (bindings: sbindings_dbg).
 
 Inductive sstate_dbg :=
 | SymExState' (instk_height: nat) (sstk: sstack_dbg) (smem: smemory_dbg) 
-              (sstg: sstorage_dbg) (sctx : scontext) (sm: smap_dbg).
+              (sstg: sstorage_dbg) (sexts : sexternals) (sm: smap_dbg).
 
 
 
@@ -219,9 +219,9 @@ end.
 
 Definition sstate_to_dbg (s: sstate) : sstate_dbg :=
 match s with
-| SymExState instk_height sstk smem sstg sctx sm =>
+| SymExState instk_height sstk smem sstg sexts sm =>
     SymExState' instk_height (sstack_to_dbg sstk) (smemory_to_dbg smem)
-                (sstorage_to_dbg sstg) sctx (smap_to_dbg sm)
+                (sstorage_to_dbg sstg) sexts (smap_to_dbg sm)
 end.
 
 

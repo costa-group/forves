@@ -109,7 +109,7 @@ Proof.
 Qed.
 
 
-Definition scontext_eq_dec : forall (ctx1 ctx2 : scontext), { ctx1 = ctx2 } + { ctx1 <> ctx2 }.
+Definition sexternals_eq_dec : forall (exts1 exts2 : sexternals), { exts1 = exts2 } + { exts1 <> exts2 }.
 Proof.
 decide equality.
 Defined.
@@ -186,13 +186,13 @@ Qed.
 Definition sstae_eq_dec : forall (sst1 sst2 : sstate), { sst1 = sst2 } + { sst1 <> sst2 }.
   refine (fun (sst1 sst2 : sstate) =>
             match sst1, sst2 with
-            | SymExState instk_height1 sstk1 smem1 sstrg1 sctx1 sm1,
-              SymExState instk_height2 sstk2 smem2 sstrg2 sctx2 sm2 =>
+            | SymExState instk_height1 sstk1 smem1 sstrg1 sexts1 sm1,
+              SymExState instk_height2 sstk2 smem2 sstrg2 sexts2 sm2 =>
                 if (Nat.eq_dec instk_height1 instk_height2)
                 then if (sstack_eq_dec sstk1 sstk2)
                      then if (smemory_eq_dec smem1 smem2)
                           then if (sstorage_eq_dec sstrg1 sstrg2)
-                               then if (scontext_eq_dec sctx1 sctx2)
+                               then if (sexternals_eq_dec sexts1 sexts2)
                                     then Decide_with (smap_eq_dec sm1 sm2)
                                     else Decide_right
                                else Decide_right

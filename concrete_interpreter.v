@@ -35,7 +35,7 @@ Definition push_c (v : EVMWord) (st : state) (ops : stack_op_instr_map) : option
 
 Definition metapush_c (v1 v2 : N) (st : state) (ops : stack_op_instr_map) : option state :=
   let stk := get_stack_st st in
-  let tags := (get_tags_ctx (get_context_st st)) in
+  let tags := (get_tags_exts (get_externals_st st)) in
   let v' := tags v1 v2 in
   match push v' stk with
   | None => None
@@ -151,7 +151,7 @@ Definition sstore_c (st : state) (ops : stack_op_instr_map) : option state :=
 Definition sha3_c (st : state) (ops : stack_op_instr_map) : option state :=
   match get_stack_st st with
   | offset::size::stk =>
-      let f := get_keccak256_ctx (get_context_st st) in
+      let f := get_keccak256_exts (get_externals_st st) in
       (*      let v := f (get_memory_st st) offset size in *)
       let v := f (wordToNat size) (mload' (get_memory_st st) offset (wordToNat size)) in
       let st' := set_stack_st st (v::stk) in
@@ -168,7 +168,7 @@ Definition exec_stack_op_intsr_c (label : stack_op_instr) (st : state) (ops : st
       | Some args => match skipn_e nb_args stk with
                      | None => None
                      | Some stk' =>
-                         let v := func (get_context_st st) args in
+                         let v := func (get_externals_st st) args in
                          let st':= set_stack_st st (v :: stk') in
                          Some st'
                      end

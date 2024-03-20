@@ -53,8 +53,8 @@ Inductive block_info :=
 Inductive chunk :=
 | Chunk (size : nat) (content : word size).
 
-Inductive externals :=
-| Exts
+Inductive context :=
+| Ctx
   (address : EVMAddr)
   (balance : EVMAddr -> EVMWord)
   (origin : EVMAddr)
@@ -79,8 +79,8 @@ Inductive externals :=
 
 
 
-Definition empty_externals : externals :=
- Exts
+Definition empty_context : context :=
+ Ctx
   AZero (* (address : EVMAddr) *)
   (fun _ => WZero) (* (balance : EVMAddr -> EVMWord) *)
   AZero (* (origin : EVMAddr) *)
@@ -103,105 +103,105 @@ Definition empty_externals : externals :=
   0 (* (_extra_4 : nat) *)
   0. (* (_extra_5 : nat) *)
 
-(* Exts _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ *)
+(* Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ *)
 
-Definition get_address_exts (c : externals) :=
+Definition get_address_ctx (c : context) :=
   match c with
-  | Exts x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_balance_exts (c : externals) :=
+Definition get_balance_ctx (c : context) :=
   match c with
-  | Exts _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_origin_exts (c : externals) :=
+Definition get_origin_ctx (c : context) :=
   match c with
-  | Exts _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_caller_exts (c : externals) :=
+Definition get_caller_ctx (c : context) :=
   match c with
-  | Exts _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_callvalue_exts (c : externals) :=
+Definition get_callvalue_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_data_exts (c : externals) :=
+Definition get_data_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_code_exts (c : externals) :=
+Definition get_code_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_gasprice_exts (c : externals) :=
+Definition get_gasprice_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_outdata_exts (c : externals) :=
+Definition get_outdata_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_blocks_exts (c : externals) :=
+Definition get_blocks_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_miner_exts (c : externals) :=
+Definition get_miner_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_currblock_exts (c : externals) :=
+Definition get_currblock_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_gaslimit_exts (c : externals) :=
+Definition get_gaslimit_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ _ => x
   end.
 
-Definition get_chainid_exts (c : externals) :=
+Definition get_chainid_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ _ => x
   end.
 
-Definition get_basefee_exts (c : externals) :=
+Definition get_basefee_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ _ => x
   end.
 
-Definition get_keccak256_exts (c : externals) :=
+Definition get_keccak256_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ _ => x
   end.
 
-Definition get_tags_exts (c : externals) :=
+Definition get_tags_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ _ => x
   end.
 
-Definition get_prevrandao_exts (c : externals) :=
+Definition get_prevrandao_ctx (c : context) :=
   match c with
-  | Exts _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ => x
+  | Ctx _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ x _ _ _ => x
   end.
 
 Inductive state :=
-| ExState (stk: stack) (mem: memory) (strg: storage) (exts :externals).
+| ExState (stk: stack) (mem: memory) (strg: storage) (ctx :context).
 
-Definition make_st (stk: stack) (mem: memory) (strg: storage) (exts : externals) : state :=
-  ExState stk mem strg exts.
+Definition make_st (stk: stack) (mem: memory) (strg: storage) (ctx : context) : state :=
+  ExState stk mem strg ctx.
 
-Definition empty_state := make_st empty_stack empty_memory empty_storage empty_externals.
+Definition empty_state := make_st empty_stack empty_memory empty_storage empty_context.
 
 Definition get_stack_st (st: state) : stack :=
   match st with
@@ -210,7 +210,7 @@ Definition get_stack_st (st: state) : stack :=
 
 Definition set_stack_st (st: state) (stk: stack) : state :=
   match st with
-  | ExState _ mem strg exts => ExState stk mem strg exts
+  | ExState _ mem strg ctx => ExState stk mem strg ctx
   end.
 
 Definition get_memory_st (st: state) : memory :=
@@ -220,7 +220,7 @@ Definition get_memory_st (st: state) : memory :=
 
 Definition set_memory_st (st: state) (mem: memory) : state :=
   match st with
-  | ExState stk _ strg exts => ExState stk mem strg exts
+  | ExState stk _ strg ctx => ExState stk mem strg ctx
   end.
 
 Definition get_storage_st (st: state) : storage :=
@@ -230,17 +230,17 @@ Definition get_storage_st (st: state) : storage :=
 
 Definition set_store_st (st: state) (strg: storage) : state :=
   match st with
-  | ExState stk mem _ exts => ExState stk mem strg exts
+  | ExState stk mem _ ctx => ExState stk mem strg ctx
   end.
 
-Definition get_externals_st (st: state) : externals :=
+Definition get_externals_st (st: state) : context :=
   match st with
-  | ExState _ _ _ exts => exts
+  | ExState _ _ _ ctx => ctx
   end.
 
-Definition set_externals_st (st: state) (exts: externals) : state :=
+Definition set_externals_st (st: state) (ctx: context) : state :=
   match st with
-  | ExState stk mem strg _ => ExState stk mem strg exts
+  | ExState stk mem strg _ => ExState stk mem strg ctx
   end.
   
 
@@ -258,19 +258,19 @@ Definition eq_memory (mem1 mem2: memory) : Prop := forall w, mem1 w =
 Definition eq_storage (strg1 strg2: storage) : Prop := forall w, strg1
   w = strg2 w.
 
-Definition eq_externals (exts1 exts2: externals) : Prop := exts1 = exts2.
+Definition eq_context (ctx1 ctx2: context) : Prop := ctx1 = ctx2.
 
 (*
 Definition eq_execution_states (st1 st2: state) : Prop :=
 
-  forall stk1 stk2 mem1 mem2 strg1 strg2 exts1 exts2,
+  forall stk1 stk2 mem1 mem2 strg1 strg2 ctx1 ctx2,
     (stk1 = get_stack_st st1) ->
     (stk2 = get_stack_st st2) -> (mem1 = get_memory_st st1) ->
     (mem2 = get_memory_st st2) -> (strg1 = get_storage_st st1) ->
-    (strg2 = get_storage_st st2) -> (exts1 = get_externals_st st1) ->
-    (exts2 = get_externals_st st2) ->
+    (strg2 = get_storage_st st2) -> (ctx1 = get_externals_st st1) ->
+    (ctx2 = get_externals_st st2) ->
     
-    eq_stack stk1 stk2 /\ eq_memory mem1 mem2 /\ eq_storage strg1 strg2 /\ eq_externals exts1 exts2.
+    eq_stack stk1 stk2 /\ eq_memory mem1 mem2 /\ eq_storage strg1 strg2 /\ eq_context ctx1 ctx2.
 *)
 
 
@@ -279,7 +279,7 @@ Definition eq_execution_states (st1 st2: state) : Prop :=
     eq_stack (get_stack_st st1) (get_stack_st st2) /\
       eq_memory (get_memory_st st1) (get_memory_st st2) /\
       eq_storage (get_storage_st st1) (get_storage_st st2) /\
-      eq_externals (get_externals_st st1) (get_externals_st st2).
+      eq_context (get_externals_st st1) (get_externals_st st2).
 
 
 (* Facts *)
@@ -290,7 +290,7 @@ Lemma eq_execution_states_refl:
 Proof.
   intros.
   unfold eq_execution_states.
-  intuition. (* this proves the stack and externals equivalence *)
+  intuition. (* this proves the stack and context equivalence *)
   + unfold eq_memory. intro. reflexivity.
   + unfold eq_storage. intro. reflexivity.
 Qed.
@@ -306,7 +306,7 @@ Proof.
   destruct st' eqn:E_st'.
   unfold eq_execution_states in H_eq.
   simpl in H_eq.
-  destruct H_eq as [H_eq_stack [H_eq_mem [H_eq_strg H_eq_exts]]].
+  destruct H_eq as [H_eq_stack [H_eq_mem [H_eq_strg H_eq_ctx]]].
 
   unfold eq_stack in H_eq_stack.
   rewrite H_eq_stack.
@@ -316,8 +316,8 @@ Proof.
   unfold eq_storage in H_eq_strg.
   apply functional_extensionality in H_eq_strg. (* functional extension *)
   rewrite H_eq_strg.
-  unfold eq_externals in H_eq_exts.
-  rewrite H_eq_exts.
+  unfold eq_context in H_eq_ctx.
+  rewrite H_eq_ctx.
   reflexivity.
 Qed.
 
@@ -349,7 +349,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma externals_preserved_when_updating_stack_st:
+Lemma context_preserved_when_updating_stack_st:
   forall st stk,
     get_externals_st (set_stack_st st stk) = get_externals_st st.
 Proof.

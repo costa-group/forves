@@ -80,13 +80,13 @@ Module StorageCmpImplSoundness.
     revert sstrg2.
     revert sstrg1.
     induction sstrg1 as [|u1 sstrg1' IHsstrg1'].
-    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx H_stk_len.
+    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg exts H_stk_len.
       destruct sstrg2; try discriminate.
       exists strg.
       unfold eval_sstorage.
       simpl.
       split; reflexivity.
-    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg ctx H_stk_len.
+    + intros sstrg2 H_valid_sstrg1 H_valid_sstrg2 H_basic_strg_smp stk mem strg exts H_stk_len.
       destruct sstrg2 as [|u2 sstrg2'] eqn:H_sstrg2.
       ++ simpl in H_basic_strg_smp.
          destruct u1.
@@ -100,25 +100,25 @@ Module StorageCmpImplSoundness.
          destruct H_valid_sstrg1 as [ [H_valid_skey1 H_valid_svalue1] H_valid_sstrg1'].
          simpl in H_valid_sstrg2.
          destruct H_valid_sstrg2 as [ [H_valid_skey2 H_valid_svalue2] H_valid_sstrg2'].
-         pose proof (IHsstrg1' sstrg2' H_valid_sstrg1' H_valid_sstrg2' H_basic_strg_smp stk mem strg ctx H_stk_len) as IHsstrg1'_0.
+         pose proof (IHsstrg1' sstrg2' H_valid_sstrg1' H_valid_sstrg2' H_basic_strg_smp stk mem strg exts H_stk_len) as IHsstrg1'_0.
          destruct IHsstrg1'_0 as [strg' [IHsstrg1'_0 IHsstrg1'_1]].
 
          unfold safe_sstack_val_cmp_ext_1_d in H_sstack_val_cmp_snd.
          pose proof (H_sstack_val_cmp_snd d' H_d'_le_d) as H_sstack_val_cmp_snd_d'.
          unfold safe_sstack_val_cmp in H_sstack_val_cmp_snd_d'.
-         pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg ctx H_stk_len) as H_eval_skey1_skey2.
+         pose proof(H_sstack_val_cmp_snd_d' skey1 skey2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_skey1 H_valid_skey2 H_valid_sb1 H_valid_sb2 E_cmp_skey1_skey2 stk mem strg exts H_stk_len) as H_eval_skey1_skey2.
          destruct H_eval_skey1_skey2 as [skey_1_2_v [H_eval_skey1 H_eval_skey2]].
 
-         pose proof(H_sstack_val_cmp_snd_d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_svalue1 H_valid_svalue2 H_valid_sb1 H_valid_sb2 E_cmp_svalue1_svalue2 stk mem strg ctx H_stk_len) as H_eval_svalue1_svalue2.
+         pose proof(H_sstack_val_cmp_snd_d' svalue1 svalue2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_svalue1 H_valid_svalue2 H_valid_sb1 H_valid_sb2 E_cmp_svalue1_svalue2 stk mem strg exts H_stk_len) as H_eval_svalue1_svalue2.
          destruct H_eval_svalue1_svalue2 as [svalue_1_2_v [H_eval_svalue1 H_eval_svalue2]].
          exists (fun key => if (key =? wordToN skey_1_2_v)%N then svalue_1_2_v else strg' key).
 
          unfold eval_sstorage in IHsstrg1'_0.
-         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx1 sb1 ops)) sstrg1') as [updates1|] eqn:H_mo_sstrg1'; try discriminate.
+         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx1 sb1 ops)) sstrg1') as [updates1|] eqn:H_mo_sstrg1'; try discriminate.
          injection IHsstrg1'_0 as IHsstrg1'_0.
          
          unfold eval_sstorage in IHsstrg1'_1.
-         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx2 sb2 ops)) sstrg2') as [updates2|] eqn:H_mo_sstrg2'; try discriminate.
+         destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx2 sb2 ops)) sstrg2') as [updates2|] eqn:H_mo_sstrg2'; try discriminate.
          injection IHsstrg1'_1 as IHsstrg1'_1.
 
          unfold eval_sstorage.
@@ -180,15 +180,15 @@ Module StorageCmpImplSoundness.
       valid_sstorage_update instk_height maxidx u2 ->
       valid_bindings instk_height maxidx sb ops ->
       swap_storage_update u1 u2 maxidx sb = true ->
-      forall stk mem strg ctx, 
+      forall stk mem strg exts, 
              length stk = instk_height ->
              exists strg' : storage,
-               eval_sstorage (u1::u2::sstrg) maxidx sb stk mem strg ctx ops = Some strg' /\
-                 eval_sstorage (u2::u1::sstrg) maxidx sb stk mem strg ctx ops = Some strg'.
+               eval_sstorage (u1::u2::sstrg) maxidx sb stk mem strg exts ops = Some strg' /\
+                 eval_sstorage (u2::u1::sstrg) maxidx sb stk mem strg exts ops = Some strg'.
   Proof.
     intros sstrg u1 u2 maxidx sb instk_height ops.
     intros H_valid_sstrg H_valid_u1 H_valid_u2 H_valid_bs H_swap.
-    intros stk mem strg ctx H_stk_len.
+    intros stk mem strg exts H_stk_len.
     destruct u1 as [skey1 svalue1] eqn:E_u1.
     destruct u2 as [skey2 svalue2] eqn:E_u2.
     unfold swap_storage_update in H_swap.
@@ -212,16 +212,16 @@ Module StorageCmpImplSoundness.
     destruct H_valid_u2' as [H_valid_skey2 H_valid_svalue2].
 
     
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_bs (gt_Sn_n maxidx)) as H_eval_skey1.
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_bs (gt_Sn_n maxidx)) as H_eval_skey1.
     destruct H_eval_skey1 as [skey1_v H_eval_skey1].
 
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_bs (gt_Sn_n maxidx)) as H_eval_svalue1.
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_bs (gt_Sn_n maxidx)) as H_eval_svalue1.
     destruct H_eval_svalue1 as [svalue1_v H_eval_svalue1].
 
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey2 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_skey2 H_valid_bs (gt_Sn_n maxidx)) as H_eval_skey2.
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey2 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_skey2 H_valid_bs (gt_Sn_n maxidx)) as H_eval_skey2.
     destruct H_eval_skey2 as [skey2_v H_eval_skey2].
 
-    pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue2 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue2 H_valid_bs (gt_Sn_n maxidx)) as H_eval_svalue2.
+    pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue2 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_svalue2 H_valid_bs (gt_Sn_n maxidx)) as H_eval_svalue2.
     destruct H_eval_svalue2 as [svalue2_v H_eval_svalue2].
  
     unfold eval_sstorage.
@@ -256,11 +256,11 @@ Module StorageCmpImplSoundness.
     unfold eval_sstack_val at 2.
     rewrite H_eval_svalue1.
   
-    pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg ctx ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_bs) as H_eval_sstrg.
+    pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg exts ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_bs) as H_eval_sstrg.
     destruct H_eval_sstrg as [strg' H_eval_sstrg].
     unfold eval_sstorage in H_eval_sstrg.
 
-    destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) sstrg) as [updates|] eqn:E_mo_eval_sstrg; try discriminate.
+    destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops)) sstrg) as [updates|] eqn:E_mo_eval_sstrg; try discriminate.
 
     exists (fun key => if (key =? wordToN skey1_v)%N then svalue1_v else if (key =? wordToN skey2_v)%N then svalue2_v else strg' key).
 
@@ -351,25 +351,25 @@ Qed.
       forall d sstrg b sstrg_r,
       valid_sstorage instk_height maxidx sstrg ->
       reorder_updates' d sstrg maxidx sb = (b,sstrg_r) ->
-      forall stk mem strg ctx, 
+      forall stk mem strg exts, 
              length stk = instk_height ->
              exists strg' : storage,
-               eval_sstorage sstrg maxidx sb stk mem strg ctx ops = Some strg' /\
-                 eval_sstorage sstrg_r maxidx sb stk mem strg ctx ops = Some strg'.
+               eval_sstorage sstrg maxidx sb stk mem strg exts ops = Some strg' /\
+                 eval_sstorage sstrg_r maxidx sb stk mem strg exts ops = Some strg'.
   Proof.
     intros maxidx sb instk_height ops H_valid_sb.
     induction d as [|d' IHd'].
     + intros sstrg b sstrg_r H_valid_sstrg H_reorder'.
-      intros stk mem strg ctx H_stk_len.
+      intros stk mem strg exts H_stk_len.
       simpl in H_reorder'.
       injection H_reorder' as H_b H_sstrg_r.
       rewrite <- H_sstrg_r.
-      pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg ctx ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_sb) as H_eval_sstrg.
+      pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg exts ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_sb) as H_eval_sstrg.
       destruct H_eval_sstrg as [strg' H_eval_sstrg].
       exists strg'.
       split; apply H_eval_sstrg.
     + intros sstrg b sstrg_r H_valid_sstrg H_reorder'.
-      intros stk mem strg ctx H_stk_len.
+      intros stk mem strg exts H_stk_len.
       simpl in H_reorder'.
       destruct sstrg as [|u1 sstrg'] eqn:E_sstrg.
       ++ injection H_reorder' as H_b H_sstrg_r.
@@ -385,9 +385,9 @@ Qed.
              simpl in H_valid_sstrg.
              destruct H_valid_sstrg as [[H_valid_skey1 H_valid_svalue1] _].
 
-             pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey1.
+             pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey1.
              destruct E_eval_skey1 as [skey1_v E_eval_skey1].
-             pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue1.
+             pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue1.
              destruct E_eval_svalue1 as [svalue1_v E_eval_svalue1].
 
              exists (fun key => if (key =? wordToN skey1_v)%N then svalue1_v else strg key).
@@ -406,29 +406,29 @@ Qed.
                   simpl in H_valid_sstrg.
                   destruct H_valid_sstrg as [H_valid_u1 [H_valid_u2 H_valid_sstrg'']].
                    
-                  pose proof (swap_storage_update_snd  sstrg'' u1 u2 maxidx sb instk_height ops H_valid_sstrg'' H_valid_u1 H_valid_u2 H_valid_sb E_swap stk mem strg ctx H_stk_len) as H_swap_storage_update_snd.
+                  pose proof (swap_storage_update_snd  sstrg'' u1 u2 maxidx sb instk_height ops H_valid_sstrg'' H_valid_u1 H_valid_u2 H_valid_sb E_swap stk mem strg exts H_stk_len) as H_swap_storage_update_snd.
 
                   destruct H_swap_storage_update_snd as [strg_aux [H_eval_u1_u2_sstrg'' H_eval_u2_u1_sstrg'' ]].
 		  rewrite <- H_eval_u2_u1_sstrg'' in H_eval_u1_u2_sstrg''.
                   rewrite H_eval_u1_u2_sstrg''.
  
-                  pose proof (IHd' (u1 :: sstrg'') b' sstrg_r' (valid_sstorage_when_extended_with_valid_update instk_height maxidx u1 sstrg'' H_valid_u1 H_valid_sstrg'') E_reorder'_rec stk mem strg ctx H_stk_len) as IHd'_0.
+                  pose proof (IHd' (u1 :: sstrg'') b' sstrg_r' (valid_sstorage_when_extended_with_valid_update instk_height maxidx u1 sstrg'' H_valid_u1 H_valid_sstrg'') E_reorder'_rec stk mem strg exts H_stk_len) as IHd'_0.
                   destruct IHd'_0 as [strg' [H_eval_u1_sstrg'' H_eval_sstrg_r']].
                   rewrite <- E_sstrg_r.
                   
                   unfold eval_sstorage in H_eval_u1_sstrg''.
-                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) (u1 :: sstrg'')) as [updates1|] eqn:E_mo_1; try discriminate.
+                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops)) (u1 :: sstrg'')) as [updates1|] eqn:E_mo_1; try discriminate.
                   
                   unfold eval_sstorage in H_eval_sstrg_r'.
-                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) sstrg_r') as [updates2|] eqn:E_mo_2; try discriminate.
+                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops)) sstrg_r') as [updates2|] eqn:E_mo_2; try discriminate.
                   
                   destruct u2 as [skey2 svalue2] eqn:E_u2.
                   simpl in H_valid_u2.
                   destruct H_valid_u2 as [H_valid_skey2 H_valid_svalue2].
 
-                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey2 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_skey2 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey2.
+                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey2 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_skey2 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey2.
                   destruct E_eval_skey2 as [skey2_v E_eval_skey2].
-                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue2 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue2 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue2.
+                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue2 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_svalue2 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue2.
                   destruct E_eval_svalue2 as [svalue2_v E_eval_svalue2].
                   
                   unfold eval_sstorage.
@@ -448,7 +448,7 @@ Qed.
                   rewrite E_eval_svalue2.
 
                   unfold map_option in E_mo_1.
-                  destruct (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops) u1) as [elem_val|] eqn:E_elem_val; try discriminate.
+                  destruct (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops) u1) as [elem_val|] eqn:E_elem_val; try discriminate.
                   
                   repeat rewrite <- map_option_ho in E_mo_1.
                   rewrite E_mo_1.
@@ -469,24 +469,24 @@ Qed.
                   simpl in H_valid_sstrg.
                   destruct H_valid_sstrg as [H_valid_u1 [H_valid_u2 H_valid_sstrg'']].
 
-                  pose proof (IHd' (u2 :: sstrg'') b' sstrg_r' (valid_sstorage_when_extended_with_valid_update instk_height maxidx u2 sstrg'' H_valid_u2 H_valid_sstrg'') E_reorder'_rec stk mem strg ctx H_stk_len) as IHd'_0.
+                  pose proof (IHd' (u2 :: sstrg'') b' sstrg_r' (valid_sstorage_when_extended_with_valid_update instk_height maxidx u2 sstrg'' H_valid_u2 H_valid_sstrg'') E_reorder'_rec stk mem strg exts H_stk_len) as IHd'_0.
                   destruct IHd'_0 as [strg' [H_eval_u2_sstrg'' H_eval_sstrg_r']].
                   injection H_reorder' as H_b' H_sstrg_r'.
                   rewrite <- H_sstrg_r'.
 
                   unfold eval_sstorage in H_eval_u2_sstrg''.
-                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) (u2 :: sstrg'')) as [updates1|] eqn:E_mo_1; try discriminate.
+                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops)) (u2 :: sstrg'')) as [updates1|] eqn:E_mo_1; try discriminate.
                   
                   unfold eval_sstorage in H_eval_sstrg_r'.
-                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops)) sstrg_r') as [updates2|] eqn:E_mo_2; try discriminate.
+                  destruct (map_option (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops)) sstrg_r') as [updates2|] eqn:E_mo_2; try discriminate.
                   
                   destruct u1 as [skey1 svalue1] eqn:E_u1.
                   simpl in H_valid_u1.
                   destruct H_valid_u1 as [H_valid_skey1 H_valid_svalue1].
 
-                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey1.
+                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height skey1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_skey1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_skey1.
                   destruct E_eval_skey1 as [skey1_v E_eval_skey1].
-                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg ctx maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue1.
+                  pose proof (eval_sstack_val'_succ (S maxidx) instk_height svalue1 stk mem strg exts maxidx sb ops (eq_sym H_stk_len) H_valid_svalue1 H_valid_sb (gt_Sn_n maxidx)) as E_eval_svalue1.
                   destruct E_eval_svalue1 as [svalue1_v E_eval_svalue1].
                   
                   unfold eval_sstorage.
@@ -506,7 +506,7 @@ Qed.
                   rewrite E_eval_svalue1.
 
                   unfold map_option in E_mo_1.
-                  destruct (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg ctx maxidx sb ops) u2) as [elem_val|] eqn:E_elem_val; try discriminate.
+                  destruct (instantiate_storage_update (fun sv : sstack_val => eval_sstack_val sv stk mem strg exts maxidx sb ops) u2) as [elem_val|] eqn:E_elem_val; try discriminate.
                   
                   repeat rewrite <- map_option_ho in E_mo_1.
                   rewrite E_mo_1.
@@ -559,32 +559,32 @@ Qed.
       forall d n sstrg sstrg_r,
         valid_sstorage instk_height maxidx sstrg ->
       reorder_storage_updates d n sstrg maxidx sb = sstrg_r ->
-      forall stk mem strg ctx, 
+      forall stk mem strg exts, 
         length stk = instk_height ->
         exists strg' : storage,
-          eval_sstorage sstrg maxidx sb stk mem strg ctx ops = Some strg' /\
-            eval_sstorage sstrg_r maxidx sb stk mem strg ctx ops = Some strg'.
+          eval_sstorage sstrg maxidx sb stk mem strg exts ops = Some strg' /\
+            eval_sstorage sstrg_r maxidx sb stk mem strg exts ops = Some strg'.
   Proof.
     intros maxidx sb instk_height ops H_valid_sb.
     induction d as [|d' IHd'].
-    + intros n sstrg sstrg' H_valid_sstrg H_reorder stk mem strg ctx H_stk_len.
+    + intros n sstrg sstrg' H_valid_sstrg H_reorder stk mem strg exts H_stk_len.
       simpl in H_reorder.
       rewrite <- H_reorder.
-      pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg ctx ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_sb) as H_eval_sstrg.
+      pose proof (eval_sstorage_succ instk_height maxidx sb stk mem strg exts ops sstrg (eq_sym H_stk_len) H_valid_sstrg H_valid_sb) as H_eval_sstrg.
       destruct H_eval_sstrg as [strg' H_eval_sstrg].
       exists strg'.
       split; apply H_eval_sstrg.
-    + intros n sstrg sstrg' H_valid_sstrg H_reorder stk mem strg ctx H_stk_len.
+    + intros n sstrg sstrg' H_valid_sstrg H_reorder stk mem strg exts H_stk_len.
       simpl in H_reorder.
       destruct (reorder_updates' n sstrg maxidx sb) as [changed sstrg_r] eqn:E_reorder_updates'.
      
-      pose proof (reorder_updates'_snd maxidx sb instk_height ops H_valid_sb n sstrg changed sstrg_r H_valid_sstrg E_reorder_updates' stk mem strg ctx H_stk_len) as H_reorder_updates'_snd.
+      pose proof (reorder_updates'_snd maxidx sb instk_height ops H_valid_sb n sstrg changed sstrg_r H_valid_sstrg E_reorder_updates' stk mem strg exts H_stk_len) as H_reorder_updates'_snd.
       destruct H_reorder_updates'_snd as [strg' [H_eval_sstrg H_eval_sstrg_r]].
       
       destruct changed eqn:E_changed.
       ++ pose proof (reorder_updates'_valid maxidx sb instk_height ops H_valid_sb n sstrg true sstrg_r H_valid_sstrg E_reorder_updates') as H_valid_sstrg_r.
 
-         pose proof (IHd' n sstrg_r sstrg' H_valid_sstrg_r H_reorder stk mem strg ctx H_stk_len) as IHd'_0.
+         pose proof (IHd' n sstrg_r sstrg' H_valid_sstrg_r H_reorder stk mem strg exts H_stk_len) as IHd'_0.
          destruct IHd'_0 as [strg'' [H_eval_sstrg_r_bis H_eval_sstrg']].
          exists strg'.
 
@@ -609,19 +609,19 @@ Qed.
     unfold safe_sstorage_cmp_ext_wrt_sstack_value_cmp.
     unfold safe_sstorage_cmp_ext_d.
     unfold safe_sstorage_cmp.
-    intros d sstack_val_cmp H_sstack_val_cmp_snd d' H_d'_le_d sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sb1 H_valid_sb2 H_valid_sstrg1 H_valid_sstrg2 H_po_cmp stk mem strg ctx H_stk_len.
+    intros d sstack_val_cmp H_sstack_val_cmp_snd d' H_d'_le_d sstrg1 sstrg2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sb1 H_valid_sb2 H_valid_sstrg1 H_valid_sstrg2 H_po_cmp stk mem strg exts H_stk_len.
     unfold po_storage_cmp in H_po_cmp.
     destruct (length sstrg1 =? length sstrg2); try discriminate.
 
     remember (reorder_storage_updates (length sstrg1) (length sstrg1) sstrg1 maxidx1 sb1) as sstrg1_r.
     remember (reorder_storage_updates (length sstrg2) (length sstrg2) sstrg2 maxidx2 sb2) as sstrg2_r.
     
-    pose proof (reorder_storage_updates_snd maxidx1 sb1 instk_height ops H_valid_sb1 (length sstrg1) (length sstrg1) sstrg1 sstrg1_r H_valid_sstrg1 (eq_sym Heqsstrg1_r) stk mem strg ctx H_stk_len) as H_reorder_storage_updates_snd_sstrg1_r.
+    pose proof (reorder_storage_updates_snd maxidx1 sb1 instk_height ops H_valid_sb1 (length sstrg1) (length sstrg1) sstrg1 sstrg1_r H_valid_sstrg1 (eq_sym Heqsstrg1_r) stk mem strg exts H_stk_len) as H_reorder_storage_updates_snd_sstrg1_r.
     pose proof (reorder_storage_updates_valid maxidx1 sb1 instk_height ops H_valid_sb1 (length sstrg1) (length sstrg1) sstrg1 sstrg1_r H_valid_sstrg1 (eq_sym Heqsstrg1_r)) as H_valid_sstrg1_r.
 
     destruct H_reorder_storage_updates_snd_sstrg1_r as [strg1' [H_eval_sstrg1 H_eval_sstrg1_r]].
 
-    pose proof (reorder_storage_updates_snd maxidx2 sb2 instk_height ops H_valid_sb2 (length sstrg2) (length sstrg2) sstrg2 sstrg2_r H_valid_sstrg2 (eq_sym Heqsstrg2_r) stk mem strg ctx H_stk_len) as H_reorder_storage_updates_snd_sstrg2_r.
+    pose proof (reorder_storage_updates_snd maxidx2 sb2 instk_height ops H_valid_sb2 (length sstrg2) (length sstrg2) sstrg2 sstrg2_r H_valid_sstrg2 (eq_sym Heqsstrg2_r) stk mem strg exts H_stk_len) as H_reorder_storage_updates_snd_sstrg2_r.
     pose proof (reorder_storage_updates_valid maxidx2 sb2 instk_height ops H_valid_sb2 (length sstrg2) (length sstrg2) sstrg2 sstrg2_r H_valid_sstrg2 (eq_sym Heqsstrg2_r)) as H_valid_sstrg2_r.
 
     destruct H_reorder_storage_updates_snd_sstrg2_r as [strg2' [H_eval_sstrg2 H_eval_sstrg2_r]].
@@ -631,7 +631,7 @@ Qed.
     unfold safe_sstorage_cmp_ext_d in H_basic_storage_cmp_snd.
     unfold safe_sstorage_cmp in H_basic_storage_cmp_snd.
 
-    pose proof (H_basic_storage_cmp_snd d sstack_val_cmp H_sstack_val_cmp_snd d' H_d'_le_d sstrg1_r sstrg2_r maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sb1 H_valid_sb2 H_valid_sstrg1_r H_valid_sstrg2_r H_po_cmp stk mem strg ctx H_stk_len) as H_basic_cmp_snd.
+    pose proof (H_basic_storage_cmp_snd d sstack_val_cmp H_sstack_val_cmp_snd d' H_d'_le_d sstrg1_r sstrg2_r maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sb1 H_valid_sb2 H_valid_sstrg1_r H_valid_sstrg2_r H_po_cmp stk mem strg exts H_stk_len) as H_basic_cmp_snd.
 
     destruct H_basic_cmp_snd as [strg' [H_eval_sstrg1_r_bis H_eval_sstrg2_r_bis]].
     exists strg1'.

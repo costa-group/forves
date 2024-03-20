@@ -4,7 +4,7 @@ Module Program.
 
 (*
 
-Stack operation instructions: they require only the context and the
+Stack operation instructions: they require only the externals and the
 stack as input, they compute a value (to be pushed to the stack) given
 the input.
 

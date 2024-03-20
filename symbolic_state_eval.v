@@ -34,7 +34,7 @@ Module SymbolicStateEval.
 
 
 
-Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (ctx: context) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=
+Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (exts: externals) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=
   match d with
   | 0 => None
   | S d' =>
@@ -57,7 +57,7 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
 
           (* PUSHTAG *)
           | SymMETAPUSH cat v =>
-              let tags := (get_tags_ctx ctx) in Some (tags cat v)
+              let tags := (get_tags_exts exts) in Some (tags cat v)
 
           (* stack operation instruction: we evaluate the argument
              recursively and then evaluate the corresponding operation *)
@@ -66,10 +66,10 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
               | OpImp nargs f _ _ =>
                   (* first check that the number of argumets agree with what is declared in the map *)
                   if (List.length args =? nargs) then
-                    let f_eval_list := fun (sv': sstack_val) => eval_sstack_val' d' sv' stk mem strg ctx maxidx' sb' ops in
+                    let f_eval_list := fun (sv': sstack_val) => eval_sstack_val' d' sv' stk mem strg exts maxidx' sb' ops in
                     match map_option f_eval_list args with
                     | None => None
-                    | Some vargs => Some (f ctx vargs)
+                    | Some vargs => Some (f exts vargs)
                     end
                   else None
               end
@@ -81,11 +81,11 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
                 4. look for the desired value in the memory 
              *)
             | SymMLOAD soffset smem =>
-                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg exts maxidx' sb' ops) in
                 match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some mem_updates =>
-                    match eval_sstack_val' d' soffset stk mem strg ctx maxidx' sb' ops with (* Evaluate the offset *)
+                    match eval_sstack_val' d' soffset stk mem strg exts maxidx' sb' ops with (* Evaluate the offset *)
                     | None => None
                     | Some offset =>
                         let mem := update_memory mem mem_updates in (* apply updates to the memory *)
@@ -100,11 +100,11 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
                 4. look for the desired value in the stroarge 
             *)
             | SymSLOAD skey sstrg =>
-                let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val' d' sv stk mem strg exts maxidx' sb' ops) in
                 match map_option f_eval_strg_update sstrg with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some strg_updates =>
-                    match eval_sstack_val' d' skey stk mem strg ctx maxidx' sb' ops with (* Evaluate the key *)
+                    match eval_sstack_val' d' skey stk mem strg exts maxidx' sb' ops with (* Evaluate the key *)
                     | None => None
                     | Some key =>
                         let strg := update_storage strg strg_updates in (* apply updates to the storage *)
@@ -116,21 +116,21 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
                 1. evaluate the updates, i.e., instantiate the symbolic arguments of the updates by concrete values
                 2. evaluate the offset/size
                 3. apply the updates to the memeory of the concrete initial state 'st'
-                4. apply the SHA3 function that is given in the context 
+                4. apply the SHA3 function that is given in the externals 
              *)
             | SymSHA3 soffset ssize smem =>
-                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg ctx maxidx' sb' ops) in
+                let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val' d' sv stk mem strg exts maxidx' sb' ops) in
                 match map_option f_eval_mem_update smem with (* Evaluate the arguments of the updates *)
                 | None => None
                 | Some mem_updates =>
-                    match eval_sstack_val' d' soffset stk mem strg ctx maxidx' sb' ops with (* Evaluate the offset *)
+                    match eval_sstack_val' d' soffset stk mem strg exts maxidx' sb' ops with (* Evaluate the offset *)
                     | None => None
                     | Some offset =>
-                        match eval_sstack_val' d' ssize stk mem strg ctx maxidx' sb' ops with (* Evaluate the size *)
+                        match eval_sstack_val' d' ssize stk mem strg exts maxidx' sb' ops with (* Evaluate the size *)
                         | None => None
                         | Some size =>
                             let mem := update_memory mem mem_updates in (* apply updates to the memory *)
-                            let f_sha3 := (get_keccak256_ctx ctx) in (* get the sha3 function from the context and ... *)
+                            let f_sha3 := (get_keccak256_exts exts) in (* get the sha3 function from the externals and ... *)
                             Some (f_sha3 (wordToNat size) (mload' mem offset (wordToNat size))) (* ... apply it to the corresponding data *)
                         end
                     end
@@ -139,16 +139,16 @@ Fixpoint eval_sstack_val' (d : nat) (sv : sstack_val) (stk : stack) (mem: memory
       end
   end.
 
-Definition eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (ctx: context) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=  
-  eval_sstack_val' (S maxidx) sv stk mem strg ctx maxidx sb ops.
+Definition eval_sstack_val (sv : sstack_val) (stk : stack) (mem: memory) (strg: storage) (exts: externals) (maxidx: nat) (sb: sbindings) (ops: stack_op_instr_map) : option EVMWord :=  
+  eval_sstack_val' (S maxidx) sv stk mem strg exts maxidx sb ops.
 
 
-Definition eval_sstack (sstk: sstack) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map): option stack :=
-  map_option (fun sv => eval_sstack_val sv stk mem strg ctx maxidx sb ops) sstk.
+Definition eval_sstack (sstk: sstack) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (exts: externals) (ops: stack_op_instr_map): option stack :=
+  map_option (fun sv => eval_sstack_val sv stk mem strg exts maxidx sb ops) sstk.
 
 
-Definition eval_smemory (smem: smemory) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map): option memory :=
-  let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val sv stk mem strg ctx maxidx sb ops) in
+Definition eval_smemory (smem: smemory) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (exts: externals) (ops: stack_op_instr_map): option memory :=
+  let f_eval_mem_update := instantiate_memory_update (fun sv => eval_sstack_val sv stk mem strg exts maxidx sb ops) in
   match map_option f_eval_mem_update smem with
   | None => None
   | Some updates =>
@@ -156,8 +156,8 @@ Definition eval_smemory (smem: smemory) (maxidx: nat) (sb: sbindings) (stk: stac
       Some mem'
   end.
 
-Definition eval_sstorage (sstrg: sstorage) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (ctx: context) (ops: stack_op_instr_map): option storage :=
-  let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val sv stk mem strg ctx maxidx sb ops) in
+Definition eval_sstorage (sstrg: sstorage) (maxidx: nat) (sb: sbindings) (stk: stack) (mem: memory) (strg: storage) (exts: externals) (ops: stack_op_instr_map): option storage :=
+  let f_eval_strg_update := instantiate_storage_update (fun sv => eval_sstack_val sv stk mem strg exts maxidx sb ops) in
   match map_option f_eval_strg_update sstrg with
   | None => None
   | Some updates =>
@@ -169,7 +169,7 @@ Definition eval_sstate (st: state) (sst: sstate) (ops: stack_op_instr_map) : opt
   let stk := get_stack_st st in
   let mem := get_memory_st st in
   let strg := get_storage_st st in
-  let ctx := get_context_st st in
+  let exts := get_externals_st st in
   let instk_height := get_instk_height_sst sst in
   let sstk := get_stack_sst sst in
   let smem := get_memory_sst sst in 
@@ -178,16 +178,16 @@ Definition eval_sstate (st: state) (sst: sstate) (ops: stack_op_instr_map) : opt
   let maxidx := get_maxidx_smap m in
   let sb := get_bindings_smap m in
   if instk_height =? length stk then
-    match eval_sstack sstk maxidx sb stk mem strg ctx ops with
+    match eval_sstack sstk maxidx sb stk mem strg exts ops with
     | None => None
     | Some stk' =>
-        match eval_smemory smem maxidx sb stk mem strg ctx ops with
+        match eval_smemory smem maxidx sb stk mem strg exts ops with
         | None => None
         | Some mem' =>
-            match eval_sstorage sstrg maxidx sb stk mem strg ctx ops with
+            match eval_sstorage sstrg maxidx sb stk mem strg exts ops with
             | None => None
             | Some strg' =>
-                let sst' := make_st stk' mem' strg' ctx in
+                let sst' := make_st stk' mem' strg' exts in
                 Some sst'
             end
         end

@@ -864,60 +864,60 @@ End OptimizationRuleTests.
 Module EVMStackOpTests.
 
 (* Tests for evm_shr because of their alternative definition *)
-Example ex_shr_1: evm_shr empty_context [WZero; WOne] = WOne.
+Example ex_shr_1: evm_shr empty_externals [WZero; WOne] = WOne.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_2: 
-evm_shr empty_context [WZero; natToWord EVMWordSize 555] = 
+evm_shr empty_externals [WZero; natToWord EVMWordSize 555] = 
   natToWord EVMWordSize 555.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_3: 
-evm_shr empty_context [natToWord EVMWordSize 10; natToWord EVMWordSize 1024] = 
+evm_shr empty_externals [natToWord EVMWordSize 10; natToWord EVMWordSize 1024] = 
   WOne.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_4: 
-evm_shr empty_context [natToWord EVMWordSize 11; natToWord EVMWordSize 1024] = 
+evm_shr empty_externals [natToWord EVMWordSize 11; natToWord EVMWordSize 1024] = 
   WZero.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_5: 
-evm_shr empty_context [WOne; natToWord EVMWordSize 2] = 
+evm_shr empty_externals [WOne; natToWord EVMWordSize 2] = 
   WOne.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_6: 
-evm_shr empty_context [natToWord EVMWordSize 4; natToWord EVMWordSize 255] = 
+evm_shr empty_externals [natToWord EVMWordSize 4; natToWord EVMWordSize 255] = 
 natToWord EVMWordSize 15.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_7: 
-evm_shr empty_context [natToWord EVMWordSize 16; WZero] = WZero.
+evm_shr empty_externals [natToWord EVMWordSize 16; WZero] = WZero.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_8: 
-evm_shr empty_context [natToWord EVMWordSize 255; WOne] = WZero.
+evm_shr empty_externals [natToWord EVMWordSize 255; WOne] = WZero.
 Proof.
 reflexivity.
 Qed.
 
 Example ex_shr_9: 
-evm_shr empty_context [natToWord EVMWordSize 547; WOne] = WZero.
+evm_shr empty_externals [natToWord EVMWordSize 547; WOne] = WZero.
 Proof.
 reflexivity.
 Qed.
@@ -938,7 +938,7 @@ Module SymbExecTests.
    Some (ExState stk=[0x8] 
                  mem=fun _ : N => 0 
                  strg=fun _ : N => 0 
-                 empty_context
+                 empty_externals
         ) 
 *)
 
@@ -950,7 +950,7 @@ Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_m
                     stk=[FreshVar 0] 
                     mem=[] 
                     strg=[] 
-                    ctx=SymCtx
+                    exts=SymExts
                     smap=(SymMap 1 [(0, SymOp ADD [0x1;0x7])])
         )
 *)
@@ -959,13 +959,13 @@ Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_m
 
 Compute (evm_exec_block_c [OpInstr ADD]  
                           (make_st [WOne; WOne; WOne] 
-                                   empty_memory empty_storage empty_context)
+                                   empty_memory empty_storage empty_externals)
                           evm_stack_opm).
 (*
    Some (ExState stk=[0x2;0x1] 
                  mem=fun _ : N => 0 
                  strg=fun _ : N => 0 
-                 empty_context
+                 empty_externals
         ) 
 *)
 
@@ -976,7 +976,7 @@ Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_m
                    stk=[FreshVar 0; InStackVar 2] 
                    mem=[] 
                    strg=[] 
-                   ctx=SymCtx
+                   exts=SymExts
                    smap=(SymMap 1 [(0, SymOp ADD [InStackVar 0; InStackVar 1])])
        )
 *)
@@ -988,13 +988,13 @@ Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_m
 
 Compute (evm_exec_block_c [PUSH 1 0xFF; PUSH 1 0x0; MSTORE; PUSH 1 0x0; MLOAD]  
                           (make_st [WOne] 
-                                   empty_memory empty_storage empty_context)
+                                   empty_memory empty_storage empty_externals)
                           evm_stack_opm).
 (*
    Some (ExState stk=[0xFF;0x1]
                  mem=fun 0=>0x0, 1=>0x0, 2=0x0, ..., 31=>0xFF, _=>0x0
                  strg=fun N=>0x0
-                 empty_context
+                 empty_externals
 *)
 
 Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_mload_solver
@@ -1004,7 +1004,7 @@ Compute (evm_sym_exec trivial_smemory_updater trivial_sstorage_updater trivial_m
                     stk=[FreshVar 0; InStackVar 0]
                     mem=[U_MSTORE addr=0x0 val=0xFF]
                     strg=[]
-                    ctx=SymCtx
+                    exts=SymExts
                     smap=SymMap 1 [(0, SymMLOAD 0x0 [U_MSTORE 0x0 0xFF])]
                       >> smap could be simplified <<
         )
@@ -1023,13 +1023,13 @@ Compute (evm_exec_block_c [PUSH 1 0x0; SLOAD; PUSH 1 0x7; MSTORE]
                           (make_st [WOne] 
                                    empty_memory 
                                    storage_test
-                                   empty_context)
+                                   empty_externals)
                           evm_stack_opm).
 (*
    Some (ExState stk=[0x1]
                  mem=fun 0=>0x0, 1=>0x0, 2=0x0, ..., 31=>0xFF, _=>0x0
                  strg=fun 0=>0xFF  _=>0x0
-                 empty_context
+                 empty_externals
         )
 *)
 

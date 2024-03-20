@@ -72,10 +72,10 @@ match val with
   match follow_to_val_args args maxid sb with
   | Some vargs => 
     match ops op with
-    | OpImp nargs f Hcomm Hctx_indep => 
-      match Hctx_indep with
+    | OpImp nargs f Hcomm Hexts_indep => 
+      match Hexts_indep with
       | Some _ => if (List.length args =? nargs) then
-                    (SymBasicVal (Val (f empty_context vargs)), true)
+                    (SymBasicVal (Val (f empty_externals vargs)), true)
                   else 
                     (val, false)
       | None => (val, false)
@@ -106,9 +106,9 @@ destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
 (* SymOp label args *)
 destruct (follow_to_val_args args n sb) as [vargs|] eqn: eq_follow; 
   try inject_rw Hoptm_sbinding eq_val'.
-destruct (evm_stack_opm label) as [nargs f Hcomm Hctx_indep] eqn: eq_ops_label; 
+destruct (evm_stack_opm label) as [nargs f Hcomm Hexts_indep] eqn: eq_ops_label; 
   try inject_rw Hoptm_sbinding eq_val'.
-destruct (Hctx_indep) as [H|]; try inject_rw Hoptm_sbinding eq_val'.
+destruct (Hexts_indep) as [H|]; try inject_rw Hoptm_sbinding eq_val'.
 destruct (length args =? nargs); try inject_rw Hoptm_sbinding eq_val'.
 injection Hoptm_sbinding as eq_val' _.
 rewrite <- eq_val'.
@@ -129,16 +129,16 @@ split.
   apply optimize_eval_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_eval_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
   (* SymOp label args *)
   destruct (follow_to_val_args args idx sb) as [vargs|] eqn: eq_follow; 
   try inject_rw Hoptm_sbinding eq_val'.
-  destruct (evm_stack_opm label) as [nargs f Hcomm Hctx_indep] 
+  destruct (evm_stack_opm label) as [nargs f Hcomm Hexts_indep] 
     eqn: eq_ops_label; try inject_rw Hoptm_sbinding eq_val'.
-  destruct (Hctx_indep) as [H|] eqn: eq_Hctx; 
+  destruct (Hexts_indep) as [H|] eqn: eq_Hexts; 
     try inject_rw Hoptm_sbinding eq_val'.
   destruct (length args =? nargs) eqn: eq_len; 
     try inject_rw Hoptm_sbinding eq_val'.
@@ -152,13 +152,13 @@ split.
   rewrite -> eq_len in Heval_orig.
   destruct (map_option
                  (fun sv' : sstack_val =>
-                  eval_sstack_val' maxidx sv' stk mem strg ctx idx sb
+                  eval_sstack_val' maxidx sv' stk mem strg exts idx sb
                     evm_stack_opm) args) as [vargs'|] eqn: eq_mapo;
     try discriminate.
   pose proof (follow_to_val_args_eval_eq args idx sb vargs maxidx stk mem 
-    strg ctx vargs' eq_follow eq_mapo) as eq_vargs'.
+    strg exts vargs' eq_follow eq_mapo) as eq_vargs'.
   rewrite <- eq_vargs' in Heval_orig.
-  rewrite -> H with (ctx2:=ctx).
+  rewrite -> H with (exts2:=exts).
   assumption.
 Qed.
 

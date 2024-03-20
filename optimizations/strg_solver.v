@@ -146,7 +146,7 @@ split.
   apply optimize_strg_solver_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_strg_solver_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|skey sstrg|offset size smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -179,7 +179,7 @@ split.
   pose proof (Hsolver_correct eq_smaps) as Hsolver_correct.
   destruct Hsolver_correct as [idx2 [m2 [eq_m2 HH]]].
   injection eq_m2 as eq_idx2 eq_m2.
-  specialize HH with (stk:= stk)(mem:=mem)(strg:=strg)(ctx:=ctx).
+  specialize HH with (stk:= stk)(mem:=mem)(strg:=strg)(exts:=exts).
   symmetry in Hlen.
   pose proof (HH Hlen) as HH.
   destruct HH as [vv [Heval1 Heval2]].

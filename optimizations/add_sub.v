@@ -185,7 +185,7 @@ split.
   apply optimize_add_sub_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_add_sub_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -216,9 +216,9 @@ split.
     unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
       evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
     rewrite <- Heval_orig.
     
@@ -227,9 +227,9 @@ split.
     destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate.
     simpl in eval_arg1. rewrite -> Hfollow_arg1 in eval_arg1.
     simpl in eval_arg1.
-    destruct (eval_sstack_val' maxidx' y stk mem strg ctx idx' sb' 
+    destruct (eval_sstack_val' maxidx' y stk mem strg exts idx' sb' 
       evm_stack_opm) as [yv|] eqn: eval_y; try discriminate.
-    destruct (eval_sstack_val' maxidx' x stk mem strg ctx idx' sb' 
+    destruct (eval_sstack_val' maxidx' x stk mem strg exts idx' sb' 
       evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
     injection eval_arg1 as eq_arg1v.
     rewrite <- eq_arg1v.
@@ -243,7 +243,7 @@ split.
       Hfollow_arg1) as [prefix sb_prefix].
     rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_y.
     pose proof (eval_sstack_val'_extend_sb instk_height maxidx' stk mem strg
-      ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yv eval_y) 
+      exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yv eval_y) 
       as eval_y_sb.
     rewrite -> eval'_maxidx_indep_eq with (m:=(S maxidx')) in eval_y_sb.
     apply eval_sstack_val'_preserved_when_depth_extended in eval_y_sb.
@@ -265,7 +265,7 @@ split.
     
     pose proof (Hsafe_sstack_val_cmp x arg2 idx sb idx sb instk_height
       evm_stack_opm Hvalid_x_sb Hvalid_arg2 Hvalid_sb Hvalid_sb fcmp_x_arg2
-      stk mem strg ctx Hlen) as [xv' [eval_x' eval_arg2']].
+      stk mem strg exts Hlen) as [xv' [eval_x' eval_arg2']].
     unfold eval_sstack_val in eval_x'.
     unfold eval_sstack_val in eval_arg2'.
     rewrite <- eq_maxidx' in eval_arg2'.
@@ -305,9 +305,9 @@ split.
     unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
     rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
     simpl in Heval_orig.
-    destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
       evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-    destruct (eval_sstack_val' maxidx arg2 stk mem strg ctx idx sb
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
       evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
     rewrite <- Heval_orig.
     
@@ -316,9 +316,9 @@ split.
     destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate.
     simpl in eval_arg2. rewrite -> Hfollow_arg2 in eval_arg2.
     simpl in eval_arg2.
-    destruct (eval_sstack_val' maxidx' y stk mem strg ctx idx' sb' 
+    destruct (eval_sstack_val' maxidx' y stk mem strg exts idx' sb' 
       evm_stack_opm) as [yv|] eqn: eval_y; try discriminate.
-    destruct (eval_sstack_val' maxidx' x stk mem strg ctx idx' sb' 
+    destruct (eval_sstack_val' maxidx' x stk mem strg exts idx' sb' 
       evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
     injection eval_arg2 as eq_arg2v.
     rewrite <- eq_arg2v.
@@ -332,7 +332,7 @@ split.
       Hfollow_arg2) as [prefix sb_prefix].
     rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_y.
     pose proof (eval_sstack_val'_extend_sb instk_height maxidx' stk mem strg
-      ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yv eval_y) 
+      exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yv eval_y) 
       as eval_y_sb.
     rewrite -> eval'_maxidx_indep_eq with (m:=(S maxidx')) in eval_y_sb.
     apply eval_sstack_val'_preserved_when_depth_extended in eval_y_sb.
@@ -354,7 +354,7 @@ split.
     
     pose proof (Hsafe_sstack_val_cmp x arg1 idx sb idx sb instk_height
       evm_stack_opm Hvalid_x_sb Hvalid_arg1 Hvalid_sb Hvalid_sb fcmp_x_arg1
-      stk mem strg ctx Hlen) as [xv' [eval_x' eval_arg1']].
+      stk mem strg exts Hlen) as [xv' [eval_x' eval_arg1']].
     unfold eval_sstack_val in eval_x'.
     unfold eval_sstack_val in eval_arg1'.
     rewrite <- eq_maxidx' in eval_arg1'.

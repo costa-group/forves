@@ -165,10 +165,10 @@ Lemma wzero_def:
 WZero = wzero EVMWordSize.
 Proof. reflexivity. Qed.
 
-Lemma iszero_xor_eq: forall (ctx: context) (a b: EVMWord), 
-evm_iszero ctx [evm_xor ctx [a; b]] = evm_eq ctx [a; b].
+Lemma iszero_xor_eq: forall (exts: externals) (a b: EVMWord), 
+evm_iszero exts [evm_xor exts [a; b]] = evm_eq exts [a; b].
 Proof.
-intros ctx a b.
+intros exts a b.
 unfold evm_iszero. unfold evm_eq. unfold evm_xor.
 destruct (weqb a b) eqn: weqb_a_b.
 - apply wxor_weqb_true in weqb_a_b.
@@ -244,7 +244,7 @@ split.
   apply optimize_iszero_xor_sbinding_smapv_valid. 
 
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_iszero_xor_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
@@ -273,7 +273,7 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb 
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
     evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
   
   simpl in Hvalid.
@@ -291,9 +291,9 @@ split.
   simpl in eval_arg1.
   rewrite -> Hfollow_arg1 in eval_arg1.
   simpl in eval_arg1.
-  destruct (eval_sstack_val' idx xx stk mem strg ctx idx' sb' 
+  destruct (eval_sstack_val' idx xx stk mem strg exts idx' sb' 
     evm_stack_opm) as [xxv|] eqn: eval_xx_sb'; try discriminate.
-  destruct (eval_sstack_val' idx yy stk mem strg ctx idx' sb' 
+  destruct (eval_sstack_val' idx yy stk mem strg exts idx' sb' 
     evm_stack_opm) as [yyv|] eqn: eval_yy_sb'; try discriminate.
   unfold eval_sstack_val in eval_arg1. simpl.
   
@@ -307,7 +307,7 @@ split.
   
   rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_xx_sb'.
   pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg
-    ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix xx xxv
+    exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix xx xxv
     eval_xx_sb') as eval_x_sb.
   apply eval_sstack_val'_preserved_when_depth_extended in eval_x_sb.
   rewrite <- eq_maxidx' in eval_x_sb.
@@ -315,7 +315,7 @@ split.
   
   rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_yy_sb'.
   pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg
-    ctx idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix yy yyv
+    exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix yy yyv
     eval_yy_sb') as eval_y_sb.
   apply eval_sstack_val'_preserved_when_depth_extended in eval_y_sb.
   rewrite <- eq_maxidx' in eval_y_sb.

@@ -111,10 +111,10 @@ intuition.
 Qed.
 
 
-Lemma balance_address: forall ctx,
-evm_balance ctx [evm_address ctx []] = evm_selfbalance ctx [].
+Lemma balance_address: forall exts,
+evm_balance exts [evm_address exts []] = evm_selfbalance exts [].
 Proof.
-intros ctx.
+intros exts.
 unfold evm_address. unfold evm_balance.
 unfold evm_selfbalance.
 rewrite zext_split1.
@@ -135,7 +135,7 @@ split.
   apply optimize_balance_address_sbinding_smapv_valid. 
     
 - (* evaluation is preserved *) 
-  intros stk mem strg ctx v Hlen Heval_orig.
+  intros stk mem strg exts v Hlen Heval_orig.
   (*assert (Hlen2 := Hlen).
   rewrite -> Hlen in Hlen2.
   rewrite <- Hlen in Hlen2 at 2.*)
@@ -159,7 +159,7 @@ split.
   unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
   rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg ctx idx sb evm_stack_opm)
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
     as [varg1|] eqn: eval_arg1; try discriminate.
   rewrite <- Heval_orig.
   
