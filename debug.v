@@ -319,7 +319,84 @@ Definition evm_eq_block_chkr_lazy_dbg
           end
       end
   end.
+
+(* Block #90: JUMPI(X,0) can be removed *)
+Compute
+let b1 := str2block "POP PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD SWAP1 SWAP3 MSTORE SWAP2 SWAP3 POP PUSH1 0x0 SWAP2 SWAP1" in
+let b2 := str2block "POP SWAP1 POP PUSH1 0x0 PUSH1 0x2 PUSH1 0x40 MLOAD SWAP1 DUP1 DUP3 MSTORE DUP1 PUSH1 0x20 MUL PUSH1 0x20 ADD DUP3 ADD PUSH1 0x40 MSTORE DUP1 ISZERO METAPUSH 5 0x73 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 4).
+
+
+(* Block #78: JUMPI(X,0) can be removed *)
+Compute
+let b1 := str2block "PUSH1 0x40 DUP1 MLOAD PUSH1 0x9 DUP1 DUP3 MSTORE PUSH2 0x140 DUP3 ADD SWAP1 SWAP3 MSTORE PUSH1 0x0 SWAP2 DUP3 SWAP2 SWAP1" in
+let b2 := str2block "PUSH1 0x0 DUP1 PUSH1 0x9 PUSH1 0x40 MLOAD SWAP1 DUP1 DUP3 MSTORE DUP1 PUSH1 0x20 MUL PUSH1 0x20 ADD DUP3 ADD PUSH1 0x40 MSTORE DUP1 ISZERO METAPUSH 5 0x37 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 0).
+
+
+(* Block #68: *)  
+Compute
+let b1 := str2block "PUSH1 0x0 PUSH1 0x1 DUP3 ADD METAPUSH 5 0x379 JUMPI" in
+let b2 := str2block "PUSH1 0x0 DUP1 NOT DUP3 SUB METAPUSH 5 0x379 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 1).
+
   
+(* Block #50: ?? *)
+Compute
+let b1 := str2block "POP PUSH1 0xE0 DUP3 ADD SWAP1 DUP2 MSTORE PUSH1 0x40 DUP1 MLOAD DUP1 DUP3 ADD SWAP1 SWAP2 MSTORE PUSH32 0xAEE46A7EA6E80A3675026DFA84019DEEE2A2DEDB1BBE11D7FE124CB3EFB4B5A DUP2 MSTORE PUSH32 0x44747B6E9176E13EDE3A4DFD0D33CCCA6321B9ACD23BF3683A60ADC0366EBAF PUSH1 0x20 DUP3 ADD MSTORE SWAP1 MLOAD DUP1 MLOAD PUSH1 0x0 SWAP1 ISZERO ISZERO METAPUSH 5 0x283 JUMPI" in
+let b2 := str2block "POP DUP2 PUSH1 0xE0 ADD DUP2 SWAP1 MSTORE POP PUSH1 0x40 MLOAD DUP1 PUSH1 0x40 ADD PUSH1 0x40 MSTORE DUP1 PUSH32 0xAEE46A7EA6E80A3675026DFA84019DEEE2A2DEDB1BBE11D7FE124CB3EFB4B5A DUP2 MSTORE PUSH1 0x20 ADD PUSH32 0x44747B6E9176E13EDE3A4DFD0D33CCCA6321B9ACD23BF3683A60ADC0366EBAF DUP2 MSTORE POP DUP2 PUSH1 0xE0 ADD MLOAD PUSH1 0x0 DUP2 MLOAD DUP2 LT METAPUSH 5 0x283 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 3).
+
+(* Block #45: ADD(ADD(X,Y),Z) = ADD(ADD(Z,X),Y) *)
+Compute
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE DUP1 METAPUSH 5 0x266 DUP2 METAPUSH 5 0x171" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 DUP2 MSTORE POP POP DUP1 DUP1 METAPUSH 5 0x266 SWAP1 METAPUSH 5 0x171" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 4).
+
+
+(* Block #38: ADD(ADD(X,Y),Z) = ADD(ADD(Z,X),Y) *)
+Compute
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x1 METAPUSH 5 0x245" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x1 PUSH1 0x2 DUP2 LT METAPUSH 5 0x245 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 2).
+
+
+(* Block #35: ADD(ADD(X,Y),Z) = ADD(ADD(Z,X),Y) *)
+Compute
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MLOAD MLOAD PUSH1 0x0 METAPUSH 5 0x237" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD MLOAD PUSH1 0x0 ADD MLOAD PUSH1 0x0 PUSH1 0x2 DUP2 LT METAPUSH 5 0x237 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 2).
+
+
+Compute
+  let b1 := str2block "PUSH1 0x0 DUP1 PUSH1 0x9 METAPUSH 5 0x35" in
+  let b2 := str2block "PUSH1 0x0 DUP1 PUSH1 0x9 PUSH8 0xFFFFFFFFFFFFFFFF DUP2 GT ISZERO METAPUSH 5 0x35 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+   SStrgCmp_Basic SHA3Cmp_Basic
+   all_optimization_steps 10 10 b1 b2 0).
+    
   
 (* Eval cbv in *)
 Compute
