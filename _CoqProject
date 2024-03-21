@@ -113,6 +113,7 @@ optimizations/sgt_x_x.v
 optimizations/mem_solver.v
 optimizations/strg_solver.v
 optimizations/jumpi_eval.v
+optimizations/add_add.v
 
 block_equiv_checker.v
 block_equiv_checker_facts.v

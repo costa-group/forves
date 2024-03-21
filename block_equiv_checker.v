@@ -149,6 +149,8 @@ Require Import FORVES.optimizations.strg_solver.
 Import Opt_strg_solver.
 Require Import FORVES.optimizations.jumpi_eval.
 Import Opt_jumpi_eval.
+Require Import FORVES.optimizations.add_add.
+Import Opt_add_add.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -425,6 +427,7 @@ Inductive available_optimization_step :=
 | OPT_mem_solver
 | OPT_strg_solver
 | OPT_jumpi_eval
+| OPT_add_add
 .
 
 
@@ -500,6 +503,7 @@ match tag with
 | OPT_mem_solver => OpEntry optimize_mem_solver_sbinding optimize_mem_solver_sbinding_snd
 | OPT_strg_solver => OpEntry optimize_strg_solver_sbinding optimize_strg_solver_sbinding_snd
 | OPT_jumpi_eval => OpEntry optimize_jumpi_eval_sbinding optimize_jumpi_eval_sbinding_snd
+| OPT_add_add => OpEntry optimize_add_add_sbinding optimize_add_add_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -570,9 +574,10 @@ Definition all_optimization_steps :=
    OPT_slt_x_x;
    OPT_sgt_x_x
 
+   ;OPT_jumpi_eval
+   (* ;OPT_add_add *) (* Too slow *)
    ;OPT_mem_solver
    ;OPT_strg_solver
-   ;OPT_jumpi_eval
 ].
 
 Definition all_optimization_steps' := 
@@ -643,9 +648,10 @@ Definition all_optimization_steps' :=
    OPT_slt_x_x;
    OPT_sgt_x_x
 
+   ;OPT_jumpi_eval
+   (* ;OPT_add_add *) (* Too slow *)
    ;OPT_mem_solver
    ;OPT_strg_solver
-   ;OPT_jumpi_eval
 ].
 
   

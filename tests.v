@@ -858,6 +858,35 @@ check_rule "PUSH1 0x0 ADD"
            OPT_add_zero.
 Proof. unfold check_rule. intuition. Qed.
 
+Example ex_add_add_1:
+(* ADD(ADD(3,x),2) *)
+check_rule "PUSH1 0x2 SWAP1 PUSH1 0x3 ADD ADD"
+           "PUSH1 0x5 ADD"
+           OPT_add_add.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_add_add_2:
+(* ADD(ADD(x,3),2) *)
+check_rule "PUSH1 0x2 PUSH1 0x3 SWAP2 ADD ADD"
+           "PUSH1 0x5 ADD"
+           OPT_add_add.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_add_add_3:
+(* ADD(3, ADD(x,2)) *)
+check_rule "PUSH1 0x2 SWAP1 ADD PUSH1 0x3 ADD"
+           "PUSH1 0x5 ADD"
+           OPT_add_add.
+Proof. unfold check_rule. intuition. Qed.
+
+Example ex_add_add_4:
+(* ADD(3, ADD(2,x)) *)
+check_rule "PUSH1 0x2 ADD PUSH1 0x3 ADD"
+           "PUSH1 0x5 ADD"
+           OPT_add_add.
+Proof. unfold check_rule. intuition. Qed.
+
+
 End OptimizationRuleTests.
 
 

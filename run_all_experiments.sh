@@ -28,7 +28,21 @@ for f in ./benchmarks/memory_and_storage/*gas*.txt; do
     runtime=$( echo "$end - $start" | bc -l )
     mostrar_resultados $f  $TMPFILE $runtime
 done;
+for f in ./benchmarks/memory_and_storage/blockTraces*.txt; do
+    start=`date +%s.%N`
+    ./bin/checker -opt all -opt_rep 5 -pipeline_rep 5 -mu basic -su basic -ms basic -ss basic -ssv_c basic -mem_c po -strg_c po -sha3_c trivial -i $f -o $TMPFILE
+    end=`date +%s.%N`
+    runtime=$( echo "$end - $start" | bc -l )
+    mostrar_resultados $f  $TMPFILE $runtime
+done;
 for f in ./benchmarks/memory_and_storage/*size*.txt; do
+    start=`date +%s.%N`
+    ./bin/checker -opt all_size -opt_rep 5 -pipeline_rep 5 -mu basic -su basic -ms basic -ss basic -ssv_c basic -mem_c po -strg_c po -sha3_c trivial -i $f -o $TMPFILE
+    end=`date +%s.%N`
+    runtime=$( echo "$end - $start" | bc -l )
+    mostrar_resultados $f  $TMPFILE $runtime
+done;
+for f in ./benchmarks/memory_and_storage/blockTraces*.txt; do
     start=`date +%s.%N`
     ./bin/checker -opt all_size -opt_rep 5 -pipeline_rep 5 -mu basic -su basic -ms basic -ss basic -ssv_c basic -mem_c po -strg_c po -sha3_c trivial -i $f -o $TMPFILE
     end=`date +%s.%N`
