@@ -81,8 +81,40 @@ match follow_in_smap sv maxid sb with
 end.
 
 
-
 (* ADD(const1, ADD(const2, X))) = ADD(const1+const2, X) *)
+Definition optimize_add_add_sbinding : opt_smap_value_type := 
+fun (val: smap_value) =>
+fun (fcmp: sstack_val_cmp_t) =>
+fun (sb: sbindings) =>
+fun (maxid: nat) =>
+fun (instk_height: nat) =>
+fun (ops: stack_op_instr_map) => 
+match val with
+| SymOp ADD [arg1; arg2] =>
+  match is_const arg1 maxid sb with 
+  | Some c1 => match is_add_const arg2 maxid sb with
+               | Some (c2, x) => (* ADD(c1, ADD(x,c2)) *)
+                                 let sum := wplus c1 c2 in 
+                                 (SymOp ADD [Val sum; x], true)
+               | None => (val, false)
+               end
+  | None => match is_const arg2 maxid sb with 
+            | Some c2 => match is_add_const arg1 maxid sb with
+                         | Some (c1, x) => (* ADD(ADD(c1,x), c2) *)
+                                           let sum := wplus c1 c2 in 
+                                           (SymOp ADD [Val sum; x], true)
+                         | None => (val, false)
+                         end
+            | None => (val, false)
+            end                    
+  end
+| _ => (val, false)
+end.
+
+(*
+(* ADD(const1, ADD(const2, X))) = ADD(const1+const2, X) 
+   alternative definition
+*)
 Definition optimize_add_add_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
@@ -111,6 +143,7 @@ match val with
   end
 | _ => (val, false)
 end.
+*)
 
 
 (*
