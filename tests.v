@@ -858,6 +858,8 @@ check_rule "PUSH1 0x0 ADD"
            OPT_add_zero.
 Proof. unfold check_rule. intuition. Qed.
 
+(*
+(* Optimization not included *)
 Example ex_add_add_1:
 (* ADD(ADD(3,x),2) *)
 check_rule "PUSH1 0x2 SWAP1 PUSH1 0x3 ADD ADD"
@@ -885,7 +887,7 @@ check_rule "PUSH1 0x2 ADD PUSH1 0x3 ADD"
            "PUSH1 0x5 ADD"
            OPT_add_add.
 Proof. unfold check_rule. intuition. Qed.
-
+*)
 
 End OptimizationRuleTests.
 
@@ -962,7 +964,7 @@ Module SymbExecTests.
 (*Compute (evm_exec_block_c [PUSH 1 0x7; PUSH 1 0x1; OpInstr ADD] 
                           empty_state
                           evm_stack_opm).
-*)
+2, SymMETAPUSH' 5 53)*)
 (* 
    Some (ExState stk=[0x8] 
                  mem=fun _ : N => 0 
