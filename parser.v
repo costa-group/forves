@@ -363,6 +363,11 @@ Definition str_to_opt (s : string) : option available_optimization_step :=
   | "and_ffff"%string => Some OPT_and_ffff
   | "and_coinbase"%string => Some OPT_and_coinbase
   | "balance_address"%string => Some OPT_balance_address
+  | "slt_x_x"%string => Some OPT_slt_x_x
+  | "sgt_x_x"%string => Some OPT_sgt_x_x
+  | "mem_solver"%string => Some OPT_mem_solver
+  | "strg_solver"%string => Some OPT_strg_solver
+  | "jumpi_eval"%string => Some OPT_jumpi_eval
   | _ => None
   end.
 

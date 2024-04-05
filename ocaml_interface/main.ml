@@ -70,15 +70,15 @@ let speclist =
         exp_x_zero,exp_x_one,exp_one_x,exp_zero_x,exp_two_x,gt_zero_x,gt_x_x,lt_x_zero,lt_x_x,eq_x_x,
         iszero_sub,iszero_lt,iszero_xor,iszero2_gt,iszero2_lt,iszero2_eq,xor_x_x,xor_zero,xor_xor,       
         or_or,or_and,and_or,and_not,or_not,or_x_x,and_x_x,or_zero,or_ffff,and_ffff,and_coinbase,
-        balance_address");
-    ("-mu", Arg.String process_memory_updater, "memory updater");
-    ("-su", Arg.String process_storage_updater, "storage updater");
-    ("-ms", Arg.String process_mload_solver, "mload solver");
-    ("-ss", Arg.String process_sload_solver, "sload solver");
-    ("-ssv_c", Arg.String process_sstack_value_cmp, "sstack_value comparator");
-    ("-mem_c", Arg.String process_memory_cmp, "memory comparator");
-    ("-strg_c", Arg.String process_storage_cmp, "storage comparator");
-    ("-sha3_c",  Arg.String process_sha3_cmp, "sha3 comparator");
+        balance_address,slt_x_x,sgt_x_x,mem_solver,strg_solver,jumpi_eval");
+    ("-mu", Arg.String process_memory_updater, "memory updater (trivial, basic)");
+    ("-su", Arg.String process_storage_updater, "storage updater (trivial, basic)");
+    ("-ms", Arg.String process_mload_solver, "mload solver (trivial, basic)");
+    ("-ss", Arg.String process_sload_solver, "sload solver (trivial, basic)");
+    ("-ssv_c", Arg.String process_sstack_value_cmp, "sstack_value comparator (trivial, basic, basic_w_eq_chk)");
+    ("-mem_c", Arg.String process_memory_cmp, "memory comparator (trivial, basic, po)");
+    ("-strg_c", Arg.String process_storage_cmp, "storage comparator (trivial, basic, po)");
+    ("-sha3_c",  Arg.String process_sha3_cmp, "sha3 comparator (trivial, basic)");
     ("-opt_rep",  Arg.String process_opt_step_rep, "repetitions of each optimization");
     ("-pipeline_rep",  Arg.String process_opt_pipeline_rep, "optimization pipeline repetitions");
     ("-i", Arg.String process_in_filename, "Input file (standard input if not provided)");
