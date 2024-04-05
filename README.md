@@ -1,6 +1,6 @@
 # FORVES: Formally Verified EVM Block-Optimizations
 
-This artifact includes a verification tool to automatically prove the correctness of EVM (Ethereum Virtual Machine) block-optimizations on Ethereum smart contracts using the Coq proof assistant. The EVM equivalence verifier takes two blocks of jump-free EVM instructions, the original block and the optimized one, as well as the initial stack size, and determines if they are equivalent, i.e., if they have the same semantic behavior. 
+FORVES is a verification tool to automatically prove the correctness of EVM (Ethereum Virtual Machine) block-optimizations on Ethereum smart contracts using the Coq proof assistant. The EVM equivalence verifier takes two blocks of jump-free EVM instructions, the original block and the optimized one, as well as the initial stack size, and determines if they are equivalent, i.e., if they have the same semantic behavior. 
 
 This repository contains the source code of the verifier, all the Coq proofs, experiments, as well as precompiled binaries for Linux. 
 
@@ -17,16 +17,16 @@ This repository contains the source code of the verifier, all the Coq proofs, ex
 
 The repository contains two precompiled binary versions of the verifier for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
 
-   * `bin/checker`: binary verifier dynamically linked to the following standard Linux libraries
+   * `bin/forves`: binary verifier dynamically linked to the following standard Linux libraries
        
-         $ ldd checker 
+         $ ldd forves 
 	     linux-vdso.so.1 
 	     libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 
 	     libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 
 	     /lib64/ld-linux-x86-64.so.2 
 
 
-   * `bin/static_checker`: binary verifier statically linked
+   * `bin/static_forves`: binary verifier statically linked
 
 The repository also contains the Coq source code to compile the EVM equivalence verifier from scratch. It depends on the following components:
 
@@ -49,10 +49,10 @@ To compile the binary verifiers and validate all the Coq proofs, execute the fol
     rm -f *.cmi
     rm -f *.cmx
     rm -f *.o
-    rm -f checker
-    rm -f ../bin/checker
-    rm -f static_checker
-    rm -f ../bin/static_checker
+    rm -f forves
+    rm -f ../bin/forves
+    rm -f static_forves
+    rm -f ../bin/static_forves
 
     $ make
     COQDEP VFILES
@@ -72,25 +72,25 @@ To compile the binary verifiers and validate all the Coq proofs, execute the fol
     make: entering directory '/home/ubuntu/ocaml_interface'
     ocamlopt -c checker.mli -o checker.cmi
     ocamlopt -c checker.ml -o checker.cmx
-    ocamlopt -o checker  checker.cmx str.cmxa main.ml 
-    mv checker ../bin
+    ocamlopt -o forves  checker.cmx str.cmxa main.ml 
+    mv forves ../bin
     ...
-    mv static_checker ../bin
+    mv static_forves ../bin
     make: Leaving directory '/home/ubuntu/ocaml_interface'
     
 <a name="executing"></a>
 ## 3 Executing the verifier
 
-After compiling the verifier, the directory `bin/` will contain the executables  `checker` (dynamically linked) and `static_checker` (statically linked). Both behave the same and only differ in the linking process, so in the following examples we will only use the dynamically linked `checker`.
+After compiling the verifier, the directory `bin/` will contain the executables  `forves` (dynamically linked) and `static_forves` (statically linked). Both behave the same and only differ in the linking process, so in the following examples we will only use the dynamically linked `forves`.
 
 The verifier accepts several parameters to configure the verification process, which are shown using the `-help` argument: 
 
-    $ bin/checker -help
+    $ bin/forves -help
 
     Usage:
-    bin/checker [options] < filename
+    bin/forves [options] < filename
      or
-    bin/checker -i filename [options]
+    bin/forves -i filename [options]
 
       -opt Rule-based optimizations to be applied iteratively. Possible values:
         * none: disable optimizations
@@ -129,7 +129,7 @@ The first line is the optimized block of EVM instructions, the second line conta
 
 Example:
 
-    $ bin/checker -opt_rep 20 -pipeline_rep 20 -opt all -mu basic -su basic -ms basic -ss basic -ssv_c basic_w_eq_chk -mem_c po -strg_c po -sha3_c basic
+    $ bin/forves -opt_rep 20 -pipeline_rep 20 -opt all -mu basic -su basic -ms basic -ss basic -ssv_c basic_w_eq_chk -mem_c po -strg_c po -sha3_c basic
     DUP2 DUP2 MSTORE DUP1 DUP1 MLOAD MUL PUSH1 0x0 ADD DUP2 MSTORE MUL
     DUP1 SWAP2 MUL DUP1 SWAP2 MSTORE
     2
@@ -156,7 +156,7 @@ It is usually easier to include all the cases to verify in a single text file wi
 
 Example:
 
-    $ bin/checker -opt_rep 20 -pipeline_rep 20 -opt all -mu basic -su basic -ms basic -ss basic -ssv_c basic_w_eq_chk -mem_c po -strg_c po -sha3_c basic -i benchmarks/pldi/benchmark3_greedy.txt 
+    $ bin/forves -opt_rep 20 -pipeline_rep 20 -opt all -mu basic -su basic -ms basic -ss basic -ssv_c basic_w_eq_chk -mem_c po -strg_c po -sha3_c basic -i benchmarks/pldi/benchmark3_greedy.txt 
     Example 0: true
     Example 1: true
     Example 2: true

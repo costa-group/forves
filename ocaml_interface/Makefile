@@ -2,8 +2,8 @@
 default: all ;
 
 MAIN = main.ml
-EXE = checker
-STATIC_EXE = static_checker
+EXE = forves
+STATIC_EXE = static_forves
 
 
 all: executable static
