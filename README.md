@@ -12,7 +12,7 @@ This repository contains the source code of the verifier, all the Coq proofs, ex
 3. [Executing the verifier](#executing)
 4. [License](#license)
 
-<a name="requirements"/>
+<a name="requirements"></a>
 ## 1 Requirements and setup
 
 The repository contains two precompiled binary versions of the checker for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
@@ -34,7 +34,7 @@ The repository also contains the Coq source code and the required Coq libraries 
    * OCaml 4.13.1
    * The Coq library coq-bbv, version 1.4
 
-<a name="compiling"/>
+<a name="compiling"></a>
 ## 2 Compiling the verifier and validating Coq proofs
 
 To compile the binary verifiers and validate all the Coq proofs, execute the following commands:
@@ -78,7 +78,7 @@ To compile the binary verifiers and validate all the Coq proofs, execute the fol
     mv static_checker ../bin
     make: Leaving directory '/home/ubuntu/ocaml_interface'
     
-<a name="executing"/>
+<a name="executing"></a>
 ## 3 Executing the verifier
 
 After compiling the verifier, the directory `bin/` will contain the executables  `checker` (dynamically linked) and `static_checker` (statically linked). Both behave the same and only differ in the linking process, so in the following examples we will only use the dynamically linked `checker`.
@@ -167,7 +167,7 @@ Example:
 
 
 
-<a name="license"/>
+<a name="license"></a>
 ## 4 License
 
 The code is licensed under the [GNU General Public License 3.0](https://www.gnu.org/licenses/gpl-3.0.html), also included in our repository in the `COPYING` file.
