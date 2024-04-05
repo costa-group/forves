@@ -15,7 +15,7 @@ This repository contains the source code of the verifier, all the Coq proofs, ex
 <a name="requirements"></a>
 ## 1 Requirements and setup
 
-The repository contains two precompiled binary versions of the checker for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
+The repository contains two precompiled binary versions of the verifier for Ubuntu 22.04 LTS, but they should work in any other Linux distribution: 
 
    * `bin/checker`: binary verifier dynamically linked to the following standard Linux libraries
        
@@ -28,7 +28,7 @@ The repository contains two precompiled binary versions of the checker for Ubunt
 
    * `bin/static_checker`: binary verifier statically linked
 
-The repository also contains the Coq source code and the required Coq libraries to compile the EVM equivalence verifier from scratch. It depends on the following components:
+The repository also contains the Coq source code to compile the EVM equivalence verifier from scratch. It depends on the following components:
 
    * The Coq Proof Assistant, version 8.15.2
    * OCaml 4.13.1
