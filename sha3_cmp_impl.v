@@ -55,17 +55,17 @@ Definition update_out_of_slot (u : memory_update sstack_val) (min max: N) (maxid
     | U_MSTORE _ offset _ =>
         match follow_in_smap offset maxidx sb with
         | Some (FollowSmapVal (SymBasicVal (Val v)) _ _) =>
-            orb ((wordToN v)+31 <? min)%N (max <? (wordToN v))%N
+            orb ((wordToN v)+31 <? min)%N (max <=? (wordToN v))%N
         | _ => false
         end
     | U_MSTORE8 _ offset _ =>
         match follow_in_smap offset maxidx sb with
         | Some (FollowSmapVal (SymBasicVal (Val v)) _ _) =>
-            orb ((wordToN v) <? min)%N (max <? (wordToN v))%N
+            orb ((wordToN v) <? min)%N (max <=? (wordToN v))%N
         | _ => false
         end
     end.
-  
+
 Fixpoint remove_out_of_slot' (smem :smemory) (min max: N) (maxidx: nat) (sb: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : smemory :=
     match smem with
     | [] => []
@@ -78,7 +78,7 @@ Fixpoint remove_out_of_slot' (smem :smemory) (min max: N) (maxidx: nat) (sb: sbi
 Definition remove_out_of_slot (smem :smemory) (soffset ssize: sstack_val) (maxidx: nat) (sb: sbindings) (instk_height: nat) (ops: stack_op_instr_map) : smemory :=
         match follow_in_smap soffset maxidx sb, follow_in_smap ssize maxidx sb with
         | Some (FollowSmapVal (SymBasicVal (Val v1)) _ _), Some (FollowSmapVal (SymBasicVal (Val v2)) _ _) =>
-            remove_out_of_slot' smem (wordToN v1) ((wordToN v1)+(wordToN v2)-1)%N maxidx sb instk_height ops
+            remove_out_of_slot' smem (wordToN v1) ((wordToN v1)+(wordToN v2))%N maxidx sb instk_height ops
         | _, _ => smem
         end.
 
