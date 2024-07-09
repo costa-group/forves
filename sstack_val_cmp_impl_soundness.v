@@ -773,7 +773,8 @@ Module SStackValCmpImplSoundness.
       unfold safe_sstack_val_cmp_ext_1_d.
       intros d' H_d'_le_1.
       unfold safe_sstack_val_cmp.
-      intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_cmp_sv1_sv2.      apply Nat.leb_le in H_d'_le_1 as H_d'_le_1_leb.
+      intros sv1 sv2 maxidx1 sb1 maxidx2 sb2 instk_height ops H_valid_sv1 H_valid_sv2 H_valid_sb1 H_valid_sb2 H_cmp_sv1_sv2.
+      apply Nat.leb_le in H_d'_le_1 as H_d'_le_1_leb.
 
  
       destruct d' as [|d''] eqn:E_d'; try discriminate; destruct d'' as [|d'''] eqn:E_d''; try discriminate.
