@@ -115,6 +115,9 @@ From Coq Require Import Strings.String.
 
 From Coq Require Import Lists.List. Import ListNotations.
 
+(* For debugging with print_id *)
+From ReductionEffect Require Import PrintingEffect.
+
 
 Module Debug.
 
@@ -320,6 +323,32 @@ Definition evm_eq_block_chkr_lazy_dbg
       end
   end.
 
+
+
+
+(* blocks from blockTraces_dec_1_2022_false_negative.2.txt *)
+
+(* Example: 29 *)
+Eval cbv in 
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE PUSH1 0x0 METAPUSH 5 0x61 DUP4 DUP4 PUSH4 0xFFFFFFFF METAPUSH 5 0x62 AND" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 SWAP1 MSTORE POP PUSH1 0x0 METAPUSH 5 0x61 DUP3 DUP5 METAPUSH 5 0x62 SWAP1 SWAP2 SWAP1 PUSH4 0xFFFFFFFF AND" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 5).
+
+(*
+(* Example: 2 *)
+Eval cbv in 
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE DUP1 METAPUSH 5 0x266 DUP2 METAPUSH 5 0x171" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 DUP2 MSTORE POP POP DUP1 DUP1 METAPUSH 5 0x266 SWAP1 METAPUSH 5 0x171" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 5).
+*)
+  
+
 (***********************************************)
 (* Blocks from blockTraces_dec_1_2022_nodups.txt *)
 
@@ -335,6 +364,7 @@ let b2 := str2block "PUSH1 0x40 MLOAD DUP1 PUSH1 0x40 ADD PUSH1 0x40 MSTORE DUP1
 *)
 
 
+(*
 (* Block 1021: *)
 Compute 
 let b1 := str2block "PUSH1 0x40 DUP1 MLOAD PUSH1 0x2 DUP1 DUP3 MSTORE PUSH1 0x60 DUP3 ADD SWAP1 SWAP3 MSTORE SWAP2 SWAP3 POP PUSH1 0x0 SWAP2 SWAP1" in
@@ -1450,6 +1480,7 @@ Admitted.
 (* END Attempts to prove DIV(X, SHL(Y,1)) = SHR(Y,X) *)
 
 Compute (wones EVMWordSize).
+*)
 *)
 
 End Debug.

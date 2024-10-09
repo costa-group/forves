@@ -149,6 +149,8 @@ Require Import FORVES.optimizations.strg_solver.
 Import Opt_strg_solver.
 Require Import FORVES.optimizations.jumpi_eval.
 Import Opt_jumpi_eval.
+Require Import FORVES.optimizations.sub_const.
+Import Opt_sub_const.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -425,6 +427,8 @@ Inductive available_optimization_step :=
 | OPT_mem_solver
 | OPT_strg_solver
 | OPT_jumpi_eval
+
+| OPT_sub_const
 .
 
 
@@ -500,10 +504,13 @@ match tag with
 | OPT_mem_solver => OpEntry optimize_mem_solver_sbinding optimize_mem_solver_sbinding_snd
 | OPT_strg_solver => OpEntry optimize_strg_solver_sbinding optimize_strg_solver_sbinding_snd
 | OPT_jumpi_eval => OpEntry optimize_jumpi_eval_sbinding optimize_jumpi_eval_sbinding_snd
+
+| OPT_sub_const => OpEntry optimize_sub_const_sbinding optimize_sub_const_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
-  [OPT_eval; 
+  [
+   OPT_eval;
    OPT_add_zero; 
    OPT_not_not; 
    OPT_and_and;    
@@ -573,6 +580,8 @@ Definition all_optimization_steps :=
    ;OPT_jumpi_eval
    ;OPT_mem_solver
    ;OPT_strg_solver
+
+   ;OPT_sub_const
 ].
 
 Definition all_optimization_steps' := 
@@ -646,6 +655,8 @@ Definition all_optimization_steps' :=
    ;OPT_jumpi_eval
    ;OPT_mem_solver
    ;OPT_strg_solver
+
+   ;OPT_sub_const
 ].
 
   
