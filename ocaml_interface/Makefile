@@ -7,10 +7,11 @@ STATIC_EXE = static_forves
 
 
 all: executable static
+	cp $(EXE) ../bin
+	cp $(STATIC_EXE) ../bin
 
 executable: checker $(MAIN)
 	ocamlopt -o $(EXE)  checker.cmx str.cmxa $(MAIN) 
-	cp $(EXE) ../bin
 
 checker: checker.ml checker.mli
 	ocamlopt -c checker.mli -o checker.cmi
@@ -18,7 +19,6 @@ checker: checker.ml checker.mli
 
 static: checker $(MAIN)
 	ocamlopt -o $(STATIC_EXE) -ccopt -static str.cmxa checker.cmx $(MAIN)
-	cp $(STATIC_EXE) ../bin
 
 static_checker: checker.ml checker.mli
 	ocamlopt -c checker.mli -ccopt -static -o checker.cmi

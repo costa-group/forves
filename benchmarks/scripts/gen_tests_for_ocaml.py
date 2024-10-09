@@ -81,8 +81,12 @@ def split_bytecode(raw_instruction_str: str) -> List[str]:
 
         # op starts with PUSH
         else:
+            # PUSH0
+            if re.fullmatch("PUSH0", op) is not None:
+                final_op = "PUSH1"
+                operand = "0x0"
             # Just in case PUSHx instructions are included, we translate them to "PUSH x" name instead
-            if re.fullmatch("PUSH([0-9]+)", op) is not None:
+            elif re.fullmatch("PUSH([0-9]+)", op) is not None:
                 final_op = op
                 operand = f'0x{ops[i + 1]}'
                 i = i + 1
@@ -294,6 +298,110 @@ def gen_tests_csv(paths):
     print(f'STATS: {total_p / i:.2f},{total_opt_p / i:.2f},{max_p},{max_opt_p}', file=sys.stderr)
 
 
+# "context_info": [["s(1)", 0]]}
+def is_constant(v, cs):
+    for m in cs:
+        if v == m[0]:
+            return m[1]
+    return None
+
+#
+#
+def print_test_sfs(bench_id, block_info, block_sfs):
+    try:
+        if not block_info["model_found"] == "True":
+            print(f'No Model: {block_info["model_found"]}', file=sys.stderr)
+            return
+
+        if not include_identical and block_info["previous_solution"].lower() == block_info["solution_found"].lower():
+            return
+
+        bytecode_as_list = str_to_list(block_info["previous_solution"])
+        opt_bytecode_as_list = str_to_list(block_info["solution_found"])
+
+        bytecode = ' '.join(bytecode_as_list)
+        opt_bytecode = ' '.join(opt_bytecode_as_list)
+        stack_size = len(block_sfs["src_ws"])
+
+        print(f'# serial number: {block_info["sn"]}')
+        print(f'# csv: {block_info["csv"]}')
+        print(f'# block id: {block_info["block_id"]}')
+        print(f'# rules applied: {block_sfs["rules"]}')
+        print(opt_bytecode)
+        print(bytecode)
+        print(stack_size)
+
+        # print("[",end="")
+        # for v in block_sfs["src_ws"]:
+        #     c = is_constant(v, block_sfs["context_info"])
+        #     if c is not None:
+        #         print(f'{hex(c)},',end="")
+        #     else:
+        #         idx = re.fullmatch("s\((.+)\)", v)
+        #         print(f'v{idx[1]},',end="")
+        # print("] ",end="")
+        # print("[] [] [] []")
+        
+        print()
+        return (len(bytecode_as_list), len(opt_bytecode_as_list))
+    except Exception as e:
+        print(f'==> {e}', file=sys.stderr)
+        print(f'==> {block_info["previous_solution"]}', file=sys.stderr)
+        return None
+
+
+#
+#
+def gen_tests_sfs(paths):
+    total_p = 0
+    total_opt_p = 0
+    all_ex = []
+    missing_csv = 0
+    i = 0
+    for path in paths:
+        sfs_dir = f'{path}/sfs'
+        csv_dir = f'{path}/csv'
+        for sfs_filename in os.listdir(sfs_dir):
+            sfs_filename_s = re.fullmatch("(.+)\.sol_(.*)\.json", sfs_filename)          
+            csv_filename = f'{sfs_filename_s[1]}{sfs_filename_s[2]}_statistics.csv'
+
+            with open(f'{sfs_dir}/{sfs_filename}', 'r') as sfsfile:
+                block_sfs = json.load(sfsfile)
+                try:
+                    with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
+                        csv_reader = csv.DictReader(csvfile)
+                        block_info = next(csv_reader)
+                        block_info["csv"] = csv_filename
+                        block_info["sn"] = i
+                        r = print_test_sfs(i, block_info, block_sfs)
+                        if r is not None:
+                            total_p = total_p + r[0]
+                            total_opt_p = total_p + r[1]
+                            i = i + 1
+                except Exception as e:
+                    print(f'No such file: {csv_filename}', file=sys.stderr)
+                    missing_csv=missing_csv+1
+
+    print(f'{total_p / i:.2f},{total_opt_p / i:.2f} --- {i} {missing_csv} missing csv', file=sys.stderr)
+
+                    # for csv_filename in os.listdir(csv_dir):
+            # csv_filename_noext = os.path.splitext(csv_filename)[0]
+            # with open(f'{csv_dir}/{csv_filename}', newline='') as csvfile:
+            #     csv_reader = csv.DictReader(csvfile)
+            #     for block_info in csv_reader:
+            #         block_info["csv"] = csv_filename
+            #         block_info["sn"] = i
+            #         block_id = block_info['block_id']
+            #         with open(f'{path}/jsons/{csv_filename_noext}/{block_id}_input.json', 'r') as f:
+            #             block_sfs = json.load(f)
+            #             r = print_test(i, block_info, block_sfs)
+            #             if r is not None:
+            #                 total_p = total_p + r[0]
+            #                 total_opt_p = total_p + r[1]
+            #                 i = i + 1
+    # print(f'{total_p / i:.2f},{total_opt_p / i:.2f}', file=sys.stderr)
+
+
 def solc_json_block_to_str(b):
     s = ""
     for o in b:
@@ -395,7 +503,8 @@ def gen_blocks_from_daniel_format(path, smart_contract_name=""):
 if __name__ == "__main__":
     paths = sys.argv[1:]
     # gen_tests(paths)
-    gen_tests_csv(paths)
+    # gen_tests_csv(paths)
+    gen_tests_sfs(paths)
     #gen_tests_from_daniel_format(paths)
     # x = str_to_list("PUSH [tag] 1 ADD SUB PUSH 10")
     # print(x)
