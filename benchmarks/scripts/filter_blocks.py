@@ -10,5 +10,5 @@ def filter_blocks(blocks_filename, filter_filename, positions):
                 f_out.write('\n\n')
 
 if __name__ == "__main__":
-    pos = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 20, 31, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 52, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 69]
-    filter_blocks("blocks.txt", "filtered_blocks.txt", pos)
+    filter_blocks('blockTraces_dec_1_2022_false_negative.2.txt', 'blockTraces_dec_1_2022_false_negative.3.txt', [0, 2, 3, 5, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29])
+    

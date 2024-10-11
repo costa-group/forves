@@ -326,19 +326,12 @@ Definition evm_eq_block_chkr_lazy_dbg
 
 
 
-(* blocks from blockTraces_dec_1_2022_false_negative.2.txt *)
-
-(* Example: 29 *)
-Eval cbv in 
-let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE PUSH1 0x0 METAPUSH 5 0x61 DUP4 DUP4 PUSH4 0xFFFFFFFF METAPUSH 5 0x62 AND" in
-let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 SWAP1 MSTORE POP PUSH1 0x0 METAPUSH 5 0x61 DUP3 DUP5 METAPUSH 5 0x62 SWAP1 SWAP2 SWAP1 PUSH4 0xFFFFFFFF AND" in 
-  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
-  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
-  SStrgCmp_Basic SHA3Cmp_Basic
-  all_optimization_steps 10 10 b1 b2 5).
+(* blocks from blockTraces_dec_1_2022_false_negative.3.txt *)
 
 (*
-(* Example: 2 *)
+(* NOT *)
+(* Example: 1 *)
+(* store --> ADD(ADD(MUL(32, xO), x1), 32) =? ADD(ADD(32,MUL(32,x0)), x1) *)
 Eval cbv in 
 let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE DUP1 METAPUSH 5 0x266 DUP2 METAPUSH 5 0x171" in
 let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 DUP2 MSTORE POP POP DUP1 DUP1 METAPUSH 5 0x266 SWAP1 METAPUSH 5 0x171" in 
@@ -346,8 +339,149 @@ let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 DUP2 MSTORE POP POP 
   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
   SStrgCmp_Basic SHA3Cmp_Basic
   all_optimization_steps 10 10 b1 b2 5).
+
+
+(* Example: 4 *)
+(* ISZERO(ISZERO(SLT(X, Y))) = SLT(X,Y)
 *)
-  
+Eval cbv in 
+let b1 := str2block "PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT METAPUSH 5 0x533 JUMPI" in
+let b2 := str2block "PUSH8 0xDE0B6B3A7640000 SWAP2 DUP3 DUP3 SLT ISZERO PUSH1 0x0 EQ METAPUSH 5 0x533 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 5 *)
+(*
+# ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+# SHR(X, SHL(X, SHR(X, V))) = SHR(X, V)
+# AND(16777215, AND(255,X)) = AND(255, X)
+# AND(255, SHR(248,X)) = SHR(248, X)
+*)
+Eval cbv in 
+let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD METAPUSH 5 0x85 SWAP3 SWAP2 PUSH1 0xF8 SWAP2 SWAP1 SWAP2 SHR SWAP1 SHL METAPUSH 5 0x86" in
+let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL METAPUSH 5 0x85 SWAP2 SWAP1 METAPUSH 5 0x86" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 6 *)
+(* AND(63, SHR(6, AND(16777215, X))) = AND(63, SHR(6, X))
+   AND(255, AND(63, X)) = AND(X, 63)
+*)
+Eval cbv in 
+let b1 := str2block "DUP6 MLOAD SWAP1 SWAP2 POP DUP6 SWAP1 PUSH1 0x3F PUSH1 0x12 DUP5 SWAP1 SHR AND SWAP1 DUP2 LT METAPUSH 5 0x89 JUMPI" in
+let b2 := str2block "SWAP1 POP DUP5 PUSH1 0x12 DUP3 PUSH3 0xFFFFFF AND SWAP1 SHR PUSH1 0x3F AND PUSH1 0xFF AND DUP2 MLOAD DUP2 LT METAPUSH 5 0x89 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 7 *)
+(* a)  Combine SHR-SHL by constant
+       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
+       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
+
+   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+*)
+Eval cbv in 
+let b1 := str2block "POP DUP5 MLOAD DUP6 SWAP1 PUSH1 0x3F PUSH1 0xC DUP5 SWAP1 SHR AND SWAP1 DUP2 LT METAPUSH 5 0x94 JUMPI" in
+let b2 := str2block "POP DUP5 PUSH1 0xC DUP3 PUSH3 0xFFFFFF AND SWAP1 SHR PUSH1 0x3F AND PUSH1 0xFF AND DUP2 MLOAD DUP2 LT METAPUSH 5 0x94 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 8 *)
+(* AND(63, SHR(6, AND(16777215, X))) = AND(63, SHR(6, X))
+   AND(255, AND(63, X)) = AND(X, 63)
+*)
+Eval cbv in 
+let b1 := str2block "POP DUP5 MLOAD DUP6 SWAP1 PUSH1 0x3F PUSH1 0xC DUP5 SWAP1 SHR AND SWAP1 DUP2 LT METAPUSH 5 0x94 JUMPI" in
+let b2 := str2block "POP DUP5 PUSH1 0xC DUP3 PUSH3 0xFFFFFF AND SWAP1 SHR PUSH1 0x3F AND PUSH1 0xFF AND DUP2 MLOAD DUP2 LT METAPUSH 5 0x94 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 9 *)
+(* a)  Combine SHR-SHL by constant
+       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
+       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
+
+   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+*)
+Eval cbv in 
+let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 METAPUSH 5 0x95 DUP2 METAPUSH 5 0x28" in
+let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 METAPUSH 5 0x95 SWAP1 METAPUSH 5 0x28" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 10 *)
+(* AND(63, SHR(6, AND(16777215, X))) = AND(63, SHR(6, X))
+   AND(255, AND(63, X)) = AND(X, 63)
+*)
+Eval cbv in 
+let b1 := str2block "POP DUP5 MLOAD DUP6 SWAP1 PUSH1 0x3F PUSH1 0x6 DUP5 SWAP1 SHR AND SWAP1 DUP2 LT METAPUSH 5 0x99 JUMPI" in
+let b2 := str2block "POP DUP5 PUSH1 0x6 DUP3 PUSH3 0xFFFFFF AND SWAP1 SHR PUSH1 0x3F AND PUSH1 0xFF AND DUP2 MLOAD DUP2 LT METAPUSH 5 0x99 JUMPI" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 11 *)
+(* a)  Combine SHR-SHL by constant
+       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
+       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
+
+   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+*)
+Eval cbv in 
+let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 METAPUSH 5 0x100 DUP2 METAPUSH 5 0x28" in
+let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 METAPUSH 5 0x100 SWAP1 METAPUSH 5 0x28" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 12 *)
+(* a)  Combine SHR-SHL by constant
+       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
+       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
+
+   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+*)
+Eval cbv in 
+let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 METAPUSH 5 0x105 DUP2 METAPUSH 5 0x28" in
+let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 METAPUSH 5 0x105 SWAP1 METAPUSH 5 0x28" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).
+
+(* NOT *)
+(* Example: 13 *)
+(* store --> ADD(ADD(MUL(32, xO), x1), 32) =? ADD(ADD(32,MUL(32,x0)), x1) *)
+Eval cbv in 
+let b1 := str2block "PUSH1 0x20 SWAP1 DUP2 MUL SWAP2 SWAP1 SWAP2 ADD ADD MSTORE PUSH1 0x0 METAPUSH 5 0x61 DUP4 DUP4 PUSH4 0xFFFFFFFF METAPUSH 5 0x62 AND" in
+let b2 := str2block "PUSH1 0x20 MUL PUSH1 0x20 ADD ADD DUP2 SWAP1 MSTORE POP PUSH1 0x0 METAPUSH 5 0x61 DUP3 DUP5 METAPUSH 5 0x62 SWAP1 SWAP2 SWAP1 PUSH4 0xFFFFFFFF AND" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 5).
+*)  
 
 (***********************************************)
 (* Blocks from blockTraces_dec_1_2022_nodups.txt *)

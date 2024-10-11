@@ -151,6 +151,13 @@ Require Import FORVES.optimizations.jumpi_eval.
 Import Opt_jumpi_eval.
 Require Import FORVES.optimizations.sub_const.
 Import Opt_sub_const.
+Require Import FORVES.optimizations.add_add_const.
+Import Opt_add_add_const.
+Require Import FORVES.optimizations.iszero2_lt_zero.
+Import Opt_iszero2_lt_zero.
+Require Import FORVES.optimizations.gt_x_zero_lt.
+Import Opt_gt_x_zero_lt.
+
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -429,6 +436,9 @@ Inductive available_optimization_step :=
 | OPT_jumpi_eval
 
 | OPT_sub_const
+| OPT_add_add_const
+| OPT_iszero2_lt_zero
+| OPT_gt_x_zero_lt
 .
 
 
@@ -506,6 +516,9 @@ match tag with
 | OPT_jumpi_eval => OpEntry optimize_jumpi_eval_sbinding optimize_jumpi_eval_sbinding_snd
 
 | OPT_sub_const => OpEntry optimize_sub_const_sbinding optimize_sub_const_sbinding_snd
+| OPT_add_add_const => OpEntry optimize_add_add_const_sbinding optimize_add_add_const_sbinding_snd
+| OPT_iszero2_lt_zero => OpEntry optimize_iszero2_lt_zero_sbinding optimize_iszero2_lt_zero_sbinding_snd
+| OPT_gt_x_zero_lt => OpEntry optimize_gt_x_zero_lt_sbinding optimize_gt_x_zero_lt_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -582,6 +595,9 @@ Definition all_optimization_steps :=
    ;OPT_strg_solver
 
    ;OPT_sub_const
+   ;OPT_add_add_const
+   ;OPT_iszero2_lt_zero
+   ;OPT_gt_x_zero_lt
 ].
 
 Definition all_optimization_steps' := 
@@ -657,6 +673,9 @@ Definition all_optimization_steps' :=
    ;OPT_strg_solver
 
    ;OPT_sub_const
+   ;OPT_add_add_const
+   ;OPT_iszero2_lt_zero
+   ;OPT_gt_x_zero_lt
 ].
 
   
