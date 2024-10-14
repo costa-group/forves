@@ -109,7 +109,7 @@ Definition sstate_insert_bindings (sst: sstate) (nbs: sbindings): option sstate 
       match nbs with
       | (idx,_)::_ =>
           let shift := length nbs in
-          let start := idx in
+          let start := idx-shift+1 in
           Some (SymExState instk_height (rename_sstk sstk shift start) (rename_smem smem shift start) (rename_sstrg sstrg shift start) sexts (rename_smap sm shift start nbs))
       | _ => None
       end
