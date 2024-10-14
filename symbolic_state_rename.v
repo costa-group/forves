@@ -103,11 +103,16 @@ Definition rename_smap (sm: smap) (shift: nat) (start: nat) (nbs: sbindings): sm
   | SymMap maxid bs => SymMap (maxid+shift) (rename_sbindings bs shift start nbs)
   end.
 
-Definition sstate_insert_bindings (sst: sstate) (start: nat) (nbs: sbindings): option sstate :=
+Definition sstate_insert_bindings (sst: sstate) (nbs: sbindings): option sstate :=
   match sst with
   | SymExState instk_height sstk smem sstrg sexts sm =>
-      let shift := length nbs in
-      Some (SymExState instk_height (rename_sstk sstk shift start) (rename_smem smem shift start) (rename_sstrg sstrg shift start) sexts (rename_smap sm shift start nbs))
+      match nbs with
+      | (idx,_)::_ =>
+          let shift := length nbs in
+          let start := idx in
+          Some (SymExState instk_height (rename_sstk sstk shift start) (rename_smem smem shift start) (rename_sstrg sstrg shift start) sexts (rename_smap sm shift start nbs))
+      | _ => None
+      end
   end.
 
 End SymbolicStateRename.

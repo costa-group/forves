@@ -42,8 +42,8 @@ Import SymbolicStateRename.
 
 Module SymbolicStateRenameFacts.
   Lemma sstate_insert_bindings_snd:
-    forall (sst sst': sstate)  (start : nat) (nbs : list sbinding),
-      sstate_insert_bindings sst start nbs = Some sst' ->
+    forall (sst sst': sstate)  (nbs : list sbinding),
+      sstate_insert_bindings sst nbs = Some sst' ->
       (valid_sstate sst' evm_stack_opm /\ 
          get_instk_height_sst sst = get_instk_height_sst sst' /\
          forall (st st': state), eval_sstate st sst  evm_stack_opm = Some st' ->
