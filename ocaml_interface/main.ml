@@ -24,6 +24,19 @@ let read_line_from_in_channel ic () =
   done;
   !line;;  
 
+let block_length s =
+  let l = Str.split (Str.regexp " +") s in
+  let nmp = List.fold_left (fun a e -> if Str.string_match (Str.regexp "METAPUSH") e 0 then a+1 else a) 0 l in
+  let np = List.fold_left (fun a e -> if Str.string_match (Str.regexp "PUSH") e 0 then a+1 else a) 0 l in
+  let nms = List.fold_left (fun a e -> if Str.string_match (Str.regexp "MSTORE") e 0 then a+1 else a) 0 l in
+  let nml = List.fold_left (fun a e -> if Str.string_match (Str.regexp "MLOAD") e 0 then a+1 else a) 0 l in
+  let nss = List.fold_left (fun a e -> if Str.string_match (Str.regexp "SSTORE") e 0 then a+1 else a) 0 l in
+  let nsl = List.fold_left (fun a e -> if Str.string_match (Str.regexp "SLOAD") e 0 then a+1 else a) 0 l in
+  let nsha = List.fold_left (fun a e -> if Str.string_match (Str.regexp "KECCAK256") e 0 then a+1 else a) 0 l in
+  (List.length l)-nmp*2-np,nms,nml,nss,nsl,nsha;;
+
+
+
 
 (* Command line arguments *)
 let opts_to_apply = ref [ (charlist_of_string "all") ]
@@ -106,13 +119,24 @@ let main () =
           print_endline p;
           print_endline k;
           *)
+          
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
+          let p_opt_len,p_opt_nms,p_opt_nml,p_opt_nss,p_opt_nsl,p_opt_nsha = block_length p_opt in
+          let p_len,p_nms,p_nml,p_nss,p_nsl,p_nsha = block_length p in
+          let b_len = max p_opt_len p_len in
+          let nms = max p_opt_nms p_nms in
+          let nml = max p_opt_nml p_nml in
+          let nss = max p_opt_nss p_nss in
+          let nsl = max p_opt_nsl p_nsl in
+          let nsha = max p_opt_nsha p_nsha in
+          let t = Sys.time() in
           let r = chkr (charlist_of_string p_opt) (charlist_of_string p) (charlist_of_string k) in
+          let et = Sys.time() -. t in
           (* print the result *)
           match r with
           | None -> Printf.fprintf oc "Example %d: parsing error\n\n  %s\n  %s\n  %s\n\n%!" !i p_opt p k;
                     i := !i+1;
-          | Some b -> Printf.fprintf oc "Example %d: %B\n%!" !i b;
+          | Some b -> Printf.fprintf oc "Example %d: %B %d %d %d %d %d %d %d %f\n%!" !i b p_opt_len p_len nms nml nss nsl nsha et;
                     i := !i+1;
         done;
         close_out oc; (* Flushes write operations and closes out file *)

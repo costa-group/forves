@@ -117,11 +117,16 @@ optimizations/mem_solver.v
 optimizations/strg_solver.v
 optimizations/jumpi_eval.v
 
+optimizations/sub_const.v
+optimizations/add_add_const.v
+optimizations/iszero2_lt_zero.v
+optimizations/gt_x_zero_lt.v
+
 block_equiv_checker.v
 block_equiv_checker_facts.v
 
 parser.v
 extract_ocaml.v
 
-tests.v
-# debug.v
+#tests.v
+debug.v
