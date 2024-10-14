@@ -242,7 +242,7 @@ Module BlockEquivChecker.
   Definition get_mload_solver (tag: available_mload_solvers) : mload_solver_v :=
     match tag with
     | MLoadSolver_Trivial => MLoadSolver trivial_mload_solver trivial_mload_solver_snd
-    | MLoadSolverStrgUpdater_Basic => MLoadSolver basic_mload_solver basic_mload_solver_snd
+    | MLoadSolver_Basic => MLoadSolver basic_mload_solver basic_mload_solver_snd
   end.
 
   (* sload solvers *)

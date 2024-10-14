@@ -17,6 +17,9 @@ valid_symbolic_state.v
 symbolic_state_eval_facts.v
 symbolic_execution_soundness.v
 
+symbolic_state_rename.c
+symbolic_state_rename_facts.c
+
 memory_ops_solvers.v
 memory_ops_solvers_impl.v
 memory_ops_solvers_impl_soundness_misc.v
