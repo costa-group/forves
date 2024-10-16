@@ -67,12 +67,12 @@ end.
 Definition is_add_const (sv: sstack_val) (maxid: nat) (sb: sbindings) :=
 match follow_in_smap sv maxid sb with 
 | Some (FollowSmapVal (SymOp ADD [arg1; arg2]) idx' sb') => 
-    match is_const arg1 maxid sb with
+    match is_const arg1 maxid sb' with
     | Some c1 => Some (c1, arg2)
-    | None => match is_const arg2 maxid sb with
+    | None => None (*match is_const arg2 maxid sb' with
               | Some c2 => Some (c2, arg1)
               | None => None
-              end
+              end*)
     end
 | _ => None
 end.
@@ -87,22 +87,22 @@ fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
 match val with
 | SymOp ADD [arg1; arg2] => 
-  match is_add_const arg1 maxid sb with
-  | Some (c1, x) => match is_const arg2 maxid sb with
-                    | Some c2 => (* ADD(ADD(c1,x), c2) *)
-                                 let sum := wplus c1 c2 in 
-                                 (SymOp ADD [Val sum; x], true)
-                    | None => (val, false)
-                    end
-  | None => match is_add_const arg2 maxid sb with
-            | Some (c2, x) => match is_const arg1 maxid sb with
-                              | Some c1 => (* ADD(c1, ADD(x,c2)) *)
-                                           let sum := wplus c1 c2 in 
-                                           (SymOp ADD [Val sum; x], true)
-                              | None => (val, false)
-                              end
+  match is_const arg1 maxid sb with  
+  | Some c1 => match is_add_const arg2 maxid sb with
+               | Some (c2, x) => (* ADD(c1, ADD(c2,x)) *)
+                                let sum := wplus c1 c2 in 
+                                (SymOp ADD [Val sum; x], true)
+               | None => (val, false)
+               end
+  | None => match is_const arg2 maxid sb with
+            | Some c2 => match is_add_const arg1 maxid sb with
+                         | Some (c1, x) => (* ADD(ADD(c1,x), c2) *)
+                                          let sum := wplus c1 c2 in 
+                                          (SymOp ADD [Val sum; x], true)
+                         | None => (val, false)
+                         end
             | None => (val, false)
-            end                    
+            end
   end
 | _ => (val, false)
 end.

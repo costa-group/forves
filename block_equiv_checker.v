@@ -157,7 +157,10 @@ Require Import FORVES.optimizations.iszero2_lt_zero.
 Import Opt_iszero2_lt_zero.
 Require Import FORVES.optimizations.gt_x_zero_lt.
 Import Opt_gt_x_zero_lt.
-
+Require Import FORVES.optimizations.iszero2_slt.
+Import Opt_iszero2_slt.
+Require Import FORVES.optimizations.lt_zero_bool.
+Import Opt_lt_zero_bool.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -439,6 +442,8 @@ Inductive available_optimization_step :=
 | OPT_add_add_const
 | OPT_iszero2_lt_zero
 | OPT_gt_x_zero_lt
+| OPT_iszero2_slt
+| OPT_lt_zero_bool
 .
 
 
@@ -519,85 +524,90 @@ match tag with
 | OPT_add_add_const => OpEntry optimize_add_add_const_sbinding optimize_add_add_const_sbinding_snd
 | OPT_iszero2_lt_zero => OpEntry optimize_iszero2_lt_zero_sbinding optimize_iszero2_lt_zero_sbinding_snd
 | OPT_gt_x_zero_lt => OpEntry optimize_gt_x_zero_lt_sbinding optimize_gt_x_zero_lt_sbinding_snd
+| OPT_iszero2_slt => OpEntry optimize_iszero2_slt_sbinding optimize_iszero2_slt_sbinding_snd
+| OPT_lt_zero_bool => OpEntry optimize_lt_zero_bool_sbinding optimize_lt_zero_bool_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
   [
-   OPT_eval;
-   OPT_add_zero; 
-   OPT_not_not; 
-   OPT_and_and;    
-   OPT_and_origin; 
-   OPT_div_shl;
-   OPT_mul_shl;
-   OPT_shr_zero_x; 
-   OPT_shr_x_zero; 
-   OPT_eq_zero; 
-   OPT_sub_x_x; 
-   OPT_and_zero; 
-   OPT_div_one; 
-   OPT_lt_x_one; 
-   OPT_gt_one_x; 
-   OPT_and_address; 
-   OPT_mul_one; 
-   OPT_iszero_gt; 
-   OPT_eq_iszero;
-   OPT_and_caller;
-   OPT_iszero3;
-   OPT_add_sub;
-   OPT_shl_zero_x;
-   OPT_sub_zero;
-   OPT_shl_x_zero;
-   OPT_mul_zero;
-   OPT_div_x_x;  (* TODO:  useless: checking X <> 0 requires X to be a value
+   OPT_eval
+   ;OPT_add_zero
+   ;OPT_not_not
+   ;OPT_and_and  
+   ;OPT_and_origin
+   ;OPT_div_shl
+   ;OPT_mul_shl
+   ;OPT_shr_zero_x
+   ;OPT_shr_x_zero
+   ;OPT_eq_zero
+   ;OPT_sub_x_x 
+   ;OPT_and_zero
+   ;OPT_div_one 
+   ;OPT_lt_x_one 
+   ;OPT_gt_one_x 
+   ;OPT_and_address
+   ;OPT_mul_one
+   ;OPT_iszero_gt
+   ;OPT_eq_iszero
+   ;OPT_and_caller
+   ;OPT_iszero3
+   ;OPT_add_sub
+   ;OPT_shl_zero_x
+   ;OPT_sub_zero
+   ;OPT_shl_x_zero
+   ;OPT_mul_zero
+   ;OPT_div_x_x  (* TODO:  useless: checking X <> 0 requires X to be a value
                            so DIV(X,X) contains constants and can be avaluated
                            by the "eval" optimization *)
-   OPT_div_zero;
-   OPT_mod_one;
-   OPT_mod_zero;
-   OPT_mod_x_x;
-   OPT_exp_x_zero;
-   OPT_exp_x_one;
-   OPT_exp_one_x;
-   OPT_exp_zero_x;
-   OPT_exp_two_x;
-   OPT_gt_zero_x;
-   OPT_gt_x_x;
-   OPT_lt_x_zero;
-   OPT_lt_x_x;
-   OPT_eq_x_x;
-   OPT_iszero_sub;
-   OPT_iszero_lt;
-   OPT_iszero_xor;
-   OPT_iszero2_gt;
-   OPT_iszero2_lt;
-   OPT_iszero2_eq;
-   OPT_xor_x_x;
-   OPT_xor_zero;
-   OPT_xor_xor;
-   OPT_or_or;
-   OPT_or_and;
-   OPT_and_or;
-   OPT_and_not;
-   OPT_or_not;
-   OPT_or_x_x;
-   OPT_and_x_x;
-   OPT_or_zero;
-   OPT_or_ffff;
-   OPT_and_ffff;
-   OPT_and_coinbase;
-   OPT_balance_address;
-   OPT_slt_x_x;
-   OPT_sgt_x_x
-
-   ;OPT_jumpi_eval
-   ;OPT_mem_solver
-   ;OPT_strg_solver
+   ;OPT_div_zero
+   ;OPT_mod_one
+   ;OPT_mod_zero
+   ;OPT_mod_x_x
+   ;OPT_exp_x_zero
+   ;OPT_exp_x_one
+   ;OPT_exp_one_x
+   ;OPT_exp_zero_x
+   ;OPT_exp_two_x
+   ;OPT_gt_zero_x
+   ;OPT_gt_x_x
+   ;OPT_lt_x_zero
+   ;OPT_lt_x_x
+   ;OPT_eq_x_x
+   ;OPT_iszero_sub
+   ;OPT_iszero_lt
+   ;OPT_iszero_xor
+   ;OPT_iszero2_gt
+   ;OPT_iszero2_lt
+   ;OPT_iszero2_eq
+   ;OPT_iszero2_slt
+   ;OPT_xor_x_x
+   ;OPT_xor_zero
+   ;OPT_xor_xor
+   ;OPT_or_or
+   ;OPT_or_and
+   ;OPT_and_or
+   ;OPT_and_not
+   ;OPT_or_not
+   ;OPT_or_x_x
+   ;OPT_and_x_x
+   ;OPT_or_zero
+   ;OPT_or_ffff
+   ;OPT_and_ffff
+   ;OPT_and_coinbase
+   ;OPT_balance_address
+   ;OPT_slt_x_x
+   ;OPT_sgt_x_x
 
    ;OPT_sub_const
    ;OPT_add_add_const
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
+   (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
+
+   ;OPT_jumpi_eval
+   ;OPT_mem_solver
+   ;OPT_strg_solver
+
 ].
 
 Definition all_optimization_steps' := 
@@ -676,6 +686,8 @@ Definition all_optimization_steps' :=
    ;OPT_add_add_const
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
+   ;OPT_iszero2_slt
+   (*;OPT_lt_zero_bool*)
 ].
 
   

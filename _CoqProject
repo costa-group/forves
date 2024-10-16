@@ -17,8 +17,8 @@ valid_symbolic_state.v
 symbolic_state_eval_facts.v
 symbolic_execution_soundness.v
 
-symbolic_state_rename.c
-symbolic_state_rename_facts.c
+symbolic_state_rename.v
+symbolic_state_rename_facts.v
 
 memory_ops_solvers.v
 memory_ops_solvers_impl.v
@@ -121,6 +121,8 @@ optimizations/sub_const.v
 optimizations/add_add_const.v
 optimizations/iszero2_lt_zero.v
 optimizations/gt_x_zero_lt.v
+optimizations/iszero2_slt.v
+optimizations/lt_zero_bool.v
 
 block_equiv_checker.v
 block_equiv_checker_facts.v
