@@ -48,6 +48,7 @@ sha3_cmp_impl_soundness.v
 
 optimizations_common.v
 optimizations_def.v
+optimizations_ext_def.v
 
 optimizations/add_zero.v
 optimizations/eval.v
@@ -123,6 +124,7 @@ optimizations/iszero2_lt_zero.v
 optimizations/gt_x_zero_lt.v
 optimizations/iszero2_slt.v
 optimizations/lt_zero_bool.v
+optimizations/shl_shr.v
 
 block_equiv_checker.v
 block_equiv_checker_facts.v

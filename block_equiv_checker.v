@@ -161,6 +161,8 @@ Require Import FORVES.optimizations.iszero2_slt.
 Import Opt_iszero2_slt.
 Require Import FORVES.optimizations.lt_zero_bool.
 Import Opt_lt_zero_bool.
+Require Import FORVES.optimizations.shl_shr.
+Import Opt_shl_shr.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -235,10 +237,16 @@ Import MemoryOpsSolversImplSoundness.
 Require Import FORVES.symbolic_state_cmp_soundness.
 Import SymbolicStateCmpSoundness.
 
+Require Import FORVES.optimizations_ext_def.
+Import Optimizations_Ext_Def.
+
 Require Import FORVES.misc.
 Import Misc.
 
 From Coq Require Import Lists.List. Import ListNotations.
+
+(* For debugging with print_id *)
+From ReductionEffect Require Import PrintingEffect.
 
 Module BlockEquivChecker.
 
@@ -444,6 +452,7 @@ Inductive available_optimization_step :=
 | OPT_gt_x_zero_lt
 | OPT_iszero2_slt
 | OPT_lt_zero_bool
+| OPT_shl_shr
 .
 
 
@@ -526,6 +535,7 @@ match tag with
 | OPT_gt_x_zero_lt => OpEntry optimize_gt_x_zero_lt_sbinding optimize_gt_x_zero_lt_sbinding_snd
 | OPT_iszero2_slt => OpEntry optimize_iszero2_slt_sbinding optimize_iszero2_slt_sbinding_snd
 | OPT_lt_zero_bool => OpEntry optimize_lt_zero_bool_sbinding optimize_lt_zero_bool_sbinding_snd
+| OPT_shl_shr => OpEntry optimize_shl_shr_sbinding optimize_shl_shr_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -603,6 +613,7 @@ Definition all_optimization_steps :=
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
    (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
+   ;OPT_shl_shr
    
    ;OPT_jumpi_eval
    ;OPT_mem_solver
@@ -688,6 +699,7 @@ Definition all_optimization_steps' :=
    ;OPT_gt_x_zero_lt
    ;OPT_iszero2_slt
    (*;OPT_lt_zero_bool*)
+   ;OPT_shl_shr
 ].
 
   
@@ -716,7 +728,7 @@ Definition evm_eq_block_chkr'
   (opt_p p: block)
   (k: nat) 
   : bool :=
-  let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
+    let sstack_value_cmp_1 := sstack_value_cmp_ext smemory_cmp_ext sstorage_cmp_ext sha3_cmp_ext in
   let memory_updater' := memory_updater sstack_value_cmp_1 in
   let storage_updater' := storage_updater sstack_value_cmp_1 in
   let mload_solver' := mload_solver sstack_value_cmp_1 in
@@ -734,9 +746,23 @@ Definition evm_eq_block_chkr'
                        sstack_value_cmp opt_step_rep 
                        opt_pipeline_rep in
           (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
+
+          (* Hard-wired extended optimizations that generate new mappings *)
+          let opt_ext := apply_opt_ext_n_times_pipeline_k test_opt_ext_pipeline 
+                       sstack_value_cmp opt_step_rep 
+                       opt_pipeline_rep in
           
-          let (sst_opt', _) := opt sst_opt in 
-          let (sst_p',   _) := opt sst_p in
+          let (sst_opt'', _) := opt sst_opt in 
+          let (sst_p'',   _) := opt sst_p in
+          let (sst_opt', _) := opt_ext sst_opt'' in 
+          let (sst_p',   _) := opt_ext sst_p'' in
+          (*
+          (* Original simple optimizations *)
+          let (sst_opt', _) := opt_ext sst_opt in 
+          let (sst_p',   _) := opt_ext sst_p in
+          *)
+
+
           let smemory_cmp := smemory_cmp_ext sstack_value_cmp in
           let sstorage_cmp := sstorage_cmp_ext sstack_value_cmp in
           sstate_cmp sstack_value_cmp smemory_cmp sstorage_cmp sst_p' sst_opt' evm_stack_opm

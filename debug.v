@@ -102,6 +102,9 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.memory_ops_solvers_impl_soundness.
 Import MemoryOpsSolversImplSoundness.
 
+Require Import FORVES.optimizations_ext_def.
+Import Optimizations_Ext_Def.
+
 Require Import FORVES.misc.
 Import Misc.
 
@@ -264,10 +267,16 @@ Definition evm_eq_block_chkr'_dbg
                       let opt := apply_opt_n_times_pipeline_k opt_pipeline 
                                  sstack_value_cmp opt_step_rep 
                                  opt_pipeline_rep in
-                     (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
+                      (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
+
+                      let opt_ext := apply_opt_ext_n_times_pipeline_k test_opt_ext_pipeline 
+                          sstack_value_cmp opt_step_rep opt_pipeline_rep in
+          
+                      let (sst_opt'', _) := opt sst_opt in 
+                      let (sst_p'',   _) := opt sst_p in
+                      let (sst_opt', _) := opt_ext sst_opt'' in 
+                      let (sst_p',   _) := opt_ext sst_p'' in
   
-                      let (sst_opt', _) := opt sst_opt in 
-                      let (sst_p',   _) := opt sst_p in
                       let d := S (max (get_maxidx_smap (get_smap_sst sst_opt')) (get_maxidx_smap (get_smap_sst sst_p'))) in
                       let sstack_value_cmp := sstack_value_cmp_1 d in
                       let smemory_cmp := smemory_cmp_ext sstack_value_cmp in
@@ -323,15 +332,33 @@ Definition evm_eq_block_chkr_lazy_dbg
       end
   end.
 
+(* NOT *)
+(* Example: 12 *)
+(* a)  Combine SHR-SHL by constant
+       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
+       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
 
+   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
+*)
 Eval cbv in 
-let b1 := str2block "PUSH1 0x0 PUSH1 0x40 PUSH1 0x20 DUP1 DUP3 MLOAD ADD SWAP2 DUP3 ADD SWAP2 DIFFICULTY SWAP2 TIMESTAMP DUP3 MSTORE ADD MSTORE METAPUSH 5 0x378" in
-let b2 := str2block "PUSH1 0x0 TIMESTAMP DIFFICULTY PUSH1 0x40 MLOAD PUSH1 0x20 ADD METAPUSH 5 0x378 SWAP3 SWAP2 SWAP1 SWAP2 DUP3 MSTORE PUSH1 0x20 DUP3 ADD MSTORE PUSH1 0x40 ADD SWAP1" in 
+let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 METAPUSH 5 0x105 DUP2 METAPUSH 5 0x28" in
+let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 METAPUSH 5 0x105 SWAP1 METAPUSH 5 0x28" in 
+  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+  SStrgCmp_Basic SHA3Cmp_Basic
+  all_optimization_steps 10 10 b1 b2 6).  
+
+
+(*
+(* Rule ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y)) *)
+Eval cbv in 
+let b1 := str2block "PUSH1 0x1 ADD ADD" in
+let b2 := str2block "ADD PUSH1 0x1 ADD" in 
   (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
   MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
   SStrgCmp_Basic SHA3Cmp_Basic
   all_optimization_steps 10 10 b1 b2 2).
-
+*)
 
 
 (* blocks from blockTraces_dec_1_2022_false_negative.4.txt *)
