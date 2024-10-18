@@ -69,10 +69,10 @@ match follow_in_smap sv maxid sb with
 | Some (FollowSmapVal (SymOp ADD [arg1; arg2]) idx' sb') => 
     match is_const arg1 maxid sb' with
     | Some c1 => Some (c1, arg2)
-    | None => None (*match is_const arg2 maxid sb' with
+    | None => match is_const arg2 maxid sb' with
               | Some c2 => Some (c2, arg1)
               | None => None
-              end*)
+              end
     end
 | _ => None
 end.

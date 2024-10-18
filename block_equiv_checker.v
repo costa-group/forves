@@ -603,7 +603,7 @@ Definition all_optimization_steps :=
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
    (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
-
+   
    ;OPT_jumpi_eval
    ;OPT_mem_solver
    ;OPT_strg_solver
