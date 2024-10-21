@@ -125,6 +125,8 @@ optimizations/gt_x_zero_lt.v
 optimizations/iszero2_slt.v
 optimizations/lt_zero_bool.v
 optimizations/shl_shr.v
+optimizations/and_and_mask.v
+optimizations/and_shr.v
 
 block_equiv_checker.v
 block_equiv_checker_facts.v

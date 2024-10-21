@@ -163,6 +163,8 @@ Require Import FORVES.optimizations.lt_zero_bool.
 Import Opt_lt_zero_bool.
 Require Import FORVES.optimizations.shl_shr.
 Import Opt_shl_shr.
+Require Import FORVES.optimizations.and_and_mask.
+Import Opt_and_and_mask.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -453,6 +455,7 @@ Inductive available_optimization_step :=
 | OPT_iszero2_slt
 | OPT_lt_zero_bool
 | OPT_shl_shr
+| OPT_and_and_mask
 .
 
 
@@ -536,6 +539,7 @@ match tag with
 | OPT_iszero2_slt => OpEntry optimize_iszero2_slt_sbinding optimize_iszero2_slt_sbinding_snd
 | OPT_lt_zero_bool => OpEntry optimize_lt_zero_bool_sbinding optimize_lt_zero_bool_sbinding_snd
 | OPT_shl_shr => OpEntry optimize_shl_shr_sbinding optimize_shl_shr_sbinding_snd
+| OPT_and_and_mask => OpEntry optimize_and_and_mask_sbinding optimize_and_and_mask_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -614,6 +618,7 @@ Definition all_optimization_steps :=
    ;OPT_gt_x_zero_lt
    (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
    ;OPT_shl_shr
+   ;OPT_and_and_mask
    
    ;OPT_jumpi_eval
    ;OPT_mem_solver
@@ -700,6 +705,7 @@ Definition all_optimization_steps' :=
    ;OPT_iszero2_slt
    (*;OPT_lt_zero_bool*)
    ;OPT_shl_shr
+   ;OPT_and_and_mask
 ].
 
   
@@ -742,26 +748,19 @@ Definition evm_eq_block_chkr'
       | Some sst_p => (* Builds optimization *)
           let maxid := S (max (get_maxidx_smap (get_smap_sst sst_opt)) (get_maxidx_smap (get_smap_sst sst_p))) in
           let sstack_value_cmp := sstack_value_cmp_1 maxid in
+          
+          (* Combines standard optimization and extended optimizations *)
+          let opt := apply_opt_combined_n_times_pipeline_k opt_pipeline test_opt_ext_pipeline
+                     sstack_value_cmp opt_step_rep opt_pipeline_rep in
+          (*
           let opt := apply_opt_n_times_pipeline_k opt_pipeline 
                        sstack_value_cmp opt_step_rep 
                        opt_pipeline_rep in
           (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
-
-          (* Hard-wired extended optimizations that generate new mappings *)
-          let opt_ext := apply_opt_ext_n_times_pipeline_k test_opt_ext_pipeline 
-                       sstack_value_cmp opt_step_rep 
-                       opt_pipeline_rep in
-          
-          let (sst_opt'', _) := opt sst_opt in 
-          let (sst_p'',   _) := opt sst_p in
-          let (sst_opt', _) := opt_ext sst_opt'' in 
-          let (sst_p',   _) := opt_ext sst_p'' in
-          (*
-          (* Original simple optimizations *)
-          let (sst_opt', _) := opt_ext sst_opt in 
-          let (sst_p',   _) := opt_ext sst_p in
           *)
 
+          let (sst_opt', _) := opt sst_opt in 
+          let (sst_p',   _) := opt sst_p in
 
           let smemory_cmp := smemory_cmp_ext sstack_value_cmp in
           let sstorage_cmp := sstorage_cmp_ext sstack_value_cmp in

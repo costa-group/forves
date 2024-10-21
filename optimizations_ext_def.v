@@ -181,6 +181,44 @@ match val with
 end.
 
 
+
+(* SHR(B, AND(X, A)) = AND(SHR(B, X), A >> B) with A, B constants *)
+Definition optimize_shr_and_sbinding : opt_ext_smap_value_type := 
+fun (val: smap_value) =>
+fun (fcmp: sstack_val_cmp_t) =>
+fun (sb: sbindings) =>
+fun (maxid: nat) =>
+fun (instk_height: nat) =>
+fun (ops: stack_op_instr_map) => 
+match val with
+| SymOp SHR [b; arg] => 
+  match is_const b maxid sb with
+  | Some bval => 
+    match follow_in_smap arg maxid sb with
+    | Some (FollowSmapVal (SymOp AND [arg1; arg2]) idx' sb') =>
+      match is_const arg1 idx' sb' with
+      | Some aval => 
+        let c := NToWord EVMWordSize (N.shiftr (wordToN aval) (wordToN bval)) in
+        (SymOp AND [Val c; FreshVar maxid], 
+         [(maxid, SymOp SHR [Val bval; arg2])],
+         true)
+      | _ => 
+        match is_const arg2 idx' sb' with
+        | Some aval => 
+          let c := NToWord EVMWordSize (N.shiftr (wordToN aval) (wordToN bval)) in
+          (SymOp AND [Val c; FreshVar maxid], 
+           [(maxid, SymOp SHR [Val bval; arg1])],
+           true)
+        | None => (val, [], false)
+        end 
+      end
+    | _ => (val, [], false)
+    end
+  | _ => (val, [], false)
+  end
+| _ => (val, [], false)
+end.
+
 Definition dummy : sstack_val_cmp_t :=
 fun (sv1: sstack_val) =>
 fun (sv2: sstack_val) =>
@@ -215,7 +253,9 @@ Inductive opt_ext_entry :=
 Definition opt_ext_pipeline := list opt_ext_entry.
 
 Definition test_opt_ext_pipeline : opt_ext_pipeline :=
-[OpExtEntry optimize_add_const_add_sbinding].
+[OpExtEntry optimize_add_const_add_sbinding
+;OpExtEntry optimize_shr_and_sbinding].
+
 (*[].*)
 
 
@@ -278,6 +318,25 @@ match k with
     | (sst', false) => (sst', false)
     end
 end.
+
+
+(* Applies the pipeline pipe1 (standard optimizations) n times each stage, followed by pipe2 
+(extended optimizations) n times each stage. Repeats this process at most k times.  *)
+Fixpoint apply_opt_combined_n_times_pipeline_k (pipe1: opt_pipeline) (pipe2: opt_ext_pipeline)
+   (fcmp: sstack_val_cmp_t) 
+   (n k: nat) (sst: sstate) : sstate*bool :=
+ match k with
+ | 0 => (sst, false) 
+ | S k' => 
+     let (sst1, flag1) := apply_opt_n_times_pipeline_once pipe1 fcmp n sst in
+     let (sst2, flag2) := apply_opt_ext_n_times_pipeline_once pipe2 fcmp n sst1 in
+     if orb flag1 flag2 
+     (* Some optimization has been applied, continue one more iteration *)
+     then match apply_opt_combined_n_times_pipeline_k pipe1 pipe2 fcmp n k' sst2 with
+          | (sst', b) => (sst', true) 
+          end
+     else (sst, false)
+ end.
 
 
 End Optimizations_Ext_Def.

@@ -264,18 +264,12 @@ Definition evm_eq_block_chkr'_dbg
       | Some sst_p => (* Builds optimization *)
                       let maxid := S (max (get_maxidx_smap (get_smap_sst sst_opt)) (get_maxidx_smap (get_smap_sst sst_p))) in
                       let sstack_value_cmp := sstack_value_cmp_1 maxid in
-                      let opt := apply_opt_n_times_pipeline_k opt_pipeline 
-                                 sstack_value_cmp opt_step_rep 
-                                 opt_pipeline_rep in
-                      (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
-
-                      let opt_ext := apply_opt_ext_n_times_pipeline_k test_opt_ext_pipeline 
-                          sstack_value_cmp opt_step_rep opt_pipeline_rep in
-          
-                      let (sst_opt'', _) := opt sst_opt in 
-                      let (sst_p'',   _) := opt sst_p in
-                      let (sst_opt', _) := opt_ext sst_opt'' in 
-                      let (sst_p',   _) := opt_ext sst_p'' in
+                      
+                      let opt := apply_opt_combined_n_times_pipeline_k opt_pipeline test_opt_ext_pipeline
+                                 sstack_value_cmp opt_step_rep opt_pipeline_rep in
+                      
+                      let (sst_opt', _) := opt sst_opt in 
+                      let (sst_p',   _) := opt sst_p in
   
                       let d := S (max (get_maxidx_smap (get_smap_sst sst_opt')) (get_maxidx_smap (get_smap_sst sst_p'))) in
                       let sstack_value_cmp := sstack_value_cmp_1 d in
@@ -332,21 +326,15 @@ Definition evm_eq_block_chkr_lazy_dbg
       end
   end.
 
-(* NOT *)
-(* Example: 12 *)
-(* a)  Combine SHR-SHL by constant
-       https://github.com/ethereum/solidity/blob/7893614a31fbeacd1966994e310ed4f760772658/libevmasm/RuleList.h#L530 
-       SHL(248, SHR(248, X)) = AND(0xFF00..00, X)
 
-   b) ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y))
-*)
-Eval cbv in 
-let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD PUSH32 0xFF00000000000000000000000000000000000000000000000000000000000000 AND DUP5 DUP5 METAPUSH 5 0x105 DUP2 METAPUSH 5 0x28" in
-let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL DUP5 DUP5 DUP1 METAPUSH 5 0x105 SWAP1 METAPUSH 5 0x28" in 
-  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
-  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
-  SStrgCmp_Basic SHA3Cmp_Basic
-  all_optimization_steps 10 10 b1 b2 6).  
+  Eval cbv in 
+  let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD METAPUSH 5 0x85 SWAP3 SWAP2 PUSH1 0xF8 SWAP2 SWAP1 SWAP2 SHR SWAP1 SHL METAPUSH 5 0x86" in
+  let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL METAPUSH 5 0x85 SWAP2 SWAP1 METAPUSH 5 0x86" in 
+    (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
+    MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
+    SStrgCmp_Basic SHA3Cmp_Basic
+    all_optimization_steps 10 10 b1 b2 6).
+
 
 
 (*
