@@ -56,6 +56,9 @@ Import Optimizations_Common.
 Require Import List.
 Import ListNotations.
 
+(* For debugging with print_id *)
+From ReductionEffect Require Import PrintingEffect.
+
 
 Module Opt_and_shr.
 
@@ -86,15 +89,16 @@ Definition is_shr_const (sv: sstack_val)
   (maxid: nat) (sb: sbindings) :=
 match follow_in_smap sv maxid sb with 
 | Some (FollowSmapVal (SymOp SHR [arg1; arg2]) idx' sb') => 
-    match is_2_pow_n_minus_1_follow arg1 idx' sb' with
-    | Some size => Some (size, arg2)
-    | None => None
+    match follow_in_smap arg1 idx' sb' with
+    | Some (FollowSmapVal (SymBasicVal (Val v)) _ _) => 
+        Some (wordToNat v, arg2)
+    | _ => None
     end
 | _ => None
 end.
 
 
-(* AND(2^A-1, SHR(B,X)) = SHR(B,X) if B >= A and A, B *)
+(* AND(2^A-1, SHR(B,X)) = SHR(B,X) if 256-B <= A and A, B  constants *)
 Definition optimize_and_shr_sbinding : opt_smap_value_type :=   
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
@@ -102,9 +106,6 @@ fun (sb: sbindings) =>
 fun (maxid: nat) =>
 fun (instk_height: nat) =>
 fun (ops: stack_op_instr_map) => 
-(val, false).
-(*
-TODO: FINISH
 
 match val with
 | SymOp AND [arg1; arg2] => 
@@ -112,7 +113,7 @@ match val with
   | Some a => 
     match is_shr_const arg2 maxid sb with
     | Some (b, x) => 
-      if (leb b a)%nat then (SymOp SHR [Val natToWord EVMWord b; x], true)
+      if (256-b <=? a) then (SymOp SHR [Val (natToWord EVMWordSize b); x], true)
       else (val, false) 
     | None => (val, false) 
     end
@@ -121,7 +122,7 @@ match val with
     | Some a => 
       match is_shr_const arg1 maxid sb with
       | Some (b, x) => 
-        if b >= a then (SymOp SHR [Val natToWord EVMWord b; x], true)
+        if (256-b <=? a) then (SymOp SHR [Val (natToWord EVMWordSize b); x], true)
         else (val, false) 
       | None => (val, false) 
       end
@@ -130,7 +131,7 @@ match val with
   end
 | _ => (val, false)
 end.
-*)
+
 
 
 Lemma optimize_and_shr_sbinding_smapv_valid:

@@ -165,6 +165,8 @@ Require Import FORVES.optimizations.shl_shr.
 Import Opt_shl_shr.
 Require Import FORVES.optimizations.and_and_mask.
 Import Opt_and_and_mask.
+Require Import FORVES.optimizations.and_shr.
+Import Opt_and_shr.
 
 Require Import FORVES.symbolic_execution.
 Import SymbolicExecution.
@@ -456,6 +458,7 @@ Inductive available_optimization_step :=
 | OPT_lt_zero_bool
 | OPT_shl_shr
 | OPT_and_and_mask
+| OPT_and_shr
 .
 
 
@@ -540,6 +543,7 @@ match tag with
 | OPT_lt_zero_bool => OpEntry optimize_lt_zero_bool_sbinding optimize_lt_zero_bool_sbinding_snd
 | OPT_shl_shr => OpEntry optimize_shl_shr_sbinding optimize_shl_shr_sbinding_snd
 | OPT_and_and_mask => OpEntry optimize_and_and_mask_sbinding optimize_and_and_mask_sbinding_snd
+| OPT_and_shr => OpEntry optimize_and_shr_sbinding optimize_and_shr_sbinding_snd
 end.
 
 Definition all_optimization_steps := 
@@ -619,6 +623,7 @@ Definition all_optimization_steps :=
    (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
    ;OPT_shl_shr
    ;OPT_and_and_mask
+   ;OPT_and_shr
    
    ;OPT_jumpi_eval
    ;OPT_mem_solver
@@ -694,10 +699,6 @@ Definition all_optimization_steps' :=
    OPT_slt_x_x;
    OPT_sgt_x_x
 
-   ;OPT_jumpi_eval
-   ;OPT_mem_solver
-   ;OPT_strg_solver
-
    ;OPT_sub_const
    ;OPT_add_add_const
    ;OPT_iszero2_lt_zero
@@ -706,6 +707,11 @@ Definition all_optimization_steps' :=
    (*;OPT_lt_zero_bool*)
    ;OPT_shl_shr
    ;OPT_and_and_mask
+   ;OPT_and_shr
+
+   ;OPT_jumpi_eval
+   ;OPT_mem_solver
+   ;OPT_strg_solver   
 ].
 
   
