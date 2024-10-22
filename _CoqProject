@@ -123,7 +123,6 @@ optimizations/add_add_const.v
 optimizations/iszero2_lt_zero.v
 optimizations/gt_x_zero_lt.v
 optimizations/iszero2_slt.v
-optimizations/lt_zero_bool.v
 optimizations/shl_shr.v
 optimizations/and_and_mask.v
 optimizations/and_shr.v

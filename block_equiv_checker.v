@@ -159,8 +159,6 @@ Require Import FORVES.optimizations.gt_x_zero_lt.
 Import Opt_gt_x_zero_lt.
 Require Import FORVES.optimizations.iszero2_slt.
 Import Opt_iszero2_slt.
-Require Import FORVES.optimizations.lt_zero_bool.
-Import Opt_lt_zero_bool.
 Require Import FORVES.optimizations.shl_shr.
 Import Opt_shl_shr.
 Require Import FORVES.optimizations.and_and_mask.
@@ -455,7 +453,6 @@ Inductive available_optimization_step :=
 | OPT_iszero2_lt_zero
 | OPT_gt_x_zero_lt
 | OPT_iszero2_slt
-| OPT_lt_zero_bool
 | OPT_shl_shr
 | OPT_and_and_mask
 | OPT_and_shr
@@ -540,7 +537,6 @@ match tag with
 | OPT_iszero2_lt_zero => OpEntry optimize_iszero2_lt_zero_sbinding optimize_iszero2_lt_zero_sbinding_snd
 | OPT_gt_x_zero_lt => OpEntry optimize_gt_x_zero_lt_sbinding optimize_gt_x_zero_lt_sbinding_snd
 | OPT_iszero2_slt => OpEntry optimize_iszero2_slt_sbinding optimize_iszero2_slt_sbinding_snd
-| OPT_lt_zero_bool => OpEntry optimize_lt_zero_bool_sbinding optimize_lt_zero_bool_sbinding_snd
 | OPT_shl_shr => OpEntry optimize_shl_shr_sbinding optimize_shl_shr_sbinding_snd
 | OPT_and_and_mask => OpEntry optimize_and_and_mask_sbinding optimize_and_and_mask_sbinding_snd
 | OPT_and_shr => OpEntry optimize_and_shr_sbinding optimize_and_shr_sbinding_snd
@@ -620,7 +616,6 @@ Definition all_optimization_steps :=
    ;OPT_add_add_const
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
-   (*;OPT_lt_zero_bool (*NOT NEEDED*) *)
    ;OPT_shl_shr
    ;OPT_and_and_mask
    ;OPT_and_shr
@@ -704,7 +699,6 @@ Definition all_optimization_steps' :=
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
    ;OPT_iszero2_slt
-   (*;OPT_lt_zero_bool*)
    ;OPT_shl_shr
    ;OPT_and_and_mask
    ;OPT_and_shr

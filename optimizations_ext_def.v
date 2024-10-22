@@ -182,7 +182,9 @@ end.
 
 
 
-(* SHR(B, AND(X, A)) = AND(SHR(B, X), A >> B) with A, B constants *)
+(* SHR(B, AND(X, A)) = AND(SHR(B, X), A >> B) with A, B constants 
+https://github.com/ethereum/solidity/blob/abc46f309676637164076ca1a5b805cd90635bfa/libevmasm/RuleList.h#L558
+*)
 Definition optimize_shr_and_sbinding : opt_ext_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
