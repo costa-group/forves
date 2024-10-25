@@ -571,7 +571,7 @@ Definition all_optimization_steps :=
    ;OPT_shl_x_zero
    ;OPT_mul_zero
    ;OPT_div_x_x  (* TODO:  useless: checking X <> 0 requires X to be a value
-                           so DIV(X,X) contains constants and can be avaluated
+                           so DIV(X,X) contains constants and will be avaluated
                            by the "eval" optimization *)
    ;OPT_div_zero
    ;OPT_mod_one
@@ -654,7 +654,7 @@ Definition all_optimization_steps' :=
    OPT_shl_x_zero;
    OPT_mul_zero;
    OPT_div_x_x;  (* TODO:  useless: checking X <> 0 requires X to be a value
-                           so DIV(X,X) contains constants and can be avaluated
+                           so DIV(X,X) contains constants and will be avaluated
                            by the "eval" optimization *)
    OPT_div_zero;
    OPT_mod_one;
@@ -676,6 +676,7 @@ Definition all_optimization_steps' :=
    OPT_iszero2_gt;
    OPT_iszero2_lt;
    OPT_iszero2_eq;
+   (* OPT_iszero2_slt; *)
    OPT_xor_x_x;
    OPT_xor_zero;
    OPT_xor_xor;
@@ -694,14 +695,14 @@ Definition all_optimization_steps' :=
    OPT_slt_x_x;
    OPT_sgt_x_x
 
-   ;OPT_sub_const
+   (*;OPT_sub_const
    ;OPT_add_add_const
    ;OPT_iszero2_lt_zero
    ;OPT_gt_x_zero_lt
    ;OPT_iszero2_slt
    ;OPT_shl_shr
    ;OPT_and_and_mask
-   ;OPT_and_shr
+   ;OPT_and_shr*)
 
    ;OPT_jumpi_eval
    ;OPT_mem_solver
@@ -750,14 +751,12 @@ Definition evm_eq_block_chkr'
           let sstack_value_cmp := sstack_value_cmp_1 maxid in
           
           (* Combines standard optimization and extended optimizations *)
-          let opt := apply_opt_combined_n_times_pipeline_k opt_pipeline test_opt_ext_pipeline
-                     sstack_value_cmp opt_step_rep opt_pipeline_rep in
-          (*
+          (*let opt := apply_opt_combined_n_times_pipeline_k opt_pipeline test_opt_ext_pipeline
+                     sstack_value_cmp opt_step_rep opt_pipeline_rep in*)
           let opt := apply_opt_n_times_pipeline_k opt_pipeline 
                        sstack_value_cmp opt_step_rep 
                        opt_pipeline_rep in
           (* opt is sound if sstack_value_cmp is "safe_sstack_val_cmp" *)
-          *)
 
           let (sst_opt', _) := opt sst_opt in 
           let (sst_p',   _) := opt sst_p in

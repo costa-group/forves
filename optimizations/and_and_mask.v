@@ -58,9 +58,6 @@ Import ListNotations.
 
 Require Import Coq.Program.Equality.
 
-(* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
-
 
 Module Opt_and_and_mask.
 
@@ -143,10 +140,8 @@ match val with
   | _ => 
     match is_mask_const arg2 maxid sb with
     | Some aval =>
-      let _ := print_id [wordToN aval] in 
       match is_and_const_mask arg1 maxid sb with
       | Some (bval, x) =>
-        let _ := print_id [wordToN aval; wordToN bval] in 
         let min_mask := min_word aval bval in 
         (SymOp AND [Val min_mask; x], true)
       | _ => (val, false)

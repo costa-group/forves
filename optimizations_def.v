@@ -52,9 +52,6 @@ Import ConcreteInterpreter.
 Require Import List.
 Import ListNotations.
 
-(* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
-
 
 Module Optimizations_Def.
 
@@ -858,7 +855,6 @@ Fixpoint apply_opt_n_times_pipeline_k (pipe: opt_pipeline)
 match k with
 | 0 => (sst, false) 
 | S k' => 
-    let _ := print_id [k] in
     match apply_opt_n_times_pipeline_once pipe fcmp n sst with
     | (sst', true) => 
         match apply_opt_n_times_pipeline_k pipe fcmp n k' sst'  with
