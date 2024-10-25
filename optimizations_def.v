@@ -49,6 +49,9 @@ Import Optimizations_Common.
 Require Import FORVES.concrete_interpreter.
 Import ConcreteInterpreter.
 
+Require Import FORVES.symbolic_state_rename.
+Import SymbolicStateRename.
+
 Require Import List.
 Import ListNotations.
 
@@ -90,6 +93,18 @@ Definition opt_smap_value_type :=
   smap_value*bool.         (* (val', flag) *)
 
 
+(* Type of a function that optimizes a single smap_value and returns a new sbindings 
+   to insert *)
+  Definition opt_ext_smap_value_type := 
+    smap_value ->               (* val *)
+    sstack_val_cmp_t ->         (* fcmp *) 
+    sbindings ->                (* sb *)
+    nat ->                      (* maxid *) 
+    nat ->                      (* instk_height *)
+    stack_op_instr_map ->       (* ops *)
+    smap_value*sbindings*bool.  (* (val', nsb, flag) *)
+  
+  
 Definition opt_smapv_valid_snd (opt: opt_smap_value_type) :=
 forall (instk_height n: nat) (fcmp: sstack_val_cmp_t) (sb: sbindings) 
   (val val': smap_value) (flag: bool),
@@ -98,6 +113,7 @@ valid_smap_value instk_height n evm_stack_opm val ->
 valid_bindings instk_height n sb evm_stack_opm ->
 opt val fcmp sb n instk_height evm_stack_opm = (val', flag) ->
 valid_smap_value instk_height n evm_stack_opm val'.
+
 
 (* 'opt' is sound if optimizing the head in a valid bindings (idx,val)::sb 
    results in a valid bindings (idx,val')::sb that preserves evaluations *)
@@ -114,6 +130,7 @@ opt val fcmp sb idx instk_height evm_stack_opm = (val', flag) ->
        evm_stack_opm = Some v -> 
     eval_sstack_val (FreshVar idx) stk mem strg exts maxidx ((idx,val')::sb) 
        evm_stack_opm = Some v.
+
 
 (* Applies smap value optimization to the first suitable entry in sbindings *)
 Fixpoint optimize_first_sbindings (opt_sbinding: opt_smap_value_type) 
@@ -132,6 +149,7 @@ match sb with
     end
 end.
 
+
 Definition optimize_first_sstate (opt: opt_smap_value_type) 
   (fcmp: sstack_val_cmp_t) (sst: sstate)
   : sstate*bool :=
@@ -145,7 +163,74 @@ match sst with
 end.
 
 
+(* Changes the binding (n,_) by (n,val) in sb *)
+Fixpoint replace_binding (sb: sbindings) (n: nat) (val: smap_value) : sbindings :=
+  match sb with
+  | [] => []
+  | (n', val')::rs => if n =? n' 
+                      then (n, val)::rs 
+                      else (n', val')::(replace_binding rs n val)
+  end.
+  
 
+(* Changes the binding (n,_) by (n,val) in sb of the state *)
+Definition replace_binding_sstate (sst: sstate) (n: nat) (val: smap_value) : sstate :=
+    match sst with 
+    | SymExState instk_height sstk smem sstg sexts (SymMap maxid bindings) =>
+        SymExState instk_height sstk smem sstg sexts (SymMap maxid (replace_binding bindings n val))
+    end.    
+  
+  
+  (* Applies smap value optimization to the first suitable entry in sbindings, extending
+     the smap with possible new mappings. Returns:
+     * New bindings to add
+     * Optimized smap_value
+     * Index of smap_value updated, which is also the position where you need
+       to include the new bindings
+     * Flag indicating whether the optimization was applied
+  *)
+Fixpoint optimize_ext_first_sbindings (opt_ext_sbinding: opt_ext_smap_value_type) 
+  (fcmp: sstack_val_cmp_t) (sb: sbindings) (instk_height: nat) 
+    : sbindings*option smap_value*nat*bool :=
+match sb with
+| [] => ([], None, 0, false)
+| (n,val)::rs => 
+    match opt_ext_sbinding val fcmp rs n instk_height evm_stack_opm with
+    | (val', nsb, true) => (nsb, Some val', n, true)
+    | (_, _, false) => 
+        optimize_ext_first_sbindings opt_ext_sbinding fcmp rs instk_height
+     end
+end.
+  
+
+Definition optimize_ext_first_sbindings_sstate' (opt_ext_sbinding: opt_ext_smap_value_type) 
+  (fcmp: sstack_val_cmp_t) (sst: sstate)
+    : sbindings*option smap_value*nat*bool :=
+match sst with 
+| SymExState instk_height sstk smem sstg sexts (SymMap maxid bindings) =>
+    optimize_ext_first_sbindings opt_ext_sbinding fcmp bindings instk_height
+end.
+  
+    
+Definition optimize_ext_first_sstate (opt_ext: opt_ext_smap_value_type) 
+  (fcmp: sstack_val_cmp_t) (sst: sstate)
+  : sstate*bool :=
+match optimize_ext_first_sbindings_sstate' opt_ext fcmp sst with 
+| (nsb, Some val', n, true) => 
+    let shift := List.length nsb in
+    match sstate_insert_bindings sst nsb with
+    | Some sst1 => 
+        (replace_binding_sstate sst1 (n+shift) val', true)
+    | _ => (sst, false)
+    end
+| _ => (sst, false)
+end. 
+
+
+Definition opt_ext_sbinding_snd (opt: opt_ext_smap_value_type) :=
+    forall (fcmp: sstack_val_cmp_t),
+    safe_sstack_val_cmp fcmp ->
+    optim_snd (optimize_ext_first_sstate opt fcmp).
 
 
 
@@ -778,7 +863,9 @@ Qed.
 (* Pipeline of sound optimizations *)
 
 Inductive opt_entry :=
-| OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt).
+(*| OpEntry (opt: optim) (H_snd: optim_snd opt).*)
+| OpEntry (opt: opt_smap_value_type) (H_snd: opt_sbinding_snd opt)
+| OpExtEntry (opt: opt_ext_smap_value_type) (H_snd: opt_ext_sbinding_snd opt).
 
 Definition opt_pipeline := list opt_entry.
 
@@ -790,18 +877,6 @@ Definition opt_pipeline := list opt_entry.
 *************************************************************************)
 
 (* Applies the optimization once in the first possible place inside
-   the bindings
-*)
-Definition optimize_first_opt_entry_sbindings (opt_entry: opt_entry)
-  (fcmp: sstack_val_cmp_t) (instk_height: nat) (sb: sbindings)
-    : sbindings*bool :=
-match opt_entry with
-| OpEntry opt_sbinding Hopt_snd => 
-    optimize_first_sbindings opt_sbinding fcmp sb instk_height
-end.
-
-
-(* Applies the optimization once in the first possible place inside
    the bindings __of the sstate__
 *)
 Definition optimize_first_opt_entry_sstate (opt_e: opt_entry) 
@@ -809,24 +884,26 @@ Definition optimize_first_opt_entry_sstate (opt_e: opt_entry)
 match opt_e with
 | OpEntry opt Hopt_snd =>
   optimize_first_sstate opt fcmp sst
+| OpExtEntry opt_ext Hopt_ext_snd =>
+optimize_ext_first_sstate opt_ext fcmp sst  
 end.
 
 
 (* Applies the optimization at most n times in a sstate, stops as soon as it
    does not change the sstate *)
 Fixpoint apply_opt_n_times (opt_e: opt_entry) (fcmp: sstack_val_cmp_t) 
-  (n: nat) (sst: sstate) : sstate*bool :=
-match n with
-| 0 => (sst, false) 
-| S n' => 
-    match optimize_first_opt_entry_sstate opt_e fcmp sst with
-    | (sst', true) => 
-        match apply_opt_n_times opt_e fcmp n' sst' with
-        | (sst'', b) => (sst'', true) 
-        end
-    | (sst', false) => (sst', false)
-    end
-end.
+   (n: nat) (sst: sstate) : sstate*bool :=
+ match n with
+ | 0 => (sst, false) 
+ | S n' => 
+     match optimize_first_opt_entry_sstate opt_e fcmp sst with
+     | (sst', true) => 
+         match apply_opt_n_times opt_e fcmp n' sst' with
+         | (sst'', b) => (sst'', true) 
+         end
+     | (sst', false) => (sst', false)
+     end
+ end.
 (* Improvement: extra parameter as flag accumulator for final recursion, 
      if needed for efficiency *)
 
@@ -834,35 +911,35 @@ end.
 (* Applies the pipeline in order in a sstate, applying n times each 
    optimization and continuing with the next one *)
 Fixpoint apply_opt_n_times_pipeline_once (pipe: opt_pipeline) 
-  (fcmp: sstack_val_cmp_t) (n: nat) (sst: sstate) : sstate*bool :=
-match pipe with
-| [] => (sst, false) 
-| opt_e::rp => 
-    match apply_opt_n_times opt_e fcmp n sst with
-    | (sst', flag1) => 
-        match apply_opt_n_times_pipeline_once rp fcmp n sst' with
-        | (sst'', flag2) => (sst'', orb flag1 flag2)
-        end
-    end
-end.
+   (fcmp: sstack_val_cmp_t) (n: nat) (sst: sstate) : sstate*bool :=
+ match pipe with
+ | [] => (sst, false) 
+ | opt_e::rp => 
+     match apply_opt_n_times opt_e fcmp n sst with
+     | (sst', flag1) => 
+         match apply_opt_n_times_pipeline_once rp fcmp n sst' with
+         | (sst'', flag2) => (sst'', orb flag1 flag2)
+         end
+     end
+ end.
 
 
 (* Applies (apply_opt_n_times_pipeline n) at most k times in a sstate, stops 
    as soon as it does not change the sstate *)
 Fixpoint apply_opt_n_times_pipeline_k (pipe: opt_pipeline)
-  (fcmp: sstack_val_cmp_t) 
-  (n k: nat) (sst: sstate) : sstate*bool :=
-match k with
-| 0 => (sst, false) 
-| S k' => 
-    match apply_opt_n_times_pipeline_once pipe fcmp n sst with
-    | (sst', true) => 
-        match apply_opt_n_times_pipeline_k pipe fcmp n k' sst'  with
-        | (sst'', b) => (sst'', true) 
-        end
-    | (sst', false) => (sst', false)
-    end
-end.
+   (fcmp: sstack_val_cmp_t) 
+   (n k: nat) (sst: sstate) : sstate*bool :=
+ match k with
+ | 0 => (sst, false) 
+ | S k' => 
+     match apply_opt_n_times_pipeline_once pipe fcmp n sst with
+     | (sst', true) => 
+         match apply_opt_n_times_pipeline_k pipe fcmp n k' sst'  with
+         | (sst'', b) => (sst'', true) 
+         end
+     | (sst', false) => (sst', false)
+     end
+ end.
 (* Improvement: extra parameter as flag accumulator for final recursion, 
      if needed for efficiency *)
 
@@ -873,24 +950,27 @@ safe_sstack_val_cmp fcmp ->
 optim_snd (optimize_first_opt_entry_sstate opt_e fcmp).
 Proof.
 intros opt_e fcmp Hsafe_fcmp.
-unfold optim_snd. intros sst sst' b Hvalid Hoptim_first.
-unfold optimize_first_opt_entry_sstate in Hoptim_first.
-destruct opt_e as [opt Hopt_snd] eqn: eq_opt_e.
-split.
-- pose proof (optimize_first_sstate_valid opt fcmp sst sst' b Hvalid
-    Hopt_snd Hsafe_fcmp Hoptim_first).
+destruct opt_e as [opt Hopt_snd| opt_ext Hopt_ext_snd] eqn: eq_opt_e.
+* unfold optim_snd. intros sst sst' b Hvalid Hoptim_first.
+  unfold optimize_first_opt_entry_sstate in Hoptim_first.
+  + split.
+    - pose proof (optimize_first_sstate_valid opt fcmp sst sst' b Hvalid
+        Hopt_snd Hsafe_fcmp Hoptim_first).
+      assumption.
+    - split.
+      ++ unfold optimize_first_sstate in Hoptim_first. 
+        destruct sst as [instk_height sstk smem sstg sexts smap] eqn: eq_sst.
+        destruct smap as [maxid bindings] eqn: eq_smap.
+        destruct (optimize_first_sbindings opt fcmp bindings instk_height).
+        injection Hoptim_first as eq_sst' _. 
+        rewrite <- eq_sst'. reflexivity. 
+      ++ pose proof (optimize_first_sstate_preserv opt fcmp sst sst' b Hvalid
+          Hopt_snd Hsafe_fcmp Hoptim_first) as H1.
+        destruct H1 as [_ H2].
+        assumption.
+* unfold opt_ext_sbinding_snd in Hopt_ext_snd.
+  specialize (Hopt_ext_snd fcmp Hsafe_fcmp) as H.
   assumption.
-- split.
-  + unfold optimize_first_sstate in Hoptim_first. 
-    destruct sst as [instk_height sstk smem sstg sexts smap] eqn: eq_sst.
-    destruct smap as [maxid bindings] eqn: eq_smap.
-    destruct (optimize_first_sbindings opt fcmp bindings instk_height).
-    injection Hoptim_first as eq_sst' _. 
-    rewrite <- eq_sst'. reflexivity. 
-  + pose proof (optimize_first_sstate_preserv opt fcmp sst sst' b Hvalid
-      Hopt_snd Hsafe_fcmp Hoptim_first) as H1.
-    destruct H1 as [_ H2].
-    assumption.
 Qed.
 
 

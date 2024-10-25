@@ -65,6 +65,7 @@ match follow_in_smap sv maxidx sb with
 | _ => None
 end.
 
+
 Definition follow_to_val_args (args: sstack) (maxidx: nat) (sb: sbindings) 
   : option (list EVMWord) :=
 let f_follow_list := fun (sv': sstack_val) => follow_to_val sv' maxidx sb in

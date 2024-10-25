@@ -102,9 +102,6 @@ Import MemoryOpsSolversImpl.
 Require Import FORVES.memory_ops_solvers_impl_soundness.
 Import MemoryOpsSolversImplSoundness.
 
-Require Import FORVES.optimizations_ext_def.
-Import Optimizations_Ext_Def.
-
 Require Import FORVES.misc.
 Import Misc.
 
@@ -265,8 +262,6 @@ Definition evm_eq_block_chkr'_dbg
                       let maxid := S (max (get_maxidx_smap (get_smap_sst sst_opt)) (get_maxidx_smap (get_smap_sst sst_p))) in
                       let sstack_value_cmp := sstack_value_cmp_1 maxid in
                       
-                      (*let opt := apply_opt_combined_n_times_pipeline_k opt_pipeline test_opt_ext_pipeline
-                                 sstack_value_cmp opt_step_rep opt_pipeline_rep in*)
                       let opt := apply_opt_n_times_pipeline_k opt_pipeline 
                                  sstack_value_cmp opt_step_rep 
                                  opt_pipeline_rep in
@@ -328,15 +323,6 @@ Definition evm_eq_block_chkr_lazy_dbg
           end
       end
   end.
-
-
-Eval cbv in 
-let b1 := str2block "PUSH1 0x0 PUSH1 0x20 MSTORE PUSH1 0x1 PUSH1 0x1 PUSH1 0xa0 SHL SUB DUP1 DUP5 AND PUSH1 0x0 MSTORE PUSH1 0x60 SWAP1 PUSH1 0x40 PUSH1 0x0 KECCAK256 PUSH1 0x40 MLOAD SWAP2 DUP2 SLOAD DUP1 PUSH1 0x20 MUL DUP5 ADD PUSH1 0x20 ADD PUSH1 0x40 MSTORE PUSH1 0x40 PUSH1 0x0 KECCAK256 PUSH1 0x20 MSTORE DUP7 DUP3 AND PUSH1 0x0 MSTORE PUSH1 0x40 PUSH1 0x0 KECCAK256 PUSH1 0x20 MSTORE SWAP1 DUP6 AND PUSH1 0x0 MSTORE DUP1 DUP4 MSTORE DUP2 SWAP2 DUP4 PUSH1 0x20 ADD SWAP1 DUP3 DUP1 ISZERO METAPUSH 5 0x83" in
-let b2 := str2block "PUSH1 0x1 PUSH1 0x1 PUSH1 0xa0 SHL SUB DUP1 DUP5 AND PUSH1 0x0 SWAP1 DUP2 MSTORE PUSH1 0x20 DUP2 DUP2 MSTORE PUSH1 0x40 DUP1 DUP4 KECCAK256 DUP7 DUP6 AND DUP5 MSTORE DUP3 MSTORE DUP1 DUP4 KECCAK256 SWAP4 DUP6 AND DUP4 MSTORE SWAP3 DUP2 MSTORE SWAP1 DUP3 SWAP1 KECCAK256 DUP1 SLOAD DUP4 MLOAD DUP2 DUP5 MUL DUP2 ADD DUP5 ADD SWAP1 SWAP5 MSTORE DUP1 DUP5 MSTORE PUSH1 0x60 SWAP4 SWAP3 DUP4 ADD DUP3 DUP3 DUP1 ISZERO METAPUSH 5 0x83" in
-  (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
-  MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
-  SStrgCmp_Basic SHA3Cmp_Basic
-  all_optimization_steps' 10 10 b1 b2 5).
 
 
 (*

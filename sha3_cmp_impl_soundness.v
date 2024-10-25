@@ -74,7 +74,7 @@ Module SHA3CmpImplSoundness.
   Proof.
     intros m n p H.
     (* *)
-    assert(H0: (N.of_nat (S m) > 0)%N). rewrite N.gt_lt_iff. Search N.to_nat. apply Nlt_in. simpl. intuition.
+    assert(H0: (N.of_nat (S m) > 0)%N). rewrite N.gt_lt_iff. apply Nlt_in. simpl. intuition.
     (* *)
 
     (* *)
@@ -395,7 +395,6 @@ Qed.
          assert(H_o1: (N.to_nat (offset' + 1) + n' <= N.to_nat offset)). intuition.
          rewrite (update_out_of_slot_snd_d2_aux_0 n' (split2_byte value) (offset' + 1)%N offset mem mem'' H_o1 (eq_sym Heqmem'')).
          assert(H_b1: (offset' < offset + 1)%N).  apply Nlt_in. intuition.
-          Search (N.to_nat ?a < N.to_nat ?b).
          rewrite (update_out_of_slot_snd_d2_aux_1 size' (offset+1)%N offset' mem'' (split1_byte value) H_b1).
          assert(H_o2: N.to_nat (offset' + 1) + n' <= N.to_nat (offset + 1)). intuition.
          rewrite (IHn' size' (split2_byte value) (offset' + 1)%N (offset + 1)%N mem mem'' H_o2 (eq_sym Heqmem'')).

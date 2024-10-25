@@ -74,8 +74,9 @@ let speclist =
   [
     ("-opt", Arg.String process_opts, "Rule-based optimizations to be applied iteratively. Possible values:
     * none: disable optimizations
-    * all: use all optimizations starting with 'eval'
-    * all_size: use all optimizations starting with 'div_shl' and 'mul_shl' (useful for size)
+    * gas: use all optimizations starting with 'eval' (useful for gas)
+    * size: use all optimizations starting with 'div_shl' and 'mul_shl' (useful for size)
+    * solc: use extended optimzations applied by solc
     * A list of comma-separated optimizations (without white spaces). Available optimizations are: 
         eval,add_zero,not_not,and_and,and_origin,mul_shl,div_shl,shr_zero_x,shr_x_zero,eq_zero,sub_x_x,
         and_zero,div_one,lt_x_one,gt_one_x,and_address,mul_one,iszero_gt,eq_iszero,and_caller,iszero3,
@@ -83,7 +84,12 @@ let speclist =
         exp_x_zero,exp_x_one,exp_one_x,exp_zero_x,exp_two_x,gt_zero_x,gt_x_x,lt_x_zero,lt_x_x,eq_x_x,
         iszero_sub,iszero_lt,iszero_xor,iszero2_gt,iszero2_lt,iszero2_eq,xor_x_x,xor_zero,xor_xor,       
         or_or,or_and,and_or,and_not,or_not,or_x_x,and_x_x,or_zero,or_ffff,and_ffff,and_coinbase,
-        balance_address,slt_x_x,sgt_x_x,mem_solver,strg_solver,jumpi_eval");
+        balance_address,slt_x_x,sgt_x_x,mem_solver,strg_solver,jumpi_eval, iszero2_slt,sub_const,
+        add_add_const,iszero2_lt_zero,gt_x_zero_lt,shl_shr,and_and_mask,and_shr,
+        add_reshape,shr_and
+        
+        
+        ");
     ("-mu", Arg.String process_memory_updater, "memory updater (trivial, basic)");
     ("-su", Arg.String process_storage_updater, "storage updater (trivial, basic)");
     ("-ms", Arg.String process_mload_solver, "mload solver (trivial, basic)");

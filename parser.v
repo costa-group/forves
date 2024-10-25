@@ -368,8 +368,20 @@ Definition str_to_opt (s : string) : option available_optimization_step :=
   | "mem_solver"%string => Some OPT_mem_solver
   | "strg_solver"%string => Some OPT_strg_solver
   | "jumpi_eval"%string => Some OPT_jumpi_eval
+  | "iszero2_slt"%string => Some OPT_iszero2_slt
+  | "sub_const"%string => Some OPT_sub_const
+  | "add_add_const"%string => Some OPT_add_add_const
+  | "iszero2_lt_zero"%string => Some OPT_iszero2_lt_zero
+  | "gt_x_zero_lt"%string => Some OPT_gt_x_zero_lt
+  | "shl_shr"%string => Some OPT_shl_shr
+  | "and_and_mask"%string => Some OPT_and_and_mask
+  | "and_shr"%string => Some OPT_and_shr
+
+  | "add_reshape"%string => Some OPT_add_reshape
+  | "shr_and"%string => Some OPT_shr_and
   | _ => None
   end.
+
 
 Fixpoint strs_to_opts (l : list string) : option list_opt_steps :=
   match l with
@@ -387,8 +399,9 @@ Fixpoint strs_to_opts (l : list string) : option list_opt_steps :=
 Definition parse_opts_arg (opts_to_apply : list string) : option list_opt_steps :=
   match opts_to_apply with
   | ["none"%string] => Some []
-  | ["all"%string] => Some all_optimization_steps
-  | ["all_size"%string] => Some all_optimization_steps'
+  | ["gas"%string] => Some gas_pipeline
+  | ["size"%string] => Some size_pipeline
+  | ["solc"%string] => Some solc_pipeline
   | _ => strs_to_opts opts_to_apply
   end.
 

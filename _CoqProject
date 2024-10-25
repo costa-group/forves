@@ -48,7 +48,6 @@ sha3_cmp_impl_soundness.v
 
 optimizations_common.v
 optimizations_def.v
-optimizations_ext_def.v
 
 optimizations/add_zero.v
 optimizations/eval.v
@@ -126,6 +125,10 @@ optimizations/iszero2_slt.v
 optimizations/shl_shr.v
 optimizations/and_and_mask.v
 optimizations/and_shr.v
+
+# Extended optimization rules for solc
+optimizations/add_reshape.v
+optimizations/shr_and.v
 
 block_equiv_checker.v
 block_equiv_checker_facts.v
