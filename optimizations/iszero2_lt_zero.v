@@ -60,7 +60,9 @@ Import ListNotations.
 Module Opt_iszero2_lt_zero.
 
 
-(* ISZERO(ISZERO(X) = LT(0,X) *)
+(* ISZERO(ISZERO(X) = LT(0,X) 
+   https://github.com/ethereum/solidity/blob/abc46f309676637164076ca1a5b805cd90635bfa/libevmasm/RuleList.h#L180
+*)
 Definition optimize_iszero2_lt_zero_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
 fun (fcmp: sstack_val_cmp_t) =>
@@ -78,22 +80,33 @@ match val with
 | _ => (val, false)
 end.
 
-(*
-Lemma evm_iszero2_lt_zero_snd: forall exts x y,
-evm_iszero exts [evm_iszero exts [evm_lt exts [x; y]]] = evm_lt exts [x; y].
+Lemma diff_zero_gt_zero: forall x,
+weqb x WZero = false -> (0 <? wordToN x)%N = true.
 Proof.
-intros exts x y.
-unfold evm_lt.
-destruct (wordToN x <? wordToN y)%N eqn: eq_y_lt_x; try reflexivity.
+Admitted.
+
+
+Lemma evm_iszero2_lt_zero_snd: forall exts x,
+evm_iszero exts [evm_iszero exts [x]] = evm_lt exts [WZero; x].
+Proof.
+intros exts x.
+unfold evm_iszero.
+unfold evm_eq.
+destruct (weqb x WZero) eqn: eq_x_zero.
+- apply weqb_true_iff in eq_x_zero.
+  rewrite -> eq_x_zero.
+  reflexivity.
+- unfold evm_lt.
+  simpl.
+  apply diff_zero_gt_zero in eq_x_zero.
+  rewrite -> eq_x_zero.
+  reflexivity.
 Qed.
-*)
 
 
 Lemma optimize_iszero2_lt_zero_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_iszero2_lt_zero_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros _ Hvalid_smapv_val Hvalid Hoptm_sbinding.
@@ -113,15 +126,6 @@ destruct smv2 as [basicv|pushtagv|label2 args2|offset smem|key sstrg|
 destruct label2; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args2 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-destruct (follow_in_smap arg2) as [fsmv3|] eqn: eq_follow_arg2;
-  try inject_rw Hoptm_sbinding eq_val'.
-destruct fsmv3 as [smv3 idx'' sb''].
-destruct smv3 as [basicv|pushtagv|label3 args3|offset smem|key sstrg|
-  offset size smem] eqn: eq_args3; try inject_rw Hoptm_sbinding eq_val'.
-destruct label3; try inject_rw Hoptm_sbinding eq_val'.
-destruct args3 as [|x args3']; try inject_rw Hoptm_sbinding eq_val'.
-destruct args3' as [|y args3'']; try inject_rw Hoptm_sbinding eq_val'.
-destruct args3''; try inject_rw Hoptm_sbinding eq_val'.
 injection Hoptm_sbinding as eq_val' _.
 rewrite <- eq_val'.
 
@@ -136,28 +140,18 @@ apply Himpl2 in Hnot_basic2.
 
 simpl in Hvalid_arg2. unfold valid_stack_op_instr in Hvalid_arg2.
 simpl in Hvalid_arg2. destruct Hvalid_arg2 as [_ [Hvalid_arg2 _]].
-pose proof (valid_follow_in_smap sb' arg2 instk_height idx' evm_stack_opm
-  (SymOp LT [x;y]) idx'' sb'' Hvalid_arg2 Hvalid_sb' eq_follow_arg2)
-  as [Hvalid_arg3 [Hvalid_sb'' Himpl3]].
-pose proof (not_basic_value_smv_symop LT [x;y]) as Hnot_basic3.
-apply Himpl3 in Hnot_basic3.
 
-pose proof (gt_add idx' idx'' Hnot_basic3) as [k3 eq_idx']. 
+simpl. unfold valid_stack_op_instr. simpl. split; try intuition.
 pose proof (gt_add n idx' Hnot_basic2) as [k2 eq_n].
-rewrite -> eq_idx' in eq_n.
-rewrite -> Plus.plus_assoc_reverse in eq_n.
-apply valid_smap_value_incr with (m:=k3+k2) in Hvalid_arg3.
+apply valid_sstack_value_extended_by_i with (i:=k2) in Hvalid_arg2.
 rewrite -> eq_n.
 assumption.
 Qed.
-*)
 
 
 Lemma optimize_iszero2_lt_zero_sbinding_snd:
 opt_sbinding_snd optimize_iszero2_lt_zero_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
@@ -178,24 +172,25 @@ split.
   destruct r1; try inject_rw Hoptm_sbinding eq_val'.
   destruct (follow_in_smap arg1 idx sb) as [fsmv2|] eqn: eq_follow_arg1;
   try inject_rw Hoptm_sbinding eq_val'.
-  destruct fsmv2 as [smv2 idx' sb'].
+  destruct fsmv2 as [smv2 idx' sb'] eqn: eq_fsmv2.
   destruct smv2 as [basicv|pushtagv|label2 args2|offset smem|key sstrg|
     offset size smem] eqn: eq_args2; try inject_rw Hoptm_sbinding eq_val'.
   
-  destruct label2; try try inject_rw Hoptm_sbinding eq_val'.
+  destruct label2; try inject_rw Hoptm_sbinding eq_val'.
   destruct args2 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
   destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-  destruct (follow_in_smap arg2) as [fsmv3|] eqn: eq_follow_arg2;
-    try inject_rw Hoptm_sbinding eq_val'.
-  destruct fsmv3 as [smv3 idx'' sb''].
-  destruct smv3 as [basicv|pushtagv|label3 args3|offset smem|key sstrg|
-    offset size smem] eqn: eq_args3; try inject_rw Hoptm_sbinding eq_val'.
-  destruct label3; try try inject_rw Hoptm_sbinding eq_val'.
-  destruct args3 as [|x args3']; try inject_rw Hoptm_sbinding eq_val'.
-  destruct args3' as [|y args3'']; try inject_rw Hoptm_sbinding eq_val'.
-  destruct args3''; try inject_rw Hoptm_sbinding eq_val'.
   injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'.
+
+  unfold eval_sstack_val.
+  simpl. rewrite -> PeanoNat.Nat.eqb_refl.
+  pose proof (eval_sstack_val'_const maxidx WZero stk mem strg exts idx sb
+    evm_stack_opm) as eval_wzero.
+  Admitted.
+  (*
+  rewrite -> eval_wzero.
+  Search eval_sstack_val'.
+
   
   unfold eval_sstack_val in Heval_orig.
   simpl in Heval_orig. rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
@@ -204,15 +199,25 @@ split.
     as [arg1_v|] eqn: eval_arg1; try discriminate.
   destruct maxidx as [|maxidx']; try discriminate. simpl in eval_arg1.
   rewrite -> eq_follow_arg1 in eval_arg1. simpl in eval_arg1.
-  destruct maxidx' as [|maxidx'']; try discriminate.
-  simpl in eval_arg1. rewrite -> eq_follow_arg2 in eval_arg1.
-  simpl in eval_arg1.
   
-  destruct (eval_sstack_val' maxidx'' x stk mem strg exts idx'' sb'' 
-    evm_stack_opm) as [xv|] eqn: eval_x; try discriminate.
-  destruct (eval_sstack_val' maxidx'' y stk mem strg exts idx'' sb'' 
-    evm_stack_opm) as [yv|] eqn: eval_y; try discriminate.    
+  (*destruct maxidx' as [|maxidx'']; try discriminate.
+  simpl in eval_arg1. rewrite -> eq_follow_arg2 in eval_arg1.
+  simpl in eval_arg1.*)
+  
+  destruct (eval_sstack_val' maxidx' arg2 stk mem strg exts idx' sb' 
+    evm_stack_opm) as [varg2|] eqn: eval_arg2; try discriminate.
+
   unfold eval_sstack_val.
+  rewrite <- eval_sstack_val'_freshvar.
+  Search eval_sstack_val'.
+
+  unfold eval_sstack_val.
+  simpl.
+  rewrite -> PeanoNat.Nat.eqb_refl.
+  simpl.
+  rewrite -> follow_in_smap_val.
+  Search (follow_in_smap _ _ _).
+  
   
   pose proof (follow_suffix sb arg1 idx (SymOp ISZERO [arg2]) idx' sb'
     eq_follow_arg1) as [p1 eq_sb].
