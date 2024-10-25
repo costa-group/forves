@@ -57,7 +57,7 @@ Require Import List.
 Import ListNotations.
 
 (* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 Require Import Coq.Program.Equality.
 

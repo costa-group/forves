@@ -59,7 +59,7 @@ Import ListNotations.
 Require Import Coq.Program.Equality.
 
 (* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 
 Module Opt_sub_const.

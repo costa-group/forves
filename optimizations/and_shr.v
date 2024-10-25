@@ -57,7 +57,7 @@ Require Import List.
 Import ListNotations.
 
 (* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 
 Module Opt_and_shr.

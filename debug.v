@@ -116,7 +116,7 @@ From Coq Require Import Strings.String.
 From Coq Require Import Lists.List. Import ListNotations.
 
 (* For debugging with print_id *)
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 
 Module Debug.
