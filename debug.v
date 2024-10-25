@@ -327,16 +327,6 @@ Definition evm_eq_block_chkr_lazy_dbg
   end.
 
 
-  Eval cbv in 
-  let b1 := str2block "ADD PUSH1 0x20 ADD MLOAD METAPUSH 5 0x85 SWAP3 SWAP2 PUSH1 0xF8 SWAP2 SWAP1 SWAP2 SHR SWAP1 SHL METAPUSH 5 0x86" in
-  let b2 := str2block "PUSH1 0x20 ADD ADD MLOAD PUSH1 0xF8 SHR PUSH1 0xF8 SHL PUSH1 0xF8 SHR PUSH1 0xFF AND PUSH3 0xFFFFFF AND SWAP1 SHL METAPUSH 5 0x85 SWAP2 SWAP1 METAPUSH 5 0x86" in 
-    (evm_eq_block_chkr_lazy_dbg SMemUpdater_Basic SStrgUpdater_Basic
-    MLoadSolver_Basic SLoadSolver_Basic SStackValCmp_Basic SMemCmp_PO
-    SStrgCmp_Basic SHA3Cmp_Basic
-    all_optimization_steps 10 10 b1 b2 6).
-
-
-
 (*
 (* Rule ADD(ADD(Const, X), Y) = ADD(Const, ADD(X, Y)) *)
 Eval cbv in 

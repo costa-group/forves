@@ -134,4 +134,4 @@ parser.v
 extract_ocaml.v
 
 #tests.v
-debug.v
+#debug.v
