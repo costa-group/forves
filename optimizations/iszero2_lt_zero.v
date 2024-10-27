@@ -83,7 +83,16 @@ end.
 Lemma diff_zero_gt_zero: forall x,
 weqb x WZero = false -> (0 <? wordToN x)%N = true.
 Proof.
-Admitted.
+intros x H.
+apply weqb_false in H.
+unfold WZero in H.
+apply wordToN_neq_0 in H.
+pose proof (N.div_0_l (wordToN x) H) as HH.
+pose proof (N.div_small_iff 0 (wordToN x) H) as HHH.
+rewrite -> HHH in HH.
+rewrite <- N.ltb_lt in HH.
+assumption.
+Qed.
 
 
 Lemma evm_iszero2_lt_zero_snd: forall exts x,
@@ -101,6 +110,14 @@ destruct (weqb x WZero) eqn: eq_x_zero.
   apply diff_zero_gt_zero in eq_x_zero.
   rewrite -> eq_x_zero.
   reflexivity.
+Qed.
+
+
+Lemma def_ev_iszero: forall exts x,
+evm_iszero exts [x] = if weqb x WZero then WOne else WZero.
+Proof.
+intros exts x.
+intuition.
 Qed.
 
 
@@ -164,96 +181,68 @@ split.
 - (* evaluation is preserved *) 
   intros stk mem strg exts v Hlen Heval_orig.
   unfold optimize_iszero2_lt_zero_sbinding in Hoptm_sbinding.
-  destruct (val) as [basicv|pushtagv|label1 args1|offset smem|key sstrg|
-  offset size smem] eqn: eq_val; 
+  destruct val as [| |label1 args1| | | ] eqn: eq_val; 
   try inject_rw Hoptm_sbinding eq_val'.
-  destruct label1; try try inject_rw Hoptm_sbinding eq_val'.
+  destruct label1; try inject_rw Hoptm_sbinding eq_val'.
   destruct args1 as [|arg1 r1]; try inject_rw Hoptm_sbinding eq_val'.
   destruct r1; try inject_rw Hoptm_sbinding eq_val'.
   destruct (follow_in_smap arg1 idx sb) as [fsmv2|] eqn: eq_follow_arg1;
   try inject_rw Hoptm_sbinding eq_val'.
   destruct fsmv2 as [smv2 idx' sb'] eqn: eq_fsmv2.
-  destruct smv2 as [basicv|pushtagv|label2 args2|offset smem|key sstrg|
-    offset size smem] eqn: eq_args2; try inject_rw Hoptm_sbinding eq_val'.
-  
+  destruct smv2 as [ | |label2 args2| | | ] eqn: eq_args2; 
+    try inject_rw Hoptm_sbinding eq_val'.
   destruct label2; try inject_rw Hoptm_sbinding eq_val'.
   destruct args2 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
   destruct r2; try inject_rw Hoptm_sbinding eq_val'.
   injection Hoptm_sbinding as eq_val' _.
   rewrite <- eq_val'.
 
-  unfold eval_sstack_val.
-  simpl. rewrite -> PeanoNat.Nat.eqb_refl.
-  pose proof (eval_sstack_val'_const maxidx WZero stk mem strg exts idx sb
-    evm_stack_opm) as eval_wzero.
-  Admitted.
-  (*
-  rewrite -> eval_wzero.
-  Search eval_sstack_val'.
-
-  
   unfold eval_sstack_val in Heval_orig.
   simpl in Heval_orig. rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
+  rewrite -> evm_stack_opm_ISZERO in Heval_orig.
+  rewrite -> length_one in Heval_orig.
   simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
-    as [arg1_v|] eqn: eval_arg1; try discriminate.
-  destruct maxidx as [|maxidx']; try discriminate. simpl in eval_arg1.
-  rewrite -> eq_follow_arg1 in eval_arg1. simpl in eval_arg1.
-  
-  (*destruct maxidx' as [|maxidx'']; try discriminate.
-  simpl in eval_arg1. rewrite -> eq_follow_arg2 in eval_arg1.
-  simpl in eval_arg1.*)
-  
-  destruct (eval_sstack_val' maxidx' arg2 stk mem strg exts idx' sb' 
-    evm_stack_opm) as [varg2|] eqn: eval_arg2; try discriminate.
+  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm) as 
+    [arg1_v|] eqn: eval_arg1; try discriminate.
+  destruct maxidx as [ | n] eqn: eq_maxidx; try discriminate.
+  unfold eval_sstack_val' in eval_arg1.
+  rewrite -> eq_follow_arg1 in eval_arg1.
+  rewrite -> evm_stack_opm_ISZERO in eval_arg1.
+  rewrite -> length_one in eval_arg1.
+  simpl in eval_arg1.
+  fold eval_sstack_val' in eval_arg1.
+  destruct (eval_sstack_val' n arg2 stk mem strg exts idx' sb' evm_stack_opm) as 
+    [arg2_v|] eqn: eval_arg2; try discriminate.
+  injection eval_arg1 as eq_arg1_v.
+  rewrite <- eq_arg1_v in Heval_orig.
+  rewrite <- Heval_orig.
 
   unfold eval_sstack_val.
-  rewrite <- eval_sstack_val'_freshvar.
-  Search eval_sstack_val'.
-
-  unfold eval_sstack_val.
+  rewrite <- eq_maxidx.
   simpl.
   rewrite -> PeanoNat.Nat.eqb_refl.
-  simpl.
-  rewrite -> follow_in_smap_val.
-  Search (follow_in_smap _ _ _).
-  
-  
-  pose proof (follow_suffix sb arg1 idx (SymOp ISZERO [arg2]) idx' sb'
-    eq_follow_arg1) as [p1 eq_sb].
-  pose proof (follow_suffix sb' arg2 idx'(SymOp LT [x; y]) idx'' sb''
-    eq_follow_arg2) as [p2 eq_sb'].
-  rewrite -> eq_sb' in eq_sb.
-  rewrite -> app_assoc in eq_sb.
-  
-  rewrite -> eval_sstack_val'_one_step. 
-  rewrite -> follow_in_smap_head_op.
   rewrite -> evm_stack_opm_LT.
   rewrite -> length_two.
-  unfold map_option.
-  
-  simpl in Hvalid. destruct Hvalid as [_ [Hvalid_arg1 Hvalid_sb]].
-  apply eval_sstack_val'_preserved_when_depth_extended in eval_x as eval_x.
-  apply eval_sstack_val'_preserved_when_depth_extended in eval_x as eval_x.
-  rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_x.
-  pose proof (eval_sstack_val'_extend_sb instk_height (S (S maxidx'')) stk 
-    mem strg exts idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb x
-    xv eval_x) as eval_x_sb.
-  rewrite -> eval_x_sb. 
-  apply eval_sstack_val'_preserved_when_depth_extended in eval_y as eval_y.
-  apply eval_sstack_val'_preserved_when_depth_extended in eval_y as eval_y.
-  rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_y.
-  pose proof (eval_sstack_val'_extend_sb instk_height (S (S maxidx'')) stk 
-    mem strg exts idx sb sb'' evm_stack_opm (p1 ++ p2) Hvalid_sb eq_sb y
-    yv eval_y) as eval_y_sb.
-  rewrite -> eval_y_sb. 
+  simpl.
+  rewrite -> eq_maxidx.
+  rewrite -> eval_sstack_val'_const.
 
-  rewrite <- Heval_orig.
-  injection eval_arg1 as eq_arg1_v.
-  rewrite <- eq_arg1_v. 
-  rewrite <- evm_iszero2_lt_zero_snd.
+  apply follow_suffix in eq_follow_arg1.
+  destruct eq_follow_arg1 as [pref eq_sb].
+  unfold valid_bindings in Hvalid.
+  destruct Hvalid as [eq_n_idx [valid_iszero_arg1 valid_sb]].
+  fold valid_bindings in valid_sb.
+  rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg2.
+  apply eval_sstack_val'_extend_sb with (instk_height:=instk_height)
+    (sb:=sb)(prefix:=pref) in eval_arg2; try assumption.
+  apply eval_sstack_val'_preserved_when_depth_extended in eval_arg2.
+  rewrite -> eval_arg2.
+
+  rewrite <- def_ev_iszero with (exts:=exts).
+  rewrite <- def_ev_iszero with (exts:=exts).
+  rewrite -> evm_iszero2_lt_zero_snd.
   reflexivity.
 Qed.
-*)
+
 
 End Opt_iszero2_lt_zero.
