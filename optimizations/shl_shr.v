@@ -69,7 +69,7 @@ Definition mask (n: N) : EVMWord :=
   NToWord EVMWordSize (N.sub (N.pow 2 256) (N.pow 2 n)).
  
 (* 
-  SHL(N, SHR(N, X)) = AND(2^256 - 2^N)
+  SHL(N, SHR(N, X)) = AND(2^256 - 2^N, X)
  *)
 Definition optimize_shl_shr_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>

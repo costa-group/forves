@@ -551,7 +551,7 @@ match tag with
 | OPT_shr_and => OpExtEntry optimize_shr_and_sbinding optimize_shr_and_sbinding_snd
 end.
 
-(* Optimization steps useful for gas optimizers *)
+(* Optimization steps useful for gas optimizers, starting with EVAL *)
 Definition gas_pipeline := 
   [
    OPT_eval
@@ -603,6 +603,7 @@ Definition gas_pipeline :=
    ;OPT_iszero2_gt
    ;OPT_iszero2_lt
    ;OPT_iszero2_eq
+   ;OPT_iszero2_slt  (* added *)
    ;OPT_xor_x_x
    ;OPT_xor_zero
    ;OPT_xor_xor
@@ -620,6 +621,14 @@ Definition gas_pipeline :=
    ;OPT_balance_address
    ;OPT_slt_x_x
    ;OPT_sgt_x_x
+
+   ;OPT_sub_const
+   ;OPT_add_add_const
+   ;OPT_iszero2_lt_zero
+   ;OPT_gt_x_zero_lt
+   ;OPT_shl_shr
+   ;OPT_and_and_mask
+   ;OPT_and_shr
  
    ;OPT_jumpi_eval
    ;OPT_mem_solver
@@ -628,7 +637,7 @@ Definition gas_pipeline :=
 ].
 
 
-(* Optimization steps useful for size optimizers *)
+(* Optimization steps useful for size optimizers, starting with div_shl and mul_shl *)
 Definition size_pipeline := 
   [
     OPT_div_shl
@@ -680,6 +689,7 @@ Definition size_pipeline :=
    ;OPT_iszero2_gt
    ;OPT_iszero2_lt
    ;OPT_iszero2_eq
+   ;OPT_iszero2_slt  (* added *)
    ;OPT_xor_x_x
    ;OPT_xor_zero
    ;OPT_xor_xor
@@ -698,13 +708,21 @@ Definition size_pipeline :=
    ;OPT_slt_x_x
    ;OPT_sgt_x_x
 
+   ;OPT_sub_const
+   ;OPT_add_add_const
+   ;OPT_iszero2_lt_zero
+   ;OPT_gt_x_zero_lt
+   ;OPT_shl_shr
+   ;OPT_and_and_mask
+   ;OPT_and_shr
+
    ;OPT_jumpi_eval
    ;OPT_mem_solver
    ;OPT_strg_solver
 ].
 
 
-(* Optimization steps useful for solc optimizer *)
+(* Optimization steps useful for solc optimizer, with extended rules *)
 Definition solc_pipeline := 
   [
     OPT_div_shl
@@ -787,6 +805,7 @@ Definition solc_pipeline :=
    ;OPT_mem_solver
    ;OPT_strg_solver
 
+   (* Extended rules *)
    ;OPT_add_reshape
    ;OPT_shr_and
 ].

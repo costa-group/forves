@@ -76,7 +76,7 @@ let speclist =
     * none: disable optimizations
     * gas: use all optimizations starting with 'eval' (useful for gas)
     * size: use all optimizations starting with 'div_shl' and 'mul_shl' (useful for size)
-    * solc: use extended optimzations applied by solc
+    * solc: size optimization including extended optimizations 'add_reshape' and 'shr_and'
     * A list of comma-separated optimizations (without white spaces). Available optimizations are: 
         eval,add_zero,not_not,and_and,and_origin,mul_shl,div_shl,shr_zero_x,shr_x_zero,eq_zero,sub_x_x,
         and_zero,div_one,lt_x_one,gt_one_x,and_address,mul_one,iszero_gt,eq_iszero,and_caller,iszero3,
@@ -129,7 +129,7 @@ let main () =
           (* call the checker -- converting ocaml strings to corresponding lists of chars *)
           let p_opt_len,p_opt_nms,p_opt_nml,p_opt_nss,p_opt_nsl,p_opt_nsha = block_length p_opt in
           let p_len,p_nms,p_nml,p_nss,p_nsl,p_nsha = block_length p in
-          let b_len = max p_opt_len p_len in
+          (* let b_len = max p_opt_len p_len in *)
           let nms = max p_opt_nms p_nms in
           let nml = max p_opt_nml p_nml in
           let nss = max p_opt_nss p_nss in

@@ -33,28 +33,14 @@ The repository also contains the Coq source code to compile the EVM equivalence 
    * The Coq Proof Assistant, version 8.15.2
    * OCaml 4.13.1
    * The Coq library coq-bbv, version 1.4
+   * Python 3 for running some scripts
 
 <a name="compiling"></a>
 ## 2 Compiling the verifier and validating Coq proofs
 
-To compile the binary verifiers and validate all the Coq proofs, execute the following commands:
+To compile the binary verifiers and validate all the Coq proofs, there is a `build.sh` script:
 
-    $ coq_makefile -f _CoqProject -o Makefile
-
-    $ make clean
-    CLEAN
-
-    $ make clean -C ocaml_interface/
-    make: entering directory '/home/ubuntu/ocaml_interface'
-    rm -f *.cmi
-    rm -f *.cmx
-    rm -f *.o
-    rm -f forves
-    rm -f ../bin/forves
-    rm -f static_forves
-    rm -f ../bin/static_forves
-
-    $ make
+    $ ./build.sh
     COQDEP VFILES
     COQC constants.v
     COQC program.v
@@ -68,7 +54,6 @@ To compile the binary verifiers and validate all the Coq proofs, execute the fol
     (...)
     COQC tests.v
 
-    $ make -C ocaml_interface/
     make: entering directory '/home/ubuntu/ocaml_interface'
     ocamlopt -c checker.mli -o checker.cmi
     ocamlopt -c checker.ml -o checker.cmx
@@ -77,6 +62,10 @@ To compile the binary verifiers and validate all the Coq proofs, execute the fol
     ...
     mv static_forves ../bin
     make: Leaving directory '/home/ubuntu/ocaml_interface'
+
+The `build.sh` script accepts a parameter `--memo` to compile the checker enabling memoization when comparing symbolic memories. Memoization obtains better execution times when processing big blocks, but has a sligth overhead in small blocks. It is enabled during compilation as follows:
+
+    $ ./build.sh --memo
     
 <a name="executing"></a>
 ## 3 Executing the verifier
