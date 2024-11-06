@@ -325,7 +325,8 @@ Definition evm_byte (exts : externals) (args : list EVMWord) : EVMWord :=
 
 Definition evm_shl (exts : externals) (args : list EVMWord) : EVMWord :=
   match args with
-  | [a;b] => wlshift' b (wordToNat a)
+  | [a;b] => wordBin N.shiftl b a
+  (*| [a;b] => wlshift' b (wordToNat a) *)
   (*| [shift;value] => NToWord EVMWordSize (N.shiftl (wordToN value) (wordToN shift))*)
   | _ => WZero
   end.
@@ -338,7 +339,8 @@ Qed.
 (* Equivalent definition better suited for the DIV_SHL optimization *)
 Definition evm_shr (exts : externals) (args : list EVMWord) : EVMWord :=
   match args with
-  | [shift;value] => wdiv value (wlshift' WOne (wordToNat shift))
+  | [a;b] => wordBin N.shiftr b a
+  (*| [shift;value] => wdiv value (wlshift' WOne (wordToNat shift)) *)
   (*| [shift;value] => NToWord EVMWordSize (N.shiftl (wordToN value) (wordToN shift))*)
   | _ => WZero
   end.

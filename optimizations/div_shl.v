@@ -150,27 +150,130 @@ match val with
 end.
 
 
-(* For optimization SHR(0,X) = X *)
-Lemma shr_0_x: forall x,
-wdiv x (wlshift WOne (wordToNat WZero)) = x.
+(* DIV(X, SHL(Y,1)) = SHR(Y, X) *)
+Lemma div_shl_shr: forall (x y: N), N.div x (N.shiftl 1 y) = N.shiftr x y.
 Proof.
-intros x. simpl. rewrite -> wlshift_0.
-unfold wdiv. unfold wordBin. simpl.
-rewrite -> N.div_1_r. simpl.
-rewrite -> NToWord_wordToN.
+intros.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> N.mul_1_l.
+rewrite -> N.shiftr_div_pow2.
 reflexivity.
 Qed.
 
-(* For optimization SHR(X,0) = 0 *)
-Lemma shr_x_0: forall (x: EVMWord),
-wdiv WZero (wlshift WOne (wordToNat x)) = WZero.
+
+Lemma wordToN_one: wordToN WOne = 1%N.
 Proof.
-intros x.
-rewrite <- wlshift_alt.
-rewrite -> pow2_shl'.
-unfold wdiv. unfold wordBin.
+unfold WOne. unfold wordToN. unfold NToWord. simpl.
+reflexivity.
+Qed.
+
+Lemma diff_wzero_pos: forall (x: EVMWord), x <> WZero -> (0 < wordToN x)%N.
+Proof.
+intros x H.
+apply wordToNat_nonZero in H.
+destruct (wordToNat x) as [|x'] eqn: eq_x.
+- intuition.
+- rewrite -> wordToN_nat.
+  rewrite -> eq_x.
+  rewrite -> Nat2N.inj_succ.
+  apply N.lt_0_succ.
+Qed.
+
+
+
+Lemma shiftr_zero: forall (x y: EVMWord),
+(Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
+(NToWord EVMWordSize (N.shiftr (wordToN x) (wordToN y)) = WZero).
+Proof.
+intros x y H.
+destruct (weqb x WZero) eqn: eq_x.
+- apply weqb_true_iff in eq_x.
+  rewrite -> eq_x.
+  simpl.
+  rewrite -> N.shiftr_0_l.
+  reflexivity.
+- rewrite -> N.shiftr_eq_0; try reflexivity.
+  apply N.log2_lt_pow2.
+  * apply weqb_false in eq_x.
+    apply diff_wzero_pos.
+    assumption.
+  * pose proof (wordToN_bound x) as eq_x_bound.
+    rewrite -> wordToN_one in H.
+    pose proof (N.shiftl_1_l (wordToN y)) as eq_shift_1.
+    rewrite -> eq_shift_1 in H.
+    pose proof (N.lt_le_trans (wordToN x) (Npow2 EVMWordSize) (2 ^ wordToN y)
+      eq_x_bound H) as f.
+    assumption. 
+Qed.
+
+
+Lemma Npow2_EVMWordSize: Npow2 EVMWordSize = (2 ^ (N.of_nat EVMWordSize))%N.
+Proof.
 intuition.
 Qed.
+
+
+Lemma pow2_pos: forall (x: N), (0 < 2 ^ x)%N.
+Proof.
+intros x.
+destruct x; try apply N.lt_0_1.
+Qed.
+
+
+Lemma shiftl_mod_pow2: forall (y: EVMWord),
+(Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
+(N.shiftl (wordToN WOne) (wordToN y) mod Npow2 EVMWordSize = 0)%N.
+Proof.
+intros y H.
+rewrite -> wordToN_one.
+rewrite -> N.shiftl_1_l.
+rewrite -> N.shiftl_1_l in H.
+apply N.mod_divides.
+- simpl. intuition.
+- rewrite -> Npow2_EVMWordSize in H.
+  rewrite -> Npow2_EVMWordSize.
+  rewrite -> N.log2_le_pow2 in H; try apply pow2_pos.
+  rewrite -> N.log2_pow2 in H; try apply N.le_0_l.
+  apply N.le_exists_sub in H. 
+  destruct H as [p [eq_wordToN_y eq_p]].
+  rewrite -> eq_wordToN_y.
+  exists (2 ^ p)%N.
+  rewrite -> N.add_comm.
+  rewrite <- N.pow_add_r.
+  reflexivity.
+Qed.
+
+
+Lemma Ndiv_zero: forall (x: N), N.div x 0 = 0%N.
+Proof.
+intros x.
+unfold N.div.
+unfold N.div_eucl.
+destruct x as [| x'] eqn: eq_x; try reflexivity.
+Qed.
+
+
+Lemma div_shl_shr_evm: forall (x y: EVMWord) exts, 
+evm_div exts [x; evm_shl exts [y; WOne]] = evm_shr exts [y; x].
+Proof.
+intros x y exts.
+simpl. unfold wdiv. unfold wordBin.
+destruct (N.ltb (N.shiftl (wordToN WOne) (wordToN y)) (Npow2 EVMWordSize))
+  eqn: eq_ltb.
+- rewrite <- div_shl_shr.
+  rewrite -> N.ltb_lt in eq_ltb.
+  rewrite -> wordToN_NToWord_2; try assumption.
+  rewrite -> wordToN_one.
+  reflexivity.
+- rewrite -> wordToN_NToWord_eqn.
+  rewrite -> N.ltb_ge in eq_ltb.
+  apply shiftl_mod_pow2 in eq_ltb as eq_mod.
+  rewrite -> eq_mod.
+  rewrite -> Ndiv_zero.
+  rewrite -> shiftr_zero; try assumption.
+  reflexivity.
+Qed.
+
 
 
 Lemma optimize_div_shl_sbinding_smapv_valid:
