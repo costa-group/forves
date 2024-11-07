@@ -115,6 +115,32 @@ apply wmult_shl_1.
 Qed.
 
 
+(* Common to DIV_SHL*)
+Lemma wordToN_one: wordToN WOne = 1%N.
+Proof.
+unfold WOne. unfold wordToN. unfold NToWord. simpl.
+reflexivity.
+Qed.
+
+Lemma mul_shl_shl: forall (x y: EVMWord) exts, 
+evm_mul exts [evm_shl exts [x; WOne]; y] = evm_shl exts [x; y].
+Proof.
+intros x y exts.
+simpl. unfold wmult. unfold wordBin.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> wordToN_one.
+rewrite -> N.mul_1_l.
+destruct (2 ^ wordToN x <? Npow2 EVMWordSize)%N eqn: pow2_x.
+- rewrite -> N.ltb_lt in pow2_x.
+  rewrite -> wordToN_NToWord_2; try assumption.
+  rewrite -> N.mul_comm.
+  reflexivity.
+- Search (_ <? _ = false -> _)%N.
+
+
+Admitted.
+
 (*
 Lemma mul_shiftl : forall (x y: N), N.mul (N.shiftl 1 x) y = N.shiftl y x.
 Proof.

@@ -54,7 +54,7 @@ optimizations/eval.v
 optimizations/not_not.v
 optimizations/and_and.v
 optimizations/and_origin.v
-# optimizations/mul_shl.v
+optimizations/mul_shl.v
 optimizations/div_shl.v
 optimizations/shr_zero_x.v
 optimizations/shr_x_zero.v
