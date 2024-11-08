@@ -78,14 +78,15 @@ match val with
 end.
 
 
-(* For optimization SHR(X,0) = 0 *)
-Lemma shr_x_zero_equiv': forall (x: EVMWord),
-wdiv WZero (wlshift' WOne (wordToNat x)) = WZero.
+Lemma shr_x_zero_equiv: forall (x: EVMWord) (exts: externals),
+evm_shr exts [x; WZero] = WZero.
 Proof.
-intros x.
-rewrite -> pow2_shl'.
-unfold wdiv. unfold wordBin.
-intuition.
+intros x exts.
+unfold evm_shr.
+unfold wordBin.
+simpl.
+rewrite -> N.shiftr_0_l.
+reflexivity.
 Qed.
 
 
@@ -177,7 +178,8 @@ split.
   injection eval_arg2 as eq_arg2v.
   
   rewrite <- eq_arg2v.
-  rewrite -> shr_x_zero_equiv'.
+  rewrite <- evm_shr_step with (exts:=exts).
+  rewrite -> shr_x_zero_equiv.
   reflexivity.
 Qed.
 

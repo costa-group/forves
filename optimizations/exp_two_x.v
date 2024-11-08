@@ -59,8 +59,6 @@ Import ListNotations.
 Module Opt_exp_two_x.
 
 
-Definition WTwo : EVMWord := natToWord EVMWordSize 2.
-
 (* EXP(2,X) = SHL(X,1) *)
 Definition optimize_exp_two_x_sbinding : opt_smap_value_type := 
 fun (val: smap_value) =>
@@ -83,15 +81,13 @@ end.
 Lemma exp_two_shl: forall (x: EVMWord) exts,
 evm_exp exts [WTwo; x] = evm_shl exts [x; WOne].
 Proof.
-intros. simpl. unfold wordBin. simpl.
-rewrite -> wlshift_alt. 
-rewrite -> pow2_shl.
-rewrite -> NToWord_nat.
-rewrite -> N2Nat.inj_pow.
-rewrite -> wordToN_to_nat.
-intuition.
+intros. 
+unfold evm_exp. unfold evm_shl.
+unfold wordBin. 
+rewrite -> wordToN_two.
+rewrite -> N.shiftl_1_l.
+reflexivity.
 Qed.
-
 
 
 Lemma optimize_exp_two_x_sbinding_smapv_valid:

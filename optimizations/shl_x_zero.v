@@ -109,9 +109,11 @@ Qed.
 Lemma evm_shl_zero_r: forall exts v,
 evm_shl exts [v; WZero] = WZero.
 Proof.
-intros exts v. simpl.
-rewrite -> wlshift_alt.
-rewrite -> wlshift_zero.
+intros exts v. 
+unfold evm_shl. 
+unfold wordBin.
+rewrite -> wordToN_zero.
+rewrite -> N.shiftl_0_l.
 reflexivity.
 Qed.
 

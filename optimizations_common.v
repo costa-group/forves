@@ -263,6 +263,13 @@ reflexivity.
 Qed.
 
 
+Lemma wordToN_two: wordToN WTwo = 2%N.
+Proof.
+unfold WTwo. unfold wordToN. unfold NToWord. simpl.
+reflexivity.
+Qed.
+
+
 Lemma Npow2_EVMWordSize: Npow2 EVMWordSize = (2 ^ (N.of_nat EVMWordSize))%N.
 Proof.
 intuition.
@@ -316,6 +323,12 @@ intros x.
 unfold N.div.
 unfold N.div_eucl.
 destruct x as [| x'] eqn: eq_x; try reflexivity.
+Qed.
+
+
+Lemma wordToN_zero: (wordToN WZero = 0)%N.
+Proof.
+reflexivity.
 Qed.
 
 
