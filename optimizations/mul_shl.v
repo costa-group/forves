@@ -94,34 +94,6 @@ match val with
 end.
 
 
-Lemma wmult_shl_1: forall x y,
-wmult (wlshift WOne x) y = wlshift y x.
-Proof.
-intros x y.
-pose proof (wlshift_mul_pow2 x y) as H.
-rewrite -> H.
-rewrite wmult_comm.
-rewrite <- pow2_shl.
-reflexivity.
-Qed.
-
-
-Lemma wmult_shl'_1: forall x y,
-wmult (wlshift' WOne x) y = wlshift' y x.
-Proof.
-intros x y.
-rewrite -> wlshift_alt.  rewrite -> wlshift_alt.
-apply wmult_shl_1.
-Qed.
-
-
-(* Common to DIV_SHL*)
-Lemma wordToN_one: wordToN WOne = 1%N.
-Proof.
-unfold WOne. unfold wordToN. unfold NToWord. simpl.
-reflexivity.
-Qed.
-
 Lemma mul_shl_shl: forall (x y: EVMWord) exts, 
 evm_mul exts [evm_shl exts [x; WOne]; y] = evm_shl exts [x; y].
 Proof.
@@ -136,45 +108,32 @@ destruct (2 ^ wordToN x <? Npow2 EVMWordSize)%N eqn: pow2_x.
   rewrite -> wordToN_NToWord_2; try assumption.
   rewrite -> N.mul_comm.
   reflexivity.
-- Search (_ <? _ = false -> _)%N.
-
-
-Admitted.
-
-(*
-Lemma mul_shiftl : forall (x y: N), N.mul (N.shiftl 1 x) y = N.shiftl y x.
-Proof.
-intros.
-rewrite -> N.shiftl_mul_pow2.
-rewrite -> N.shiftl_mul_pow2. 
-rewrite -> N.mul_1_l.
-apply N.mul_comm.
+- rewrite -> N.ltb_ge in pow2_x. 
+  rewrite -> Npow2_EVMWordSize in pow2_x.
+  (* simpl (N.of_nat EVMWordSize) in pow2_x. *)
+  apply N.log2_le_pow2 in pow2_x as leq_exp; try apply pow2_pos.
+  rewrite -> N.log2_pow2 in leq_exp; try apply N.le_0_l.
+  apply N.le_exists_sub in leq_exp as [x' [eq_x x_pos]].
+  rewrite -> eq_x.
+  rewrite -> N.pow_add_r.
+  rewrite -> wordToN_NToWord_eqn.
+  rewrite <- Npow2_EVMWordSize.
+  rewrite -> N.mod_mul; try apply Npow2_not_zero.
+  rewrite -> N.mul_0_l.
+  rewrite -> NToWord_0.
+  rewrite -> N.mul_comm with (n:=(2^x')%N).
+  rewrite -> N.mul_shuffle3.
+  rewrite -> NToWord_multiple.
+  reflexivity.
 Qed.
 
-
-Lemma WOneN: wordToN WOne = 1%N.
+Lemma mul_shl_shl': forall (x y: EVMWord) exts, 
+evm_mul exts [y; evm_shl exts [x; WOne]] = evm_shl exts [x; y].
 Proof.
-intuition.
+intros x y exts.
+rewrite mul_comm.
+apply mul_shl_shl.
 Qed.
-
-Lemma mul_shiftl_w : forall (x y: EVMWord) (exts : externals), 
-  evm_mul exts [evm_shl exts [x; WOne]; y] = evm_shl exts [x; y].
-Proof.
-intros.
-unfold evm_mul. unfold wmult. unfold wordBin.
-unfold evm_shl.
-rewrite -> WOneN.
-assert ((N.shiftl 1 (wordToN x) < Npow2 EVMWordSize)%N \/ 
-  (N.shiftl 1 (wordToN x) >= Npow2 EVMWordSize)%N) as H.
-- admit.
-- destruct H.
-  * rewrite -> wordToN_NToWord_2; try assumption.
-    rewrite -> mul_shiftl. reflexivity.
-  * Search (wordToN _).
-    simpl in H.  
-    reflexivity.
-    Search N.shiftl.
-*)    
 
 
 Lemma optimize_mul_shl_sbinding_smapv_valid:
@@ -375,7 +334,9 @@ split.
     injection eval_onev as eq_onev_v.
     rewrite <- eq_onev_v.
     
-    simpl. rewrite <- wmult_shl'_1.
+    rewrite <- evm_shl_step with (exts:=exts).
+    rewrite <- evm_mul_step with (exts:=exts).
+    rewrite -> mul_shl_shl.
     reflexivity.
   + destruct (is_shl_1 arg2 fcmp idx instk_height sb evm_stack_opm) as [y|] 
     eqn: is_shl_arg2; try inject_rw Hoptm_sbinding eq_val'.
@@ -458,9 +419,11 @@ split.
     rewrite -> eval_onev' in eval_onev.
     injection eval_onev as eq_onev_v.
     rewrite <- eq_onev_v.
-    
-    rewrite <- wmult_shl'_1.
-    rewrite -> wmult_comm.
+
+    rewrite <- evm_shl_step with (exts:=exts).
+    rewrite <- evm_shl_step with (exts:=exts).
+    rewrite <- evm_mul_step with (exts:=exts).
+    rewrite -> mul_shl_shl'.
     reflexivity.
 Qed.
 

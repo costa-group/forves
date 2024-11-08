@@ -101,26 +101,6 @@ reflexivity.
 Qed.
 
 
-Lemma wordToN_one: wordToN WOne = 1%N.
-Proof.
-unfold WOne. unfold wordToN. unfold NToWord. simpl.
-reflexivity.
-Qed.
-
-Lemma diff_wzero_pos: forall (x: EVMWord), x <> WZero -> (0 < wordToN x)%N.
-Proof.
-intros x H.
-apply wordToNat_nonZero in H.
-destruct (wordToNat x) as [|x'] eqn: eq_x.
-- intuition.
-- rewrite -> wordToN_nat.
-  rewrite -> eq_x.
-  rewrite -> Nat2N.inj_succ.
-  apply N.lt_0_succ.
-Qed.
-
-
-
 Lemma shiftr_zero: forall (x y: EVMWord),
 (Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
 (NToWord EVMWordSize (N.shiftr (wordToN x) (wordToN y)) = WZero).
@@ -147,19 +127,6 @@ destruct (weqb x WZero) eqn: eq_x.
 Qed.
 
 
-Lemma Npow2_EVMWordSize: Npow2 EVMWordSize = (2 ^ (N.of_nat EVMWordSize))%N.
-Proof.
-intuition.
-Qed.
-
-
-Lemma pow2_pos: forall (x: N), (0 < 2 ^ x)%N.
-Proof.
-intros x.
-destruct x; try apply N.lt_0_1.
-Qed.
-
-
 Lemma shiftl_mod_pow2: forall (y: EVMWord),
 (Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
 (N.shiftl (wordToN WOne) (wordToN y) mod Npow2 EVMWordSize = 0)%N.
@@ -181,15 +148,6 @@ apply N.mod_divides.
   rewrite -> N.add_comm.
   rewrite <- N.pow_add_r.
   reflexivity.
-Qed.
-
-
-Lemma Ndiv_zero: forall (x: N), N.div x 0 = 0%N.
-Proof.
-intros x.
-unfold N.div.
-unfold N.div_eucl.
-destruct x as [| x'] eqn: eq_x; try reflexivity.
 Qed.
 
 
@@ -269,25 +227,7 @@ intuition.
 Qed.
 
 
-Lemma evm_shr_step: forall (exts: externals) (x y: EVMWord),
-evm_shr exts [y; x] = wordBin N.shiftr x y.
-Proof.
-intros exts x y.
-unfold evm_shr.
-reflexivity.
-Qed. 
 
-Lemma evm_div_step: forall (exts: externals) (x y: EVMWord),
-evm_div exts [x; y] = wdiv x y.
-Proof. 
-intuition.
-Qed.
-
-Lemma evm_shl_step: forall (exts: externals) (x y: EVMWord),
-evm_shl exts [y; x] = wordBin N.shiftl x y.
-Proof.
-intuition.
-Qed.
 
 
 Lemma optimize_div_shl_sbinding_snd:

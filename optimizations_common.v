@@ -254,6 +254,104 @@ Qed.
 
 
 (*************************************************)
+(* Results about operations in N                 *)
+(*************************************************)
+Lemma wordToN_one: wordToN WOne = 1%N.
+Proof.
+unfold WOne. unfold wordToN. unfold NToWord. simpl.
+reflexivity.
+Qed.
+
+
+Lemma Npow2_EVMWordSize: Npow2 EVMWordSize = (2 ^ (N.of_nat EVMWordSize))%N.
+Proof.
+intuition.
+Qed.
+
+
+Lemma pow2_pos: forall (x: N), (0 < 2 ^ x)%N.
+Proof.
+intros x.
+destruct x; try apply N.lt_0_1.
+Qed.
+
+
+Lemma NToWord_0: forall (n: nat), NToWord n 0 = wzero n.
+Proof.
+intros n.
+unfold NToWord.
+rewrite -> wzero'_def.
+reflexivity.
+Qed.
+
+
+Lemma NToWord_multiple: forall (x: N) (n: nat),
+NToWord n (Npow2 n * x) = wzero n.
+Proof.
+intros x n.
+rewrite -> N.mul_comm.
+rewrite <- drop_sub_N with (k:=x); try apply N.le_refl.
+rewrite -> N.sub_diag.
+rewrite -> NToWord_0.
+reflexivity.
+Qed.
+
+
+Lemma diff_wzero_pos: forall (x: EVMWord), x <> WZero -> (0 < wordToN x)%N.
+Proof.
+intros x H.
+apply wordToNat_nonZero in H.
+destruct (wordToNat x) as [|x'] eqn: eq_x.
+- intuition.
+- rewrite -> wordToN_nat.
+  rewrite -> eq_x.
+  rewrite -> Nat2N.inj_succ.
+  apply N.lt_0_succ.
+Qed.
+
+
+Lemma Ndiv_zero: forall (x: N), N.div x 0 = 0%N.
+Proof.
+intros x.
+unfold N.div.
+unfold N.div_eucl.
+destruct x as [| x'] eqn: eq_x; try reflexivity.
+Qed.
+
+
+(*************************************************)
+(* Steps in EVM operations                       *)
+(*************************************************)
+Lemma evm_shl_step: forall (exts: externals) (x y: EVMWord),
+evm_shl exts [y; x] = wordBin N.shiftl x y.
+Proof.
+intros exts x y.
+unfold evm_shl.
+reflexivity.
+Qed. 
+
+Lemma evm_mul_step: forall (exts: externals) (x y: EVMWord),
+evm_mul exts [x; y] = wmult x y.
+Proof. 
+intuition.
+Qed.
+
+Lemma evm_shr_step: forall (exts: externals) (x y: EVMWord),
+evm_shr exts [y; x] = wordBin N.shiftr x y.
+Proof.
+intros exts x y.
+unfold evm_shr.
+reflexivity.
+Qed. 
+
+Lemma evm_div_step: forall (exts: externals) (x y: EVMWord),
+evm_div exts [x; y] = wdiv x y.
+Proof. 
+intuition.
+Qed.
+
+
+(*************************************************)
 (* Miscellaneous results                         *)
 (*************************************************)
 
