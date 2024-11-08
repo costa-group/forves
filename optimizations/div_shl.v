@@ -60,66 +60,6 @@ Import ListNotations.
 Module Opt_div_shl.
 
 
-(* For proving the usual definition of evm_shr 
-
-Lemma div_shl : forall (x y: N), N.div x (N.shiftl 1 y) = N.shiftr x y.
-Proof.
-intros.
-rewrite -> N.shiftl_mul_pow2.
-rewrite -> N.mul_1_l.
-rewrite -> N.shiftr_div_pow2.
-reflexivity.
-Qed.
-
-Definition evm_shr' (exts : externals) (args : list EVMWord) : EVMWord :=
-  match args with
-  | [a;b] => NToWord EVMWordSize (N.shiftr_nat (wordToN a) (wordToNat b))
-  | _ => WZero
-  end.
-
-Lemma wlshift_gte: forall (sz n : nat) (w : word sz), 
-n >= sz -> wlshift w n = wzero sz.
-Proof.
-Admitted.
-
-
-Lemma wlshift'_one_y_gte: forall (y: EVMWord),
-wordToNat y >= 256 ->
-wlshift' WOne (wordToNat y) = WZero.
-Proof.
-intros y H. 
-rewrite -> wlshift_alt.
-apply wlshift_gte.
-unfold EVMWordSize. unfold BytesInEVMWord. unfold EVMByteSize.
-simpl. assumption.
-Qed.
-
-
-Lemma wlshift'_one_y_lt: forall (y: EVMWord),
-wordToNat y < 256 ->
-wlshift' WOne (wordToNat y) = natToWord EVMWordSize (pow2 (wordToNat y)).
-Proof.
-Admitted.
-
-
-Lemma evm_div_shl: forall (x y: EVMWord) exts,
-evm_div exts [x; evm_shl exts [y; WOne]] = evm_shr exts [y; x].
-Proof.
-intros x y exts. simpl.
-destruct ((wordToNat y) >=? 256).
-unfold wdiv. unfold wordBin.
-intuition.
-
-(*
-Compute (
-let exts := empty_externals in
-let shift := natToWord EVMWordSize 2 in
-let value := natToWord EVMWordSize 255 in
-evm_shr exts [shift;value]
-).*)
-*)
-
-
 Definition is_shl_1 (sv: sstack_val) (fcmp: sstack_val_cmp_t) 
   (maxid instk_height: nat) (sb: sbindings) (ops: stack_op_instr_map) :=
 match follow_in_smap sv maxid sb with 
@@ -150,27 +90,88 @@ match val with
 end.
 
 
-(* For optimization SHR(0,X) = X *)
-Lemma shr_0_x: forall x,
-wdiv x (wlshift WOne (wordToNat WZero)) = x.
+(* DIV(X, SHL(Y,1)) = SHR(Y, X) *)
+Lemma div_shl_shr: forall (x y: N), N.div x (N.shiftl 1 y) = N.shiftr x y.
 Proof.
-intros x. simpl. rewrite -> wlshift_0.
-unfold wdiv. unfold wordBin. simpl.
-rewrite -> N.div_1_r. simpl.
-rewrite -> NToWord_wordToN.
+intros.
+rewrite -> N.shiftl_mul_pow2.
+rewrite -> N.mul_1_l.
+rewrite -> N.shiftr_div_pow2.
 reflexivity.
 Qed.
 
-(* For optimization SHR(X,0) = 0 *)
-Lemma shr_x_0: forall (x: EVMWord),
-wdiv WZero (wlshift WOne (wordToNat x)) = WZero.
+
+Lemma shiftr_zero: forall (x y: EVMWord),
+(Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
+(NToWord EVMWordSize (N.shiftr (wordToN x) (wordToN y)) = WZero).
 Proof.
-intros x.
-rewrite <- wlshift_alt.
-rewrite -> pow2_shl'.
-unfold wdiv. unfold wordBin.
-intuition.
+intros x y H.
+destruct (weqb x WZero) eqn: eq_x.
+- apply weqb_true_iff in eq_x.
+  rewrite -> eq_x.
+  simpl.
+  rewrite -> N.shiftr_0_l.
+  reflexivity.
+- rewrite -> N.shiftr_eq_0; try reflexivity.
+  apply N.log2_lt_pow2.
+  * apply weqb_false in eq_x.
+    apply diff_wzero_pos.
+    assumption.
+  * pose proof (wordToN_bound x) as eq_x_bound.
+    rewrite -> wordToN_one in H.
+    pose proof (N.shiftl_1_l (wordToN y)) as eq_shift_1.
+    rewrite -> eq_shift_1 in H.
+    pose proof (N.lt_le_trans (wordToN x) (Npow2 EVMWordSize) (2 ^ wordToN y)
+      eq_x_bound H) as f.
+    assumption. 
 Qed.
+
+
+Lemma shiftl_mod_pow2: forall (y: EVMWord),
+(Npow2 EVMWordSize <= N.shiftl (wordToN WOne) (wordToN y))%N ->
+(N.shiftl (wordToN WOne) (wordToN y) mod Npow2 EVMWordSize = 0)%N.
+Proof.
+intros y H.
+rewrite -> wordToN_one.
+rewrite -> N.shiftl_1_l.
+rewrite -> N.shiftl_1_l in H.
+apply N.mod_divides.
+- simpl. intuition.
+- rewrite -> Npow2_EVMWordSize in H.
+  rewrite -> Npow2_EVMWordSize.
+  rewrite -> N.log2_le_pow2 in H; try apply pow2_pos.
+  rewrite -> N.log2_pow2 in H; try apply N.le_0_l.
+  apply N.le_exists_sub in H. 
+  destruct H as [p [eq_wordToN_y eq_p]].
+  rewrite -> eq_wordToN_y.
+  exists (2 ^ p)%N.
+  rewrite -> N.add_comm.
+  rewrite <- N.pow_add_r.
+  reflexivity.
+Qed.
+
+
+Lemma div_shl_shr_evm: forall (x y: EVMWord) exts, 
+evm_div exts [x; evm_shl exts [y; WOne]] = evm_shr exts [y; x].
+Proof.
+intros x y exts.
+simpl. unfold wdiv. unfold wordBin.
+destruct (N.ltb (N.shiftl (wordToN WOne) (wordToN y)) (Npow2 EVMWordSize))
+  eqn: eq_ltb.
+- rewrite <- div_shl_shr.
+  rewrite -> N.ltb_lt in eq_ltb.
+  rewrite -> wordToN_NToWord_2; try assumption.
+  rewrite -> wordToN_one.
+  reflexivity.
+- rewrite -> wordToN_NToWord_eqn.
+  rewrite -> N.ltb_ge in eq_ltb.
+  apply shiftl_mod_pow2 in eq_ltb as eq_mod.
+  rewrite -> eq_mod.
+  rewrite -> Ndiv_zero.
+  rewrite -> shiftr_zero; try assumption.
+  reflexivity.
+Qed.
+
 
 
 Lemma optimize_div_shl_sbinding_smapv_valid:
@@ -226,6 +227,9 @@ intuition.
 Qed.
 
 
+
+
+
 Lemma optimize_div_shl_sbinding_snd:
 opt_sbinding_snd optimize_div_shl_sbinding.
 Proof.
@@ -272,10 +276,11 @@ split.
     evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
   destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
     evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
-  rewrite <- Heval_orig. simpl.
+  rewrite <- Heval_orig.
     
-  unfold eval_sstack_val. simpl.
-  rewrite -> PeanoNat.Nat.eqb_refl. simpl.
+  unfold eval_sstack_val. simpl eval_sstack_val'. 
+  rewrite -> PeanoNat.Nat.eqb_refl.
+  simpl.
   rewrite -> eval_arg1.
   destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate.
   unfold eval_sstack_val' in eval_arg2.
@@ -324,8 +329,13 @@ split.
   unfold eval_sstack_val in eval_onev'.
   pose proof (eval_eq_prefix instk_height idx idx' sb sb' evm_stack_opm onev
     stk mem strg exts (S idx) maxidx' prefix WOne onev_v Hvalid_sb idx_gt_idx'
-    sb_prefix eval_onev' eval_onev) as eq_onev_WOne.
+    sb_prefix eval_onev' eval_onev) as eq_onev_WOne.    
   rewrite <- eq_onev_WOne.
+
+  rewrite <- evm_shr_step with (exts:=exts).
+  rewrite <- evm_shl_step with (exts:=exts).
+  rewrite <- evm_div_step with (exts:=exts).
+  rewrite -> div_shl_shr_evm.
   reflexivity.
 Qed.
 

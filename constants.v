@@ -23,6 +23,7 @@ Definition BOne : EVMByte  := natToWord EVMByteSize 1.
 
 Definition WZero: EVMWord  := natToWord EVMWordSize 0.
 Definition WOne : EVMWord  := natToWord EVMWordSize 1.
+Definition WTwo : EVMWord  := natToWord EVMWordSize 2.
 
 Definition AZero: EVMAddr  := natToWord EVMAddrSize 0.
 Definition AOne : EVMAddr  := natToWord EVMAddrSize 1.
