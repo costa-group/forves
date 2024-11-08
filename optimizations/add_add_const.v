@@ -59,11 +59,13 @@ Import ListNotations.
 
 Module Opt_add_add_const.
 
+
 Definition is_const (sv: sstack_val) (maxid: nat) (sb: sbindings) :=
 match follow_in_smap sv maxid sb with 
 | Some (FollowSmapVal (SymBasicVal (Val v)) idx' sb') => Some v
 | _ => None
 end.
+
 
 Definition is_add_const (sv: sstack_val) (maxid: nat) (sb: sbindings) :=
 match follow_in_smap sv maxid sb with 
@@ -108,38 +110,24 @@ match val with
 | _ => (val, false)
 end.
 
-(*
-(* For optimization SHR(0,X) = X *)
-Lemma shr_0_x: forall x,
-wdiv x (wlshift WOne (wordToNat WZero)) = x.
+
+Lemma evm_add_assoc: forall (exts: externals) (v1 v2 v3: EVMWord), 
+evm_add exts [evm_add exts [v1; v2]; v3] = evm_add exts [v1; evm_add exts [v2; v3]].
 Proof.
-intros x. simpl. rewrite -> wlshift_0.
-unfold wdiv. unfold wordBin. simpl.
-rewrite -> N.div_1_r. simpl.
-rewrite -> NToWord_wordToN.
+intros exts v1 v2 v3.
+unfold evm_add.
+rewrite -> wplus_assoc.
 reflexivity.
 Qed.
-(* For optimization SHR(X,0) = 0 *)
-Lemma shr_x_0: forall (x: EVMWord),
-wdiv WZero (wlshift WOne (wordToNat x)) = WZero.
-Proof.
-intros x.
-rewrite <- wlshift_alt.
-rewrite -> pow2_shl'.
-unfold wdiv. unfold wordBin.
-intuition.
-Qed.
-*)
+
 
 Lemma optimize_add_add_const_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_add_add_const_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros _ Hvalid_smapv_val Hvalid Hoptm_sbinding.
-unfold optimize_div_shl_sbinding in Hoptm_sbinding.
+unfold optimize_add_add_const_sbinding in Hoptm_sbinding.
 destruct (val) as [basicv|pushtagv|label args|offset smem|key sstrg|
   offset size smem] eqn: eq_val; 
   try inject_rw Hoptm_sbinding eq_val'.
@@ -147,61 +135,153 @@ destruct label eqn: eq_label; try try inject_rw Hoptm_sbinding eq_val'.
 destruct args as [|arg1 r1]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r1 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-destruct (is_shl_1 arg2 fcmp n instk_height sb evm_stack_opm) as [y|] eqn: is_shl_arg2;
-  try inject_rw Hoptm_sbinding eq_val'.
-injection Hoptm_sbinding as eq_val' _.
-rewrite <- eq_val'.
-unfold is_shl_1 in is_shl_arg2.
-destruct (follow_in_smap arg2 n sb) as [fsmv2|] eqn: Hfollow_arg2;
-  try discriminate.
-destruct fsmv2 as [smv_arg2 idx' sb'].
-destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
-destruct label2; try discriminate.
-destruct args2 as [|yy r2]; try discriminate.
-destruct r2 as [|onev r2']; try discriminate.
-destruct r2'; try discriminate.
-destruct (fcmp onev (Val WOne) n sb n sb instk_height evm_stack_opm) eqn: fcmp_onev;
-  try discriminate.
-    
-simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
-simpl in Hvalid_smapv_val.
-destruct Hvalid_smapv_val as [_ Hvalid_sstack_arg1_arg2].
-unfold valid_sstack in Hvalid_sstack_arg1_arg2.
-destruct Hvalid_sstack_arg1_arg2 as [Hvalid_arg1 [Hvalid_arg2 _]].
-injection is_shl_arg2 as eq_yy. rewrite -> eq_yy in Hfollow_arg2.
-pose proof (valid_follow_in_smap sb arg2 instk_height n evm_stack_opm
-  (SymOp SHL [y; onev]) idx' sb' Hvalid_arg2 Hvalid Hfollow_arg2) as Himpl.
-destruct Himpl as [Hvalid_shl [Hvalid_sb' Himpl]].
-pose proof (not_basic_value_smv_symop SHL [y;onev]) as Hnot_basic.
-apply Himpl in Hnot_basic.
-unfold valid_smap_value in Hvalid_shl. 
-unfold valid_stack_op_instr in Hvalid_shl.
-simpl in Hvalid_shl.
-destruct Hvalid_shl as [_ [Hvalid_y _]].
-apply valid_sstack_value_gt with (m:=n) in Hvalid_y; try assumption.
+destruct (is_const arg1 n sb) as [v1|] eqn: is_const_arg1.
+- destruct (is_add_const arg2 n sb) as [[c2 x]|] eqn: is_add_const_arg2;
+    try inject_rw Hoptm_sbinding eq_val'.
+  unfold valid_smap_value in Hvalid_smapv_val.
+  unfold valid_stack_op_instr in Hvalid_smapv_val.
+  simpl in Hvalid_smapv_val.
+  destruct Hvalid_smapv_val as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
+  unfold is_add_const in is_add_const_arg2.
+  destruct (follow_in_smap arg2 n sb) as [fsmv2|] eqn: Hfollow_arg2;
+    try discriminate.
+  destruct fsmv2 as [smv_arg2 idx' sb'].
+  destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
+  destruct label2; try discriminate.
+  destruct args2 as [|yy r2]; try discriminate.
+  destruct r2 as [|c' r2']; try discriminate.
+  destruct r2'; try discriminate.
+  destruct (is_const yy n sb') as [c''|] eqn: is_const_yy.
+  + injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold valid_smap_value. 
+    unfold valid_stack_op_instr.
+    simpl. split; try intuition.
+
+    injection is_add_const_arg2 as eq_c'' eq_c'.
+    pose proof (valid_follow_in_smap sb arg2 instk_height n evm_stack_opm
+      (SymOp ADD [yy; c']) idx' sb' Hvalid_arg2 Hvalid Hfollow_arg2) 
+      as [eq_valid_add [_ Hnotbasic]].
+    pose proof (not_basic_value_smv_symop ADD [yy; c']) as add_not_basic.
+    apply Hnotbasic in add_not_basic.
+    rewrite <- eq_c'.
+
+    unfold valid_smap_value in eq_valid_add.
+    unfold valid_stack_op_instr in eq_valid_add.
+    simpl in eq_valid_add.
+    destruct eq_valid_add as [_ [_ [Hvalid_c' _]]].
+    apply gt_add in add_not_basic as eq_n.
+    destruct eq_n as [k eq_n].
+    rewrite -> eq_n.
+    apply valid_sstack_value_extended_by_i.
+    assumption.
+  + destruct (is_const c' n sb') as [c''|] eqn: is_const_c'; try discriminate.
+    injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold valid_smap_value. 
+    unfold valid_stack_op_instr.
+    simpl. split; try intuition.
+
+    injection is_add_const_arg2 as eq_c'' eq_c'.
+    pose proof (valid_follow_in_smap sb arg2 instk_height n evm_stack_opm
+      (SymOp ADD [yy; c']) idx' sb' Hvalid_arg2 Hvalid Hfollow_arg2) 
+      as [eq_valid_add [_ Hnotbasic]].
+    pose proof (not_basic_value_smv_symop ADD [yy; c']) as add_not_basic.
+    apply Hnotbasic in add_not_basic.
+    rewrite <- eq_c'.
+
+    unfold valid_smap_value in eq_valid_add.
+    unfold valid_stack_op_instr in eq_valid_add.
+    simpl in eq_valid_add.
+    destruct eq_valid_add as [_ [Hvalid_yy [_ _]]].
+    apply gt_add in add_not_basic as eq_n.
+    destruct eq_n as [k eq_n].
+    rewrite -> eq_n.
+    apply valid_sstack_value_extended_by_i.
+    assumption.
+- destruct (is_const arg2 n sb) as [c''|] eqn: is_const_arg2; 
+    try inject_rw Hoptm_sbinding eq_val'.
+  destruct (is_add_const arg1 n sb) as [[c1 x]|] eqn: is_add_const_arg1;
+    try inject_rw Hoptm_sbinding eq_val'.
+  unfold valid_smap_value in Hvalid_smapv_val.
+  unfold valid_stack_op_instr in Hvalid_smapv_val.
+  simpl in Hvalid_smapv_val.
+  destruct Hvalid_smapv_val as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
+  unfold is_add_const in is_add_const_arg1.
+  destruct (follow_in_smap arg1 n sb) as [fsmv1|] eqn: Hfollow_arg1;
+    try discriminate.
+  destruct fsmv1 as [smv_arg1 idx' sb'].
+  destruct (smv_arg1) as [_1|_2|label1 args1|_4|_5|_6]; try discriminate.
+  destruct label1; try discriminate.
+  destruct args1 as [|yy r1]; try discriminate.
+  destruct r1 as [|c' r1']; try discriminate.
+  destruct r1'; try discriminate.
+  destruct (is_const yy n sb') as [c_yy|] eqn: is_const_yy.
+  + injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold valid_smap_value. 
+    unfold valid_stack_op_instr.
+    simpl. split; try intuition.
+
+    injection is_add_const_arg1 as eq_c'' eq_c'.
+    pose proof (valid_follow_in_smap sb arg1 instk_height n evm_stack_opm
+      (SymOp ADD [yy; c']) idx' sb' Hvalid_arg1 Hvalid Hfollow_arg1) 
+      as [eq_valid_add [_ Hnotbasic]].
+    pose proof (not_basic_value_smv_symop ADD [yy; c']) as add_not_basic.
+    apply Hnotbasic in add_not_basic.
+    rewrite <- eq_c'.
+
+    unfold valid_smap_value in eq_valid_add.
+    unfold valid_stack_op_instr in eq_valid_add.
+    simpl in eq_valid_add.
+    destruct eq_valid_add as [_ [_ [Hvalid_c' _]]].
+    apply gt_add in add_not_basic as eq_n.
+    destruct eq_n as [k eq_n].
+    rewrite -> eq_n.
+    apply valid_sstack_value_extended_by_i.
+    assumption.
+  + destruct (is_const c' n sb') as [c_yy|] eqn: is_const_c'; try discriminate.
+    injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold valid_smap_value. 
+    unfold valid_stack_op_instr.
+    simpl. split; try intuition.
+
+    injection is_add_const_arg1 as eq_c'' eq_c'.
+    pose proof (valid_follow_in_smap sb arg1 instk_height n evm_stack_opm
+      (SymOp ADD [yy; c']) idx' sb' Hvalid_arg1 Hvalid Hfollow_arg1) 
+      as [eq_valid_add [_ Hnotbasic]].
+    pose proof (not_basic_value_smv_symop ADD [yy; c']) as add_not_basic.
+    apply Hnotbasic in add_not_basic.
+    rewrite <- eq_c'.
+
+    unfold valid_smap_value in eq_valid_add.
+    unfold valid_stack_op_instr in eq_valid_add.
+    simpl in eq_valid_add.
+    destruct eq_valid_add as [_ [Hvalid_yy [_ _]]].
+    apply gt_add in add_not_basic as eq_n.
+    destruct eq_n as [k eq_n].
+    rewrite -> eq_n.
+    apply valid_sstack_value_extended_by_i.
+    assumption.
+Qed.    
   
-simpl. unfold valid_stack_op_instr.
-simpl. 
-intuition.
-Qed.
-*)
+
 
 Lemma optimize_add_add_const_sbinding_snd:
 opt_sbinding_snd optimize_add_add_const_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
 split.
 - (* valid_sbindings *)
-  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_div_shl_sbinding)
+  apply valid_bindings_snd_opt with (val:=val)(opt:=optimize_add_add_const_sbinding)
     (fcmp:=fcmp)(flag:=flag); try assumption.
-  apply optimize_div_shl_sbinding_smapv_valid. 
+  apply optimize_add_add_const_sbinding_smapv_valid. 
 - (* evaluation is preserved *) 
   intros stk mem strg exts v Hlen Heval_orig.
-  unfold optimize_div_shl_sbinding in Hoptm_sbinding.
+  unfold optimize_add_add_const_sbinding in Hoptm_sbinding.
   destruct val as [vv|vv|label args|offset smem|key sstrg|offset seze smem]
     eqn: eq_val; try inject_rw Hoptm_sbinding eq_val'.
   (* SymOp label args *)
@@ -210,84 +290,378 @@ split.
     try inject_rw Hoptm_sbinding eq_val'.
   destruct r1 as [|arg2 r2]; try inject_rw Hoptm_sbinding eq_val'.
   destruct r2; try inject_rw Hoptm_sbinding eq_val'.
-  destruct (is_shl_1 arg2 fcmp idx instk_height sb evm_stack_opm) as [y|] 
-    eqn: is_shl_arg2; try inject_rw Hoptm_sbinding eq_val'.
-  injection Hoptm_sbinding as eq_val' _.
-  rewrite <- eq_val'.
-  unfold is_shl_1 in is_shl_arg2.
-  destruct (follow_in_smap arg2 idx sb) as [fsmv2|] eqn: Hfollow_arg2;
+  destruct (is_const arg1 idx sb) as [c1|] eqn: is_const_arg1.
+  + destruct (is_add_const arg2 idx sb) as [[c2 x]|] eqn: is_add_const_arg2;
+      try inject_rw Hoptm_sbinding eq_val'.
+    injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
+    rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
+    simpl in Heval_orig.
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
+      as [varg1|] eqn: eval_arg1; try discriminate.
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb evm_stack_opm)
+      as [varg2|] eqn: eval_arg2; try discriminate.
+    injection Heval_orig as eq_v.
+    rewrite <- eq_v.
+
+    unfold is_add_const in is_add_const_arg2.
+    destruct (follow_in_smap arg2 idx sb) as [fsmv2|] eqn: Hfollow_arg2;
       try discriminate.
-  destruct fsmv2 as [smv_arg2 idx' sb'].
-  destruct (smv_arg2) as [_1|_2|label2 args2|_4|_5|_6]; try discriminate.
-  destruct label2; try discriminate.
-  destruct args2 as [|yy r2]; try discriminate.
-  destruct r2 as [|onev r2']; try discriminate.
-  destruct r2'; try discriminate.
-  destruct (fcmp onev (Val WOne) idx sb idx sb instk_height evm_stack_opm) 
-    eqn: fcmp_onev; try discriminate.
+    destruct fsmv2 as [smv_arg2 idx' sb'].
+    destruct (smv_arg2) as [| |label2 args2| | | ]; try discriminate.
+    destruct label2; try discriminate.
+    destruct args2 as [|arg21 r2]; try discriminate.
+    destruct r2 as [|arg22 r2']; try discriminate.
+    destruct r2'; try discriminate.
+    destruct (is_const arg21 idx sb') as [c21|] eqn: is_const_arg21.
+
+    * (* ADD(c1, ADD(c2, X)) *)
+      unfold is_const in is_const_arg21.
+      destruct (follow_in_smap arg21 idx sb') as [fsmv21|] eqn: Hfollow_arg21;
+        try discriminate.
+      destruct fsmv21 as [smv_v21 idx'' sb''].
+      destruct (smv_v21) as [sv21| | | | | ]; try discriminate.
+      destruct sv21 as [v21| |]; try discriminate.
+
+      unfold valid_bindings in Hvalid.
+      destruct Hvalid as [eq_maxidx [Hvalid_smap_value Hvalid_bindings_sb]].
+      fold valid_bindings in Hvalid_bindings_sb.
+
+      unfold is_const in is_const_arg1.
+      destruct (follow_in_smap arg1 idx sb) as [fsmv1|] eqn: Hfollow_arg1;
+        try discriminate.
+      destruct fsmv1 as [smv_arg1 idx1 sb1].
+      destruct (smv_arg1) as [sv1| | | | | ]; try discriminate.
+      destruct sv1 as [v1| |]; try discriminate.
+
+      rewrite -> eq_maxidx in eval_arg1.
+      rewrite -> eq_maxidx in eval_arg2.
+      unfold eval_sstack_val' in eval_arg1.
+      rewrite -> Hfollow_arg1 in eval_arg1.
       
-  unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
-  rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
-  simpl in Heval_orig.
-  destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb 
-    evm_stack_opm) as [arg1v|] eqn: eval_arg1; try discriminate.
-  destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb
-    evm_stack_opm) as [arg2v|] eqn: eval_arg2; try discriminate.
-  rewrite <- Heval_orig. simpl.
+      unfold eval_sstack_val' in eval_arg2.
+      fold eval_sstack_val' in eval_arg2.
+      rewrite -> Hfollow_arg2 in eval_arg2.
+      rewrite -> evm_stack_opm_ADD in eval_arg2.
+      rewrite -> length_two in eval_arg2.
+      unfold map_option in eval_arg2.
+
+      destruct (eval_sstack_val' idx arg21 stk mem strg exts idx' sb' evm_stack_opm) 
+        as [v21v|] eqn: eval_arg21; try discriminate.
+      destruct (eval_sstack_val' idx arg22 stk mem strg exts idx' sb' evm_stack_opm)
+        as [v22|] eqn: eval_arg22; try discriminate.
+      injection eval_arg2 as eq_varg2.
+      rewrite <- eq_varg2.
+
+      unfold eval_sstack_val.
+      simpl.
+      rewrite -> PeanoNat.Nat.eqb_refl.
+      simpl.
+      rewrite -> eq_maxidx.
+      rewrite -> eval_sstack_val'_const.
+
+      injection is_add_const_arg2 as eq_c2 eq_x.
+      rewrite <- eq_x.
+      pose proof (follow_suffix sb arg2 idx (SymOp ADD [arg21; arg22]) idx' sb'
+        Hfollow_arg2) as Hfollow.
+      destruct Hfollow as [prefix sb_prefix].
+      rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg22.
+      pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg exts idx sb
+        sb' evm_stack_opm prefix Hvalid_bindings_sb sb_prefix arg22 v22 eval_arg22)
+        as Heval_arg22.
+      apply eval_sstack_val'_preserved_when_depth_extended in Heval_arg22.
+      rewrite -> Heval_arg22.
+
+      injection is_const_arg1 as eq_c1.
+      rewrite <- eq_c1.
+      injection eval_arg1 as eq_varg1.
+      rewrite <- eq_varg1.
+      injection is_const_arg21 as eq_c21.
+      rewrite <- eq_c2.
+      rewrite <- eq_c21.
+
+      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg21.
+      apply eval'_maxidx_indep with (m:=idx) in eval_arg21.
+      unfold eval_sstack_val' in eval_arg21.
+      rewrite Hfollow_arg21 in eval_arg21.
+      injection eval_arg21 as eq_v21.
+      rewrite <- eq_v21.
+      simpl.
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite -> evm_add_assoc.
+      reflexivity.
+
+    * (* ADD(c1, ADD(X, c2)) *)
+      unfold is_const in is_add_const_arg2.
+      destruct (follow_in_smap arg22 idx sb') as [fsmv22|] eqn: Hfollow_arg22;
+        try discriminate.
+      destruct fsmv22 as [smv_v22 idx'' sb''].
+      destruct (smv_v22) as [sv22| | | | | ]; try discriminate.
+      destruct sv22 as [v22| |]; try discriminate.
+
+      unfold valid_bindings in Hvalid.
+      destruct Hvalid as [eq_maxidx [Hvalid_smap_value Hvalid_bindings_sb]].
+      fold valid_bindings in Hvalid_bindings_sb.
+
+      unfold is_const in is_const_arg1.
+      destruct (follow_in_smap arg1 idx sb) as [fsmv1|] eqn: Hfollow_arg1;
+        try discriminate.
+      destruct fsmv1 as [smv_arg1 idx1 sb1].
+      destruct (smv_arg1) as [sv1| | | | | ]; try discriminate.
+      destruct sv1 as [v1| |]; try discriminate.
+
+      rewrite -> eq_maxidx in eval_arg1.
+      rewrite -> eq_maxidx in eval_arg2.
+      unfold eval_sstack_val' in eval_arg1.
+      rewrite -> Hfollow_arg1 in eval_arg1.
     
-  unfold eval_sstack_val. simpl.
-  rewrite -> PeanoNat.Nat.eqb_refl. simpl.
-  rewrite -> eval_arg1.
-  destruct maxidx as [|maxidx'] eqn: eq_maxidx; try discriminate.
-  unfold eval_sstack_val' in eval_arg2.
-  rewrite -> Hfollow_arg2 in eval_arg2.
-  simpl in eval_arg2. fold eval_sstack_val' in eval_arg2.
-  destruct (eval_sstack_val' maxidx' yy stk mem strg exts idx' sb'
-    evm_stack_opm) as [yyv|] eqn: eval_yy_sb'; try discriminate.
-  destruct (eval_sstack_val' maxidx' onev stk mem strg exts idx' sb'
-    evm_stack_opm) as [onev_v|] eqn: eval_onev; try discriminate.
-  injection is_shl_arg2 as eq_yy. rewrite -> eq_yy in eval_yy_sb'.
-  injection eval_arg2 as eq_arg2v. rewrite <- eq_arg2v.
-    
-  simpl in Hvalid.
-  destruct Hvalid as [eq_maxidx' [Hvalid_arg1_arg2 Hvalid_sb]].
-  unfold valid_stack_op_instr in Hvalid_arg1_arg2.
-  simpl in Hvalid_arg1_arg2.
-  destruct Hvalid_arg1_arg2 as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
-  pose proof (follow_suffix sb arg2 idx (SymOp SHL [yy; onev]) idx' sb'
-    Hfollow_arg2) as [prefix sb_prefix].
-  rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_yy_sb'.
-  pose proof (eval_sstack_val'_extend_sb instk_height maxidx' stk mem strg
-    exts idx sb sb' evm_stack_opm prefix Hvalid_sb sb_prefix y yyv
-    eval_yy_sb') as eval_y_sb.
-  apply eval_sstack_val'_preserved_when_depth_extended in eval_y_sb.
-  rewrite -> eval_y_sb.
-  simpl. 
-    
-  pose proof (valid_follow_in_smap sb arg2 instk_height idx evm_stack_opm
-    (SymOp SHL [yy; onev]) idx' sb' Hvalid_arg2 Hvalid_sb Hfollow_arg2)
-    as [Hvalid_smv [Hvalid_sb' Himpl]].
-  pose proof (not_basic_value_smv_symop SHL [yy;onev]) as Hnot_basic.
-  apply Himpl in Hnot_basic as idx_gt_idx'.
-  unfold valid_smap_value in Hvalid_smv.
-  unfold valid_stack_op_instr in Hvalid_smv.
-  simpl in Hvalid_smv.
-  destruct Hvalid_smv as [_ [Hvalid_yy [Hvalid_onev _]]].
-  pose proof (valid_sstack_value_gt instk_height idx' idx onev Hvalid_onev
-    idx_gt_idx') as Hvalid_onev_sb.
-  symmetry in Hlen.
-  pose proof (valid_sstack_value_const instk_height idx WOne) as Hvalid_WOne.
-  pose proof (Hsafe_sstack_val_cmp onev (Val WOne) idx sb idx sb instk_height
-    evm_stack_opm Hvalid_onev_sb Hvalid_WOne Hvalid_sb Hvalid_sb fcmp_onev
-    stk mem strg exts Hlen) as [vv [eval_onev' eval_WOne]].
-  rewrite -> eval_sstack_val_const in eval_WOne.
-  rewrite <- eval_WOne in eval_onev'.
-  unfold eval_sstack_val in eval_onev'.
-  pose proof (eval_eq_prefix instk_height idx idx' sb sb' evm_stack_opm onev
-    stk mem strg exts (S idx) maxidx' prefix WOne onev_v Hvalid_sb idx_gt_idx'
-    sb_prefix eval_onev' eval_onev) as eq_onev_WOne.
-  rewrite <- eq_onev_WOne.
-  reflexivity.
-Qed.
-*)
+      unfold eval_sstack_val' in eval_arg2.
+      fold eval_sstack_val' in eval_arg2.
+      rewrite -> Hfollow_arg2 in eval_arg2.
+      rewrite -> evm_stack_opm_ADD in eval_arg2.
+      rewrite -> length_two in eval_arg2.
+      unfold map_option in eval_arg2.
+
+      destruct (eval_sstack_val' idx arg21 stk mem strg exts idx' sb' evm_stack_opm) 
+        as [v21|] eqn: eval_arg21; try discriminate.
+      destruct (eval_sstack_val' idx arg22 stk mem strg exts idx' sb' evm_stack_opm)
+        as [v22v|] eqn: eval_arg22; try discriminate.
+      injection eval_arg2 as eq_varg2.
+      rewrite <- eq_varg2.
+
+      unfold eval_sstack_val.
+      simpl.
+      rewrite -> PeanoNat.Nat.eqb_refl.
+      simpl.
+      rewrite -> eq_maxidx.
+      rewrite -> eval_sstack_val'_const.
+
+      injection is_add_const_arg2 as eq_c2 eq_x.
+      rewrite <- eq_x.
+      pose proof (follow_suffix sb arg2 idx (SymOp ADD [arg21; arg22]) idx' sb'
+        Hfollow_arg2) as Hfollow.
+      destruct Hfollow as [prefix sb_prefix].
+      rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg21.
+      pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg exts idx sb
+        sb' evm_stack_opm prefix Hvalid_bindings_sb sb_prefix arg21 v21 eval_arg21)
+        as Heval_arg21.
+      apply eval_sstack_val'_preserved_when_depth_extended in Heval_arg21.
+      rewrite -> Heval_arg21.
+
+      injection is_const_arg1 as eq_c1.
+      rewrite <- eq_c1.
+      injection eval_arg1 as eq_varg1.
+      rewrite <- eq_varg1.
+      rewrite <- eq_c2.
+      
+      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg22.
+      apply eval'_maxidx_indep with (m:=idx) in eval_arg22.
+      unfold eval_sstack_val' in eval_arg22.
+      rewrite Hfollow_arg22 in eval_arg22.
+      injection eval_arg22 as eq_v22.
+      rewrite <- eq_v22.
+      simpl.
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite -> evm_add_assoc.
+      rewrite -> add_comm with (a:=v21)(b:=v22).
+      reflexivity.
+
+  + destruct (is_const arg2 idx sb) as [c2|] eqn: is_const_arg2;
+      try inject_rw Hoptm_sbinding eq_val'.
+    destruct (is_add_const arg1 idx sb) as [[c1 x]|] eqn: is_add_const_arg1;
+      try inject_rw Hoptm_sbinding eq_val'.
+    injection Hoptm_sbinding as eq_val' _.
+    rewrite <- eq_val'.
+    unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
+    rewrite -> PeanoNat.Nat.eqb_refl in Heval_orig.
+    simpl in Heval_orig.
+    destruct (eval_sstack_val' maxidx arg1 stk mem strg exts idx sb evm_stack_opm)
+      as [varg1|] eqn: eval_arg1; try discriminate.
+    destruct (eval_sstack_val' maxidx arg2 stk mem strg exts idx sb evm_stack_opm)
+      as [varg2|] eqn: eval_arg2; try discriminate.
+    injection Heval_orig as eq_v.
+    rewrite <- eq_v.
+
+    unfold is_add_const in is_add_const_arg1.
+    destruct (follow_in_smap arg1 idx sb) as [fsmv1|] eqn: Hfollow_arg1;
+      try discriminate.
+    destruct fsmv1 as [smv_arg1 idx' sb'].
+    destruct (smv_arg1) as [| |label1 args1| | | ]; try discriminate.
+    destruct label1; try discriminate.
+    destruct args1 as [|arg11 r1]; try discriminate.
+    destruct r1 as [|arg12 r1']; try discriminate.
+    destruct r1'; try discriminate.
+    destruct (is_const arg11 idx sb') as [c1'|] eqn: is_const_arg11.
+
+    * (* ADD(ADD(c1, X), c2) *)
+      unfold is_const in is_const_arg11.
+      destruct (follow_in_smap arg11 idx sb') as [fsmv11|] eqn: Hfollow_arg11;
+        try discriminate.
+      destruct fsmv11 as [smv_v11 idx'' sb''].
+      destruct (smv_v11) as [sv11| | | | | ]; try discriminate.
+      destruct sv11 as [v11| |]; try discriminate.
+
+      unfold valid_bindings in Hvalid.
+      destruct Hvalid as [eq_maxidx [Hvalid_smap_value Hvalid_bindings_sb]].
+      fold valid_bindings in Hvalid_bindings_sb.
+
+      unfold is_const in is_const_arg2.
+      destruct (follow_in_smap arg2 idx sb) as [fsmv2|] eqn: Hfollow_arg2;
+        try discriminate.
+      destruct fsmv2 as [smv_arg2 idx1 sb2].
+      destruct (smv_arg2) as [sv2| | | | | ]; try discriminate.
+      destruct sv2 as [v2| |]; try discriminate.
+
+      rewrite -> eq_maxidx in eval_arg1.
+      rewrite -> eq_maxidx in eval_arg2.
+      unfold eval_sstack_val' in eval_arg2.
+      rewrite -> Hfollow_arg2 in eval_arg2.
+      
+      unfold eval_sstack_val' in eval_arg1.
+      fold eval_sstack_val' in eval_arg1.
+      rewrite -> Hfollow_arg1 in eval_arg1.
+      rewrite -> evm_stack_opm_ADD in eval_arg1.
+      rewrite -> length_two in eval_arg1.
+      unfold map_option in eval_arg1.
+
+      destruct (eval_sstack_val' idx arg11 stk mem strg exts idx' sb' evm_stack_opm) 
+        as [v11v|] eqn: eval_arg11; try discriminate.
+      destruct (eval_sstack_val' idx arg12 stk mem strg exts idx' sb' evm_stack_opm)
+        as [v12|] eqn: eval_arg12; try discriminate.
+      injection eval_arg1 as eq_varg1.
+      rewrite <- eq_varg1.
+
+      unfold eval_sstack_val.
+      simpl.
+      rewrite -> PeanoNat.Nat.eqb_refl.
+      simpl.
+      rewrite -> eq_maxidx.
+      rewrite -> eval_sstack_val'_const.
+
+      injection is_add_const_arg1 as eq_c1 eq_x.
+      rewrite <- eq_x.
+      pose proof (follow_suffix sb arg1 idx (SymOp ADD [arg11; arg12]) idx' sb'
+        Hfollow_arg1) as Hfollow.
+      destruct Hfollow as [prefix sb_prefix].
+      rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg12.
+      pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg exts idx sb
+        sb' evm_stack_opm prefix Hvalid_bindings_sb sb_prefix arg12 v12 eval_arg12)
+        as Heval_arg12.
+      apply eval_sstack_val'_preserved_when_depth_extended in Heval_arg12.
+      rewrite -> Heval_arg12.
+
+      injection is_const_arg11 as eq_c1'.
+      rewrite <- eq_c1.
+      rewrite <- eq_c1'.
+      injection eval_arg2 as eq_varg2.
+      rewrite <- eq_varg2.
+      injection is_const_arg2 as eq_c2.
+      rewrite <- eq_c2.
+
+      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg11.
+      apply eval'_maxidx_indep with (m:=idx) in eval_arg11.
+      unfold eval_sstack_val' in eval_arg11.
+      rewrite Hfollow_arg11 in eval_arg11.
+      injection eval_arg11 as eq_v11.
+      rewrite <- eq_v11.
+      simpl.
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite -> evm_add_assoc.
+      rewrite -> evm_add_assoc.
+      rewrite -> add_comm with (a:=v2)(b:=v12).
+      reflexivity.
+
+    * (* ADD(ADD(X, c1), c2) *)
+      unfold is_const in is_add_const_arg1.
+      destruct (follow_in_smap arg12 idx sb') as [fsmv12|] eqn: Hfollow_arg12;
+        try discriminate.
+      destruct fsmv12 as [smv_v12 idx'' sb''].
+      destruct (smv_v12) as [sv12| | | | | ]; try discriminate.
+      destruct sv12 as [v12| |]; try discriminate.
+
+      unfold valid_bindings in Hvalid.
+      destruct Hvalid as [eq_maxidx [Hvalid_smap_value Hvalid_bindings_sb]].
+      fold valid_bindings in Hvalid_bindings_sb.
+
+      unfold is_const in is_const_arg2.
+      destruct (follow_in_smap arg2 idx sb) as [fsmv2|] eqn: Hfollow_arg2;
+        try discriminate.
+      destruct fsmv2 as [smv_arg2 idx1 sb2].
+      destruct (smv_arg2) as [sv2| | | | | ]; try discriminate.
+      destruct sv2 as [v2| |]; try discriminate.
+
+      rewrite -> eq_maxidx in eval_arg1.
+      rewrite -> eq_maxidx in eval_arg2.
+      unfold eval_sstack_val' in eval_arg2.
+      rewrite -> Hfollow_arg2 in eval_arg2.
+     
+      unfold eval_sstack_val' in eval_arg1.
+      fold eval_sstack_val' in eval_arg1.
+      rewrite -> Hfollow_arg1 in eval_arg1.
+      rewrite -> evm_stack_opm_ADD in eval_arg1.
+      rewrite -> length_two in eval_arg1.
+      unfold map_option in eval_arg1.
+
+      destruct (eval_sstack_val' idx arg11 stk mem strg exts idx' sb' evm_stack_opm) 
+        as [v11|] eqn: eval_arg11; try discriminate.
+      destruct (eval_sstack_val' idx arg12 stk mem strg exts idx' sb' evm_stack_opm)
+        as [v12v|] eqn: eval_arg12; try discriminate.
+      injection eval_arg1 as eq_varg1.
+      rewrite <- eq_varg1.
+
+      unfold eval_sstack_val.
+      simpl.
+      rewrite -> PeanoNat.Nat.eqb_refl.
+      simpl.
+      rewrite -> eq_maxidx.
+      rewrite -> eval_sstack_val'_const.
+
+      injection is_add_const_arg1 as eq_c1 eq_x.
+      rewrite <- eq_x.
+      pose proof (follow_suffix sb arg1 idx (SymOp ADD [arg11; arg12]) idx' sb'
+        Hfollow_arg1) as Hfollow.
+      destruct Hfollow as [prefix sb_prefix].
+      rewrite -> eval'_maxidx_indep_eq with (m:=idx) in eval_arg11.
+      pose proof (eval_sstack_val'_extend_sb instk_height idx stk mem strg exts idx sb
+        sb' evm_stack_opm prefix Hvalid_bindings_sb sb_prefix arg11 v11 eval_arg11)
+        as Heval_arg11.
+      apply eval_sstack_val'_preserved_when_depth_extended in Heval_arg11.
+      rewrite -> Heval_arg11.
+
+      rewrite <- eq_c1.
+      injection eval_arg2 as eq_varg2.
+      rewrite <- eq_varg2.
+      injection is_const_arg2 as eq_c2.
+      rewrite <- eq_c2.
+
+      apply eval_sstack_val'_preserved_when_depth_extended in eval_arg12.
+      apply eval'_maxidx_indep with (m:=idx) in eval_arg12.
+      unfold eval_sstack_val' in eval_arg12.
+      rewrite Hfollow_arg12 in eval_arg12.
+      injection eval_arg12 as eq_v12.
+      rewrite <- eq_v12.
+      simpl.
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite <- evm_add_step with (exts:=exts).
+      rewrite -> evm_add_assoc.
+      rewrite -> add_comm with (a:=v11)(b:=v12).
+      rewrite -> evm_add_assoc.
+      rewrite -> add_comm with (a:=v11)(b:=v2). 
+      reflexivity.
+Qed.      
+
+
 End Opt_add_add_const.
+

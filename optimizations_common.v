@@ -363,6 +363,19 @@ Proof.
 intuition.
 Qed.
 
+Lemma evm_minus_step: forall (exts: externals) (x y: EVMWord),
+evm_sub exts [x; y] = wminus x y.
+Proof. 
+intuition.
+Qed.
+
+Lemma evm_add_step: forall (exts: externals) (x y: EVMWord),
+evm_add exts [x; y] = wplus x y.
+Proof. 
+intuition.
+Qed.
+
+
 
 (*************************************************)
 (* Miscellaneous results                         *)
@@ -396,6 +409,12 @@ Lemma evm_stack_opm_LT:
 evm_stack_opm LT = OpImp 2 evm_lt None (Some lt_exts_ind).
 Proof.
 intuition.
+Qed.
+
+Lemma evm_stack_opm_ADD:
+  evm_stack_opm ADD = OpImp 2 evm_add (Some add_comm) (Some add_exts_ind).
+Proof.
+reflexivity.
 Qed.
 
 Lemma length_zero: forall {X: Type}, length ([]: list X) =? 0 = true.
