@@ -153,6 +153,27 @@ match val with
 end.
 
 
+Lemma and_and_mask_snd: forall (a b z m: EVMWord) (a' b': nat) (exts: externals),
+is_2_pow_n_minus_1 a = Some a' ->
+is_2_pow_n_minus_1 b = Some b' ->
+m = min_word a b ->
+evm_and exts [a; evm_and exts [b; z]] = evm_and exts [m; z].
+Proof.
+Admitted.
+
+
+Example ex_and_and_mask1:
+  let a := NToWord EVMWordSize 63 in  (* 2^6 - 1 *)  
+  let b := NToWord EVMWordSize 255 in (* 2^8 - 1 *)  
+  let z := NToWord EVMWordSize 4095 in  (* 2^12 - 1 *)
+
+  evm_and empty_externals [a; evm_and empty_externals [b; z]] = 
+  evm_and empty_externals [a; z].
+Proof.
+reflexivity.
+Qed.  
+
+
 Definition dummy : sstack_val_cmp_t :=
 fun (sv1: sstack_val) =>
 fun (sv2: sstack_val) =>
