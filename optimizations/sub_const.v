@@ -183,9 +183,9 @@ split.
   fold valid_bindings in Hvalid_sb.
   rewrite -> eq_maxidx.
   rewrite -> eval_sstack_val'_const.
-  rewrite <- evm_minus_step with (exts:=exts).
-  rewrite <- evm_minus_step with (exts:=exts).
-  rewrite -> evm_minus_step with (exts:=exts).
+  rewrite <- evm_sub_step with (exts:=exts).
+  rewrite <- evm_sub_step with (exts:=exts).
+  rewrite -> evm_sub_step with (exts:=exts).
   rewrite -> wminus_wneg.
   rewrite <- evm_sub_add.
 

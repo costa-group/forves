@@ -363,7 +363,7 @@ Proof.
 intuition.
 Qed.
 
-Lemma evm_minus_step: forall (exts: externals) (x y: EVMWord),
+Lemma evm_sub_step: forall (exts: externals) (x y: EVMWord),
 evm_sub exts [x; y] = wminus x y.
 Proof. 
 intuition.
@@ -371,6 +371,12 @@ Qed.
 
 Lemma evm_add_step: forall (exts: externals) (x y: EVMWord),
 evm_add exts [x; y] = wplus x y.
+Proof. 
+intuition.
+Qed.
+
+Lemma evm_and_step: forall (exts: externals) (x y: EVMWord),
+evm_and exts [x; y] = wand x y.
 Proof. 
 intuition.
 Qed.

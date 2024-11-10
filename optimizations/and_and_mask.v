@@ -152,6 +152,23 @@ match val with
 | _ => (val, false)
 end.
 
+(*
+Lemma mask_sizes: forall (a: word EVMWordSize) (n: nat),
+is_2_pow_n_minus_1 a = Some n ->
+a = Word.combine (wzero (EVMWordSize -n)) (wones n).
+*)
+
+
+Lemma and_masks_snd: forall (a b m: EVMWord) (a' b': nat) (exts: externals),
+is_2_pow_n_minus_1 a = Some a' ->
+is_2_pow_n_minus_1 b = Some b' ->
+m = min_word a b ->
+evm_and exts [a; b] = m.
+Proof.
+Admitted.
+
+
+
 
 Lemma and_and_mask_snd: forall (a b z m: EVMWord) (a' b': nat) (exts: externals),
 is_2_pow_n_minus_1 a = Some a' ->
@@ -159,7 +176,15 @@ is_2_pow_n_minus_1 b = Some b' ->
 m = min_word a b ->
 evm_and exts [a; evm_and exts [b; z]] = evm_and exts [m; z].
 Proof.
-Admitted.
+intros a b z m a' b' exts a_mask b_mask m_min.
+unfold evm_and.
+rewrite -> wand_assoc.
+rewrite <- evm_and_step with (exts:=exts).
+rewrite <- evm_and_step with (exts:=exts).
+rewrite <- evm_and_step with (exts:=exts).
+rewrite -> and_masks_snd with (a:=a)(m:=m)(a':=a')(b':=b'); try assumption.
+reflexivity.
+Qed.
 
 
 Example ex_and_and_mask1:
