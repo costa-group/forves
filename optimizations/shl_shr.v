@@ -65,8 +65,22 @@ Require Import Coq.Program.Equality.
 Module Opt_shl_shr.
 
 
+(* Creates a bit mask 111...1000...0 with n 1s and 256-n 0s 
+   as (111...111 >> n) << n *)
+(* This bit mask is the number 2^256 - 2^n *)
+Definition mask (n: N) : EVMWord :=
+  NToWord EVMWordSize (N.shiftl (N.shiftr (N.ones (N.of_nat EVMWordSize)) n) n).
+  (*let nN := NToWord EVMWordSize n in
+  evm_shl empty_externals [
+    nN; 
+    evm_shr empty_externals [nN; wones EVMWordSize]
+  ].
+  *)
+
+(*
 Definition mask (n: N) : EVMWord :=
   NToWord EVMWordSize (N.sub (N.pow 2 256) (N.pow 2 n)).
+*)
  
 (* 
   SHL(N, SHR(N, X)) = AND(2^256 - 2^N, X)
