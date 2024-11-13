@@ -1264,6 +1264,68 @@ induction args as [|h t IH].
 Qed.
 
 
+Lemma follow_in_smap_maxidx_indep_eq:
+  forall ssv smv (n n' m : nat) (sb sb' : sbindings),
+  follow_in_smap ssv n sb = Some (FollowSmapVal smv n' sb') ->
+  exists m', follow_in_smap ssv m sb = Some (FollowSmapVal smv m' sb').
+Proof.
+intros ssv smv n n' m sb sb' Hfollow.
+revert ssv smv n n' m sb' Hfollow.
+induction sb as [|h t].
+- intros ssv smv n n' m sb' Hfollow.
+  destruct ssv as [v| n1| idx].
+  + exists m. 
+    simpl in Hfollow. 
+    injection Hfollow as eq_smv eq_n eq_sb'.
+    rewrite <- eq_sb'.
+    rewrite <- eq_smv.
+    simpl.
+    reflexivity.
+  + exists m. 
+    simpl in Hfollow. 
+    injection Hfollow as eq_smv eq_n eq_sb'.
+    rewrite <- eq_sb'.
+    rewrite <- eq_smv.
+    simpl.
+    reflexivity.
+  + simpl in Hfollow. discriminate.
+- intros ssv smv n n' m sb' Hfollow.
+  destruct ssv as [v| n1| idx].
+  + exists m. 
+  simpl in Hfollow. 
+  injection Hfollow as eq_smv eq_n eq_sb'.
+  rewrite <- eq_sb'.
+  rewrite <- eq_smv.
+  simpl.
+  reflexivity.
+  + exists m. 
+  simpl in Hfollow. 
+  injection Hfollow as eq_smv eq_n eq_sb'.
+  rewrite <- eq_sb'.
+  rewrite <- eq_smv.
+  simpl.
+  reflexivity.
+  + simpl in Hfollow.
+    destruct h as [key' smv'].
+    destruct (key' =? idx) eqn: eq_key'.
+    * destruct (is_fresh_var_smv smv') as [idx'|] eqn: eq_isfresh.
+      -- exists n'.
+         simpl.
+         rewrite -> eq_key'.
+         rewrite -> eq_isfresh.
+         assumption.
+      -- exists n'.
+         simpl.
+         rewrite -> eq_key'.
+         rewrite -> eq_isfresh.
+         assumption.
+    * pose proof (IHt (FreshVar idx) smv key' n' m sb' Hfollow).
+      destruct H as [m' Hfollow'].
+      exists n'.
+      simpl.
+      rewrite -> eq_key'.
+      assumption.
+Qed.
 
 
 
@@ -1536,6 +1598,7 @@ destruct mem_upd as [offset val|offset val].
   rewrite -> eq_eval_val.
   rewrite <- Heval. reflexivity.
 Qed.
+
 
 Lemma same_instantiate_storage_update: forall 
   (f g: sstack_val -> option EVMWord),
