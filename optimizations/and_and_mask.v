@@ -62,6 +62,112 @@ Require Import Coq.Program.Equality.
 Module Opt_and_and_mask.
 
 
+Definition mask_0_1 (n: nat ) (H: n<=EVMWordSize) : word EVMWordSize.
+  assert (H0: EVMWordSize = n + (EVMWordSize - n)). intuition.
+  rewrite H0.
+  exact (Word.combine (wones n) (wzero (EVMWordSize -n))).
+Defined.
+
+
+(*
+Lemma and_make_0_1: forall (n m: nat),
+n <= EVMWordSize ->
+m <= EVMWordSize ->
+wand (mask_0_1 n) (mask_0_1 m) = mask_0_1 (min n m).
+Proof.
+Admitted.
+*)
+
+(*
+Proof Idea
+Asuming words 16 bits
+
+A = 00000000 111 11111    = mask(8), a = 8
+B = 00000000 000 11111    = mask(5), b = 5
+
+min(a, b) = 5
+diff = 8 - 5 = 3
+
+wand A B = [def] 
+            wand (combine (wzero N-8)) (wones 8)
+                 (combine (wzero N-5)) (wones 5)
+         = [combine_wzero + combine_wones]
+            wand (combine (wzero N-8)                         (combine (wones 3) (wones 5))
+                 (combine (combine wzero N-5-3) (wzero 3)))   (wones 5)
+         = [combine_assoc]
+            wand (combine (wzero N-8)        (combine (wones 3) (wones 5))
+                 (combine (wzero N-8))       (combine (wzero 3) (wones 5))
+         = [wand_combine]
+            combine 
+                 (wand (wzero N-8) (wzero N-8))
+                 (wand (combine (wones 3) (wones 5))
+                       (combine (wzero 3) (wones 5)))
+         = [wand_wzero]
+            combine 
+                 (wzero N-8)
+                 (wand (combine (wones 3) (wones 5))
+                       (combine (wzero 3) (wones 5)))
+         = [wand_combine]
+            combine 
+                 (wzero N-8)
+                 (combine 
+                       (wand (wones 3) (wzero 3))
+                       (wand (wones 5) (wones 5)))
+         = [wand_wzero]
+            combine 
+                 (wzero N-8)
+                 (combine (wzero 3))
+                       (wand (wones 5) (wones 5)))
+         = [wand_wones]
+            combine 
+                 (wzero N-8)
+                 (combine (wzero 3) (wones 5))
+         = [combine_assoc]
+            combine (combine (wzero N-8) (wzero 3)) 
+                    (wones 5)
+         = [combine_wzero]
+            combine (wzero N-5) (wones 5)
+         = [def]
+            B
+*)
+
+Check combine_wzero.
+Check combine_wones.
+Check combine_assoc.
+Check wand_combine.
+Check wand_wzero.
+Check wand_wones.
+
+
+
+
+Lemma f: 3 <= EVMWordSize.
+Proof.
+unfold EVMWordSize.
+simpl.
+intuition.
+Qed.
+
+Compute 
+  let a := mask_0_1 3 f
+  in a.
+
+
+
+  
+
+
+(* 
+Fixpoint is_2_pow_n_minus_1' (n: EVMWord) (size: nat): option nat :=
+  match size with
+  | O => None
+  | S size' => 
+      if weqb n (Word.combine (wzero (EVMWordSize - size)) (wones size))
+      then Some size
+      else is_2_pow_n_minus_1' n size'
+  end.
+*)
+
 Fixpoint is_2_pow_n_minus_1' (n: N) (size: nat): option nat :=
   match size with
   | O => None

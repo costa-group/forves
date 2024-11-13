@@ -82,22 +82,19 @@ match val with
 | _ => (val, false)
 end.
 
-(*
+
 Lemma evm_iszero2_slt_snd: forall exts x y,
-evm_iszero exts [evm_iszero exts [evm_lt exts [x; y]]] = evm_lt exts [x; y].
+evm_iszero exts [evm_iszero exts [evm_slt exts [x; y]]] = evm_slt exts [x; y].
 Proof.
 intros exts x y.
-unfold evm_lt.
-destruct (wordToN x <? wordToN y)%N eqn: eq_y_lt_x; try reflexivity.
+unfold evm_slt.
+destruct (BinInt.Z.ltb (wordToZ x) (wordToZ y))%N eqn: eq_y_slt_x; try reflexivity.
 Qed.
-*)
 
 
 Lemma optimize_iszero2_slt_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_iszero2_slt_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros _ Hvalid_smapv_val Hvalid Hoptm_sbinding.
@@ -141,7 +138,7 @@ apply Himpl2 in Hnot_basic2.
 simpl in Hvalid_arg2. unfold valid_stack_op_instr in Hvalid_arg2.
 simpl in Hvalid_arg2. destruct Hvalid_arg2 as [_ [Hvalid_arg2 _]].
 pose proof (valid_follow_in_smap sb' arg2 instk_height idx' evm_stack_opm
-  (SymOp LT [x;y]) idx'' sb'' Hvalid_arg2 Hvalid_sb' eq_follow_arg2)
+  (SymOp SLT [x;y]) idx'' sb'' Hvalid_arg2 Hvalid_sb' eq_follow_arg2)
   as [Hvalid_arg3 [Hvalid_sb'' Himpl3]].
 pose proof (not_basic_value_smv_symop LT [x;y]) as Hnot_basic3.
 apply Himpl3 in Hnot_basic3.
@@ -154,13 +151,11 @@ apply valid_smap_value_incr with (m:=k3+k2) in Hvalid_arg3.
 rewrite -> eq_n.
 assumption.
 Qed.
-*)
+
 
 Lemma optimize_iszero2_slt_sbinding_snd:
 opt_sbinding_snd optimize_iszero2_slt_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
@@ -219,14 +214,14 @@ split.
   
   pose proof (follow_suffix sb arg1 idx (SymOp ISZERO [arg2]) idx' sb'
     eq_follow_arg1) as [p1 eq_sb].
-  pose proof (follow_suffix sb' arg2 idx'(SymOp LT [x; y]) idx'' sb''
+  pose proof (follow_suffix sb' arg2 idx'(SymOp SLT [x; y]) idx'' sb''
     eq_follow_arg2) as [p2 eq_sb'].
   rewrite -> eq_sb' in eq_sb.
   rewrite -> app_assoc in eq_sb.
   
   rewrite -> eval_sstack_val'_one_step. 
   rewrite -> follow_in_smap_head_op.
-  rewrite -> evm_stack_opm_LT.
+  rewrite -> evm_stack_opm_SLT.
   rewrite -> length_two.
   unfold map_option.
   
@@ -252,6 +247,6 @@ split.
   rewrite <- evm_iszero2_slt_snd.
   reflexivity.
 Qed.
-*)
+
 
 End Opt_iszero2_slt.

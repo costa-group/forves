@@ -417,6 +417,13 @@ Proof.
 intuition.
 Qed.
 
+Lemma evm_stack_opm_SLT: 
+evm_stack_opm SLT = OpImp 2 evm_slt None (Some slt_exts_ind).
+Proof.
+intuition.
+Qed.
+
+
 Lemma evm_stack_opm_ADD:
   evm_stack_opm ADD = OpImp 2 evm_add (Some add_comm) (Some add_exts_ind).
 Proof.

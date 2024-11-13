@@ -80,8 +80,6 @@ end.
 Lemma optimize_gt_x_zero_lt_sbinding_smapv_valid:
 opt_smapv_valid_snd optimize_gt_x_zero_lt_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_smapv_valid_snd.
 intros instk_height n fcmp sb val val' flag.
 intros _ Hvalid_smapv_val Hvalid_sb Hoptm_sbinding.
@@ -104,8 +102,8 @@ destruct r1 as [|arg2 r2] eqn: eq_r1; try
 destruct r2 as [|arg3 r3] eqn: eq_r2; try 
   (injection Hoptm_sbinding as eq_val' eq_flag;
   rewrite <- eq_val'; assumption).
-destruct (fcmp arg1 (Val WOne) n sb n sb instk_height evm_stack_opm)
-  eqn: eq_fcmp_arg1.
+destruct (fcmp arg2 (Val WZero) n sb n sb instk_height evm_stack_opm)
+  eqn: eq_fcmp_arg2.
 * injection Hoptm_sbinding as eq_val' eq_flag.
   rewrite <- eq_val'.
   simpl in Hvalid_smapv_val. unfold valid_stack_op_instr in Hvalid_smapv_val.
@@ -118,36 +116,19 @@ destruct (fcmp arg1 (Val WOne) n sb n sb instk_height evm_stack_opm)
   rewrite <- eq_val'.
   assumption.
 Qed.
-*)
 
 
-(*
-Lemma gt_iszero: forall (x: EVMWord) exts,
-evm_gt exts [WOne; x] = evm_iszero exts [x].
+
+Lemma gt_x_zero: forall (x: EVMWord) exts,
+evm_gt exts [x; WZero] = evm_lt exts [WZero; x].
 Proof.
-intros. simpl. destruct ((wordToN x <? 1)%N) eqn: H1.
-- apply N.ltb_lt in H1.
-  apply Nlt_out in H1. rewrite -> one_as_N in H1.
-  apply gt_iszero_nat in H1.
-  rewrite -> wordToN_to_nat in H1.
-  apply wordToNat_eq_natToWord in H1. 
-  rewrite -> H1. reflexivity.
-- apply N.ltb_ge in H1.
-  apply N.le_ge in H1.
-  apply Nge_out in H1. rewrite -> one_as_N in H1.
-  apply gt_iszero_nat' in H1.
-  apply word_neq_zero in H1.
-  simpl. apply weqb_ne in H1. rewrite -> H1.
-  reflexivity.
+intros. reflexivity.
 Qed.
-*)
 
 
 Lemma optimize_gt_x_zero_lt_sbinding_snd:
 opt_sbinding_snd optimize_gt_x_zero_lt_sbinding.
 Proof.
-Admitted.
-(*
 unfold opt_sbinding_snd.
 intros val val' fcmp sb maxidx instk_height idx flag Hsafe_sstack_val_cmp
   Hvalid Hoptm_sbinding.
@@ -175,9 +156,9 @@ split.
     try inject_rw Hoptm_sbinding eq_val'.
   destruct r2 as [|arg3 r3] eqn: eq_r2; 
     try inject_rw Hoptm_sbinding eq_val'.
-  destruct (fcmp arg1 (Val WOne) idx sb idx sb instk_height) 
-    eqn: fcmp_arg1_one.
-  + (* arg2 ~ WOne *)
+  destruct (fcmp arg2 (Val WZero) idx sb idx sb instk_height) 
+    eqn: fcmp_arg2_zero.
+  + (* arg2 ~ WZero *)
     injection Hoptm_sbinding as eq_val' _. 
     rewrite <- eq_val'.
     unfold eval_sstack_val in Heval_orig. simpl in Heval_orig.
@@ -198,31 +179,38 @@ split.
 
     pose proof (valid_sstack_value_const instk_height idx v) as 
       Hvalid_one.
-    pose proof (Hsafe_sstack_val_cmp arg1 (Val WOne) idx sb idx sb 
-      instk_height evm_stack_opm Hvalid_arg1 Hvalid_one Hvalid_bindings_sb
-      Hvalid_bindings_sb fcmp_arg1_one stk mem strg exts Hlen2)
-      as [vone [Heval_arg1 Heval_vone]].
-    rewrite -> eval_sstack_val_const in Heval_vone.
-    rewrite <- Heval_vone in Heval_arg1.
+    pose proof (Hsafe_sstack_val_cmp arg2 (Val WZero) idx sb idx sb 
+      instk_height evm_stack_opm Hvalid_arg2 Hvalid_one Hvalid_bindings_sb
+      Hvalid_bindings_sb fcmp_arg2_zero stk mem strg exts Hlen2)
+      as [vzero [Heval_arg2 Heval_vzero]].
+    rewrite -> eval_sstack_val_const in Heval_vzero.
+    rewrite <- Heval_vzero in Heval_arg2.
     
-    unfold eval_sstack_val in Heval_arg1.
-    rewrite -> eq_maxidx_idx in Heval_arg1.
-    rewrite -> Heval_arg1 in eval_arg1.
-    injection eval_arg1 as eq_varg1.
-    rewrite <- eq_varg1 in Heval_orig.
-    rewrite -> gt_iszero in Heval_orig.
+    unfold eval_sstack_val in Heval_arg2.
+    rewrite -> eq_maxidx_idx in Heval_arg2.
+    rewrite -> Heval_arg2 in eval_arg2.
+    injection eval_arg2 as eq_varg2.
+    rewrite <- eq_varg2 in Heval_orig.
+    rewrite -> gt_x_zero in Heval_orig.
     rewrite <- Heval_orig.
 
     unfold eval_sstack_val.
-    simpl.
-    rewrite -> PeanoNat.Nat.eqb_refl. simpl.
-    rewrite -> eval_arg2.
+    simpl (eval_sstack_val' (S maxidx) (FreshVar idx) stk mem strg exts maxidx ((idx, SymOp LT [Val WZero; arg1]) :: sb)
+    evm_stack_opm).
+    rewrite -> PeanoNat.Nat.eqb_refl. 
+    rewrite -> evm_stack_opm_LT.
+    rewrite -> length_two.
+    unfold map_option.
+    rewrite <- eq_maxidx_idx.
+    rewrite -> eval_sstack_val'_const.
+    rewrite -> eq_maxidx_idx.
+    rewrite -> eval_arg1.
     reflexivity.
+    
   + injection Hoptm_sbinding as eq_val' _.
     rewrite <- eq_val'.
     assumption.
 Qed.
-*)
 
 
 End Opt_gt_x_zero_lt.
