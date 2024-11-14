@@ -82,10 +82,10 @@ Definition mask (n: N) : EVMWord :=
   NToWord EVMWordSize (N.sub (N.pow 2 256) (N.pow 2 n)).
 *)
 
-Lemma shl_shr_and_mask: forall (n: N) (x nn: EVMWord),
+Lemma shl_shr_and_mask: forall (n: N) (x nn: EVMWord) (exts: externals),
   nn = NToWord EVMWordSize n ->
-  evm_and empty_externals [mask n; x] = 
-    evm_shl empty_externals [nn; evm_shr empty_externals [nn; x]].
+  evm_and exts [mask n; x] = 
+    evm_shl exts [nn; evm_shr exts [nn; x]].
 Proof.
 Admitted.    
  
@@ -103,7 +103,7 @@ match val with
 | SymOp SHL [arg1;arg2] =>
     match follow_in_smap arg2 maxid sb with 
     | Some (FollowSmapVal (SymOp SHR [arg21; x]) idx' sb') => 
-      if fcmp arg1 arg21 maxid sb idx' sb instk_height ops then 
+      if fcmp arg1 arg21 maxid sb idx' sb' instk_height ops then 
         match follow_in_smap arg21 idx' sb' with
         | Some (FollowSmapVal (SymBasicVal (Val n)) _ _) => 
             let mask_val := mask (wordToN n) in
@@ -142,7 +142,7 @@ destruct label2 eqn: eq_label2; try inject_rw Hoptm_sbinding eq_val';
 destruct args2 as [| arg21 r21]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r21 as [|arg22 r22]; try inject_rw Hoptm_sbinding eq_val'.
 destruct r22; try inject_rw Hoptm_sbinding eq_val'.
-destruct (fcmp arg1 arg21 n sb idx' sb instk_height evm_stack_opm)
+destruct (fcmp arg1 arg21 n sb idx' sb' instk_height evm_stack_opm)
     eqn: eq_fcmp_arg1_arg21; try inject_rw Hoptm_sbinding eq_val'.
 
 destruct (follow_in_smap arg21 idx' sb') as [fsmv_arg21|] eqn: eq_follow_arg21
@@ -171,7 +171,6 @@ pose proof (not_basic_value_smv_symop SHR [arg21; arg22]) as Hnot_basic.
 apply Himpl in Hnot_basic as idx_gt_idx'.
 apply valid_sstack_value_gt with (n:=idx'); try assumption.
 Qed.
-
 
 Lemma optimize_shl_shr_sbinding_snd:
 opt_sbinding_snd optimize_shl_shr_sbinding.
@@ -205,7 +204,7 @@ split.
   destruct r21 as [|arg22 r22]; try inject_rw Hoptm_sbinding eq_val'.
   destruct r22; try inject_rw Hoptm_sbinding eq_val'.
 
-  destruct (fcmp arg1 arg21 idx sb idx' sb instk_height evm_stack_opm)
+  destruct (fcmp arg1 arg21 idx sb idx' sb' instk_height evm_stack_opm)
     eqn: eq_fcmp_arg1_arg21; try inject_rw Hoptm_sbinding eq_val'.
   destruct (follow_in_smap arg21 idx' sb') as [fsmv_arg21|] eqn: eq_follow_arg21
     ; try inject_rw Hoptm_sbinding eq_val'.
@@ -270,24 +269,40 @@ split.
   unfold valid_smap_value in Hvalid_smap_value.
   unfold valid_stack_op_instr in Hvalid_smap_value.
   simpl in Hvalid_smap_value.
-  destruct Hvalid_smap_value as [_ [Hvalid_arg1 [Hvalid_arg21 _]]].
-  
-  (* Continue here*)
-  
-  (*
-  Search follow_in_smap .
-  
+  destruct Hvalid_smap_value as [_ [Hvalid_arg1 [Hvalid_arg2 _]]].
+
+  pose proof (valid_follow_in_smap sb arg2 instk_height idx evm_stack_opm
+    (SymOp SHR [arg21; arg22]) idx' sb' Hvalid_arg2 Hvalid_sb eq_follow_arg2)
+    as Hvalid_arg21_arg22.
+  destruct Hvalid_arg21_arg22 as [Hvalid_arg21_arg22 [valid_sb' Hnot_basic]].
+  simpl in Hvalid_arg21_arg22.
+  unfold valid_stack_op_instr in Hvalid_arg21_arg22.
+  simpl in Hvalid_arg21_arg22.
+  destruct Hvalid_arg21_arg22 as [_ [Hvalid_arg21 [Hvalid_arg22 _]]].
+
+  symmetry in Hlen.
   pose proof (Hsafe_sstack_val_cmp arg1 arg21 idx sb idx' sb' 
-    instk_height evm_stack_opm Hvalid_arg1). 
-    
-  pose proof (valid_follow_in_smap).  
-  
-    Hvalid_arg2 Hvalid_bindings_sb
-    Hvalid_bindings_sb eq_fcmp_arg1_arg2 stk mem strg exts Hlen2)
-    as [vv [Heval_arg1 Heval_arg2]].
-  Search follow*)
-    
-Admitted.
+    instk_height evm_stack_opm Hvalid_arg1 Hvalid_arg21 Hvalid_sb valid_sb'
+    eq_fcmp_arg1_arg21 stk mem strg exts Hlen) as Hfcmp.
+  destruct Hfcmp as [vv [Heval_arg1 Heval_arg21]].
+  unfold eval_sstack_val in Heval_arg1.
+  unfold eval_sstack_val in Heval_arg21.
+  rewrite <- eq_maxid in Heval_arg1.
+  rewrite -> eq_eval_arg1 in Heval_arg1.
+  simpl in Heval_arg21.
+  rewrite -> eq_follow_arg21 in Heval_arg21.
+  rewrite <- Heval_arg1 in Heval_arg21.
+  injection Heval_arg21 as eq_arg1v.
+  rewrite -> eq_arg1v.
+
+  assert (HH := 3=4).
+  pose proof (shl_shr_and_mask (wordToN arg1v) arg22v 
+    (NToWord EVMWordSize (wordToN v21) )) as Hshl.
+  rewrite -> NToWord_wordToN in Hshl.
+  rewrite -> Hshl.
+  + rewrite -> eq_arg1v. reflexivity.
+  + rewrite -> NToWord_wordToN. assumption.
+Qed.
 
 
 End Opt_shl_shr.
