@@ -62,6 +62,31 @@ Require Import Coq.Program.Equality.
 Module Opt_and_and_mask.
 
 
+Definition mask_0_1'' (n: nat ) : option (word EVMWordSize).
+  destruct (n <=? EVMWordSize) eqn:E.
+  + assert (H: n + (EVMWordSize - n) = EVMWordSize). apply PeanoNat.Nat.leb_le in E. intuition.
+    apply (@nat_cast (fun x => option (word x)) (n + (EVMWordSize - n)) EVMWordSize H).
+    exact (Some (Word.combine (wones n) (wzero (EVMWordSize - n)))).
+  + exact None.
+Defined.
+
+Check mask_0_1''.
+Compute (mask_0_1'' 5).
+
+Lemma and_make_0_1'':
+  forall (n m: nat) (w1 w2 w3 : word EVMWordSize),
+    mask_0_1'' n = Some w1 ->
+    n <=? EVMWordSize = true ->
+    mask_0_1'' m = Some w2 ->
+    mask_0_1'' (min n m) = Some w3 ->
+    wand w1 w2 = w3.
+Proof.
+intros n m w1 w2 w3 Hmaskn Hnleq Hmaskm Hmaskmin.
+unfold mask_0_1''  in Hmaskn.
+simpl in Hmaskn.
+Admitted.
+
+
 Definition mask_0_1 (n: nat ) (H: n<=EVMWordSize) : word EVMWordSize.
   assert (H0: EVMWordSize = n + (EVMWordSize - n)). intuition.
   rewrite H0.
