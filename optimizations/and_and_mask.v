@@ -62,155 +62,26 @@ Require Import Coq.Program.Equality.
 Module Opt_and_and_mask.
 
 
-Definition mask_0_1'' (n: nat ) : option (word EVMWordSize).
-  destruct (n <=? EVMWordSize) eqn:E.
-  + assert (H: n + (EVMWordSize - n) = EVMWordSize). apply PeanoNat.Nat.leb_le in E. intuition.
-    apply (@nat_cast (fun x => option (word x)) (n + (EVMWordSize - n)) EVMWordSize H).
-    exact (Some (Word.combine (wones n) (wzero (EVMWordSize - n)))).
-  + exact None.
-Defined.
-
-Check mask_0_1''.
-Compute (mask_0_1'' 5).
-
-Lemma and_make_0_1'':
-  forall (n m: nat) (w1 w2 w3 : word EVMWordSize),
-    mask_0_1'' n = Some w1 ->
-    n <=? EVMWordSize = true ->
-    mask_0_1'' m = Some w2 ->
-    mask_0_1'' (min n m) = Some w3 ->
-    wand w1 w2 = w3.
-Proof.
-intros n m w1 w2 w3 Hmaskn Hnleq Hmaskm Hmaskmin.
-unfold mask_0_1''  in Hmaskn.
-simpl in Hmaskn.
-Admitted.
-
-
-Definition mask_0_1 (n: nat ) (H: n<=EVMWordSize) : word EVMWordSize.
-  assert (H0: EVMWordSize = n + (EVMWordSize - n)). intuition.
-  rewrite H0.
-  exact (Word.combine (wones n) (wzero (EVMWordSize -n))).
-Defined.
-
-
-(*
-Lemma and_make_0_1: forall (n m: nat),
-n <= EVMWordSize ->
-m <= EVMWordSize ->
-wand (mask_0_1 n) (mask_0_1 m) = mask_0_1 (min n m).
-Proof.
-Admitted.
-*)
-
-(*
-Proof Idea
-Asuming words 16 bits
-
-A = 00000000 111 11111    = mask(8), a = 8
-B = 00000000 000 11111    = mask(5), b = 5
-
-min(a, b) = 5
-diff = 8 - 5 = 3
-
-wand A B = [def] 
-            wand (combine (wzero N-8)) (wones 8)
-                 (combine (wzero N-5)) (wones 5)
-         = [combine_wzero + combine_wones]
-            wand (combine (wzero N-8)                         (combine (wones 3) (wones 5))
-                 (combine (combine wzero N-5-3) (wzero 3)))   (wones 5)
-         = [combine_assoc]
-            wand (combine (wzero N-8)        (combine (wones 3) (wones 5))
-                 (combine (wzero N-8))       (combine (wzero 3) (wones 5))
-         = [wand_combine]
-            combine 
-                 (wand (wzero N-8) (wzero N-8))
-                 (wand (combine (wones 3) (wones 5))
-                       (combine (wzero 3) (wones 5)))
-         = [wand_wzero]
-            combine 
-                 (wzero N-8)
-                 (wand (combine (wones 3) (wones 5))
-                       (combine (wzero 3) (wones 5)))
-         = [wand_combine]
-            combine 
-                 (wzero N-8)
-                 (combine 
-                       (wand (wones 3) (wzero 3))
-                       (wand (wones 5) (wones 5)))
-         = [wand_wzero]
-            combine 
-                 (wzero N-8)
-                 (combine (wzero 3))
-                       (wand (wones 5) (wones 5)))
-         = [wand_wones]
-            combine 
-                 (wzero N-8)
-                 (combine (wzero 3) (wones 5))
-         = [combine_assoc]
-            combine (combine (wzero N-8) (wzero 3)) 
-                    (wones 5)
-         = [combine_wzero]
-            combine (wzero N-5) (wones 5)
-         = [def]
-            B
-*)
-
-Check combine_wzero.
-Check combine_wones.
-Check combine_assoc.
-Check wand_combine.
-Check wand_wzero.
-Check wand_wones.
-
-
-
-
-Lemma f: 3 <= EVMWordSize.
-Proof.
-unfold EVMWordSize.
-simpl.
-intuition.
-Qed.
-
-Compute 
-  let a := mask_0_1 3 f
-  in a.
-
-
-
-  
-
-
-(* 
-Fixpoint is_2_pow_n_minus_1' (n: EVMWord) (size: nat): option nat :=
+(* n is equal to a mask 000...111 with size' bits to 1, for some size' in [size..0]
+   It uses 2^size'-1 to compute 000...111 masks *)
+Fixpoint is_mask_0_1' (n: N) (size: nat): option nat :=
   match size with
-  | O => None
-  | S size' => 
-      if weqb n (Word.combine (wzero (EVMWordSize - size)) (wones size))
-      then Some size
-      else is_2_pow_n_minus_1' n size'
-  end.
-*)
-
-Fixpoint is_2_pow_n_minus_1' (n: N) (size: nat): option nat :=
-  match size with
-  | O => None
+  | O => if (N.eqb 0 n) then Some 0 else None
   | S size' => 
       if N.eqb n (N.sub (N.pow (2%N) (N.of_nat size)) 1) then Some size
-      else is_2_pow_n_minus_1' n size'
+      else is_mask_0_1' n size'
   end.
 
-
-Definition is_2_pow_n_minus_1 (w: EVMWord) : option nat :=
-  is_2_pow_n_minus_1' (wordToN w) EVMWordSize.
+(* is_mask_0_1 w = Some n if w is equal to a mask 000...111 with n bits to 1 *)
+Definition is_mask_0_1 (w: EVMWord) : option nat :=
+  is_mask_0_1' (wordToN w) EVMWordSize.
 
 
 Definition is_mask_const (sv: sstack_val) (maxid: nat) (sb: sbindings) 
   : option EVMWord :=
   match follow_in_smap sv maxid sb with 
   | Some (FollowSmapVal (SymBasicVal (Val v)) idx' sb') => 
-    match is_2_pow_n_minus_1 v with 
+    match is_mask_0_1 v with 
     | Some _ => Some v
     | None => None
     end
@@ -234,10 +105,15 @@ match follow_in_smap sv maxid sb with
 end.
 
 
+(* Provided a and b are masks 0000...1111, min a b = wand a b *)
 Definition min_word (a b: EVMWord) : EVMWord :=
-  if (N.ltb (wordToN a) (wordToN b)) 
-  then a else b.
+  wand a b.
 
+
+Lemma min_word_step: forall(a b: EVMWord), min_word a b = wand a b.
+Proof.
+reflexivity.
+Qed.
 
 (* 
   AND(a, AND(b, X)) = AND(min(a,b), X)
@@ -283,27 +159,24 @@ match val with
 | _ => (val, false)
 end.
 
-(*
-Lemma mask_sizes: forall (a: word EVMWordSize) (n: nat),
-is_2_pow_n_minus_1 a = Some n ->
-a = Word.combine (wzero (EVMWordSize -n)) (wones n).
-*)
-
 
 Lemma and_masks_snd: forall (a b m: EVMWord) (a' b': nat) (exts: externals),
-is_2_pow_n_minus_1 a = Some a' ->
-is_2_pow_n_minus_1 b = Some b' ->
+is_mask_0_1 a = Some a' ->
+is_mask_0_1 b = Some b' ->
 m = min_word a b ->
 evm_and exts [a; b] = m.
 Proof.
-Admitted.
+intros a b m a' b' exts Hmask_a Hmask_b Hmin.
+rewrite -> Hmin.
+reflexivity.
+Qed.
 
 
 
 
 Lemma and_and_mask_snd: forall (a b z m: EVMWord) (a' b': nat) (exts: externals),
-is_2_pow_n_minus_1 a = Some a' ->
-is_2_pow_n_minus_1 b = Some b' ->
+is_mask_0_1 a = Some a' ->
+is_mask_0_1 b = Some b' ->
 m = min_word a b ->
 evm_and exts [a; evm_and exts [b; z]] = evm_and exts [m; z].
 Proof.
@@ -316,20 +189,6 @@ rewrite <- evm_and_step with (exts:=exts).
 rewrite -> and_masks_snd with (a:=a)(m:=m)(a':=a')(b':=b'); try assumption.
 reflexivity.
 Qed.
-
-
-(*
-Example ex_and_and_mask1:
-  let a := NToWord EVMWordSize 63 in  (* 2^6 - 1 *)  
-  let b := NToWord EVMWordSize 255 in (* 2^8 - 1 *)  
-  let z := NToWord EVMWordSize 4095 in  (* 2^12 - 1 *)
-
-  evm_and empty_externals [a; evm_and empty_externals [b; z]] = 
-  evm_and empty_externals [a; z].
-Proof.
-reflexivity.
-Qed.  
-*)
 
 
 Lemma optimize_and_and_mask_sbinding_smapv_valid:
@@ -362,7 +221,7 @@ destruct (is_mask_const arg1 n sb) as [aval|] eqn: eq_mask_arg1.
   destruct fsmv_arg1 as [smv_arg1 idx' sb'].
   destruct smv_arg1 as [aval_ss_val| | | | | ]; try discriminate.
   destruct aval_ss_val as [aval'| |]; try discriminate.
-  destruct (is_2_pow_n_minus_1 aval') as [na|] eqn: eq_is_mask_aval'; try discriminate.
+  destruct (is_mask_0_1 aval') as [na|] eqn: eq_is_mask_aval'; try discriminate.
 
   unfold is_and_const_mask in and_const_arg2.
   destruct (follow_in_smap arg2 n sb) as [fsmv_arg2|] eqn: eq_follow_arg2;
@@ -516,7 +375,7 @@ split.
     destruct fsmv1 as [smv1 idx' sb'].
     destruct smv1 as [a_ss_val| | | | | ]; try discriminate.
     destruct a_ss_val as [aval'| |]; try discriminate.
-    destruct (is_2_pow_n_minus_1 aval') as [na|] eqn: eq_is_mask_aval'; try discriminate.
+    destruct (is_mask_0_1 aval') as [na|] eqn: eq_is_mask_aval'; try discriminate.
 
     unfold is_and_const_mask in eq_is_and.
     destruct (follow_in_smap arg2 idx sb) as [fsmv2|] eqn: eq_follow_arg2;
@@ -536,7 +395,7 @@ split.
       destruct fsmv21 as [smv21 idx''' sb'''].
       destruct smv21 as [b_ss_val| | | | | ]; try discriminate.
       destruct b_ss_val as [bval''| |]; try discriminate.
-      destruct (is_2_pow_n_minus_1 bval'') as [nb|] eqn: eq_is_mask_bval''; try discriminate.
+      destruct (is_mask_0_1 bval'') as [nb|] eqn: eq_is_mask_bval''; try discriminate.
       
       unfold eval_sstack_val in Heval_orig.
       simpl in Heval_orig.
@@ -610,6 +469,7 @@ split.
       rewrite <- evm_and_step with (exts:=exts).
       rewrite <- eq_arg21v.
       rewrite -> eq_bval''.
+      rewrite <- evm_and_step with (exts:=exts).
       rewrite -> and_and_mask_snd with (m:=min_word aval bval)(a':=na)(b':=nb);
         try assumption; try reflexivity.
 
@@ -622,7 +482,7 @@ split.
       destruct fsmv22 as [smv22 idx''' sb'''].
       destruct smv22 as [b_ss_val| | | | | ]; try discriminate.
       destruct b_ss_val as [bval''| |]; try discriminate.
-      destruct (is_2_pow_n_minus_1 bval'') as [nb|] eqn: eq_is_mask_bval''; try discriminate.
+      destruct (is_mask_0_1 bval'') as [nb|] eqn: eq_is_mask_bval''; try discriminate.
       
       unfold eval_sstack_val in Heval_orig.
       simpl in Heval_orig.
@@ -696,6 +556,7 @@ split.
       rewrite <- evm_and_step with (exts:=exts).
       rewrite <- eq_arg22v.
       rewrite -> eq_bval''.
+      rewrite <- evm_and_step with (exts:=exts).
       rewrite and_comm with (a:=arg21v)(b:=bval).
       rewrite -> and_and_mask_snd with (m:=min_word aval bval)(a':=na)(b':=nb);
         try assumption; try reflexivity.
@@ -710,7 +571,7 @@ split.
     destruct fsmv2 as [smv2 idx' sb'].
     destruct smv2 as [b_ss_val| | | | | ]; try discriminate.
     destruct b_ss_val as [bval''| |]; try discriminate.
-    destruct (is_2_pow_n_minus_1 bval'') as [nb|] eqn: eq_is_mask_bval''; 
+    destruct (is_mask_0_1 bval'') as [nb|] eqn: eq_is_mask_bval''; 
       try discriminate.
     injection eq_is_mask_arg2 as eq_bval'.
     rewrite <- eq_bval' in Hoptm_sbinding.
@@ -733,7 +594,7 @@ split.
       destruct fsmv11 as [smv11 idx''' sb'''].
       destruct smv11 as [a_ss_val| | | | | ]; try discriminate.
       destruct a_ss_val as [aval''| |]; try discriminate.
-      destruct (is_2_pow_n_minus_1 aval'') as [na|] eqn: eq_is_mask_aval''; 
+      destruct (is_mask_0_1 aval'') as [na|] eqn: eq_is_mask_aval''; 
         try discriminate.
       injection eq_is_mask_arg11 as eq_aval'.
       rewrite <- eq_aval' in eq_is_and_arg1.
@@ -801,6 +662,7 @@ split.
       rewrite -> wand_comm with (y:=arg2v).
       rewrite <- evm_and_step with (exts:=exts).
       rewrite <- evm_and_step with (exts:=exts).
+      rewrite <- evm_and_step with (exts:=exts).
 
       rewrite -> and_and_mask_snd with (m:=min_word arg2v arg11v)(a':=nb)(b':=na);
         try assumption; try reflexivity.
@@ -814,7 +676,7 @@ split.
       destruct fsmv12 as [smv12 idx''' sb'''].
       destruct smv12 as [a_ss_val| | | | | ]; try discriminate.
       destruct a_ss_val as [aval'| |]; try discriminate.
-      destruct (is_2_pow_n_minus_1 aval') as [na|] eqn: eq_is_mask_aval'; 
+      destruct (is_mask_0_1 aval') as [na|] eqn: eq_is_mask_aval'; 
         try discriminate.
       injection eq_is_mask_arg12 as eq_aval'.
       rewrite <- eq_aval' in eq_is_and_arg1.
@@ -881,10 +743,13 @@ split.
       rewrite -> eval_arg11_alt.
       rewrite -> wand_comm with (y:=arg2v).
       rewrite -> wand_comm with (y:=arg12v).
-      rewrite <- evm_and_step with (exts:=exts).
-      rewrite <- evm_and_step with (exts:=exts).
-
-      rewrite -> and_and_mask_snd with (m:=min_word arg2v arg12v)(a':=nb)(b':=na);
+      rewrite -> wand_comm with (x:=arg12v).
+      rewrite -> wand_comm with (x:=arg11v).
+      rewrite <- min_word_step.
+      rewrite <- evm_and_step with (exts:=exts)(x:=arg2v)(y:=wand arg12v arg11v).
+      rewrite <- evm_and_step with (exts:=exts)(x:=arg12v).
+          
+      rewrite -> and_and_mask_snd with (m:=min_word arg2v arg12v )(a':=nb)(b':=na);
         try assumption; try reflexivity.
 Qed.
 
