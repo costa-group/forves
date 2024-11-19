@@ -64,6 +64,12 @@ Require Import Coq.Program.Equality.
 
 Module Opt_shl_shr.
 
+(* Try to use an alternative definition of wand *)
+Lemma wand_def: forall (a b : EVMWord), 
+wand a b = wordBin N.land a b.
+Proof.
+Admitted.
+
 
 (* Creates a bit mask 111...1000...0 with n 1s and 256-n 0s 
    as (111...111 >> n) << n *)
@@ -83,10 +89,22 @@ Definition mask (n: N) : EVMWord :=
 *)
 
 Lemma shl_shr_and_mask: forall (n: N) (x nn: EVMWord) (exts: externals),
+  (n < Npow2 EVMWordSize)%N ->
   nn = NToWord EVMWordSize n ->
   evm_and exts [mask n; x] = 
     evm_shl exts [nn; evm_shr exts [nn; x]].
 Proof.
+intros n x nn exts lt_n eq_nn.
+simpl. rewrite -> wand_def. unfold mask. unfold wordBin.
+rewrite -> eq_nn.
+pose proof (wordToN_NToWord_2 EVMWordSize) as H.
+apply wordToN_NToWord_2 in lt_n as eq_n. 
+rewrite -> eq_n.
+rewrite <- N.ldiff_ones_r.
+pose proof (@wordToN_NToWord_2 EVMWordSize (N.shiftr (wordToN x) n)).
+rewrite -> @wordToN_NToWord_2 with (n:=(N.shiftr (wordToN x) n)).
+- admit.
+- admit.
 Admitted.    
  
 (* 
